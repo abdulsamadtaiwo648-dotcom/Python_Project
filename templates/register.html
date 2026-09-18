@@ -17,7 +17,7 @@
         
         <form method="POST" action="/register" class="space-y-4">
             
-            <!-- Flask Flash Messages Error Box -->
+            <!-- Flask Flash Messages & Error Box -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
@@ -27,6 +27,11 @@
                     {% endfor %}
                 {% endif %}
             {% endwith %}
+            {% if error and not get_flashed_messages() %}
+                <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm font-medium">
+                    {{ error }}
+                </div>
+            {% endif %}
 
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Email</label>

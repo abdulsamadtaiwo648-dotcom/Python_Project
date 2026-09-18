@@ -152,9 +152,17 @@ def register():
                 db.commit()
             flash("Account created successfully! Please log in.", "success")
             return redirect("/login")
-        except Exception:
-            flash("Email already registered! Please log in with your password.", "danger")
-            return render_template("register.html")
+        except sqlite3.IntegrityError:
+            error_msg = "Email already registered! Please log in with your password."
+            flash(error_msg, "danger")
+            return render_template("register.html", error=error_msg)
+        except Exception as e:
+            err_str = str(e).lower()
+            if "unique" in err_str or "duplicate" in err_str:
+                error_msg = "Email already registered! Please log in with your password."
+                flash(error_msg, "danger")
+                return render_template("register.html", error=error_msg)
+            return f"CRITICAL DATABASE ERROR: The database failed to save because -> {str(e)}"
             
     return render_template("register.html")
 
