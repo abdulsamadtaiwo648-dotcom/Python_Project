@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | SoloBiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center h-screen px-4">
+    <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Welcome Back</h2>
+        
+        <form method="POST" action="/login" class="space-y-4">
+            <input type="email" name="email" placeholder="Email Address" required 
+                class="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500">
+            <input type="password" name="password" placeholder="Password" required 
+                class="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500">
+            
+            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-indigo-700">
+                Log In
+            </button>
+        </form>
+        
+        <p class="mt-4 text-center text-sm text-gray-600">
+            Don't have an account? <a href="/register" class="text-indigo-600 font-bold">Sign up</a>
+        </p>
+    </div>
+</body>
+</html>

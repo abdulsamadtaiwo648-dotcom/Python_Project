@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoloBiz Tracker - Pocket CFO</title>
+    <!-- Pulls in Tailwind CSS for premium styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF for PDF Receipt Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas for Digital Business Card Image Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Pulls in modern, clean Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 pb-16">
+    
+    <!-- App Header -->
+    <header class="bg-gray-900 text-white p-4 shadow-md sticky top-0 z-40">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            
+            <!-- Left: App Name & Beta Tag -->
+            <div class="flex items-center gap-2">
+                <h1 class="font-bold text-lg tracking-wide text-indigo-400">SoloBiz</h1>
+                <span class="text-[10px] font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded-full">Pocket CFO</span>
+            </div>
+            
+            <!-- Right: Greeting & Logout -->
+            <div class="flex items-center gap-3">
+                <p class="text-xs text-gray-300">Hi, {{ username }} 👋</p>
+                <a href="/logout" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide">
+                    Logout
+                </a>
+            </div>
+            
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto mt-4 px-4 w-full">
+
+        <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
+        <div class="grid grid-cols-3 gap-2.5 mb-5 text-center">
+            <!-- Total Sales Card -->
+            <div class="bg-emerald-50 border border-emerald-100 p-3 rounded-2xl shadow-sm">
+                <p class="text-[9px] uppercase font-bold text-emerald-600 tracking-wider">Total Sales</p>
+                <p class="text-sm font-extrabold text-emerald-800 mt-0.5" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</p>
+            </div>
+
+            <!-- Total Expenses Card -->
+            <div class="bg-rose-50 border border-rose-100 p-3 rounded-2xl shadow-sm">
+                <p class="text-[9px] uppercase font-bold text-rose-600 tracking-wider">Total Expenses</p>
+                <p class="text-sm font-extrabold text-rose-800 mt-0.5" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</p>
+            </div>
+
+            <!-- Net Profit Card -->
+            <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-2xl shadow-sm">
+                <p class="text-[9px] uppercase font-bold text-indigo-600 tracking-wider">Net Profit</p>
+                <p class="text-sm font-extrabold text-indigo-800 mt-0.5" id="top-profit">₦{{ "{:,.2f}".format(net_profit or 0.0) }}</p>
+            </div>
+        </div>
+
+        <!-- Mobile-First Tab Navigation Bar -->
+        <nav class="flex bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 mb-6 gap-1">
+            <button id="btn-tab-expenses" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5">
+                <span>💸</span> Expenses
+            </button>
+            <button id="btn-tab-income" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
+                <span>💰</span> Sales
+            </button>
+            <button id="btn-tab-profile" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
+                <span>🏢</span> Profile
+            </button>
+        </nav>
+
+        <!-- ========================================================= -->
+        <!-- TAB 1: EXPENSES CONTENT                                    -->
+        <!-- ========================================================= -->
+        <section id="tab-expenses-content" class="tab-content space-y-6">
+            
+            <!-- Total Spent Card — always shows the global grand total, never overwritten by search -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+                <p class="text-sm text-gray-500 font-medium uppercase tracking-wider mb-1">Total Expenses</p>
+                <h2 class="text-4xl font-bold text-gray-900" id="main-dashboard-total" data-total="{{ total }}">₦{{ "{:,.2f}".format(total) }}</h2>
+                {% if searching %}
+                    <a href="/" class="inline-block mt-4 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full font-semibold transition">← Clear Search</a>
+                {% endif %}
+            </div>
+
+            <!-- Add Expense Form -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span>📝</span> Log New Expense
+                </h3>
+                <form id="expense-form" method="POST" action="/add" class="space-y-3">
+                    <input type="number" step="any" name="amount" placeholder="Amount (e.g. 5000)" required 
+                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+
+                    <select name="category" required class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
+                        <option value="" disabled selected>Select a Category...</option>
+                        <option value="Inventory & Materials">Inventory & Materials</option>
+                        <option value="Delivery & Logistics">Delivery & Logistics</option>
+                        <option value="Fuel & Electricity">Fuel & Electricity</option>
+                        <option value="Others">Others</option>
+                        <option value="Data & Airtime">Data & Airtime</option>
+                    </select>
+
+                    <input type="text" name="description" placeholder="What did you pay for?" required 
+                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition shadow-md flex items-center justify-center gap-2">
+                        <span>+</span> Save Expense
+                    </button>
+                </form>
+            </div>
+
+            <!-- Transaction Filter Bar -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">🔍 Filter Transactions</h3>
+                    <button type="button" id="btn-clear-filters" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">✕ Clear</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Category</label>
+                        <select id="filter-category" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="">All Categories</option>
+                            <option value="Inventory &amp; Materials">Inventory &amp; Materials</option>
+                            <option value="Delivery &amp; Logistics">Delivery &amp; Logistics</option>
+                            <option value="Fuel &amp; Electricity">Fuel &amp; Electricity</option>
+                            <option value="Data &amp; Airtime">Data &amp; Airtime</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Exact Amount (₦)</label>
+                        <input type="number" id="filter-amount-exact" min="0" step="any" placeholder="e.g. 5000"
+                            class="w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+                </div>
+                <!-- Live filter result summary -->
+                <div id="filter-result-banner" class="hidden mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] uppercase font-bold text-indigo-400 tracking-wider" id="filter-result-label">Filtered Total</p>
+                        <p class="text-lg font-extrabold text-indigo-800" id="filter-result-total">₦0.00</p>
+                    </div>
+                    <p class="text-xs text-indigo-400 font-medium" id="filter-match-count">0 results</p>
+                </div>
+            </div>
+
+            <!-- ===================================================== -->
+            <!-- ISOLATED CALCULATION REPORT                           -->
+            <!-- Only visible when the /search route returns results.  -->
+            <!-- Never touches dashboard IDs — fully self-contained.   -->
+            <!-- ===================================================== -->
+            {% if searching %}
+            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 space-y-4" id="search-report-results">
+
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-2">
+                        🧮 Calculation Report
+                        {% if search_term %}<span class="font-normal text-indigo-500 normal-case tracking-normal">for "{{ search_term }}"</span>{% endif %}
+                    </h3>
+                    <span class="text-xs text-indigo-400 font-medium">{{ search_results|length }} match{{ 'es' if search_results|length != 1 else '' }}</span>
+                </div>
+
+                <!-- Itemised matched transactions -->
+                <ul class="space-y-2" id="search-report-list">
+                    {% for item in search_results %}
+                        <li class="bg-white rounded-xl px-4 py-3 flex justify-between items-center shadow-sm border border-indigo-50">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-800">{{ item.category }}</p>
+                                <p class="text-xs text-gray-400">{{ item.date }}</p>
+                            </div>
+                            <span class="font-bold text-gray-900 text-sm">₦{{ "{:,.2f}".format(item.amount) }}</span>
+                        </li>
+                    {% else %}
+                        <li class="text-sm italic text-gray-400 py-2">No records match this calculation.</li>
+                    {% endfor %}
+                </ul>
+
+                <!-- Isolated subtotal — completely separate from any dashboard ID -->
+                <div class="border-t border-indigo-200 pt-4 flex justify-between items-center">
+                    <p class="text-sm font-semibold text-gray-600">Calculated Total:</p>
+                    <p class="text-2xl font-extrabold text-indigo-900" id="search-report-total">₦{{ "{:,.2f}".format(search_total) }}</p>
+                </div>
+
+            </div>
+            {% endif %}
+
+            <!-- Transaction List -->
+            <div>
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center justify-between">
+                    <span>Recent Transactions</span>
+                    <span class="text-xs text-gray-400 font-normal">Offline-First</span>
+                </h3>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="transaction-list">
+                    {% if expenses|length == 0 %}
+                        <p class="text-center text-gray-400 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>
+                    {% else %}
+                        {% for item in expenses %}
+                        <div data-server-id="{{ item.id }}"
+                             data-category="{{ item.category }}"
+                             data-amount="{{ item.amount }}"
+                             class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-50 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                                    {{ item.category[0]|upper }}
+                                </div>
+                                <div>
+                                    <p class="expense-category-val font-bold text-gray-800 text-sm capitalize">{{ item.category }}</p>
+                                    <p class="expense-desc-val text-xs text-gray-500">{{ item.description }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="expense-amount-val font-bold text-gray-900 text-sm mb-1">₦{{ "{:,.2f}".format(item.amount) }}</p>
+                                <div class="flex gap-2 justify-end">
+                                    <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">Edit</button>
+                                    <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Del</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                <!-- Empty state when filters yield no matches -->
+                <p class="hidden text-center text-gray-400 py-6 text-sm" id="filter-no-match">No transactions match your filter.</p>
+            </div>
+
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 2: SALES / INCOME CONTENT                             -->
+        <!-- ========================================================= -->
+        <section id="tab-income-content" class="tab-content hidden space-y-6">
+            
+            <!-- Sales Summary Card -->
+            <div class="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl shadow-sm p-6 text-white text-center">
+                <p class="text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
+                <h2 class="text-4xl font-bold text-white" id="total-income-amount">₦0.00</h2>
+                <p class="text-xs text-emerald-200 mt-2">Saved locally to IndexedDB & synced online</p>
+            </div>
+
+            <!-- Log Sale Form -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span>💵</span> Log New Sale / Revenue
+                </h3>
+                <form id="add-income-form" class="space-y-3">
+                    <input type="number" step="any" name="amount" id="income-amount" placeholder="Amount (e.g. 15000)" required 
+                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+
+                    <input type="text" name="item_sold" id="income-item-sold" placeholder="Item Sold / Service Provided" required 
+                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+
+                    <input type="text" name="customer_name" id="income-customer-name" placeholder="Customer Name (Optional, e.g. Ada)" 
+                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2">
+                        <span>+</span> Log Sale
+                    </button>
+                </form>
+            </div>
+
+            <!-- Income History List -->
+            <div>
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center justify-between">
+                    <span>Sales History</span>
+                    <span class="text-xs text-emerald-600 font-semibold">IndexedDB Sync</span>
+                </h3>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="income-list">
+                    <p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 3: BUSINESS PROFILE CONTENT                           -->
+        <!-- ========================================================= -->
+        <section id="tab-profile-content" class="tab-content hidden space-y-6">
+            
+            <!-- Brand Setup Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">🏢</div>
+                    <div>
+                        <h3 class="font-bold text-gray-800">Business Brand Setup</h3>
+                        <p class="text-xs text-gray-500">Appears on your WhatsApp receipts</p>
+                    </div>
+                </div>
+
+                <div id="profile-status-msg" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Business Profile saved successfully!
+                </div>
+
+                <!-- View Mode Container (Digital Business Card) -->
+                <div id="profile-view-mode" class="space-y-4 hidden">
+                    <!-- Digital Business Card -->
+                    <div id="digital-business-card" class="w-full max-w-sm mx-auto bg-slate-900 rounded-2xl shadow-2xl p-8 relative overflow-hidden font-sans border border-slate-800 text-white">
+                        
+                        <!-- Brand Name: Front and Center -->
+                        <div class="text-center mb-8 mt-4">
+                            <h2 id="card-company-name" class="text-4xl font-extrabold tracking-wider">DLNZ</h2>
+                            <!-- Subtle detail line underneath the brand -->
+                            <div class="w-16 h-1 bg-indigo-500 mx-auto mt-4 rounded-full border-none"></div>
+                        </div>
+
+                        <!-- Inner Contact Box -->
+                        <div class="bg-slate-950/60 rounded-xl p-6 space-y-5 mb-6 border border-slate-700/50 shadow-inner">
+                            
+                            <!-- Phone Number -->
+                            <div class="flex items-center space-x-4">
+                                <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
+                                </svg>
+                                <span id="card-phone" class="text-slate-200 font-medium tracking-wider">09071809866</span>
+                            </div>
+                            
+                            <!-- Location -->
+                            <div class="flex items-center space-x-4">
+                                <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span id="card-address" class="text-slate-200 font-medium tracking-wide capitalize">Lagos</span>
+                            </div>
+
+                        </div>
+
+                        <!-- Minimalist Footer -->
+                        <div class="flex justify-between items-end mt-2">
+                            <span class="text-xs text-slate-500 tracking-wide font-medium">Powered by SoloBiz</span>
+                        </div>
+                        
+                    </div>
+
+                    <!-- Hidden legacy targets for compatibility -->
+                    <div class="hidden">
+                        <span id="view-company-name"></span>
+                        <span id="view-business-phone"></span>
+                        <span id="view-business-address"></span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-3 mt-6">
+                        <!-- Share Button -->
+                        <button onclick="shareBusinessCard()" class="flex-1 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition duration-200 text-sm sm:text-base">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                            </svg>
+                            Share
+                        </button>
+
+                        <!-- Download Button -->
+                        <button onclick="downloadBusinessCard()" class="flex-1 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition duration-200 text-sm sm:text-base">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Download
+                        </button>
+
+                        <!-- Edit Profile Button -->
+                        <button type="button" id="btn-edit-profile" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-3 px-3 rounded-xl transition border border-indigo-200 flex items-center justify-center gap-1.5 text-sm">
+                            <span>✏️</span> Edit
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Edit Mode Container -->
+                <div id="profile-edit-mode">
+                    <form id="profile-form" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Company / Brand Name *</label>
+                            <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Apex Electronics" required 
+                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Business Phone Number</label>
+                            <input type="tel" name="business_phone" id="profile-business-phone" placeholder="e.g. +2348012345678" 
+                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Business Address</label>
+                            <input type="text" name="business_address" id="profile-business-address" placeholder="e.g. 12 Market Street, Lagos" 
+                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+
+                        <div class="flex gap-2 pt-1">
+                            <button type="button" id="btn-cancel-profile" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-lg transition text-xs">
+                                Cancel
+                            </button>
+                            <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition shadow-md text-xs">
+                                Save Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Receipt Preview Card -->
+            <div class="bg-gray-900 text-white rounded-2xl p-5 shadow-lg space-y-3">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                    <span class="text-xs text-indigo-400 font-bold uppercase tracking-wider">Receipt Preview</span>
+                    <span class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded">WhatsApp Ready</span>
+                </div>
+
+                <div class="space-y-1 text-center py-2">
+                    <h4 class="font-bold text-lg text-white" id="preview-company-name">Your Company Name</h4>
+                    <p class="text-xs text-gray-400" id="preview-business-phone">+234 000 000 0000</p>
+                    <p class="text-xs text-gray-400" id="preview-business-address">Business Address Preview</p>
+                </div>
+
+                <div class="border-t border-dashed border-gray-800 pt-3 text-xs text-gray-400 space-y-1">
+                    <div class="flex justify-between">
+                        <span>Sample Receipt</span>
+                        <span class="text-emerald-400 font-semibold">PAID</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500">Thank you for your business!</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Edit Modal Dialog -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 class="font-bold text-gray-800 mb-4 text-lg">Edit Expense</h3>
+            <form id="edit-expense-form" class="space-y-3">
+                <input type="hidden" id="edit-local-id">
+                <input type="hidden" id="edit-server-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Amount</label>
+                    <input type="number" step="any" id="edit-amount" required class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+                    <select id="edit-category" required class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Inventory & Materials">Inventory & Materials</option>
+                        <option value="Delivery & Logistics">Delivery & Logistics</option>
+                        <option value="Fuel & Electricity">Fuel & Electricity</option>
+                        <option value="Others">Others</option>
+                        <option value="Data & Airtime">Data & Airtime</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                    <input type="text" id="edit-description" required class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="flex gap-2 justify-end pt-3">
+                    <button type="button" id="close-edit-modal" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const CURRENT_USER_ID = {{ session.get('user_id', 0) | tojson }};
+        const DB_NAME = 'SoloBizDB_user_' + CURRENT_USER_ID;
+        const DB_VERSION = 3;
+        const STORE_NAME = 'expenses';
+        const INCOME_STORE = 'income';
+        const PROFILE_STORE = 'business_profile';
+
+        // -------------------------------------------------------------
+        // UNIFIED DOM METRICS UPDATER
+        // Updates all 4 summary indicators on the page simultaneously
+        // -------------------------------------------------------------
+        function updateAllDashboardTotals(totalSales, totalExpenses) {
+            const sales = parseFloat(totalSales) || 0;
+            const expenses = parseFloat(totalExpenses) || 0;
+            const netProfit = sales - expenses;
+
+            const fmt = (val) => '₦' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            // 1. Big central "Total Expenses" in Expenses tab
+            const mainTotalEl = document.getElementById('main-dashboard-total');
+            if (mainTotalEl) {
+                mainTotalEl.dataset.total = expenses;
+                mainTotalEl.innerText = fmt(expenses);
+            }
+
+            // 2. Top "Total Sales" summary card
+            const topSalesEl = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
+            if (topSalesEl) {
+                topSalesEl.dataset.sales = sales;
+                topSalesEl.innerText = fmt(sales);
+            }
+
+            // 3. Top "Total Expenses" summary card
+            const topExpensesEl = document.getElementById('top-expenses') || document.getElementById('cfo-total-expenses');
+            if (topExpensesEl) {
+                topExpensesEl.innerText = fmt(expenses);
+            }
+
+            // 4. Top "Net Profit" summary card
+            const topProfitEl = document.getElementById('top-profit') || document.getElementById('cfo-net-profit');
+            if (topProfitEl) {
+                topProfitEl.innerText = fmt(netProfit);
+                topProfitEl.className = netProfit < 0
+                    ? 'text-sm font-extrabold text-rose-700 mt-0.5'
+                    : 'text-sm font-extrabold text-indigo-800 mt-0.5';
+            }
+        }
+
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, { keyPath: 'local_id', autoIncrement: true });
+                        store.createIndex('synced', 'synced', { unique: false });
+                    }
+                    if (!db.objectStoreNames.contains(INCOME_STORE)) {
+                        const incomeStore = db.createObjectStore(INCOME_STORE, { keyPath: 'local_id', autoIncrement: true });
+                        incomeStore.createIndex('synced', 'synced', { unique: false });
+                    }
+                    if (!db.objectStoreNames.contains(PROFILE_STORE)) {
+                        db.createObjectStore(PROFILE_STORE, { keyPath: 'id' });
+                    }
+                };
+
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        const openDB = openIndexedDB;
+
+        // -------------------------------------------------------------
+        // STEP 2: BUSINESS PROFILE JS HANDLERS
+        // -------------------------------------------------------------
+        async function loadBusinessProfile() {
+            const db = await openIndexedDB();
+
+            if (navigator.onLine) {
+                try {
+                    const response = await fetch('/api/business_profile');
+                    const result = await response.json();
+                    if (response.ok && result.status === 'success' && result.profile) {
+                        const profileRecord = {
+                            id: 'current',
+                            server_id: result.profile.id || null,
+                            company_name: result.profile.company_name || '',
+                            business_phone: result.profile.business_phone || '',
+                            business_address: result.profile.business_address || '',
+                            synced: true,
+                            updated_at: new Date().toISOString()
+                        };
+
+                        await new Promise((resolve, reject) => {
+                            const tx = db.transaction(PROFILE_STORE, 'readwrite');
+                            const req = tx.objectStore(PROFILE_STORE).put(profileRecord);
+                            req.onsuccess = () => resolve(req.result);
+                            req.onerror = (e) => reject(e.target.error);
+                        });
+
+                        return profileRecord;
+                    }
+                } catch (err) {
+                    console.warn('Could not fetch business profile from API. Loading from IndexedDB cache.', err);
+                }
+            }
+
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(PROFILE_STORE, 'readonly');
+                const req = tx.objectStore(PROFILE_STORE).get('current');
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveBusinessProfile(profileData) {
+            const db = await openIndexedDB();
+
+            const profileRecord = {
+                id: 'current',
+                company_name: String(profileData.company_name || '').trim(),
+                business_phone: String(profileData.business_phone || '').trim(),
+                business_address: String(profileData.business_address || '').trim(),
+                synced: false,
+                updated_at: new Date().toISOString()
+            };
+
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(PROFILE_STORE, 'readwrite');
+                const req = tx.objectStore(PROFILE_STORE).put(profileRecord);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+
+            if (navigator.onLine) {
+                try {
+                    const response = await fetch('/api/business_profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            company_name: profileRecord.company_name,
+                            business_phone: profileRecord.business_phone,
+                            business_address: profileRecord.business_address
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok && result.status === 'success') {
+                        profileRecord.synced = true;
+                        profileRecord.server_id = result.profile.id;
+
+                        const tx = db.transaction(PROFILE_STORE, 'readwrite');
+                        tx.objectStore(PROFILE_STORE).put(profileRecord);
+                        console.log('Business Profile successfully pushed to Python API.');
+                    }
+                } catch (err) {
+                    console.warn('Network error pushing Business Profile. Kept in IndexedDB.', err);
+                }
+            }
+
+            return profileRecord;
+        }
+
+        async function getBusinessProfileLocal() {
+            return loadBusinessProfile();
+        }
+
+        async function saveBusinessProfileLocal(profileData) {
+            return saveBusinessProfile(profileData);
+        }
+
+        // -------------------------------------------------------------
+        // STEP 3: INCOME (SALES) OFFLINE LOGIC
+        // -------------------------------------------------------------
+        async function logSale(incomeData) {
+            const db = await openIndexedDB();
+
+            const saleRecord = {
+                amount: parseFloat(incomeData.amount),
+                item_sold: String(incomeData.item_sold || '').trim(),
+                customer_name: String(incomeData.customer_name || 'Walk-in Customer').trim(),
+                date: new Date().toISOString(),
+                synced: false,
+                server_id: null
+            };
+
+            const local_id = await new Promise((resolve, reject) => {
+                const tx = db.transaction(INCOME_STORE, 'readwrite');
+                const req = tx.objectStore(INCOME_STORE).add(saleRecord);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+
+            saleRecord.local_id = local_id;
+
+            if (navigator.onLine) {
+                try {
+                    const response = await fetch('/api/income', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: saleRecord.amount,
+                            item_sold: saleRecord.item_sold,
+                            customer_name: saleRecord.customer_name
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok && result.status === 'success') {
+                        const serverIncome = result.income;
+                        saleRecord.synced = true;
+                        saleRecord.server_id = serverIncome.id;
+
+                        const updateTx = db.transaction(INCOME_STORE, 'readwrite');
+                        updateTx.objectStore(INCOME_STORE).put(saleRecord);
+                        console.log(`Sale record #${local_id} synced with server ID ${serverIncome.id}.`);
+                    }
+                } catch (err) {
+                    console.warn('Network error logging sale. Saved in IndexedDB for background sync.', err);
+                }
+            }
+
+            return saleRecord;
+        }
+
+        async function saveIncomeLocal(incomeData) {
+            return logSale(incomeData);
+        }
+
+        async function getIncomeLocal() {
+            const db = await openIndexedDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(INCOME_STORE, 'readonly');
+                const req = tx.objectStore(INCOME_STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // BACKGROUND NETWORK RECONNECTION LISTENER
+        // -------------------------------------------------------------
+        async function syncAllPendingData() {
+            if (!navigator.onLine) return;
+            console.log('Network online. Executing syncAllPendingData across stores...');
+
+            const db = await openIndexedDB();
+
+            // 1. Sync pending Expenses
+            try {
+                const expTx = db.transaction(STORE_NAME, 'readonly');
+                const getExpensesReq = expTx.objectStore(STORE_NAME).getAll();
+                getExpensesReq.onsuccess = async () => {
+                    const allExpenses = getExpensesReq.result || [];
+                    const unsyncedExpenses = allExpenses.filter(item => !item.synced || item.pending_delete || item.pending_edit);
+
+                    for (const item of unsyncedExpenses) {
+                        if (item.pending_delete && item.id) {
+                            try {
+                                const res = await fetch(`/api/expenses/${item.id}`, { method: 'DELETE' });
+                                if (res.ok) {
+                                    const delTx = db.transaction(STORE_NAME, 'readwrite');
+                                    delTx.objectStore(STORE_NAME).delete(item.local_id);
+                                }
+                            } catch (e) {}
+                        } else if (item.pending_edit && item.id) {
+                            try {
+                                const res = await fetch(`/api/expenses/${item.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ amount: item.amount, category: item.category, description: item.description })
+                                });
+                                if (res.ok) {
+                                    item.pending_edit = false;
+                                    item.synced = true;
+                                    const editTx = db.transaction(STORE_NAME, 'readwrite');
+                                    editTx.objectStore(STORE_NAME).put(item);
+                                }
+                            } catch (e) {}
+                        } else if (!item.synced) {
+                            try {
+                                const res = await fetch('/add', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ amount: item.amount, category: item.category, description: item.description })
+                                });
+                                const data = await res.json();
+                                if (res.ok && data.status === 'success') {
+                                    item.synced = true;
+                                    item.id = data.expense.id;
+                                    const addTx = db.transaction(STORE_NAME, 'readwrite');
+                                    addTx.objectStore(STORE_NAME).put(item);
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                };
+            } catch (err) {
+                console.warn('Error syncing pending expenses:', err);
+            }
+
+            // 2. Sync pending Income / Sales
+            try {
+                const incTx = db.transaction(INCOME_STORE, 'readonly');
+                const getIncomeReq = incTx.objectStore(INCOME_STORE).getAll();
+                getIncomeReq.onsuccess = async () => {
+                    const allIncome = getIncomeReq.result || [];
+                    const unsyncedIncome = allIncome.filter(item => !item.synced);
+
+                    for (const item of unsyncedIncome) {
+                        try {
+                            const res = await fetch('/api/income', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    amount: item.amount,
+                                    item_sold: item.item_sold,
+                                    customer_name: item.customer_name
+                                })
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.status === 'success') {
+                                item.synced = true;
+                                item.server_id = data.income.id;
+                                const updateIncTx = db.transaction(INCOME_STORE, 'readwrite');
+                                updateIncTx.objectStore(INCOME_STORE).put(item);
+                                console.log(`Background synced income #${item.local_id} (Server ID ${item.server_id})`);
+                            }
+                        } catch (e) {
+                            console.warn(`Failed background sync for income #${item.local_id}:`, e);
+                        }
+                    }
+                };
+            } catch (err) {
+                console.warn('Error syncing pending income:', err);
+            }
+
+            // 3. Sync pending Business Profile
+            try {
+                const profileTx = db.transaction(PROFILE_STORE, 'readonly');
+                const getProfileReq = profileTx.objectStore(PROFILE_STORE).get('current');
+                getProfileReq.onsuccess = async () => {
+                    const profile = getProfileReq.result;
+                    if (profile && !profile.synced) {
+                        try {
+                            const res = await fetch('/api/business_profile', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    company_name: profile.company_name,
+                                    business_phone: profile.business_phone,
+                                    business_address: profile.business_address
+                                })
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.status === 'success') {
+                                profile.synced = true;
+                                profile.server_id = data.profile.id;
+                                const updateProfTx = db.transaction(PROFILE_STORE, 'readwrite');
+                                updateProfTx.objectStore(PROFILE_STORE).put(profile);
+                                console.log('Background synced business profile.');
+                            }
+                        } catch (e) {
+                            console.warn('Failed background sync for business profile:', e);
+                        }
+                    }
+                };
+            } catch (err) {
+                console.warn('Error syncing pending business profile:', err);
+            }
+        }
+
+        // Attach online reconnection listener
+        window.addEventListener('online', syncAllPendingData);
+
+        async function saveExpenseToIndexedDB(expenseData) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.add(expenseData);
+
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        async function updateExpenseInIndexedDB(localId, updateData) {
+            if (!localId) return null;
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const getReq = store.get(Number(localId));
+
+                getReq.onsuccess = () => {
+                    const record = getReq.result;
+                    if (record) {
+                        Object.assign(record, updateData);
+                        const putReq = store.put(record);
+                        putReq.onsuccess = () => resolve(record);
+                        putReq.onerror = (e) => reject(e.target.error);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                getReq.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function recalculateTotalFromUI(deltaAmount = 0) {
+            let salesVal = 0;
+            const salesEl = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
+            if (salesEl) {
+                salesVal = parseFloat(salesEl.dataset.sales || salesEl.innerText.replace(/[^0-9.-]+/g, '')) || 0;
+            }
+
+            let expSum = 0;
+            if (deltaAmount !== 0) {
+                const expEl = document.getElementById('top-expenses') || document.getElementById('cfo-total-expenses');
+                let current = parseFloat(expEl ? expEl.innerText.replace(/[^0-9.-]+/g, '') : 0) || 0;
+                expSum = Math.max(0, current + deltaAmount);
+            } else {
+                document.querySelectorAll('.expense-amount-val').forEach(el => {
+                    const val = parseFloat(el.textContent.replace(/[^0-9.-]+/g, '')) || 0;
+                    expSum += val;
+                });
+            }
+
+            updateAllDashboardTotals(salesVal, expSum);
+        }
+
+        // -------------------------------------------------------------
+        // DELETE EXPENSE FUNCTION
+        // -------------------------------------------------------------
+        async function deleteExpense(local_id, server_id) {
+            const isOnline = navigator.onLine;
+
+            // 1. Instantly update/remove in IndexedDB
+            if (local_id) {
+                const db = await openDB();
+                if (!server_id) {
+                    // Local record never synced to server -> delete completely from IndexedDB
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    tx.objectStore(STORE_NAME).delete(Number(local_id));
+                } else if (!isOnline) {
+                    // Server item deleted while offline -> flag pending_delete: true
+                    await updateExpenseInIndexedDB(local_id, { pending_delete: true });
+                } else {
+                    // Online -> remove from IndexedDB
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    tx.objectStore(STORE_NAME).delete(Number(local_id));
+                }
+            }
+
+            // 2. Instantly update UI (remove DOM card)
+            const selector = local_id ? `[data-local-id="${local_id}"]` : `[data-server-id="${server_id}"]`;
+            const itemElement = document.querySelector(selector);
+            if (itemElement) {
+                itemElement.remove();
+                recalculateTotalFromUI();
+            }
+
+            // Check if transaction list is empty
+            const listContainer = document.getElementById('transaction-list');
+            if (listContainer && listContainer.querySelectorAll('.expense-card').length === 0) {
+                listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>`;
+            }
+
+            // 3. Send DELETE request to Python API if online & server_id exists
+            if (isOnline && server_id) {
+                try {
+                    const response = await fetch(`/api/expenses/${server_id}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.status === 'success') {
+                        console.log(`Server expense #${server_id} deleted successfully.`);
+                    } else {
+                        console.warn(`Server deletion failed for #${server_id}:`, result.message);
+                    }
+                } catch (err) {
+                    console.warn(`Network error deleting #${server_id}. Flagged for sync.`, err);
+                    if (local_id) {
+                        await updateExpenseInIndexedDB(local_id, { pending_delete: true });
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // EDIT EXPENSE FUNCTION
+        // -------------------------------------------------------------
+        async function editExpense(local_id, server_id, updatedData) {
+            const isOnline = navigator.onLine;
+
+            const amount = parseFloat(updatedData.amount);
+            const category = String(updatedData.category).trim();
+            const description = String(updatedData.description).trim();
+
+            const updateObj = {
+                amount: amount,
+                category: category,
+                description: description,
+                pending_edit: !isOnline || !server_id,
+                synced: isOnline && !!server_id
+            };
+
+            // 1. Update in IndexedDB instantly
+            if (local_id) {
+                await updateExpenseInIndexedDB(local_id, updateObj);
+            }
+
+            // 2. Instantly update UI DOM card
+            const selector = local_id ? `[data-local-id="${local_id}"]` : `[data-server-id="${server_id}"]`;
+            const itemElement = document.querySelector(selector);
+            if (itemElement) {
+                const categoryInitial = (category[0] || '').toUpperCase();
+                const formattedAmount = amount.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+
+                const catElem = itemElement.querySelector('.expense-category-val');
+                if (catElem) {
+                    catElem.childNodes[0].textContent = category + ' ';
+                }
+
+                const descElem = itemElement.querySelector('.expense-desc-val');
+                if (descElem) descElem.textContent = description;
+
+                const iconElem = itemElement.querySelector('.category-icon-val');
+                if (iconElem) iconElem.textContent = categoryInitial;
+
+                const amtElem = itemElement.querySelector('.expense-amount-val');
+                if (amtElem) amtElem.textContent = `₦${formattedAmount}`;
+
+                let badge = itemElement.querySelector('.sync-badge');
+                if (!updateObj.synced) {
+                    if (!badge && catElem) {
+                        catElem.insertAdjacentHTML('beforeend', `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>`);
+                    }
+                } else if (badge) {
+                    badge.remove();
+                }
+            }
+
+            recalculateTotalFromUI();
+
+            // 3. Send PUT request to Python API if online & server_id exists
+            if (isOnline && server_id) {
+                try {
+                    const response = await fetch(`/api/expenses/${server_id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount, category, description })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok && result.status === 'success') {
+                        if (local_id) {
+                            await updateExpenseInIndexedDB(local_id, {
+                                pending_edit: false,
+                                synced: true
+                            });
+                        }
+                        console.log(`Server expense #${server_id} updated successfully via PUT.`);
+                    } else {
+                        console.warn(`Server update failed for #${server_id}:`, result.message);
+                    }
+                } catch (err) {
+                    console.warn(`Network error updating #${server_id}. Flagged for sync.`, err);
+                    if (local_id) {
+                        await updateExpenseInIndexedDB(local_id, { pending_edit: true });
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // ONLINE SYNC HELPER
+        // -------------------------------------------------------------
+        async function syncExpenseToServer(expense) {
+            try {
+                const response = await fetch('/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: expense.amount,
+                        category: expense.category,
+                        description: expense.description
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    const serverExpense = result.expense;
+                    
+                    // Mark as synced in IndexedDB
+                    await updateExpenseInIndexedDB(expense.local_id, {
+                        synced: true,
+                        id: serverExpense.id
+                    });
+
+                    // Update UI element attributes & remove offline badge
+                    const itemElement = document.querySelector(`[data-local-id="${expense.local_id}"]`);
+                    if (itemElement) {
+                        itemElement.setAttribute('data-server-id', serverExpense.id);
+                        const syncBadge = itemElement.querySelector('.sync-badge');
+                        if (syncBadge) syncBadge.remove();
+                    }
+                    console.log(`Expense #${expense.local_id} synced successfully with server ID ${serverExpense.id}.`);
+                }
+            } catch (err) {
+                console.warn('Sync failed due to network error. Expense remains stored in IndexedDB.', err);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // UI RENDERING HELPER
+        // -------------------------------------------------------------
+        function renderTransactionItem(expense) {
+            const listContainer = document.getElementById('transaction-list');
+            if (!listContainer) return;
+
+            const emptyMsg = document.getElementById('no-expenses-msg');
+            if (emptyMsg) emptyMsg.remove();
+
+            const categoryInitial = (expense.category[0] || '').toUpperCase();
+            const formattedAmount = parseFloat(expense.amount).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            const localIdAttr = expense.local_id ? `data-local-id="${expense.local_id}"` : '';
+            const serverIdAttr = expense.server_id || expense.id ? `data-server-id="${expense.server_id || expense.id}"` : '';
+            const offlineBadge = !expense.synced ? `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
+
+            const itemHTML = `
+            <div ${localIdAttr} ${serverIdAttr}
+                 data-category="${expense.category}"
+                 data-amount="${expense.amount}"
+                 class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-50 transition">
+                <div class="flex items-center gap-3">
+                    <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                        ${categoryInitial}
+                    </div>
+                    <div>
+                        <p class="expense-category-val font-bold text-gray-800 text-sm capitalize">
+                            ${expense.category} ${offlineBadge}
+                        </p>
+                        <p class="expense-desc-val text-xs text-gray-500">${expense.description}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="expense-amount-val font-bold text-gray-900 text-sm mb-1">₦${formattedAmount}</p>
+                    <div class="flex gap-2 justify-end">
+                        <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">Edit</button>
+                        <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Del</button>
+                    </div>
+                </div>
+            </div>`;
+
+            listContainer.insertAdjacentHTML('afterbegin', itemHTML);
+        }
+
+        // -------------------------------------------------------------
+        // EVENT LISTENERS & MODAL HANDLERS
+        // -------------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+            const addForm = document.getElementById('expense-form');
+
+            // Add Expense Form Handler
+            if (addForm) {
+                addForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const amountInput = addForm.querySelector('[name="amount"]');
+                    const categoryInput = addForm.querySelector('[name="category"]');
+                    const descriptionInput = addForm.querySelector('[name="description"]');
+
+                    const amount = parseFloat(amountInput.value);
+                    const category = categoryInput.value.trim();
+                    const description = descriptionInput.value.trim();
+
+                    if (!amount || !category || !description) return;
+
+                    const localExpense = {
+                        amount: amount,
+                        category: category,
+                        description: description,
+                        date: new Date().toISOString(),
+                        synced: false,
+                        id: null
+                    };
+
+                    try {
+                        const localId = await saveExpenseToIndexedDB(localExpense);
+                        localExpense.local_id = localId;
+
+                        renderTransactionItem(localExpense);
+                        recalculateTotalFromUI();
+
+                        addForm.reset();
+
+                        if (navigator.onLine) {
+                            syncExpenseToServer(localExpense);
+                        }
+                    } catch (err) {
+                        console.error('Error saving expense locally:', err);
+                        alert('Could not save expense locally.');
+                    }
+                });
+            }
+
+            // Delegate Edit and Delete Button Clicks on Transaction List
+            const listContainer = document.getElementById('transaction-list');
+            if (listContainer) {
+                listContainer.addEventListener('click', (event) => {
+                    const card = event.target.closest('.expense-card');
+                    if (!card) return;
+
+                    const localId = card.getAttribute('data-local-id') || null;
+                    const serverId = card.getAttribute('data-server-id') || null;
+
+                    if (event.target.classList.contains('btn-delete')) {
+                        if (confirm('Are you sure you want to delete this expense?')) {
+                            deleteExpense(localId, serverId);
+                        }
+                    } else if (event.target.classList.contains('btn-edit')) {
+                        // Open edit modal with prefilled data
+                        const catElem = card.querySelector('.expense-category-val');
+                        const descElem = card.querySelector('.expense-desc-val');
+                        const amtElem = card.querySelector('.expense-amount-val');
+
+                        const currentCategory = catElem ? catElem.childNodes[0].textContent.trim() : '';
+                        const currentDesc = descElem ? descElem.textContent.trim() : '';
+                        const currentAmt = amtElem ? parseFloat(amtElem.textContent.replace(/[^0-9.-]+/g, '')) : 0;
+
+                        document.getElementById('edit-local-id').value = localId || '';
+                        document.getElementById('edit-server-id').value = serverId || '';
+                        document.getElementById('edit-amount').value = currentAmt;
+                        document.getElementById('edit-category').value = currentCategory;
+                        document.getElementById('edit-description').value = currentDesc;
+
+                        const modal = document.getElementById('edit-modal');
+                        modal.classList.remove('hidden');
+                        modal.classList.add('flex');
+                    }
+                });
+            }
+
+            // Edit Modal Close & Submit Handlers
+            const closeModalBtn = document.getElementById('close-edit-modal');
+            const editModal = document.getElementById('edit-modal');
+            const editForm = document.getElementById('edit-expense-form');
+
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', () => {
+                    editModal.classList.add('hidden');
+                    editModal.classList.remove('flex');
+                });
+            }
+
+            if (editForm) {
+                editForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+
+                    const localId = document.getElementById('edit-local-id').value || null;
+                    const serverId = document.getElementById('edit-server-id').value || null;
+                    const amount = parseFloat(document.getElementById('edit-amount').value);
+                    const category = document.getElementById('edit-category').value;
+                    const description = document.getElementById('edit-description').value;
+
+                    editExpense(localId, serverId, { amount, category, description });
+
+                    editModal.classList.add('hidden');
+                    editModal.classList.remove('flex');
+                });
+            }
+
+            // -------------------------------------------------------------
+            // TAB SWITCHING LOGIC
+            // -------------------------------------------------------------
+            const btnExpenses = document.getElementById('btn-tab-expenses');
+            const btnIncome = document.getElementById('btn-tab-income');
+            const btnProfile = document.getElementById('btn-tab-profile');
+
+            const contentExpenses = document.getElementById('tab-expenses-content');
+            const contentIncome = document.getElementById('tab-income-content');
+            const contentProfile = document.getElementById('tab-profile-content');
+
+            function switchTab(target) {
+                [contentExpenses, contentIncome, contentProfile].forEach(el => el && el.classList.add('hidden'));
+                [btnExpenses, btnIncome, btnProfile].forEach(btn => {
+                    if (btn) btn.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5';
+                });
+
+                if (target === 'expenses' && contentExpenses) {
+                    contentExpenses.classList.remove('hidden');
+                    if (btnExpenses) btnExpenses.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                } else if (target === 'income' && contentIncome) {
+                    contentIncome.classList.remove('hidden');
+                    if (btnIncome) btnIncome.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-emerald-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    renderIncomeListUI();
+                } else if (target === 'profile' && contentProfile) {
+                    contentProfile.classList.remove('hidden');
+                    if (btnProfile) btnProfile.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    populateProfileFormUI();
+                }
+            }
+
+            if (btnExpenses) btnExpenses.addEventListener('click', () => switchTab('expenses'));
+            if (btnIncome) btnIncome.addEventListener('click', () => switchTab('income'));
+            if (btnProfile) btnProfile.addEventListener('click', () => switchTab('profile'));
+
+            // -------------------------------------------------------------
+            // CFO DASHBOARD METRICS CALCULATION
+            // Accepts optional { categoryFilter, amountMax } to show filtered totals.
+            // When no filters are passed, shows grand totals.
+            // -------------------------------------------------------------
+            async function calculateDashboard({ categoryFilter = '', amountMax = null } = {}) {
+                try {
+                    const db = await openIndexedDB();
+                    const fmt = (val) => '₦' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const isFiltered = categoryFilter !== '' || amountMax !== null;
+
+                    // --- Total Sales (always unfiltered — income has no category) ---
+                    const incomeTx = db.transaction(INCOME_STORE, 'readonly');
+                    const getIncomeReq = incomeTx.objectStore(INCOME_STORE).getAll();
+                    const incomeItems = await new Promise(res => {
+                        getIncomeReq.onsuccess = () => res(getIncomeReq.result || []);
+                        getIncomeReq.onerror = () => res([]);
+                    });
+                    const totalSales = incomeItems
+                        .filter(item => !item.pending_delete)
+                        .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+                    // --- Total Expenses (filtered by category and/or max amount) ---
+                    const expTx = db.transaction(STORE_NAME, 'readonly');
+                    const getExpReq = expTx.objectStore(STORE_NAME).getAll();
+                    const allExpItems = await new Promise(res => {
+                        getExpReq.onsuccess = () => res(getExpReq.result || []);
+                        getExpReq.onerror = () => res([]);
+                    });
+
+                    const expItems = allExpItems.filter(item => {
+                        if (item.pending_delete) return false;
+                        if (categoryFilter && item.category !== categoryFilter) return false;
+                        if (amountMax !== null && parseFloat(item.amount || 0) > amountMax) return false;
+                        return true;
+                    });
+
+                    let totalExpenses = 0;
+                    if (allExpItems.length > 0) {
+                        totalExpenses = expItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+                    } else {
+                        const domTotalEl = document.getElementById('main-dashboard-total');
+                        if (domTotalEl) totalExpenses = parseFloat(domTotalEl.dataset.total || '0') || 0;
+                    }
+
+                    // Update all dashboard elements simultaneously
+                    updateAllDashboardTotals(totalSales, totalExpenses);
+
+                    // --- Filtered result banner below filter controls ---
+                    const banner = document.getElementById('filter-result-banner');
+                    const bannerLabel = document.getElementById('filter-result-label');
+                    const bannerTotal = document.getElementById('filter-result-total');
+                    const clearBtn = document.getElementById('btn-clear-filters');
+
+                    if (isFiltered && banner && bannerTotal) {
+                        let labelParts = [];
+                        if (categoryFilter) labelParts.push(categoryFilter);
+                        if (amountMax !== null) labelParts.push(`≤ ₦${amountMax.toLocaleString()}`);
+                        if (bannerLabel) bannerLabel.textContent = 'Filtered: ' + labelParts.join(' · ');
+                        bannerTotal.textContent = fmt(totalExpenses);
+                        banner.classList.remove('hidden');
+                        if (clearBtn) clearBtn.classList.remove('hidden');
+                    } else if (banner) {
+                        banner.classList.add('hidden');
+                        if (clearBtn) clearBtn.classList.add('hidden');
+                    }
+                } catch (err) {
+                    console.warn('Error calculating CFO dashboard metrics:', err);
+                }
+            }
+
+            function loadAndRenderExpenses() {
+                calculateDashboard();
+            }
+
+            // -------------------------------------------------------------
+            // STEP 3: PDF RECEIPT GENERATOR (jsPDF)
+            // -------------------------------------------------------------
+            window.generatePDFReceipt = async function(saleLocalId) {
+                // Check navigator.onLine status
+                if (!navigator.onLine) {
+                    alert("You must be online to generate a receipt.");
+                    return;
+                }
+
+                try {
+                    const db = await openIndexedDB();
+
+                    // 1. Fetch business details from 'business_profile' store
+                    const profileRecord = await new Promise((resolve) => {
+                        const tx = db.transaction(PROFILE_STORE, 'readonly');
+                        const req = tx.objectStore(PROFILE_STORE).get('current');
+                        req.onsuccess = () => resolve(req.result || null);
+                        req.onerror = () => resolve(null);
+                    });
+
+                    // 2. Fetch specific sale from 'income' store
+                    const saleRecord = await new Promise((resolve) => {
+                        const tx = db.transaction(INCOME_STORE, 'readonly');
+                        const req = tx.objectStore(INCOME_STORE).get(Number(saleLocalId));
+                        req.onsuccess = () => resolve(req.result || null);
+                        req.onerror = () => resolve(null);
+                    });
+
+                    if (!saleRecord) {
+                        alert("Sale record not found.");
+                        return;
+                    }
+
+                    const companyName = (profileRecord?.company_name || 'Official Receipt').toUpperCase();
+                    const businessPhone = profileRecord?.business_phone || '';
+                    const businessAddress = profileRecord?.business_address || '';
+
+                    const customerName = saleRecord.customer_name || 'Valued Customer';
+                    const itemSold = saleRecord.item_sold || 'Goods/Services';
+                    const amount = parseFloat(saleRecord.amount || 0);
+                    const formattedAmount = 'NGN ' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const dateStr = saleRecord.date ? new Date(saleRecord.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString();
+
+                    // 3. Construct jsPDF document
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: [80, 135]
+                    });
+
+                    // Header Banner
+                    doc.setFillColor(15, 23, 42);
+                    doc.rect(0, 0, 80, 18, 'F');
+
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text(companyName, 40, 10, { align: 'center' });
+
+                    // Subheader Info
+                    doc.setTextColor(71, 85, 105);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    let currentY = 24;
+
+                    if (businessPhone) {
+                        doc.text(`Tel: ${businessPhone}`, 40, currentY, { align: 'center' });
+                        currentY += 4;
+                    }
+                    if (businessAddress) {
+                        doc.text(businessAddress, 40, currentY, { align: 'center' });
+                        currentY += 4;
+                    }
+
+                    // Title Badge
+                    currentY += 2;
+                    doc.setFillColor(241, 245, 249);
+                    doc.rect(5, currentY, 70, 7, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9);
+                    doc.setTextColor(30, 41, 59);
+                    doc.text('OFFICIAL RECEIPT', 40, currentY + 5, { align: 'center' });
+                    currentY += 12;
+
+                    // Receipt Fields
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Date:', 8, currentY);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(dateStr, 72, currentY, { align: 'right' });
+                    currentY += 5;
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Customer:', 8, currentY);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(customerName, 72, currentY, { align: 'right' });
+                    currentY += 6;
+
+                    // Divider
+                    doc.setDrawColor(203, 213, 225);
+                    doc.line(8, currentY, 72, currentY);
+                    currentY += 6;
+
+                    // Item Description
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Item / Service', 8, currentY);
+                    doc.text('Amount', 72, currentY, { align: 'right' });
+                    currentY += 5;
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(itemSold, 8, currentY);
+                    doc.text(formattedAmount, 72, currentY, { align: 'right' });
+                    currentY += 8;
+
+                    // Divider
+                    doc.line(8, currentY, 72, currentY);
+                    currentY += 6;
+
+                    // Total Paid
+                    doc.setFillColor(236, 253, 245);
+                    doc.rect(5, currentY, 70, 10, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(10);
+                    doc.setTextColor(5, 150, 105);
+                    doc.text('TOTAL PAID:', 8, currentY + 7);
+                    doc.text(formattedAmount, 72, currentY + 7, { align: 'right' });
+                    currentY += 16;
+
+                    // Footer
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(8);
+                    doc.setTextColor(148, 163, 184);
+                    doc.text('Thank you for your patronage!', 40, currentY, { align: 'center' });
+                    currentY += 5;
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(156, 163, 175);
+                    doc.text('Powered by Solobiz', 40, currentY, { align: 'center' });
+
+                    // 4. Save & Download PDF
+                    const safeCustomerName = customerName.replace(/[^a-zA-Z0-9]/g, '_');
+                    doc.save(`Receipt_${safeCustomerName}.pdf`);
+
+                } catch (err) {
+                    console.error('Error generating PDF receipt:', err);
+                    alert('Could not generate PDF receipt.');
+                }
+            };
+
+            // Keep alias for backwards compatibility
+            window.generateWhatsAppReceipt = window.generatePDFReceipt;
+
+            // -------------------------------------------------------------
+            // SALES / INCOME UI HANDLERS
+            // -------------------------------------------------------------
+            function renderIncomeItemHTML(income) {
+                const offlineBadge = !income.synced ? `<span class="text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
+                const formattedAmount = parseFloat(income.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                return `
+                <div data-income-local-id="${income.local_id || ''}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-50 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-lg">💰</div>
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm capitalize flex items-center">
+                                ${income.item_sold} ${offlineBadge}
+                            </p>
+                            <p class="text-xs text-gray-500">Customer: ${income.customer_name || 'Walk-in'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-emerald-600 text-sm mb-1">₦${formattedAmount}</p>
+                        <button type="button" onclick="generatePDFReceipt(${income.local_id})" class="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded transition border border-emerald-200 shadow-sm">
+                            <span>📄</span> Download Receipt
+                        </button>
+                    </div>
+                </div>`;
+            }
+
+            async function renderIncomeListUI() {
+                const listContainer = document.getElementById('income-list');
+                const totalIncomeEl = document.getElementById('total-income-amount');
+                if (!listContainer) return;
+
+                const incomeItems = await getIncomeLocal();
+                let totalIncome = 0;
+
+                if (incomeItems.length === 0) {
+                    listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
+                } else {
+                    listContainer.innerHTML = incomeItems.map(item => {
+                        totalIncome += parseFloat(item.amount || 0);
+                        return renderIncomeItemHTML(item);
+                    }).reverse().join('');
+                }
+
+                if (totalIncomeEl) {
+                    totalIncomeEl.textContent = '₦' + totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                calculateDashboard();
+            }
+
+            const addIncomeForm = document.getElementById('add-income-form');
+            if (addIncomeForm) {
+                addIncomeForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const amount = parseFloat(document.getElementById('income-amount').value);
+                    const item_sold = document.getElementById('income-item-sold').value.trim();
+                    const customer_name = document.getElementById('income-customer-name').value.trim() || 'Walk-in Customer';
+
+                    if (!amount || !item_sold) return;
+
+                    const record = await logSale({ amount, item_sold, customer_name });
+
+                    const listContainer = document.getElementById('income-list');
+                    const noMsg = document.getElementById('no-income-msg');
+                    if (noMsg) noMsg.remove();
+                    if (listContainer) {
+                        listContainer.insertAdjacentHTML('afterbegin', renderIncomeItemHTML(record));
+                    }
+
+                    renderIncomeListUI();
+                    calculateDashboard();
+                    addIncomeForm.reset();
+                });
+            }
+
+            // Initial calculations and renders
+            renderIncomeListUI();
+            calculateDashboard();
+
+            // -------------------------------------------------------------
+            // TRANSACTION FILTER — DOM-based, category & amount only
+            // Description field is never read or compared.
+            // -------------------------------------------------------------
+            function applyTransactionFilter() {
+                const categoryVal  = document.getElementById('filter-category')?.value || '';
+                const amountVal    = document.getElementById('filter-amount-exact')?.value;
+                const exactAmount  = amountVal !== '' && amountVal != null ? parseFloat(amountVal) : null;
+                const isFiltered   = categoryVal !== '' || exactAmount !== null;
+
+                const cards        = document.querySelectorAll('#transaction-list .expense-card');
+                const noMatch      = document.getElementById('filter-no-match');
+                const clearBtn     = document.getElementById('btn-clear-filters');
+                let visibleCount   = 0;
+                let filteredTotal  = 0;
+
+                cards.forEach(card => {
+                    const cardCategory = card.dataset.category || '';
+                    const cardAmount   = parseFloat(card.dataset.amount || 0);
+
+                    const categoryMatch = categoryVal === '' || cardCategory === categoryVal;
+                    const amountMatch   = exactAmount === null || Math.abs(cardAmount - exactAmount) < 0.001;
+
+                    if (categoryMatch && amountMatch) {
+                        card.style.display = '';
+                        filteredTotal += cardAmount;
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                // Toggle "no match" empty state
+                if (noMatch) noMatch.classList.toggle('hidden', visibleCount > 0 || !isFiltered);
+
+                // Toggle clear button
+                if (clearBtn) clearBtn.classList.toggle('hidden', !isFiltered);
+
+                // Update filter result banner
+                const banner      = document.getElementById('filter-result-banner');
+                const bannerTotal = document.getElementById('filter-result-total');
+                const bannerLabel = document.getElementById('filter-result-label');
+                const matchCount  = document.getElementById('filter-match-count');
+
+                if (isFiltered && banner) {
+                    const parts = [];
+                    if (categoryVal) parts.push(categoryVal);
+                    if (exactAmount !== null) parts.push(`\u20a6${exactAmount.toLocaleString()}`);
+                    if (bannerLabel) bannerLabel.textContent = 'Filtered: ' + parts.join(' \u00b7 ');
+                    if (bannerTotal) bannerTotal.textContent = '\u20a6' + filteredTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (matchCount)  matchCount.textContent  = `${visibleCount} result${visibleCount !== 1 ? 's' : ''}`;
+                    banner.classList.remove('hidden');
+                } else if (banner) {
+                    banner.classList.add('hidden');
+                }
+
+                // NOTE: Dashboard CFO cards (cfo-total-expenses etc.) are intentionally
+                // NOT updated here. Filters only affect the filter-result-banner below.
+                // Dashboard totals are only recalculated when real transactions are saved.
+            }
+
+            // Recalculates CFO cards using the visible expense total.
+            // Pass null to use full IndexedDB grand totals.
+            function recalculateDashboard(filteredExpenseTotal) {
+                if (filteredExpenseTotal === null) {
+                    // No active filter — recompute grand totals from IndexedDB
+                    calculateDashboard();
+                    return;
+                }
+
+                // Use filtered expense total and keep full sales total
+                openIndexedDB().then(db => {
+                    const tx  = db.transaction(INCOME_STORE, 'readonly');
+                    const req = tx.objectStore(INCOME_STORE).getAll();
+                    req.onsuccess = () => {
+                        const totalSales = (req.result || [])
+                            .filter(i => !i.pending_delete)
+                            .reduce((sum, i) => sum + parseFloat(i.amount || 0), 0);
+
+                        const netProfit = totalSales - filteredExpenseTotal;
+                        const fmt = v => '\u20a6' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                        const salesEl     = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
+                        const expensesEl  = document.getElementById('top-expenses') || document.getElementById('cfo-total-expenses');
+                        const netProfitEl = document.getElementById('top-profit') || document.getElementById('cfo-net-profit');
+
+                        if (salesEl)    salesEl.textContent    = fmt(totalSales);
+                        if (expensesEl) expensesEl.textContent = fmt(filteredExpenseTotal);
+                        if (netProfitEl) {
+                            netProfitEl.textContent = fmt(netProfit);
+                            netProfitEl.className   = netProfit < 0
+                                ? 'text-sm font-extrabold text-rose-700 mt-0.5'
+                                : 'text-sm font-extrabold text-indigo-800 mt-0.5';
+                        }
+                    };
+                }).catch(err => console.warn('recalculateDashboard error:', err));
+            }
+
+            const filterCategory    = document.getElementById('filter-category');
+            const filterAmountExact = document.getElementById('filter-amount-exact');
+            const clearFiltersBtn   = document.getElementById('btn-clear-filters');
+
+            if (filterCategory)    filterCategory.addEventListener('change', applyTransactionFilter);
+            if (filterAmountExact) filterAmountExact.addEventListener('input', applyTransactionFilter);
+
+            if (clearFiltersBtn) {
+                clearFiltersBtn.addEventListener('click', () => {
+                    if (filterCategory)    filterCategory.value    = '';
+                    if (filterAmountExact) filterAmountExact.value = '';
+                    applyTransactionFilter();
+                });
+            }
+
+            // -------------------------------------------------------------
+            // BUSINESS PROFILE UI HANDLERS & DIGITAL CARD ACTIONS
+            // -------------------------------------------------------------
+            function toggleProfileMode(mode) {
+                const viewContainer = document.getElementById('profile-view-mode');
+                const editContainer = document.getElementById('profile-edit-mode');
+                if (!viewContainer || !editContainer) return;
+
+                if (mode === 'edit') {
+                    viewContainer.classList.add('hidden');
+                    editContainer.classList.remove('hidden');
+                } else {
+                    editContainer.classList.add('hidden');
+                    viewContainer.classList.remove('hidden');
+                }
+            }
+
+            window.toggleProfileMode = toggleProfileMode;
+
+            // 1. Helper function to capture the card
+            async function generateCardCanvas() {
+                const cardElement = document.querySelector("#digital-business-card");
+                return await html2canvas(cardElement, { 
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: "#0f172a" // Matches Tailwind bg-slate-900
+                });
+            }
+
+            // 2. The Native OS Share Action
+            async function shareBusinessCard() {
+                try {
+                    const canvas = await generateCardCanvas();
+                    
+                    canvas.toBlob(async (blob) => {
+                        const companyName = (document.getElementById('card-company-name')?.textContent || 'solobiz').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+                        const file = new File([blob], `${companyName}_card.png`, { type: "image/png" });
+
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            try {
+                                await navigator.share({
+                                    title: 'My Business Card',
+                                    text: 'Here is my business card, powered by SoloBiz!',
+                                    files: [file]
+                                });
+                            } catch (error) {
+                                console.log('Share window closed by user.');
+                            }
+                        } else {
+                            alert("Your current browser doesn't support the native share menu. Please use the Download button instead.");
+                        }
+                    }, "image/png");
+                } catch (error) {
+                    console.error("Error generating the card for sharing:", error);
+                }
+            }
+
+            // 3. The Direct Download Action
+            async function downloadBusinessCard() {
+                try {
+                    const canvas = await generateCardCanvas();
+                    const companyName = (document.getElementById('card-company-name')?.textContent || 'solobiz').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+                    const link = document.createElement("a");
+                    link.download = `${companyName}_card.png`;
+                    link.href = canvas.toDataURL("image/png");
+                    link.click();
+                } catch (error) {
+                    console.error("Error downloading the card:", error);
+                    alert("Something went wrong while downloading the card.");
+                }
+            }
+
+            window.generateCardCanvas = generateCardCanvas;
+            window.shareBusinessCard = shareBusinessCard;
+            window.downloadBusinessCard = downloadBusinessCard;
+
+            async function populateProfileFormUI() {
+                const profile = await loadBusinessProfile();
+                
+                const compEl = document.getElementById('profile-company-name');
+                const phoneEl = document.getElementById('profile-business-phone');
+                const addrEl = document.getElementById('profile-business-address');
+
+                const vComp = document.getElementById('view-company-name');
+                const vPhone = document.getElementById('view-business-phone');
+                const vAddr = document.getElementById('view-business-address');
+
+                const cComp = document.getElementById('card-company-name');
+                const cPhone = document.getElementById('card-phone') || document.getElementById('card-business-phone');
+                const cAddr = document.getElementById('card-address') || document.getElementById('card-business-address');
+
+                const pComp = document.getElementById('preview-company-name');
+                const pPhone = document.getElementById('preview-business-phone');
+                const pAddr = document.getElementById('preview-business-address');
+
+                if (profile && profile.company_name) {
+                    if (compEl) compEl.value = profile.company_name || '';
+                    if (phoneEl) phoneEl.value = profile.business_phone || '';
+                    if (addrEl) addrEl.value = profile.business_address || '';
+
+                    if (vComp) vComp.textContent = profile.company_name || 'Not set';
+                    if (vPhone) vPhone.textContent = profile.business_phone || 'Not set';
+                    if (vAddr) vAddr.textContent = profile.business_address || 'Not set';
+
+                    if (cComp) cComp.textContent = profile.company_name || 'Your Company Name';
+                    if (cPhone) cPhone.textContent = profile.business_phone || '+234 000 000 0000';
+                    if (cAddr) cAddr.textContent = profile.business_address || 'Business Address Preview';
+
+                    if (pComp) pComp.textContent = profile.company_name || 'Your Company Name';
+                    if (pPhone) pPhone.textContent = profile.business_phone || '+234 000 000 0000';
+                    if (pAddr) pAddr.textContent = profile.business_address || 'Business Address Preview';
+
+                    toggleProfileMode('view');
+                } else {
+                    if (vComp) vComp.textContent = 'Not set';
+                    if (vPhone) vPhone.textContent = 'Not set';
+                    if (vAddr) vAddr.textContent = 'Not set';
+
+                    if (cComp) cComp.textContent = 'Your Company Name';
+                    if (cPhone) cPhone.textContent = '+234 000 000 0000';
+                    if (cAddr) cAddr.textContent = 'Business Address Preview';
+
+                    toggleProfileMode('edit');
+                }
+            }
+
+            const btnEditProfile = document.getElementById('btn-edit-profile');
+            if (btnEditProfile) {
+                btnEditProfile.addEventListener('click', () => toggleProfileMode('edit'));
+            }
+
+            const btnCancelProfile = document.getElementById('btn-cancel-profile');
+            if (btnCancelProfile) {
+                btnCancelProfile.addEventListener('click', () => toggleProfileMode('view'));
+            }
+
+            const profileForm = document.getElementById('profile-form');
+            if (profileForm) {
+                profileForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const company_name = document.getElementById('profile-company-name').value.trim();
+                    const business_phone = document.getElementById('profile-business-phone').value.trim();
+                    const business_address = document.getElementById('profile-business-address').value.trim();
+
+                    if (!company_name) return;
+
+                    await saveBusinessProfile({ company_name, business_phone, business_address });
+
+                    // Update View Mode elements
+                    const vComp = document.getElementById('view-company-name');
+                    const vPhone = document.getElementById('view-business-phone');
+                    const vAddr = document.getElementById('view-business-address');
+
+                    if (vComp) vComp.textContent = company_name;
+                    if (vPhone) vPhone.textContent = business_phone || 'Not set';
+                    if (vAddr) vAddr.textContent = business_address || 'Not set';
+
+                    // Update Digital Card elements
+                    const cComp = document.getElementById('card-company-name');
+                    const cPhone = document.getElementById('card-phone') || document.getElementById('card-business-phone');
+                    const cAddr = document.getElementById('card-address') || document.getElementById('card-business-address');
+
+                    if (cComp) cComp.textContent = company_name;
+                    if (cPhone) cPhone.textContent = business_phone || '+234 000 000 0000';
+                    if (cAddr) cAddr.textContent = business_address || 'Business Address Preview';
+
+                    // Update Preview Card elements
+                    const pComp = document.getElementById('preview-company-name');
+                    const pPhone = document.getElementById('preview-business-phone');
+                    const pAddr = document.getElementById('preview-business-address');
+
+                    if (pComp) pComp.textContent = company_name;
+                    if (pPhone) pPhone.textContent = business_phone || '+234 000 000 0000';
+                    if (pAddr) pAddr.textContent = business_address || 'Business Address Preview';
+
+                    const statusMsg = document.getElementById('profile-status-msg');
+                    if (statusMsg) {
+                        statusMsg.classList.remove('hidden');
+                        setTimeout(() => statusMsg.classList.add('hidden'), 3000);
+                    }
+
+                    toggleProfileMode('view');
+                });
+            }
+
+            // Pre-fill profile form on load
+            populateProfileFormUI();
+        });
+    </script>
+
+    <!-- ============================================================ -->
+    <!-- OPTIMISTIC UI — Instant expense save                         -->
+    <!-- Instantly updates all four dashboard numbers on submit,      -->
+    <!-- then saves to the Python/SQLite backend in the background.   -->
+    <!-- ============================================================ -->
+    <script>
+    (function () {
+
+        // ----------------------------------------------------------------
+        // HELPER: update ALL dashboard numbers synchronously in one shot
+        // Call this with a positive number when an expense is added.
+        // ----------------------------------------------------------------
+        function updateDashboardTotal(amountToAdd) {
+            recalculateTotalFromUI(amountToAdd);
+        }
+
+        // ----------------------------------------------------------------
+        // SUBMIT HANDLER for #expense-form
+        // ----------------------------------------------------------------
+        const form = document.getElementById('expense-form');
+        if (!form) return; // guard: page might not have the form
+
+        form.addEventListener('submit', function (e) {
+            // 1. Stop the native page reload
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const amountAdded = parseFloat(formData.get('amount'));
+
+            // 2. INSTANT UPDATE — paint every dashboard number immediately
+            if (!isNaN(amountAdded) && amountAdded > 0) {
+                updateDashboardTotal(amountAdded);
+            }
+
+            // 3. Clear the form instantly so the user can keep working
+            form.reset();
+
+            // 4. BACKGROUND SAVE — send to Python/SQLite without blocking the UI
+            fetch('/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: amountAdded,
+                    category: formData.get('category'),
+                    description: formData.get('description')
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('[SoloBiz] Expense saved to server:', data.expense);
+                } else {
+                    console.warn('[SoloBiz] Server rejected expense:', data.message);
+                }
+            })
+            .catch(err => {
+                console.error('[SoloBiz] Background save failed (offline?):', err);
+                // IndexedDB offline fallback handled by the DOMContentLoaded handler above
+            });
+        });
+
+    })();
+    </script>
+
+</body>
+</html>

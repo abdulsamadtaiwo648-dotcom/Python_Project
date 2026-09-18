@@ -1,22 +1,7 @@
 [
     {
         "amount": 1000.0,
-        "category": "Food",
-        "description": "rice"
-    },
-    {
-        "amount": 2000.0,
-        "category": "Transport",
-        "description": "bus"
-    },
-    {
-        "amount": 1000.0,
-        "category": "Cloth",
-        "description": "man's wear"
-    },
-    {
-        "amount": 6000.0,
-        "category": "Food",
-        "description": "lunch"
+        "category": "Delivery",
+        "description": "to yaba"
     }
 ]
