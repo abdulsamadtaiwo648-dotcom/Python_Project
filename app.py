@@ -18,6 +18,20 @@ app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_for_solobiz")
 # ==========================================
 # HYBRID CLOUD DATABASE (POSTGRESQL + SQLITE)
 # ==========================================
+class CursorWrapper:
+    def __init__(self, cursor, lastrowid=None):
+        self._cursor = cursor
+        self.lastrowid = lastrowid
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
 class DBWrapper:
     def __init__(self, conn, is_postgres=False):
         self.conn = conn
@@ -59,17 +73,18 @@ class DBWrapper:
 
             cur.execute(pg_sql, params)
             
+            last_id = None
             if is_insert:
                 try:
                     row = cur.fetchone()
                     if row:
                         if isinstance(row, dict) and "id" in row:
-                            cur.lastrowid = row["id"]
+                            last_id = row["id"]
                         elif hasattr(row, "__getitem__"):
-                            cur.lastrowid = row[0]
+                            last_id = row[0]
                 except Exception:
-                    cur.lastrowid = None
-            return cur
+                    last_id = None
+            return CursorWrapper(cur, lastrowid=last_id)
         else:
             cur = self.conn.cursor()
             cur.execute(sql, params)
