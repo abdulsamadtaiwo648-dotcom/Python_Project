@@ -20,47 +20,59 @@
 <body class="bg-gray-50 text-gray-800 pb-16">
     
     <!-- App Header -->
-    <header class="bg-gray-900 text-white p-4 shadow-md sticky top-0 z-40">
+    <header class="bg-gray-900 text-white p-3.5 sm:p-4 shadow-md sticky top-0 z-40">
         <div class="max-w-md mx-auto flex justify-between items-center">
             
             <!-- Left: App Logo, Name & Beta Tag -->
-            <div class="flex items-center gap-2.5">
-                <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-8 h-8 rounded-lg shadow-sm">
-                <h1 class="font-bold text-lg tracking-wide text-indigo-400">SoloBiz</h1>
-                <span class="text-[10px] font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded-full">Pocket CFO</span>
+            <div class="flex items-center gap-2">
+                <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg shadow-sm">
+                <h1 class="font-bold text-base sm:text-lg tracking-wide text-indigo-400">SoloBiz</h1>
+                <span class="text-[9px] font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800 px-1.5 py-0.5 rounded-full">Pocket CFO</span>
             </div>
             
-            <!-- Right: Greeting & Logout -->
-            <div class="flex items-center gap-3">
-                <p class="text-xs text-gray-300">Hi, {{ username }} 👋</p>
-                <a href="/logout" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide">
-                    Logout
+            <!-- Right: Logout Button -->
+            <div>
+                <a href="/logout" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide bg-red-950/40 border border-red-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+                    <span>Logout</span> 🚪
                 </a>
             </div>
             
         </div>
     </header>
 
-    <main class="max-w-md mx-auto mt-4 px-4 w-full">
+    <main class="max-w-md mx-auto mt-3.5 sm:mt-4 px-3.5 sm:px-4 w-full">
+
+        <!-- Mobile User Greeting Banner at the Top of Main Body -->
+        <div class="mb-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-1.5">
+                    Hi, {{ username }} <span class="inline-block animate-bounce">👋</span>
+                </h2>
+                <p class="text-[11px] text-gray-500 font-medium mt-0.5">Here is your business overview today</p>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                Overview
+            </div>
+        </div>
 
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
-        <div class="grid grid-cols-3 gap-2.5 mb-5 text-center">
+        <div class="grid grid-cols-3 gap-2 sm:gap-2.5 mb-5 text-center">
             <!-- Total Sales Card -->
-            <div class="bg-emerald-50 border border-emerald-100 p-3 rounded-2xl shadow-sm">
-                <p class="text-[9px] uppercase font-bold text-emerald-600 tracking-wider">Total Sales</p>
-                <p class="text-sm font-extrabold text-emerald-800 mt-0.5" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</p>
+            <div class="bg-emerald-50 border border-emerald-100 p-2.5 sm:p-3 rounded-2xl shadow-sm">
+                <p class="text-[9px] uppercase font-bold text-emerald-600 tracking-wider truncate">Total Sales</p>
+                <p class="text-xs sm:text-sm font-extrabold text-emerald-800 mt-0.5 truncate" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</p>
             </div>
 
             <!-- Total Expenses Card -->
-            <div class="bg-rose-50 border border-rose-100 p-3 rounded-2xl shadow-sm">
-                <p class="text-[9px] uppercase font-bold text-rose-600 tracking-wider">Total Expenses</p>
-                <p class="text-sm font-extrabold text-rose-800 mt-0.5" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</p>
+            <div class="bg-rose-50 border border-rose-100 p-2.5 sm:p-3 rounded-2xl shadow-sm">
+                <p class="text-[9px] uppercase font-bold text-rose-600 tracking-wider truncate">Total Expenses</p>
+                <p class="text-xs sm:text-sm font-extrabold text-rose-800 mt-0.5 truncate" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</p>
             </div>
 
             <!-- Net Profit Card -->
-            <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-2xl shadow-sm">
-                <p class="text-[9px] uppercase font-bold text-indigo-600 tracking-wider">Net Profit</p>
-                <p class="text-sm font-extrabold text-indigo-800 mt-0.5" id="top-profit">₦{{ "{:,.2f}".format(net_profit or 0.0) }}</p>
+            <div class="bg-indigo-50 border border-indigo-100 p-2.5 sm:p-3 rounded-2xl shadow-sm">
+                <p class="text-[9px] uppercase font-bold text-indigo-600 tracking-wider truncate">Net Profit</p>
+                <p class="text-xs sm:text-sm font-extrabold text-indigo-800 mt-0.5 truncate" id="top-profit">₦{{ "{:,.2f}".format(net_profit or 0.0) }}</p>
             </div>
         </div>
 
