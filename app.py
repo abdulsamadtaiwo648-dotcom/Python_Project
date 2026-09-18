@@ -3,17 +3,93 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import sqlite3
 import math
+import os
+
+try:
+    import psycopg2
+    import psycopg2.extras
+    HAS_PSYCOPG2 = True
+except ImportError:
+    HAS_PSYCOPG2 = False
 
 app = Flask(__name__)
-app.secret_key = "super_secret_key_for_solobiz" 
+app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_for_solobiz")
 
 # ==========================================
-# DATABASE SETUP
+# HYBRID CLOUD DATABASE (POSTGRESQL + SQLITE)
 # ==========================================
+class DBWrapper:
+    def __init__(self, conn, is_postgres=False):
+        self.conn = conn
+        self.is_postgres = is_postgres
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            if hasattr(self.conn, "rollback"):
+                try:
+                    self.conn.rollback()
+                except Exception:
+                    pass
+        else:
+            if hasattr(self.conn, "commit"):
+                try:
+                    self.conn.commit()
+                except Exception:
+                    pass
+        if hasattr(self.conn, "close"):
+            try:
+                self.conn.close()
+            except Exception:
+                pass
+
+    def execute(self, sql, params=()):
+        if self.is_postgres:
+            pg_sql = sql.replace("?", "%s")
+            if "CREATE TABLE" in pg_sql.upper():
+                pg_sql = pg_sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+                pg_sql = pg_sql.replace("REAL", "NUMERIC")
+
+            cur = self.conn.cursor()
+            is_insert = "INSERT INTO" in pg_sql.upper()
+            if is_insert and "RETURNING" not in pg_sql.upper():
+                pg_sql += " RETURNING id"
+
+            cur.execute(pg_sql, params)
+            
+            if is_insert:
+                try:
+                    row = cur.fetchone()
+                    if row:
+                        if isinstance(row, dict) and "id" in row:
+                            cur.lastrowid = row["id"]
+                        elif hasattr(row, "__getitem__"):
+                            cur.lastrowid = row[0]
+                except Exception:
+                    cur.lastrowid = None
+            return cur
+        else:
+            cur = self.conn.cursor()
+            cur.execute(sql, params)
+            return cur
+
+    def commit(self):
+        if hasattr(self.conn, "commit"):
+            self.conn.commit()
+
 def get_db():
-    db = sqlite3.connect("solobiz.db")
-    db.row_factory = sqlite3.Row 
-    return db
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url and HAS_PSYCOPG2:
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
+        return DBWrapper(conn, is_postgres=True)
+    else:
+        conn = sqlite3.connect("solobiz.db")
+        conn.row_factory = sqlite3.Row
+        return DBWrapper(conn, is_postgres=False)
 
 def init_db():
     with get_db() as db:
@@ -67,8 +143,8 @@ def register():
                 db.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, hashed_password))
                 db.commit()
             return redirect("/login")
-        except sqlite3.IntegrityError:
-            flash("Email already exists! Please log in.", "danger")
+        except Exception as e:
+            flash("Email already exists or registration failed! Please log in.", "danger")
             return render_template("register.html")
             
     return render_template("register.html")
