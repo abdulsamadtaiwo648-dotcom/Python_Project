@@ -1,0 +1,18 @@
+{
+  "name": "SoloBiz Tracker - Pocket CFO",
+  "short_name": "SoloBiz",
+  "description": "Smart Financial Management & Expense Tracking for Entrepreneurs",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#4F46E5",
+  "icons": [
+    {
+      "src": "/static/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

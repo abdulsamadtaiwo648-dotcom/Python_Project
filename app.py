@@ -134,17 +134,26 @@ init_db()
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+        raw_email = request.form.get("email", "")
+        raw_password = request.form.get("password", "")
+        
+        email = raw_email.strip().lower()
+        password = raw_password.strip()
+
+        if not email or not password:
+            flash("Please fill in all required fields.", "danger")
+            return render_template("register.html")
+
         hashed_password = generate_password_hash(password)
         
         try:
             with get_db() as db:
                 db.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, hashed_password))
                 db.commit()
+            flash("Account created successfully! Please log in.", "success")
             return redirect("/login")
-        except Exception as e:
-            flash("Email already exists or registration failed! Please log in.", "danger")
+        except Exception:
+            flash("Email already registered! Please log in with your password.", "danger")
             return render_template("register.html")
             
     return render_template("register.html")
@@ -152,11 +161,18 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        raw_email = request.form.get("email", "")
+        raw_password = request.form.get("password", "")
         
+        email = raw_email.strip().lower()
+        password = raw_password.strip()
+
+        if not email or not password:
+            flash("Please enter both email and password.", "danger")
+            return render_template("login.html")
+
         with get_db() as db:
-            user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
             
             if not user or not check_password_hash(user["password"], password):
                 flash("Invalid email or password. Please try again.", "danger")

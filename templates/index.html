@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SoloBiz Tracker - Pocket CFO</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <!-- PWA Web App Manifest & Mobile App Meta Tags -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SoloBiz">
+    <link rel="apple-touch-icon" href="/static/logo.svg">
     <!-- Pulls in Tailwind CSS for premium styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF for PDF Receipt Generation -->
@@ -41,6 +49,20 @@
     </header>
 
     <main class="max-w-md mx-auto mt-3.5 sm:mt-4 px-3.5 sm:px-4 w-full">
+
+        <!-- PWA Mobile Install App Banner -->
+        <div id="pwa-install-banner" class="hidden mb-4 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-md flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <img src="/static/logo.svg" alt="App Icon" class="w-10 h-10 rounded-xl fill-current shadow">
+                <div>
+                    <h3 class="text-xs font-bold text-white">Install SoloBiz App</h3>
+                    <p class="text-[10px] text-indigo-200">Add to home screen for 1-tap mobile app access!</p>
+                </div>
+            </div>
+            <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap">
+                📲 Install
+            </button>
+        </div>
 
         <!-- Mobile User Greeting Banner at the Top of Main Body -->
         <div class="mb-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
@@ -1974,6 +1996,53 @@
             });
         });
 
+    })();
+    </script>
+
+    <!-- ============================================================ -->
+    <!-- PWA SERVICE WORKER & MOBILE INSTALLATION SCRIPT             -->
+    <!-- Enables 1-tap "Add to Home Screen" option on mobile browsers -->
+    <!-- ============================================================ -->
+    <script>
+    (function() {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(() => console.log('[PWA] Service Worker active.'))
+                    .catch(err => console.warn('[PWA] SW error:', err));
+            });
+        }
+
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('btn-pwa-install');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installBanner) installBanner.classList.remove('hidden');
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('[PWA] User choice outcome:', outcome);
+                    deferredPrompt = null;
+                    if (installBanner) installBanner.classList.add('hidden');
+                } else {
+                    alert('To install SoloBiz on your phone:\n\n📱 iPhone (Safari): Tap the Share button (⎋) at the bottom ➔ select "Add to Home Screen".\n\n🤖 Android (Chrome): Tap the Menu button (⋮) at the top right ➔ select "Add to Home screen".');
+                }
+            });
+        }
+
+        // Show install prompt helper on iOS devices if not running as standalone app
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+        if (isIOS && !isStandalone && installBanner) {
+            installBanner.classList.remove('hidden');
+        }
     })();
     </script>
 
