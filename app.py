@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import sqlite3
@@ -68,24 +68,26 @@ def register():
                 db.commit()
             return redirect("/login")
         except sqlite3.IntegrityError:
-            return "Email already exists! Please log in."
+            flash("Email already exists! Please log in.", "danger")
+            return render_template("register.html")
             
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+        email = request.form.get("email")
+        password = request.form.get("password")
         
         with get_db() as db:
             user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
             
-            if user and check_password_hash(user["password"], password):
-                session["user_id"] = user["id"] 
-                return redirect("/")
-            else:
-                return "Invalid email or password"
+            if not user or not check_password_hash(user["password"], password):
+                flash("Invalid email or password. Please try again.", "danger")
+                return render_template("login.html")
+                
+            session["user_id"] = user["id"] 
+            return redirect(url_for("index"))
                 
     return render_template("login.html")
 
