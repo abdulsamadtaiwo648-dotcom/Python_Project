@@ -108,37 +108,85 @@ def get_db():
 
 def init_db():
     with get_db() as db:
-        # Table 1: Users
-        db.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        email TEXT UNIQUE,
-                        password TEXT)''')
-        # Table 2: Expenses
-        db.execute('''CREATE TABLE IF NOT EXISTS expenses (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
-                        amount REAL,
-                        category TEXT,
-                        description TEXT,
-                        date TEXT,
-                        FOREIGN KEY(user_id) REFERENCES users(id))''')
-        # Table 3: Business Profiles
-        db.execute('''CREATE TABLE IF NOT EXISTS business_profiles (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER UNIQUE,
-                        company_name TEXT,
-                        business_phone TEXT,
-                        business_address TEXT,
-                        FOREIGN KEY(user_id) REFERENCES users(id))''')
-        # Table 4: Income / Sales
-        db.execute('''CREATE TABLE IF NOT EXISTS income (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
-                        amount REAL,
-                        item_sold TEXT,
-                        customer_name TEXT,
-                        date TEXT,
-                        FOREIGN KEY(user_id) REFERENCES users(id))''')
+        if getattr(db, "is_postgres", False):
+            # PostgreSQL Table Creation (Cloud Database)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL
+                )
+            """)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS expenses (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    amount NUMERIC NOT NULL,
+                    category TEXT NOT NULL,
+                    description TEXT,
+                    date TEXT
+                )
+            """)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS business_profiles (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER UNIQUE REFERENCES users(id),
+                    company_name TEXT,
+                    business_phone TEXT,
+                    business_address TEXT
+                )
+            """)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS income (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    amount NUMERIC NOT NULL,
+                    item_sold TEXT,
+                    customer_name TEXT,
+                    date TEXT
+                )
+            """)
+        else:
+            # SQLite Table Creation (Local Development)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL
+                )
+            """)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS expenses (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    amount REAL NOT NULL,
+                    category TEXT NOT NULL,
+                    description TEXT,
+                    date TEXT,
+                    FOREIGN KEY(user_id) REFERENCES users(id)
+                )
+            """)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS business_profiles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER UNIQUE,
+                    company_name TEXT,
+                    business_phone TEXT,
+                    business_address TEXT,
+                    FOREIGN KEY(user_id) REFERENCES users(id)
+                )
+            """)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS income (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    amount REAL NOT NULL,
+                    item_sold TEXT,
+                    customer_name TEXT,
+                    date TEXT,
+                    FOREIGN KEY(user_id) REFERENCES users(id)
+                )
+            """)
         db.commit()
 
 init_db()
