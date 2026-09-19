@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import sqlite3
@@ -237,9 +237,6 @@ init_db()
 # ==========================================
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if get_current_user_id():
-        return redirect("/dashboard")
-
     if request.method == "POST":
         raw_email = request.form.get("email", "")
         raw_password = request.form.get("password", "")
@@ -282,9 +279,6 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if get_current_user_id():
-        return redirect("/dashboard")
-
     if request.method == "POST":
         raw_email = request.form.get("email", "")
         raw_password = request.form.get("password", "")
@@ -317,8 +311,10 @@ def login():
 
 @app.route("/logout")
 def logout():
-    session.clear()          # Clear all Flask session data
-    return redirect("/login")
+    session.clear()
+    resp = make_response(redirect("/login"))
+    resp.delete_cookie(app.config.get("SESSION_COOKIE_NAME", "session"))
+    return resp
 
 @app.route("/clerk-sync", methods=["POST"])
 def clerk_sync():

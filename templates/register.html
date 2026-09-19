@@ -93,7 +93,11 @@
     // ─── Sync Clerk session into Flask ───────────────────────────────────────
     async function syncClerkSession() {
       try {
-        const token = await window.Clerk.session.getToken();
+        const clerk = (typeof window.Clerk === 'function') ? new window.Clerk(CLERK_PK) : window.Clerk;
+        if (!clerk) return false;
+        const session = clerk.session || (clerk.client && clerk.client.session) || (window.Clerk && window.Clerk.session);
+        if (!session || typeof session.getToken !== 'function') return false;
+        const token = await session.getToken();
         if (!token) return false;
 
         const res = await fetch("/clerk-sync", {
