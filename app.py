@@ -5,8 +5,6 @@ import sqlite3
 import math
 import os
 import traceback
-import jwt
-
 try:
     import psycopg2
     import psycopg2.extras
@@ -17,22 +15,11 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
 app.permanent_session_lifetime = timedelta(days=30)
-CLERK_PUBLISHABLE_KEY = os.environ.get("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY") or os.environ.get("CLERK_PUBLISHABLE_KEY") or "pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA"
 
 def get_current_user_id():
     """
-    Extract string-based user_id (e.g. 'user_2...') from Clerk JWT token in Authorization header,
-    or fallback to session['user_id'] if available.
+    Retrieve string-based user_id from active Flask session cookie.
     """
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header.split(" ", 1)[1]
-        try:
-            payload = jwt.decode(token, options={"verify_signature": False})
-            if "sub" in payload and payload["sub"]:
-                return str(payload["sub"])
-        except Exception:
-            pass
     if "user_id" in session and session["user_id"]:
         return str(session["user_id"])
     return None
@@ -257,7 +244,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# AUTHENTICATION ROUTES (HYBRID FORM + CLERK)
+# AUTHENTICATION ROUTES
 # ==========================================
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -270,7 +257,7 @@ def register():
 
         if not email or not password:
             flash("Please fill in all required fields.", "danger")
-            return render_template("register.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+            return render_template("register.html")
 
         hashed_password = generate_password_hash(password)
         import time, uuid
@@ -287,7 +274,7 @@ def register():
         except sqlite3.IntegrityError:
             error_msg = "Email already registered! Please log in."
             flash(error_msg, "danger")
-            return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+            return render_template("register.html", error=error_msg)
         except Exception as e:
             err_str = str(e).lower()
             import logging
@@ -295,11 +282,11 @@ def register():
             if "unique" in err_str or "duplicate" in err_str or "already exists" in err_str:
                 error_msg = "Email already registered! Please log in."
             else:
-                error_msg = f"Could not create account: {str(e)}"
+                error_msg = "An error occurred while creating your account. Please try again."
             flash(error_msg, "danger")
-            return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+            return render_template("register.html", error=error_msg)
             
-    return render_template("register.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+    return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -312,7 +299,7 @@ def login():
 
         if not email or not password:
             flash("Please enter both email and password.", "danger")
-            return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+            return render_template("login.html")
 
         try:
             with get_db() as db:
@@ -320,7 +307,7 @@ def login():
                 
                 if not user or not user["password"] or not check_password_hash(user["password"], password):
                     flash("Invalid email or password. Please try again.", "danger")
-                    return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+                    return render_template("login.html")
                     
                 session.permanent = True
                 session["user_id"] = str(user["id"])
@@ -329,9 +316,9 @@ def login():
             import logging
             logging.error(f"Login error for email '{email}': {e}", exc_info=True)
             flash("An unexpected error occurred. Please try again.", "danger")
-            return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+            return render_template("login.html")
                 
-    return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+    return render_template("login.html")
 
 @app.route("/logout")
 def logout():
@@ -341,7 +328,7 @@ def logout():
     return resp
 
 # ==========================================
-# PASSWORD RESET API (HYBRID BACKEND + CLERK)
+# PASSWORD RESET API
 # ==========================================
 RESET_CODES = {}
 
@@ -422,61 +409,6 @@ def forgot_password_reset():
         logging.error(f"forgot_password_reset error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to update password. Please try again."}), 500
 
-@app.route("/clerk-sync", methods=["POST"])
-def clerk_sync():
-    """
-    Called by the frontend after a successful Clerk sign-in or sign-up.
-    Decodes the Clerk JWT, upserts the user into our users table,
-    and sets a Flask session so server-side routes recognise the user.
-    """
-    import logging
-    try:
-        data = request.get_json(force=True) or {}
-        token = data.get("token", "")
-        if not token:
-            return jsonify({"status": "error", "message": "No token provided"}), 400
-
-        payload = jwt.decode(token, options={"verify_signature": False})
-        clerk_id = payload.get("sub", "")      # e.g. "user_2abc123"
-
-        email = (
-            payload.get("email")
-            or payload.get("primary_email_address")
-            or payload.get("email_address")
-            or ""
-        )
-
-        if not clerk_id:
-            return jsonify({"status": "error", "message": "Invalid token — no user ID"}), 401
-
-        with get_db() as db:
-            if getattr(db, "is_postgres", False):
-                db.execute(
-                    """INSERT INTO users (id, email, password)
-                       VALUES (?, ?, NULL)
-                       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
-                       WHERE users.email IS DISTINCT FROM EXCLUDED.email""",
-                    (clerk_id, email)
-                )
-            else:
-                db.execute(
-                    """INSERT INTO users (id, email, password)
-                       VALUES (?, ?, NULL)
-                       ON CONFLICT(id) DO NOTHING""",
-                    (clerk_id, email)
-                )
-            db.commit()
-
-        session.clear()
-        session.permanent = True
-        session["user_id"] = clerk_id
-        return jsonify({"status": "ok", "user_id": clerk_id, "redirect": "/dashboard"})
-
-    except Exception as e:
-        logging.error(f"clerk-sync error: {e}", exc_info=True)
-        return jsonify({"status": "error", "message": "Sync failed. Please try again."}), 500
-
-
 # ==========================================
 # DASHBOARD & CRUD ROUTES
 # ==========================================
@@ -540,8 +472,7 @@ def dashboard():
         total_sales=total_sales,
         total_expenses=total_expenses,
         net_profit=net_profit,
-        username=username,
-        clerk_publishable_key=CLERK_PUBLISHABLE_KEY
+        username=username
     )
 
 @app.route("/api/expenses", methods=["GET"])
@@ -603,11 +534,33 @@ def calculate():
         
     # Do the math!
     calc_result = sum(float(row["amount"] or 0) for row in items)
-    
-    total = sum(float(item["amount"] or 0) for item in expenses)
-    username = user["email"].split("@")[0].capitalize()
-    
-    return render_template("index.html", expenses=expenses, total=total, username=username, calc_result=calc_result, calc_term=calc_term)
+
+    total_expenses = sum(float(item["amount"] or 0) for item in expenses)
+    username = user["email"].split("@")[0].capitalize() if user and user.get("email") else "Entrepreneur"
+
+    # Fetch sales total for full template render
+    total_sales = 0.00
+    try:
+        with get_db() as db:
+            sales_q = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            if sales_q and sales_q["total"] is not None:
+                total_sales = float(sales_q["total"])
+    except Exception:
+        pass
+
+    net_profit = total_sales - total_expenses
+
+    return render_template(
+        "index.html",
+        expenses=expenses,
+        total=total_expenses,
+        total_sales=total_sales,
+        total_expenses=total_expenses,
+        net_profit=net_profit,
+        username=username,
+        calc_result=calc_result,
+        calc_term=calc_term
+    )
 
 @app.route("/add", methods=["POST"])
 def add_expense():
@@ -723,8 +676,8 @@ def delete_expense(expense_id):
     with get_db() as db:
         db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
         db.commit()
-        
-    return redirect("/")
+
+    return redirect("/dashboard")
 
 @app.route("/edit/<int:expense_id>", methods=["GET", "POST"])
 def edit_expense(expense_id):
@@ -746,10 +699,10 @@ def edit_expense(expense_id):
         expenses_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
         
         with get_db() as db:
-            db.execute("UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?", 
-                       (amount, category, expenses_date, description, expense_id, user_id))
+            db.execute("UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
+                       (amount, category, description, expenses_date, expense_id, user_id))
             db.commit()
-        return redirect("/")
+        return redirect("/dashboard")
 
 @app.route("/search", methods=["POST"])
 def search():
@@ -791,11 +744,31 @@ def search():
 
     global_total = sum(float(item["amount"] or 0) for item in all_expenses)
     search_total = sum(float(item["amount"] or 0) for item in search_results)
-    
+
+    # Fetch username and sales totals for full template render
+    username = "Entrepreneur"
+    total_sales = 0.00
+    try:
+        with get_db() as db:
+            user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+            if user and user["email"]:
+                username = user["email"].split("@")[0].capitalize()
+            sales_q = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            if sales_q and sales_q["total"] is not None:
+                total_sales = float(sales_q["total"])
+    except Exception:
+        pass
+
+    net_profit = total_sales - global_total
+
     return render_template(
         "index.html",
         expenses=all_expenses,
         total=global_total,
+        total_sales=total_sales,
+        total_expenses=global_total,
+        net_profit=net_profit,
+        username=username,
         search_results=search_results,
         search_total=search_total,
         searching=True,
@@ -986,7 +959,7 @@ def user_count():
 def handle_404(e):
     if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
         return jsonify({"status": "error", "message": "The requested resource was not found."}), 404
-    return render_template("404.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY), 404
+    return render_template("404.html"), 404
 
 @app.errorhandler(500)
 @app.errorhandler(Exception)
@@ -998,7 +971,7 @@ def handle_exception(e):
             "status": "error",
             "message": "An internal server error occurred. Please try again later."
         }), 500
-    return render_template("500.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY), 500
+    return render_template("500.html"), 500
 
 if __name__ == "__main__":
     import os

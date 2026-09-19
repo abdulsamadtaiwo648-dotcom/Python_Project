@@ -9,8 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; }
-    #clerk-sign-up .cl-rootBox { width: 100%; }
-    #clerk-sign-up .cl-card { background: transparent; box-shadow: none; padding: 0; }
   </style>
 </head>
 <body class="bg-[#0f172a] text-white min-h-screen flex items-center justify-center p-4">
@@ -40,7 +38,7 @@
       </div>
     {% endif %}
 
-    <!-- ① Manual Email + Password Form -->
+    <!-- Manual Email + Password Form -->
     <form id="manual-register-form" action="/register" method="POST" class="space-y-4">
       <div>
         <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
@@ -58,118 +56,11 @@
       </button>
     </form>
 
-    <!-- Divider -->
-    <div class="relative my-6 text-center">
-      <div class="absolute inset-0 flex items-center">
-        <div class="w-full border-t border-slate-700"></div>
-      </div>
-      <span class="relative bg-slate-900 px-3 text-xs text-slate-500 uppercase font-medium tracking-wider">Or sign up with</span>
-    </div>
-
-    <!-- ② Clerk Component Container -->
-    <div id="clerk-sign-up" class="min-h-[48px]">
-      <div id="clerk-skeleton" class="w-full h-12 bg-slate-800 rounded-lg animate-pulse flex items-center justify-center">
-        <span class="text-slate-500 text-xs">Loading Clerk…</span>
-      </div>
-    </div>
-
     <p class="mt-6 text-center text-xs text-slate-400">
       Already have an account?
       <a href="/login" class="text-indigo-400 font-bold hover:underline">Log in</a>
     </p>
   </div>
-
-  <!-- ─── Clerk SDK ─── -->
-  <script
-    defer
-    crossorigin="anonymous"
-    src="https://innocent-ocelot-9835.clerk.accounts.dev/npm/@clerk/ui@1/dist/ui.browser.js"
-    type="text/javascript">
-  </script>
-  <script
-    defer
-    crossorigin="anonymous"
-    data-clerk-publishable-key="pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA"
-    src="https://innocent-ocelot-9835.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
-    type="text/javascript">
-  </script>
-
-  <script>
-    const CLERK_PK = "pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA";
-
-    // ─── Sync Clerk session into Flask ───────────────────────────────────────
-    async function syncClerkSession() {
-      try {
-        const clerk = (typeof window.Clerk === 'function') ? new window.Clerk(CLERK_PK) : window.Clerk;
-        if (!clerk) return false;
-        const session = clerk.session || (clerk.client && clerk.client.session) || (window.Clerk && window.Clerk.session);
-        if (!session || typeof session.getToken !== 'function') return false;
-        const token = await session.getToken();
-        if (!token) return false;
-
-        const res = await fetch("/clerk-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token })
-        });
-        const data = await res.json();
-        return data.status === "ok";
-      } catch (err) {
-        console.error("clerk-sync failed:", err);
-        return false;
-      }
-    }
-
-    // ─── Auto-mount Clerk SignUp on page load ─────────────────────────────────
-    window.addEventListener("load", async function () {
-      const container = document.getElementById("clerk-sign-up");
-      const skeleton  = document.getElementById("clerk-skeleton");
-
-      let attempts = 0;
-      while (!window.Clerk && attempts < 50) {
-        await new Promise(r => setTimeout(r, 100));
-        attempts++;
-      }
-
-      if (!window.Clerk) {
-        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Clerk auth is unavailable. Please use email & password above.</p>';
-        return;
-      }
-
-      try {
-        const clerk = (typeof window.Clerk === 'function') ? new window.Clerk(CLERK_PK) : window.Clerk;
-        if (!clerk.loaded && typeof clerk.load === 'function') {
-          await clerk.load();
-        }
-
-        if (clerk.user) {
-          const ok = await syncClerkSession();
-          if (ok) { window.location.href = "/dashboard"; return; }
-        }
-
-        if (skeleton) skeleton.remove();
-        if (typeof clerk.mountSignUp === 'function') {
-          clerk.mountSignUp(container, {
-            afterSignUpUrl: "/register?clerk_signed_in=1",
-            signInUrl: "/login"
-          });
-        }
-
-        if (typeof clerk.addListener === 'function') {
-          clerk.addListener(async ({ session }) => {
-            if (session) {
-              const ok = await syncClerkSession();
-              if (ok) window.location.href = "/dashboard";
-            }
-          });
-        }
-
-      } catch (err) {
-        console.error("Clerk load error:", err);
-        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Could not load Clerk. Please use email & password above.</p>';
-      }
-    });
-  </script>
 
 </body>
 </html>
