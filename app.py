@@ -16,6 +16,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
 app.permanent_session_lifetime = timedelta(days=30)
 
+# ── Session / Cookie hardening ───────────────────────────────────────────────
+# SameSite=Lax  → cookie survives desktop↔mobile view-mode toggles in Chrome
+# HttpOnly      → JS cannot read/delete the session cookie
+# Secure        → only send over HTTPS in production (safe to set; falls back
+#                 to HTTP on localhost automatically via werkzeug)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"]   = os.environ.get("DATABASE_URL") is not None  # True on Render (HTTPS)
+
 def get_current_user_id():
     """
     Retrieve string-based user_id from active Flask session cookie.

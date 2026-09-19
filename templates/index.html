@@ -23,6 +23,65 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+
+        /* ── Stat Cards: fluid number sizing so figures never overflow ── */
+        .stat-value {
+            font-size: clamp(0.65rem, 2.2vw, 0.9rem);
+            font-weight: 800;
+            line-height: 1.2;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            hyphens: auto;
+            display: block;
+            white-space: normal;
+        }
+        @media (min-width: 640px) {
+            .stat-value { font-size: clamp(0.8rem, 1.8vw, 1rem); }
+        }
+
+        /* ── Business Card ─────────────────────────────────────────── */
+        .biz-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+        .biz-card::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 200px; height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .biz-card::after {
+            content: '';
+            position: absolute;
+            bottom: -40px; left: -40px;
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(236,72,153,0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .biz-card-logo {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: 900;
+            color: #fff;
+            letter-spacing: -1px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+        }
+        .biz-card-divider {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.12), transparent);
+            margin: 14px 0;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 pb-16">
@@ -78,23 +137,40 @@
         </div>
 
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
-        <div class="grid grid-cols-3 gap-2 sm:gap-2.5 mb-5 text-center">
+        <!-- Top row: Sales + Expenses side by side -->
+        <div class="grid grid-cols-2 gap-2 sm:gap-3 mb-2 sm:mb-3">
+
             <!-- Total Sales Card -->
-            <div class="bg-emerald-50 border border-emerald-100 p-2.5 sm:p-3 rounded-2xl shadow-sm">
-                <p class="text-[9px] uppercase font-bold text-emerald-600 tracking-wider truncate">Total Sales</p>
-                <p class="text-xs sm:text-sm font-extrabold text-emerald-800 mt-0.5 truncate" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</p>
+            <div class="bg-emerald-50 border border-emerald-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-emerald-500 text-sm">📈</span>
+                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Total Sales</p>
+                </div>
+                <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
             </div>
 
             <!-- Total Expenses Card -->
-            <div class="bg-rose-50 border border-rose-100 p-2.5 sm:p-3 rounded-2xl shadow-sm">
-                <p class="text-[9px] uppercase font-bold text-rose-600 tracking-wider truncate">Total Expenses</p>
-                <p class="text-xs sm:text-sm font-extrabold text-rose-800 mt-0.5 truncate" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</p>
+            <div class="bg-rose-50 border border-rose-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-rose-500 text-sm">📉</span>
+                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
+                </div>
+                <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
             </div>
+        </div>
 
-            <!-- Net Profit Card -->
-            <div class="bg-indigo-50 border border-indigo-100 p-2.5 sm:p-3 rounded-2xl shadow-sm">
-                <p class="text-[9px] uppercase font-bold text-indigo-600 tracking-wider truncate">Net Profit</p>
-                <p class="text-xs sm:text-sm font-extrabold text-indigo-800 mt-0.5 truncate" id="top-profit">₦{{ "{:,.2f}".format(net_profit or 0.0) }}</p>
+        <!-- Bottom row: Net Profit — full width so it has maximum space -->
+        <div class="mb-5">
+            {% set np = net_profit or 0.0 %}
+            <div class="{% if np >= 0 %}bg-indigo-50 border-indigo-200{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-3 min-w-0">
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-lg">{% if np >= 0 %}💰{% else %}⚠️{% endif %}</span>
+                    <div>
+                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-600{% endif %} tracking-wider leading-none">Net Profit</p>
+                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5">Sales minus Expenses</p>
+                    </div>
+                </div>
+                <span class="stat-value {% if np >= 0 %}text-indigo-800{% else %}text-amber-700{% endif %} text-right ml-2" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
             </div>
         </div>
 
@@ -348,44 +424,59 @@
                 </div>
 
                 <!-- View Mode Container (Digital Business Card) -->
-                <div id="profile-view-mode" class="space-y-4 hidden">
-                    <!-- Digital Business Card -->
-                    <div id="digital-business-card" class="w-full max-w-sm mx-auto bg-slate-900 rounded-2xl shadow-2xl p-8 relative overflow-hidden font-sans border border-slate-800 text-white">
-                        
-                        <!-- Brand Name: Front and Center -->
-                        <div class="text-center mb-8 mt-4">
-                            <h2 id="card-company-name" class="text-4xl font-extrabold tracking-wider">DLNZ</h2>
-                            <!-- Subtle detail line underneath the brand -->
-                            <div class="w-16 h-1 bg-indigo-500 mx-auto mt-4 rounded-full border-none"></div>
-                        </div>
+                <div id="profile-view-mode" class="space-y-5 hidden">
 
-                        <!-- Inner Contact Box -->
-                        <div class="bg-slate-950/60 rounded-xl p-6 space-y-5 mb-6 border border-slate-700/50 shadow-inner">
-                            
-                            <!-- Phone Number -->
-                            <div class="flex items-center space-x-4">
-                                <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
-                                </svg>
-                                <span id="card-phone" class="text-slate-200 font-medium tracking-wider">09071809866</span>
+                    <!-- ═══════════════════════════════════════════════ -->
+                    <!-- PREMIUM DIGITAL BUSINESS CARD                  -->
+                    <!-- ═══════════════════════════════════════════════ -->
+                    <div id="digital-business-card" class="biz-card w-full mx-auto shadow-2xl border border-white/5 text-white" style="padding: 24px 24px 20px; aspect-ratio: 1.75/1; display: flex; flex-direction: column; justify-content: space-between;">
+
+                        <!-- TOP ROW: Logo Initial + Company Name -->
+                        <div style="display: flex; align-items: flex-start; gap: 14px;">
+                            <!-- Gradient Logo Initial -->
+                            <div class="biz-card-logo" id="card-logo-initial">B</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <h2 id="card-company-name" style="font-size: clamp(1rem,4vw,1.5rem); font-weight: 900; letter-spacing: -0.5px; color: #fff; line-height: 1.1; word-break: break-word;">Your Business</h2>
+                                    <span style="background: linear-gradient(90deg,#6366f1,#a855f7); border-radius: 6px; font-size: 9px; font-weight: 700; padding: 2px 7px; color: #fff; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0;">PRO</span>
+                                </div>
+                                <p style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 3px; font-weight: 500; letter-spacing: 0.5px;">Est. 2024 · SoloBiz Verified</p>
                             </div>
-                            
-                            <!-- Location -->
-                            <div class="flex items-center space-x-4">
-                                <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span id="card-address" class="text-slate-200 font-medium tracking-wide capitalize">Lagos</span>
+                        </div>
+
+                        <!-- MIDDLE: Divider -->
+                        <hr class="biz-card-divider">
+
+                        <!-- CONTACT INFO ROW -->
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Phone -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#818cf8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                </div>
+                                <span id="card-phone" style="font-size: clamp(0.7rem,2.5vw,0.85rem); color: rgba(255,255,255,0.85); font-weight: 600; letter-spacing: 0.3px;">—</span>
                             </div>
-
+                            <!-- Address -->
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(236,72,153,0.12); border: 1px solid rgba(236,72,153,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+                                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#f472b6" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                </div>
+                                <span id="card-address" style="font-size: clamp(0.65rem,2.2vw,0.8rem); color: rgba(255,255,255,0.7); font-weight: 500; word-break: break-word; line-height: 1.35;">—</span>
+                            </div>
                         </div>
 
-                        <!-- Minimalist Footer -->
-                        <div class="flex justify-between items-end mt-2">
-                            <span class="text-xs text-slate-500 tracking-wide font-medium">Powered by SoloBiz</span>
+                        <!-- BOTTOM ROW: Branding strip -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                            <span style="font-size: 9px; color: rgba(255,255,255,0.2); letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">SOLOBIZ · POCKET CFO</span>
+                            <!-- Decorative dots -->
+                            <div style="display: flex; gap: 4px;">
+                                <div style="width: 6px; height: 6px; border-radius: 50%; background: #6366f1; opacity: 0.7;"></div>
+                                <div style="width: 6px; height: 6px; border-radius: 50%; background: #8b5cf6; opacity: 0.5;"></div>
+                                <div style="width: 6px; height: 6px; border-radius: 50%; background: #ec4899; opacity: 0.4;"></div>
+                            </div>
                         </div>
-                        
-                    </div>
+
+                    </div><!-- /digital-business-card -->
 
                     <!-- Hidden legacy targets for compatibility -->
                     <div class="hidden">
@@ -395,26 +486,23 @@
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="flex space-x-3 mt-6">
+                    <div class="grid grid-cols-3 gap-2">
                         <!-- Share Button -->
-                        <button onclick="shareBusinessCard()" class="flex-1 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition duration-200 text-sm sm:text-base">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
-                            </svg>
+                        <button onclick="shareBusinessCard()" class="col-span-1 flex flex-col items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition-all duration-150 text-xs">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
                             Share
                         </button>
 
                         <!-- Download Button -->
-                        <button onclick="downloadBusinessCard()" class="flex-1 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition duration-200 text-sm sm:text-base">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
+                        <button onclick="downloadBusinessCard()" class="col-span-1 flex flex-col items-center justify-center gap-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition-all duration-150 text-xs border border-slate-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             Download
                         </button>
 
                         <!-- Edit Profile Button -->
-                        <button type="button" id="btn-edit-profile" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-3 px-3 rounded-xl transition border border-indigo-200 flex items-center justify-center gap-1.5 text-sm">
-                            <span>✏️</span> Edit
+                        <button type="button" id="btn-edit-profile" class="col-span-1 flex flex-col items-center justify-center gap-1 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 font-bold py-3 px-2 rounded-xl transition-all duration-150 border border-indigo-200 text-xs">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Edit
                         </button>
                     </div>
                 </div>
@@ -568,9 +656,20 @@
             const topProfitEl = document.getElementById('top-profit') || document.getElementById('cfo-net-profit');
             if (topProfitEl) {
                 topProfitEl.innerText = fmt(netProfit);
-                topProfitEl.className = netProfit < 0
-                    ? 'text-sm font-extrabold text-rose-700 mt-0.5'
-                    : 'text-sm font-extrabold text-indigo-800 mt-0.5';
+                // Only touch colour — preserve the stat-value layout class
+                topProfitEl.style.color = netProfit < 0 ? '#b45309' : '#3730a3';
+            }
+
+            // Also flip the Net Profit card background when JS updates it live
+            const npCard = topProfitEl ? topProfitEl.closest('[class*="rounded-2xl"]') : null;
+            if (npCard) {
+                if (netProfit < 0) {
+                    npCard.classList.remove('bg-indigo-50', 'border-indigo-200');
+                    npCard.classList.add('bg-amber-50', 'border-amber-200');
+                } else {
+                    npCard.classList.remove('bg-amber-50', 'border-amber-200');
+                    npCard.classList.add('bg-indigo-50', 'border-indigo-200');
+                }
             }
         }
 
@@ -2026,9 +2125,15 @@
                     if (vPhone) vPhone.textContent = profile.business_phone || 'Not set';
                     if (vAddr) vAddr.textContent = profile.business_address || 'Not set';
 
-                    if (cComp) cComp.textContent = profile.company_name || 'Your Company Name';
-                    if (cPhone) cPhone.textContent = profile.business_phone || '+234 000 000 0000';
-                    if (cAddr) cAddr.textContent = profile.business_address || 'Business Address Preview';
+                    if (cComp) cComp.textContent = profile.company_name || 'Your Business';
+                    if (cPhone) cPhone.textContent = profile.business_phone || '—';
+                    if (cAddr) cAddr.textContent = profile.business_address || '—';
+
+                    // Update logo initial
+                    const logoInit = document.getElementById('card-logo-initial');
+                    if (logoInit && profile.company_name) {
+                        logoInit.textContent = profile.company_name.trim().charAt(0).toUpperCase();
+                    }
 
                     if (pComp) pComp.textContent = profile.company_name || 'Your Company Name';
                     if (pPhone) pPhone.textContent = profile.business_phone || '+234 000 000 0000';
@@ -2040,9 +2145,9 @@
                     if (vPhone) vPhone.textContent = 'Not set';
                     if (vAddr) vAddr.textContent = 'Not set';
 
-                    if (cComp) cComp.textContent = 'Your Company Name';
-                    if (cPhone) cPhone.textContent = '+234 000 000 0000';
-                    if (cAddr) cAddr.textContent = 'Business Address Preview';
+                    if (cComp) cComp.textContent = 'Your Business';
+                    if (cPhone) cPhone.textContent = '—';
+                    if (cAddr) cAddr.textContent = '—';
 
                     toggleProfileMode('edit');
                 }
@@ -2085,8 +2190,14 @@
                     const cAddr = document.getElementById('card-address') || document.getElementById('card-business-address');
 
                     if (cComp) cComp.textContent = company_name;
-                    if (cPhone) cPhone.textContent = business_phone || '+234 000 000 0000';
-                    if (cAddr) cAddr.textContent = business_address || 'Business Address Preview';
+                    if (cPhone) cPhone.textContent = business_phone || '—';
+                    if (cAddr) cAddr.textContent = business_address || '—';
+
+                    // Sync logo initial
+                    const logoInit = document.getElementById('card-logo-initial');
+                    if (logoInit && company_name) {
+                        logoInit.textContent = company_name.trim().charAt(0).toUpperCase();
+                    }
 
                     // Update Preview Card elements
                     const pComp = document.getElementById('preview-company-name');
