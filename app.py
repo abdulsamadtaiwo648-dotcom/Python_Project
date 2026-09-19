@@ -287,7 +287,7 @@ def index():
 
     total_sales = float(sales_query["total"]) if sales_query and sales_query["total"] is not None else 0.00
     total_expenses = float(expenses_query["total"]) if expenses_query and expenses_query["total"] is not None else 0.00
-    net_profit = total_sales - total_expenses
+    net_profit = float(total_sales) - float(total_expenses)
     
     user_email = user["email"]
     username = user_email.split("@")[0].capitalize()
