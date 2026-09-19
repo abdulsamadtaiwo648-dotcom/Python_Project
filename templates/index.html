@@ -22,7 +22,12 @@
     <!-- Pulls in modern, clean Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Clerk Browser CDN -->
-    <script src="https://cdn.clerk.com/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" crossorigin="anonymous"></script>
+    <script 
+        async 
+        crossorigin="anonymous" 
+        data-clerk-publishable-key="{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}" 
+        src="https://cdn.clerk.com/npm/@clerk/clerk-js@latest/dist/clerk.browser.js">
+    </script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -559,18 +564,22 @@
 
         window.addEventListener("load", async () => {
             try {
-                const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
-                await clerk.load();
-                window.Clerk = clerk;
+                if (!window.Clerk) {
+                    const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
+                    await clerk.load();
+                    window.Clerk = clerk;
+                } else {
+                    await window.Clerk.load();
+                }
 
-                if (!clerk.user) {
+                if (!window.Clerk.user) {
                     window.location.href = "/login";
                     return;
                 }
 
                 const nameEl = document.getElementById("user-greeting-name");
                 if (nameEl) {
-                    const displayName = clerk.user.firstName || clerk.user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Entrepreneur';
+                    const displayName = window.Clerk.user.firstName || window.Clerk.user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Entrepreneur';
                     nameEl.innerText = displayName;
                 }
             } catch (err) {
