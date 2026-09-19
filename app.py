@@ -750,6 +750,18 @@ def api_income():
             "items": saved_items
         }), 201
 
+@app.route("/user-count")
+def user_count():
+    with get_db() as db:
+        row = db.execute("SELECT COUNT(*) AS total FROM users").fetchone()
+        if isinstance(row, dict) or hasattr(row, "keys"):
+            total = row["total"]
+        elif row:
+            total = row[0]
+        else:
+            total = 0
+    return f"<h1>Total Registered Users: {total}</h1>"
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     # Prints the exact traceback line directly to screen for real-time debugging
