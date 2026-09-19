@@ -1676,6 +1676,9 @@
             // Initial calculations and renders
             renderIncomeListUI();
             calculateDashboard();
+            if (navigator.onLine) {
+                syncAllPendingData();
+            }
             syncIncomeFromServer();
 
             // -------------------------------------------------------------
