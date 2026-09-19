@@ -7,13 +7,6 @@
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Clerk Browser CDN -->
-    <script 
-        async 
-        crossorigin="anonymous" 
-        data-clerk-publishable-key="{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}" 
-        src="https://cdn.clerk.com/npm/@clerk/clerk-js@latest/dist/clerk.browser.js">
-    </script>
     <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
@@ -26,53 +19,22 @@
             </div>
         </div>
 
-        <div id="clerk-app" class="w-full flex justify-center">
-            <div id="clerk-loading" class="text-center py-10">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
-                <p class="text-xs text-gray-400 mt-3 font-medium">Loading sign up form...</p>
-            </div>
-        </div>
+        <div id="clerk-sign-up" class="w-full flex justify-center"></div>
     </div>
 
-    <script>
-        const PUBLISHABLE_KEY = "{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}";
-
-        window.addEventListener("load", async () => {
-            let attempts = 0;
-            while (!window.Clerk && attempts < 50) {
-                await new Promise(r => setTimeout(r, 100));
-                attempts++;
-            }
-
-            if (!window.Clerk) {
-                const loadingEl = document.getElementById("clerk-loading");
-                if (loadingEl) {
-                    loadingEl.innerHTML = `
-                        <div class="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-xs text-center">
-                            <p class="font-bold">CDN Connection Failed</p>
-                            <p class="mt-1 text-gray-300">Could not download Clerk JS SDK. Please check your network connection.</p>
-                        </div>
-                    `;
-                }
-                return;
-            }
-
-            try {
-                await window.Clerk.load({
-                    publishableKey: PUBLISHABLE_KEY
-                });
-
-                if (window.Clerk.user) {
-                    window.location.href = "/";
-                } else {
-                    const loadingEl = document.getElementById("clerk-loading");
-                    if (loadingEl) loadingEl.style.display = "none";
-                    window.Clerk.mountSignUp(document.getElementById("clerk-app"));
-                }
-            } catch (err) {
-                console.error("Clerk loading error:", err);
-            }
-        });
+    <!-- Clerk JS SDK via jsDelivr CDN -->
+    <script
+      async crossorigin="anonymous"
+      data-clerk-publishable-key="{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}"
+      src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+      onload="window.Clerk.load().then(() => {
+        const clerk = window.Clerk;
+        if (clerk.user) {
+          window.location.href = '/';
+        } else {
+          clerk.mountSignUp(document.getElementById('clerk-sign-up'));
+        }
+      })">
     </script>
 </body>
 </html>
