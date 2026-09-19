@@ -35,12 +35,17 @@
     <form action="/login" method="POST" class="space-y-4">
       <div>
         <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
-        <input type="email" name="email" required placeholder="name@example.com" 
+        <input type="email" id="login-email" name="email" required placeholder="name@example.com" 
                class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Password</label>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-xs font-semibold text-slate-300 uppercase">Password</label>
+          <button type="button" onclick="handleForgotPassword()" class="text-xs text-indigo-400 hover:underline font-medium cursor-pointer">
+            Forgot Password?
+          </button>
+        </div>
         <input type="password" name="password" required placeholder="••••••••" 
                class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
       </div>
@@ -114,6 +119,61 @@
             Sign in with Clerk
           </button>
         `;
+      }
+    }
+
+    async function handleForgotPassword() {
+      const emailInput = document.getElementById("login-email") || document.querySelector('input[name="email"]');
+      const email = emailInput ? emailInput.value.trim() : "";
+      if (!email) {
+        alert("Please enter your email address in the Email field first.");
+        return;
+      }
+
+      let attempts = 0;
+      while (!window.Clerk && attempts < 50) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+
+      if (!window.Clerk) {
+        alert("Clerk SDK is taking time to load. Please check your network or try again.");
+        return;
+      }
+
+      try {
+        await window.Clerk.load({
+          publishableKey: "{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}"
+        });
+
+        // 1. Request 6-digit PIN via Clerk
+        await window.Clerk.client.signIn.create({
+          strategy: "reset_password_email_code",
+          identifier: email,
+        });
+
+        const pin = prompt(`A 6-digit PIN was sent to ${email}.\n\nPlease enter the 6-digit PIN:`);
+        if (!pin) return;
+
+        const newPassword = prompt("Enter your new password:");
+        if (!newPassword) return;
+
+        // 2. Verify PIN and set new password
+        const result = await window.Clerk.client.signIn.attemptFirstFactor({
+          strategy: "reset_password_email_code",
+          code: pin.trim(),
+          password: newPassword.trim(),
+        });
+
+        if (result.status === "complete") {
+          alert("Password updated successfully! You are now logged in.");
+          window.location.href = "/";
+        } else {
+          alert("Password reset completed with status: " + result.status);
+        }
+      } catch (err) {
+        const msg = (err.errors && err.errors[0] && err.errors[0].message) ? err.errors[0].message : (err.message || String(err));
+        alert("Error: " + msg);
       }
     }
   </script>
