@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
 import math
 import os
@@ -15,7 +15,8 @@ except ImportError:
     HAS_PSYCOPG2 = False
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_for_solobiz")
+app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
+app.permanent_session_lifetime = timedelta(days=30)
 CLERK_PUBLISHABLE_KEY = os.environ.get("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY") or os.environ.get("CLERK_PUBLISHABLE_KEY") or "pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA"
 
 def get_current_user_id():
@@ -250,6 +251,7 @@ def register():
             with get_db() as db:
                 db.execute("INSERT INTO users (id, email, password) VALUES (?, ?, ?)", (new_user_id, email, hashed_password))
                 db.commit()
+            session.permanent = True
             session["user_id"] = new_user_id
             flash("Account created successfully!", "success")
             return redirect("/")
@@ -291,6 +293,7 @@ def login():
                     flash("Invalid email or password. Please try again.", "danger")
                     return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
                     
+                session.permanent = True
                 session["user_id"] = str(user["id"])
                 return redirect("/")
         except Exception as e:

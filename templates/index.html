@@ -579,15 +579,12 @@
                     publishableKey: CLERK_PUBLISHABLE_KEY
                 });
 
-                if (!window.Clerk.user) {
-                    window.location.href = "/login";
-                    return;
-                }
-
-                const nameEl = document.getElementById("user-greeting-name");
-                if (nameEl && window.Clerk.user) {
-                    const displayName = window.Clerk.user.firstName || window.Clerk.user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Entrepreneur';
-                    nameEl.innerText = displayName;
+                if (window.Clerk.user) {
+                    const nameEl = document.getElementById("user-greeting-name");
+                    if (nameEl) {
+                        const displayName = window.Clerk.user.firstName || window.Clerk.user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Entrepreneur';
+                        nameEl.innerText = displayName;
+                    }
                 }
             } catch (err) {
                 console.error("Clerk load error:", err);
