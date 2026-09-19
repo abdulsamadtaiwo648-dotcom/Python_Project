@@ -114,7 +114,6 @@
       const container = document.getElementById("clerk-sign-up");
       const skeleton  = document.getElementById("clerk-skeleton");
 
-      // Wait up to 5 s for the async Clerk script to initialise
       let attempts = 0;
       while (!window.Clerk && attempts < 50) {
         await new Promise(r => setTimeout(r, 100));
@@ -122,39 +121,41 @@
       }
 
       if (!window.Clerk) {
-        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Clerk is unavailable. Please use the email form above.</p>';
+        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Clerk auth is unavailable. Please use email & password above.</p>';
         return;
       }
 
       try {
-        if (!window.Clerk.loaded) {
-          await window.Clerk.load();
+        const clerk = (typeof window.Clerk === 'function') ? new window.Clerk(CLERK_PK) : window.Clerk;
+        if (!clerk.loaded && typeof clerk.load === 'function') {
+          await clerk.load();
         }
 
-        // If user is already signed in via Clerk, sync to Flask then go to dashboard
-        if (window.Clerk.user) {
+        if (clerk.user) {
           const ok = await syncClerkSession();
-          if (ok) { window.location.href = "/"; return; }
+          if (ok) { window.location.href = "/dashboard"; return; }
         }
 
-        // Remove skeleton, mount the Clerk SignUp component
         if (skeleton) skeleton.remove();
-        window.Clerk.mountSignUp(container, {
-          afterSignUpUrl: "/register?clerk_signed_in=1",
-          signInUrl: "/login"
-        });
+        if (typeof clerk.mountSignUp === 'function') {
+          clerk.mountSignUp(container, {
+            afterSignUpUrl: "/register?clerk_signed_in=1",
+            signInUrl: "/login"
+          });
+        }
 
-        // Listen for sign-up completion
-        window.Clerk.addListener(async ({ session }) => {
-          if (session) {
-            const ok = await syncClerkSession();
-            if (ok) window.location.href = "/";
-          }
-        });
+        if (typeof clerk.addListener === 'function') {
+          clerk.addListener(async ({ session }) => {
+            if (session) {
+              const ok = await syncClerkSession();
+              if (ok) window.location.href = "/dashboard";
+            }
+          });
+        }
 
       } catch (err) {
         console.error("Clerk load error:", err);
-        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Could not load Clerk. Please use the email form above.</p>';
+        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Could not load Clerk. Please use email & password above.</p>';
       }
     });
   </script>

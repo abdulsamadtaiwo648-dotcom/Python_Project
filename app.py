@@ -129,59 +129,64 @@ def get_db():
         return DBWrapper(conn, is_postgres=False)
 
 def init_db():
-    with get_db() as db:
-        if getattr(db, "is_postgres", False):
-            # PostgreSQL Table Creation (Cloud Database)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id TEXT PRIMARY KEY,
-                    email TEXT UNIQUE NOT NULL,
-                    password TEXT
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS expenses (
-                    id SERIAL PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    amount NUMERIC NOT NULL,
-                    category TEXT NOT NULL,
-                    description TEXT,
-                    date TEXT
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS business_profiles (
-                    id SERIAL PRIMARY KEY,
-                    user_id TEXT UNIQUE NOT NULL,
-                    company_name TEXT,
-                    business_phone TEXT,
-                    business_address TEXT
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS income (
-                    id SERIAL PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    amount NUMERIC NOT NULL,
-                    item_sold TEXT,
-                    customer_name TEXT,
-                    date TEXT,
-                    receipt_id TEXT
-                )
-            """)
-            for alter_cmd in [
-                "ALTER TABLE users ALTER COLUMN id TYPE TEXT USING id::TEXT",
-                "ALTER TABLE expenses ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
-                "ALTER TABLE income ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
-                "ALTER TABLE business_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
-                "ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT"
-            ]:
-                try:
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url and HAS_PSYCOPG2:
+        # PostgreSQL Cloud Migration & Table Initialization
+        tables = [
+            """CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT
+            )""",
+            """CREATE TABLE IF NOT EXISTS expenses (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                amount NUMERIC NOT NULL,
+                category TEXT NOT NULL,
+                description TEXT,
+                date TEXT
+            )""",
+            """CREATE TABLE IF NOT EXISTS business_profiles (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT UNIQUE NOT NULL,
+                company_name TEXT,
+                business_phone TEXT,
+                business_address TEXT
+            )""",
+            """CREATE TABLE IF NOT EXISTS income (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                amount NUMERIC NOT NULL,
+                item_sold TEXT,
+                customer_name TEXT,
+                date TEXT,
+                receipt_id TEXT
+            )"""
+        ]
+        for tbl_sql in tables:
+            try:
+                with get_db() as db:
+                    db.execute(tbl_sql)
+                    db.commit()
+            except Exception as e:
+                print(f"Table init note: {e}", flush=True)
+
+        migrations = [
+            "ALTER TABLE users ALTER COLUMN id TYPE TEXT USING id::TEXT",
+            "ALTER TABLE expenses ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+            "ALTER TABLE income ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+            "ALTER TABLE business_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT"
+        ]
+        for alter_cmd in migrations:
+            try:
+                with get_db() as db:
                     db.execute(alter_cmd)
-                except Exception as e:
-                    print(f"Migration note for '{alter_cmd}': {e}", flush=True)
-        else:
-            # SQLite Table Creation (Local Development)
+                    db.commit()
+            except Exception as e:
+                print(f"Migration note for '{alter_cmd}': {e}", flush=True)
+    else:
+        with get_db() as db:
             db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
@@ -223,7 +228,7 @@ def init_db():
                 db.execute("ALTER TABLE income ADD COLUMN receipt_id TEXT")
             except Exception:
                 pass
-        db.commit()
+            db.commit()
 
 init_db()
 
@@ -232,6 +237,9 @@ init_db()
 # ==========================================
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if get_current_user_id():
+        return redirect("/dashboard")
+
     if request.method == "POST":
         raw_email = request.form.get("email", "")
         raw_password = request.form.get("password", "")
@@ -254,7 +262,7 @@ def register():
             session.permanent = True
             session["user_id"] = new_user_id
             flash("Account created successfully!", "success")
-            return redirect("/")
+            return redirect("/dashboard")
         except sqlite3.IntegrityError:
             error_msg = "Email already registered! Please log in."
             flash(error_msg, "danger")
@@ -263,10 +271,10 @@ def register():
             err_str = str(e).lower()
             import logging
             logging.error(f"Registration failed for email '{email}': {e}", exc_info=True)
-            if "unique" in err_str or "duplicate" in err_str:
+            if "unique" in err_str or "duplicate" in err_str or "already exists" in err_str:
                 error_msg = "Email already registered! Please log in."
             else:
-                error_msg = "An error occurred while creating your account. Please try again."
+                error_msg = f"Could not create account: {str(e)}"
             flash(error_msg, "danger")
             return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
             
@@ -274,6 +282,9 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if get_current_user_id():
+        return redirect("/dashboard")
+
     if request.method == "POST":
         raw_email = request.form.get("email", "")
         raw_password = request.form.get("password", "")
@@ -295,7 +306,7 @@ def login():
                     
                 session.permanent = True
                 session["user_id"] = str(user["id"])
-                return redirect("/")
+                return redirect("/dashboard")
         except Exception as e:
             import logging
             logging.error(f"Login error for email '{email}': {e}", exc_info=True)
@@ -323,11 +334,9 @@ def clerk_sync():
         if not token:
             return jsonify({"status": "error", "message": "No token provided"}), 400
 
-        # Decode without verifying signature — Clerk already verified on their end
         payload = jwt.decode(token, options={"verify_signature": False})
         clerk_id = payload.get("sub", "")      # e.g. "user_2abc123"
 
-        # Clerk puts the primary email in different claims depending on version
         email = (
             payload.get("email")
             or payload.get("primary_email_address")
@@ -338,7 +347,6 @@ def clerk_sync():
         if not clerk_id:
             return jsonify({"status": "error", "message": "Invalid token — no user ID"}), 401
 
-        # Upsert: create user row if not already there, leave existing data intact
         with get_db() as db:
             if getattr(db, "is_postgres", False):
                 db.execute(
@@ -349,7 +357,6 @@ def clerk_sync():
                     (clerk_id, email)
                 )
             else:
-                # SQLite syntax
                 db.execute(
                     """INSERT INTO users (id, email, password)
                        VALUES (?, ?, NULL)
@@ -358,11 +365,10 @@ def clerk_sync():
                 )
             db.commit()
 
-        # Set Flask session so every server-side route recognises this Clerk user
         session.clear()
         session.permanent = True
         session["user_id"] = clerk_id
-        return jsonify({"status": "ok", "user_id": clerk_id})
+        return jsonify({"status": "ok", "user_id": clerk_id, "redirect": "/dashboard"})
 
     except Exception as e:
         logging.error(f"clerk-sync error: {e}", exc_info=True)
@@ -373,7 +379,14 @@ def clerk_sync():
 # DASHBOARD & CRUD ROUTES
 # ==========================================
 @app.route("/")
-def index():
+def root():
+    user_id = get_current_user_id()
+    if user_id:
+        return redirect("/dashboard")
+    return redirect("/login")
+
+@app.route("/dashboard")
+def dashboard():
     user_id = get_current_user_id()
 
     if not user_id:
@@ -389,7 +402,7 @@ def index():
     total_expenses = float(expenses_query["total"]) if expenses_query and expenses_query["total"] is not None else 0.00
     net_profit = float(total_sales) - float(total_expenses)
     
-    username = user["email"].split("@")[0].capitalize() if user and hasattr(user, "__getitem__") and "email" in user else "User"
+    username = user["email"].split("@")[0].capitalize() if user and hasattr(user, "__getitem__") and "email" in user and user["email"] else "User"
 
     return render_template(
         "index.html",
