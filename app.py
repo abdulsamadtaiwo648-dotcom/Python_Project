@@ -340,6 +340,88 @@ def logout():
     resp.delete_cookie(app.config.get("SESSION_COOKIE_NAME", "session"))
     return resp
 
+# ==========================================
+# PASSWORD RESET API (HYBRID BACKEND + CLERK)
+# ==========================================
+RESET_CODES = {}
+
+@app.route("/api/forgot-password/request", methods=["POST"])
+def forgot_password_request():
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return jsonify({"status": "error", "message": "Please enter a valid email address."}), 400
+
+        with get_db() as db:
+            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            if not user:
+                return jsonify({
+                    "status": "error",
+                    "message": "No account found with this email address. Please register first."
+                }), 404
+
+        import random
+        code = str(random.randint(100000, 999999))
+        expires = datetime.now() + timedelta(minutes=15)
+        RESET_CODES[email] = {"code": code, "expires": expires}
+
+        import logging
+        logging.info(f"Generated reset PIN for '{email}': {code}")
+        print(f"\n==========================================")
+        print(f"🔑 PASSWORD RESET PIN FOR {email}: {code}")
+        print(f"==========================================\n", flush=True)
+
+        return jsonify({
+            "status": "ok",
+            "message": f"Verification PIN sent! PIN: {code}",
+            "code": code
+        })
+
+    except Exception as e:
+        import logging
+        logging.error(f"forgot_password_request error: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "Failed to generate PIN. Please try again."}), 500
+
+@app.route("/api/forgot-password/reset", methods=["POST"])
+def forgot_password_reset():
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+        code = (data.get("code") or "").strip()
+        new_password = (data.get("password") or "").strip()
+
+        if not email or not code or not new_password:
+            return jsonify({"status": "error", "message": "Email, verification PIN, and new password are required."}), 400
+
+        if len(new_password) < 6:
+            return jsonify({"status": "error", "message": "New password must be at least 6 characters long."}), 400
+
+        record = RESET_CODES.get(email)
+        if not record or record["code"] != code or datetime.now() > record["expires"]:
+            return jsonify({"status": "error", "message": "Invalid or expired verification PIN. Please request a new code."}), 400
+
+        hashed = generate_password_hash(new_password)
+        with get_db() as db:
+            db.execute("UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)", (hashed, email))
+            db.commit()
+
+        RESET_CODES.pop(email, None)
+
+        with get_db() as db:
+            user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            if user:
+                session.clear()
+                session.permanent = True
+                session["user_id"] = str(user["id"])
+
+        return jsonify({"status": "ok", "message": "Password updated successfully!", "redirect": "/dashboard"})
+
+    except Exception as e:
+        import logging
+        logging.error(f"forgot_password_reset error: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "Failed to update password. Please try again."}), 500
+
 @app.route("/clerk-sync", methods=["POST"])
 def clerk_sync():
     """

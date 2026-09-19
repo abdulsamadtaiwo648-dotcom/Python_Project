@@ -165,48 +165,158 @@
       }
     });
 
-    // ─── Forgot Password (Clerk email code flow) ──────────────────────────────
-    document.getElementById("forgot-btn").addEventListener("click", async function () {
-      const emailInput = document.getElementById("login-email");
-      const email = emailInput ? emailInput.value.trim() : "";
-      if (!email) {
-        alert("Please type your email address in the Email field first.");
-        return;
+  <!-- ─── Password Reset Modal Overlay ─── -->
+  <div id="reset-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+      
+      <!-- Close Button -->
+      <button type="button" id="close-reset-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white transition cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-lg">
+          🔒
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-white">Reset Your Password</h2>
+          <p class="text-xs text-slate-400">Enter your email to receive a 6-digit PIN</p>
+        </div>
+      </div>
+
+      <!-- Alert Message Box -->
+      <div id="reset-alert" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold"></div>
+
+      <!-- Step 1 Form: Email Request -->
+      <form id="reset-step1-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
+          <input type="email" id="reset-email-input" required placeholder="name@example.com"
+                 class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
+        </div>
+        <button type="submit" id="reset-request-btn"
+                class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-lg shadow-md transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
+          <span>Send Verification PIN</span> 📩
+        </button>
+      </form>
+
+      <!-- Step 2 Form: Code + New Password -->
+      <form id="reset-step2-form" class="hidden space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">6-Digit Verification PIN</label>
+          <input type="text" id="reset-code-input" maxlength="6" required placeholder="123456"
+                 class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white text-center tracking-widest text-lg font-mono placeholder-slate-600 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">New Password</label>
+          <input type="password" id="reset-new-password" required minlength="6" placeholder="Min 6 characters"
+                 class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white text-sm placeholder-slate-500 transition">
+        </div>
+        <button type="submit" id="reset-confirm-btn"
+                class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-lg shadow-md transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
+          <span>Update Password & Log In</span> ✨
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <script>
+    // ─── Modern Password Reset Modal Controller ────────────────────────────────
+    const resetModal = document.getElementById("reset-modal");
+    const resetAlert = document.getElementById("reset-alert");
+    const step1Form  = document.getElementById("reset-step1-form");
+    const step2Form  = document.getElementById("reset-step2-form");
+
+    function showAlert(msg, isError = false) {
+      resetAlert.className = `mb-4 p-3 rounded-lg text-xs font-semibold text-center ${
+        isError ? "bg-red-500/10 border border-red-500/30 text-red-400" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+      }`;
+      resetAlert.innerHTML = msg;
+      resetAlert.classList.remove("hidden");
+    }
+
+    document.getElementById("forgot-btn").addEventListener("click", function () {
+      const currentEmail = document.getElementById("login-email").value.trim();
+      if (currentEmail) {
+        document.getElementById("reset-email-input").value = currentEmail;
       }
-      if (!window.Clerk) {
-        alert("Clerk SDK is not ready. Please refresh and try again.");
-        return;
-      }
+      resetAlert.classList.add("hidden");
+      step1Form.classList.remove("hidden");
+      step2Form.classList.add("hidden");
+      resetModal.classList.remove("hidden");
+    });
+
+    document.getElementById("close-reset-modal").addEventListener("click", function () {
+      resetModal.classList.add("hidden");
+    });
+
+    // Step 1: Request PIN
+    step1Form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const email = document.getElementById("reset-email-input").value.trim();
+      if (!email) return;
+
+      const btn = document.getElementById("reset-request-btn");
+      btn.disabled = true;
+      btn.innerText = "Sending PIN…";
+
       try {
-        await window.Clerk.load({ publishableKey: CLERK_PK });
-
-        await window.Clerk.client.signIn.create({
-          strategy: "reset_password_email_code",
-          identifier: email,
+        const res = await fetch("/api/forgot-password/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
         });
-
-        const pin = prompt(`A 6-digit PIN was sent to ${email}.\n\nEnter the PIN:`);
-        if (!pin) return;
-
-        const newPassword = prompt("Enter your new password:");
-        if (!newPassword) return;
-
-        const result = await window.Clerk.client.signIn.attemptFirstFactor({
-          strategy: "reset_password_email_code",
-          code: pin.trim(),
-          password: newPassword.trim(),
-        });
-
-        if (result.status === "complete") {
-          const ok = await syncClerkSession();
-          alert("Password updated! Logging you in…");
-          if (ok) window.location.href = "/";
+        const data = await res.json();
+        if (data.status === "ok") {
+          showAlert(data.message, false);
+          step1Form.classList.add("hidden");
+          step2Form.classList.remove("hidden");
         } else {
-          alert("Reset status: " + result.status);
+          showAlert(data.message || "Failed to send PIN.", true);
         }
       } catch (err) {
-        const msg = (err.errors && err.errors[0]) ? err.errors[0].message : (err.message || String(err));
-        alert("Error: " + msg);
+        showAlert("Error connecting to server.", true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "<span>Send Verification PIN</span> 📩";
+      }
+    });
+
+    // Step 2: Confirm PIN & Update Password
+    step2Form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const email = document.getElementById("reset-email-input").value.trim();
+      const code = document.getElementById("reset-code-input").value.trim();
+      const password = document.getElementById("reset-new-password").value.trim();
+
+      if (!email || !code || !password) return;
+
+      const btn = document.getElementById("reset-confirm-btn");
+      btn.disabled = true;
+      btn.innerText = "Updating Password…";
+
+      try {
+        const res = await fetch("/api/forgot-password/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code, password })
+        });
+        const data = await res.json();
+        if (data.status === "ok") {
+          showAlert("Password updated successfully! Logging you in…", false);
+          setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+        } else {
+          showAlert(data.message || "Invalid or expired PIN.", true);
+        }
+      } catch (err) {
+        showAlert("Error updating password.", true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "<span>Update Password & Log In</span> ✨";
       }
     });
   </script>
