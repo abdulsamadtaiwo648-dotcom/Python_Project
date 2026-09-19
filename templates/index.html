@@ -281,21 +281,36 @@
 
             <!-- Log Sale Form -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <span>💵</span> Log New Sale / Revenue
-                </h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                        <span>💵</span> Log New Sale / Revenue
+                    </h3>
+                    <button type="button" id="btn-add-sale-item-row" class="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1 shadow-sm">
+                        <span>+</span> Add Item
+                    </button>
+                </div>
                 <form id="add-income-form" class="space-y-3">
-                    <input type="number" step="any" name="amount" id="income-amount" placeholder="Amount (e.g. 15000)" required 
-                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                    <div>
+                        <input type="text" name="customer_name" id="income-customer-name" placeholder="Customer Name (e.g. Aisha)" 
+                            class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                    </div>
 
-                    <input type="text" name="item_sold" id="income-item-sold" placeholder="Item Sold / Service Provided" required 
-                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                    <div id="sale-items-container" class="space-y-2.5">
+                        <div class="sale-item-row grid grid-cols-12 gap-2 items-center bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
+                            <div class="col-span-7">
+                                <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. DLNZ Hoodie)" required>
+                            </div>
+                            <div class="col-span-4">
+                                <input type="number" step="any" name="amount[]" class="income-amount w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount (₦)" required>
+                            </div>
+                            <div class="col-span-1 text-center">
+                                <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
+                            </div>
+                        </div>
+                    </div>
 
-                    <input type="text" name="customer_name" id="income-customer-name" placeholder="Customer Name (Optional, e.g. Ada)" 
-                        class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
-
-                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2">
-                        <span>+</span> Log Sale
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2 mt-4">
+                        <span>+</span> Save Sale
                     </button>
                 </form>
             </div>
@@ -679,24 +694,41 @@
         // -------------------------------------------------------------
         async function logSale(incomeData) {
             const db = await openIndexedDB();
+            const customer_name = String(incomeData.customer_name || 'Walk-in Customer').trim();
+            const receipt_id = incomeData.receipt_id || ('REC-' + Math.floor(Date.now() / 1000));
 
-            const saleRecord = {
-                amount: parseFloat(incomeData.amount),
-                item_sold: String(incomeData.item_sold || '').trim(),
-                customer_name: String(incomeData.customer_name || 'Walk-in Customer').trim(),
-                date: new Date().toISOString(),
-                synced: false,
-                server_id: null
-            };
+            let items = incomeData.items;
+            if (!items || !Array.isArray(items) || items.length === 0) {
+                items = [{
+                    item_sold: String(incomeData.item_sold || '').trim(),
+                    amount: parseFloat(incomeData.amount || 0)
+                }];
+            }
 
-            const local_id = await new Promise((resolve, reject) => {
-                const tx = db.transaction(INCOME_STORE, 'readwrite');
-                const req = tx.objectStore(INCOME_STORE).add(saleRecord);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = (e) => reject(e.target.error);
-            });
+            const createdRecords = [];
+            const isoDate = new Date().toISOString();
 
-            saleRecord.local_id = local_id;
+            for (const item of items) {
+                const saleRecord = {
+                    amount: parseFloat(item.amount),
+                    item_sold: String(item.item_sold || '').trim(),
+                    customer_name: customer_name,
+                    receipt_id: receipt_id,
+                    date: isoDate,
+                    synced: false,
+                    server_id: null
+                };
+
+                const local_id = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(INCOME_STORE, 'readwrite');
+                    const req = tx.objectStore(INCOME_STORE).add(saleRecord);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = (e) => reject(e.target.error);
+                });
+
+                saleRecord.local_id = local_id;
+                createdRecords.push(saleRecord);
+            }
 
             if (navigator.onLine) {
                 try {
@@ -704,28 +736,31 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            amount: saleRecord.amount,
-                            item_sold: saleRecord.item_sold,
-                            customer_name: saleRecord.customer_name
+                            customer_name: customer_name,
+                            receipt_id: receipt_id,
+                            items: items
                         })
                     });
 
                     const result = await response.json();
                     if (response.ok && result.status === 'success') {
-                        const serverIncome = result.income;
-                        saleRecord.synced = true;
-                        saleRecord.server_id = serverIncome.id;
+                        const serverItems = Array.isArray(result.items) ? result.items : [result.income];
+                        for (let i = 0; i < createdRecords.length; i++) {
+                            const rec = createdRecords[i];
+                            const serverMatch = serverItems[i] || serverItems[0];
+                            rec.synced = true;
+                            rec.server_id = serverMatch ? serverMatch.id : result.receipt_id;
 
-                        const updateTx = db.transaction(INCOME_STORE, 'readwrite');
-                        updateTx.objectStore(INCOME_STORE).put(saleRecord);
-                        console.log(`Sale record #${local_id} synced with server ID ${serverIncome.id}.`);
+                            const updateTx = db.transaction(INCOME_STORE, 'readwrite');
+                            updateTx.objectStore(INCOME_STORE).put(rec);
+                        }
                     }
                 } catch (err) {
                     console.warn('Network error logging sale. Saved in IndexedDB for background sync.', err);
                 }
             }
 
-            return saleRecord;
+            return createdRecords[0];
         }
 
         async function saveIncomeLocal(incomeData) {
@@ -762,6 +797,7 @@
                                 amount: parseFloat(item.amount),
                                 item_sold: item.item_sold,
                                 customer_name: item.customer_name,
+                                receipt_id: item.receipt_id || ('REC-' + item.id),
                                 date: item.date,
                                 synced: true,
                                 server_id: item.id
@@ -1446,7 +1482,6 @@
             // STEP 3: PDF RECEIPT GENERATOR (jsPDF)
             // -------------------------------------------------------------
             window.generatePDFReceipt = async function(saleLocalId) {
-                // Check navigator.onLine status
                 if (!navigator.onLine) {
                     alert("You must be online to generate a receipt.");
                     return;
@@ -1455,7 +1490,6 @@
                 try {
                     const db = await openIndexedDB();
 
-                    // 1. Fetch business details from 'business_profile' store
                     const profileRecord = await new Promise((resolve) => {
                         const tx = db.transaction(PROFILE_STORE, 'readonly');
                         const req = tx.objectStore(PROFILE_STORE).get('current');
@@ -1463,7 +1497,6 @@
                         req.onerror = () => resolve(null);
                     });
 
-                    // 2. Fetch specific sale from 'income' store
                     const saleRecord = await new Promise((resolve) => {
                         const tx = db.transaction(INCOME_STORE, 'readonly');
                         const req = tx.objectStore(INCOME_STORE).get(Number(saleLocalId));
@@ -1476,22 +1509,35 @@
                         return;
                     }
 
+                    const allLocalIncome = await getIncomeLocal();
+                    let receiptItems = [];
+                    if (saleRecord.receipt_id) {
+                        receiptItems = allLocalIncome.filter(item => item.receipt_id === saleRecord.receipt_id);
+                    }
+                    if (receiptItems.length === 0) {
+                        receiptItems = [saleRecord];
+                    }
+
                     const companyName = (profileRecord?.company_name || 'Official Receipt').toUpperCase();
                     const businessPhone = profileRecord?.business_phone || '';
                     const businessAddress = profileRecord?.business_address || '';
 
                     const customerName = saleRecord.customer_name || 'Valued Customer';
-                    const itemSold = saleRecord.item_sold || 'Goods/Services';
-                    const amount = parseFloat(saleRecord.amount || 0);
-                    const formattedAmount = 'NGN ' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const receiptId = saleRecord.receipt_id || (`REC-${saleLocalId}`);
                     const dateStr = saleRecord.date ? new Date(saleRecord.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString();
 
-                    // 3. Construct jsPDF document
+                    const grandTotal = receiptItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+                    const formattedGrandTotal = 'NGN ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    const baseHeight = 135;
+                    const extraHeight = Math.max(0, receiptItems.length - 1) * 6;
+                    const docHeight = baseHeight + extraHeight;
+
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF({
                         orientation: 'portrait',
                         unit: 'mm',
-                        format: [80, 135]
+                        format: [80, docHeight]
                     });
 
                     // Header Banner
@@ -1531,6 +1577,12 @@
                     // Receipt Fields
                     doc.setFontSize(8);
                     doc.setFont('helvetica', 'bold');
+                    doc.text('Receipt #:', 8, currentY);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(receiptId, 72, currentY, { align: 'right' });
+                    currentY += 5;
+
+                    doc.setFont('helvetica', 'bold');
                     doc.text('Date:', 8, currentY);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dateStr, 72, currentY, { align: 'right' });
@@ -1547,16 +1599,22 @@
                     doc.line(8, currentY, 72, currentY);
                     currentY += 6;
 
-                    // Item Description
+                    // Item Description Header
                     doc.setFont('helvetica', 'bold');
                     doc.text('Item / Service', 8, currentY);
                     doc.text('Amount', 72, currentY, { align: 'right' });
                     currentY += 5;
 
+                    // Loop through order items
                     doc.setFont('helvetica', 'normal');
-                    doc.text(itemSold, 8, currentY);
-                    doc.text(formattedAmount, 72, currentY, { align: 'right' });
-                    currentY += 8;
+                    receiptItems.forEach(item => {
+                        const itemTitle = item.item_sold || 'Goods/Services';
+                        const itemAmt = 'NGN ' + parseFloat(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        doc.text(itemTitle, 8, currentY);
+                        doc.text(itemAmt, 72, currentY, { align: 'right' });
+                        currentY += 6;
+                    });
+                    currentY += 2;
 
                     // Divider
                     doc.line(8, currentY, 72, currentY);
@@ -1569,7 +1627,7 @@
                     doc.setFontSize(10);
                     doc.setTextColor(5, 150, 105);
                     doc.text('TOTAL PAID:', 8, currentY + 7);
-                    doc.text(formattedAmount, 72, currentY + 7, { align: 'right' });
+                    doc.text(formattedGrandTotal, 72, currentY + 7, { align: 'right' });
                     currentY += 16;
 
                     // Footer
@@ -1584,9 +1642,9 @@
                     doc.setTextColor(156, 163, 175);
                     doc.text('Powered by Solobiz', 40, currentY, { align: 'center' });
 
-                    // 4. Save & Download PDF
+                    // Save PDF
                     const safeCustomerName = customerName.replace(/[^a-zA-Z0-9]/g, '_');
-                    doc.save(`Receipt_${safeCustomerName}.pdf`);
+                    doc.save(`Receipt_${safeCustomerName}_${receiptId}.pdf`);
 
                 } catch (err) {
                     console.error('Error generating PDF receipt:', err);
@@ -1594,7 +1652,6 @@
                 }
             };
 
-            // Keep alias for backwards compatibility
             window.generateWhatsAppReceipt = window.generatePDFReceipt;
 
             // -------------------------------------------------------------
@@ -1603,7 +1660,8 @@
             function renderIncomeItemHTML(income) {
                 const offlineBadge = !income.synced ? `<span class="text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
                 const formattedAmount = parseFloat(income.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                
+                const receiptTag = income.receipt_id ? `<span class="text-[10px] text-gray-400 font-mono ml-1.5">#${income.receipt_id}</span>` : '';
+
                 return `
                 <div data-income-local-id="${income.local_id || ''}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-50 transition">
                     <div class="flex items-center gap-3">
@@ -1612,7 +1670,7 @@
                             <p class="font-bold text-gray-800 text-sm capitalize flex items-center">
                                 ${income.item_sold} ${offlineBadge}
                             </p>
-                            <p class="text-xs text-gray-500">Customer: ${income.customer_name || 'Walk-in'}</p>
+                            <p class="text-xs text-gray-500">Customer: ${income.customer_name || 'Walk-in'} ${receiptTag}</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -1648,28 +1706,88 @@
                 calculateDashboard();
             }
 
+            // Multi-item row adder logic
+            const btnAddItemRow = document.getElementById('btn-add-sale-item-row');
+            const saleItemsContainer = document.getElementById('sale-items-container');
+
+            function updateRemoveButtonsVisibility() {
+                if (!saleItemsContainer) return;
+                const rows = saleItemsContainer.querySelectorAll('.sale-item-row');
+                rows.forEach(row => {
+                    const removeBtn = row.querySelector('.btn-remove-item-row');
+                    if (removeBtn) {
+                        removeBtn.classList.toggle('hidden', rows.length <= 1);
+                    }
+                });
+            }
+
+            if (btnAddItemRow && saleItemsContainer) {
+                btnAddItemRow.addEventListener('click', () => {
+                    const rowHTML = `
+                    <div class="sale-item-row grid grid-cols-12 gap-2 items-center bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
+                        <div class="col-span-7">
+                            <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. Eden Cap)" required>
+                        </div>
+                        <div class="col-span-4">
+                            <input type="number" step="any" name="amount[]" class="income-amount w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount (₦)" required>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <button type="button" class="btn-remove-item-row text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
+                        </div>
+                    </div>`;
+                    saleItemsContainer.insertAdjacentHTML('beforeend', rowHTML);
+                    updateRemoveButtonsVisibility();
+                });
+
+                saleItemsContainer.addEventListener('click', (e) => {
+                    if (e.target && e.target.classList.contains('btn-remove-item-row')) {
+                        const row = e.target.closest('.sale-item-row');
+                        if (row && saleItemsContainer.querySelectorAll('.sale-item-row').length > 1) {
+                            row.remove();
+                            updateRemoveButtonsVisibility();
+                        }
+                    }
+                });
+            }
+
             const addIncomeForm = document.getElementById('add-income-form');
             if (addIncomeForm) {
                 addIncomeForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const amount = parseFloat(document.getElementById('income-amount').value);
-                    const item_sold = document.getElementById('income-item-sold').value.trim();
                     const customer_name = document.getElementById('income-customer-name').value.trim() || 'Walk-in Customer';
+                    const itemRows = saleItemsContainer ? saleItemsContainer.querySelectorAll('.sale-item-row') : [];
 
-                    if (!amount || !item_sold) return;
+                    const items = [];
+                    itemRows.forEach(row => {
+                        const item_sold = row.querySelector('.income-item-sold')?.value.trim();
+                        const amount = parseFloat(row.querySelector('.income-amount')?.value);
+                        if (item_sold && !isNaN(amount) && amount > 0) {
+                            items.push({ item_sold, amount });
+                        }
+                    });
 
-                    const record = await logSale({ amount, item_sold, customer_name });
+                    if (items.length === 0) return;
 
-                    const listContainer = document.getElementById('income-list');
-                    const noMsg = document.getElementById('no-income-msg');
-                    if (noMsg) noMsg.remove();
-                    if (listContainer) {
-                        listContainer.insertAdjacentHTML('afterbegin', renderIncomeItemHTML(record));
+                    await logSale({ customer_name, items });
+
+                    addIncomeForm.reset();
+                    // Reset to single item row
+                    if (saleItemsContainer) {
+                        saleItemsContainer.innerHTML = `
+                        <div class="sale-item-row grid grid-cols-12 gap-2 items-center bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
+                            <div class="col-span-7">
+                                <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. DLNZ Hoodie)" required>
+                            </div>
+                            <div class="col-span-4">
+                                <input type="number" step="any" name="amount[]" class="income-amount w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount (₦)" required>
+                            </div>
+                            <div class="col-span-1 text-center">
+                                <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
+                            </div>
+                        </div>`;
                     }
-
                     renderIncomeListUI();
                     calculateDashboard();
-                    addIncomeForm.reset();
                 });
             }
 

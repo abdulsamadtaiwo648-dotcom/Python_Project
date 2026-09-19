@@ -144,9 +144,14 @@ def init_db():
                     amount NUMERIC NOT NULL,
                     item_sold TEXT,
                     customer_name TEXT,
-                    date TEXT
+                    date TEXT,
+                    receipt_id TEXT
                 )
             """)
+            try:
+                db.execute("ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT")
+            except Exception:
+                pass
         else:
             # SQLite Table Creation (Local Development)
             db.execute("""
@@ -185,9 +190,14 @@ def init_db():
                     item_sold TEXT,
                     customer_name TEXT,
                     date TEXT,
+                    receipt_id TEXT,
                     FOREIGN KEY(user_id) REFERENCES users(id)
                 )
             """)
+            try:
+                db.execute("ALTER TABLE income ADD COLUMN receipt_id TEXT")
+            except Exception:
+                pass
         db.commit()
 
 init_db()
@@ -663,17 +673,18 @@ def api_income():
     if request.method == "GET":
         with get_db() as db:
             rows = db.execute("SELECT * FROM income WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall()
-            income_list = [
-                {
-                    "id": row["id"],
-                    "user_id": row["user_id"],
-                    "amount": float(row["amount"]),
-                    "item_sold": row["item_sold"],
-                    "customer_name": row["customer_name"] or "Walk-in Customer",
-                    "date": row["date"]
-                }
-                for row in rows
-            ]
+            income_list = []
+            for row in rows:
+                row_dict = dict(row)
+                income_list.append({
+                    "id": row_dict["id"],
+                    "user_id": row_dict["user_id"],
+                    "amount": float(row_dict["amount"]),
+                    "item_sold": row_dict.get("item_sold", ""),
+                    "customer_name": row_dict.get("customer_name") or "Walk-in Customer",
+                    "date": row_dict.get("date"),
+                    "receipt_id": row_dict.get("receipt_id") or f"REC-{row_dict['id']}"
+                })
         return jsonify({"status": "success", "income": income_list}), 200
 
     elif request.method == "POST":
@@ -681,41 +692,62 @@ def api_income():
         if not isinstance(data, dict):
             data = request.form.to_dict()
 
-        amount_val = data.get("amount")
-        item_sold = str(data.get("item_sold", "")).strip()
+        import time
+        income_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        receipt_id = data.get("receipt_id") or f"REC-{int(time.time())}"
         customer_name = str(data.get("customer_name", "Walk-in Customer")).strip() or "Walk-in Customer"
 
-        if amount_val is None or not item_sold:
-            return jsonify({"status": "error", "message": "Missing required fields: amount and item_sold are required"}), 400
+        items = data.get("items")
+        if not items or not isinstance(items, list):
+            # Fallback if submitted as single item
+            amount_val = data.get("amount")
+            item_sold = str(data.get("item_sold", "")).strip()
+            if amount_val is not None and item_sold:
+                items = [{"item_sold": item_sold, "amount": amount_val}]
+            else:
+                items = []
 
-        try:
-            amount = float(amount_val)
-            if not math.isfinite(amount) or amount <= 0:
-                return jsonify({"status": "error", "message": "Amount must be a positive number"}), 400
-        except (TypeError, ValueError):
-            return jsonify({"status": "error", "message": "Amount must be a valid number"}), 400
+        if not items:
+            return jsonify({"status": "error", "message": "Missing required fields: item_sold and amount are required"}), 400
 
-        income_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        saved_items = []
 
         with get_db() as db:
-            cursor = db.execute(
-                "INSERT INTO income (user_id, amount, item_sold, customer_name, date) VALUES (?, ?, ?, ?, ?)",
-                (user_id, amount, item_sold, customer_name, income_date)
-            )
-            income_id = cursor.lastrowid
+            for idx, product in enumerate(items):
+                item_name = str(product.get("item_sold", "")).strip()
+                try:
+                    amt = float(product.get("amount", 0))
+                    if not math.isfinite(amt) or amt <= 0 or not item_name:
+                        continue
+                except (TypeError, ValueError):
+                    continue
+
+                item_receipt_id = receipt_id if len(items) > 1 else (receipt_id + (f"-{idx+1}" if idx > 0 else ""))
+                cursor = db.execute(
+                    "INSERT INTO income (user_id, amount, item_sold, customer_name, date, receipt_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    (user_id, amt, item_name, customer_name, income_date, receipt_id)
+                )
+                income_id = cursor.lastrowid
+                saved_items.append({
+                    "id": income_id,
+                    "user_id": user_id,
+                    "amount": amt,
+                    "item_sold": item_name,
+                    "customer_name": customer_name,
+                    "date": income_date,
+                    "receipt_id": receipt_id
+                })
             db.commit()
+
+        if not saved_items:
+            return jsonify({"status": "error", "message": "No valid items were provided"}), 400
 
         return jsonify({
             "status": "success",
             "message": "Income logged successfully",
-            "income": {
-                "id": income_id,
-                "user_id": user_id,
-                "amount": amount,
-                "item_sold": item_sold,
-                "customer_name": customer_name,
-                "date": income_date
-            }
+            "receipt_id": receipt_id,
+            "income": saved_items[0] if len(saved_items) == 1 else saved_items,
+            "items": saved_items
         }), 201
 
 @app.errorhandler(Exception)
