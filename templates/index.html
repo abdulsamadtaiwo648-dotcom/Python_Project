@@ -19,6 +19,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- html2canvas for Digital Business Card Image Download -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Lucide Icons (vanilla JS / browser build) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <!-- Pulls in modern, clean Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -99,8 +101,9 @@
             
             <!-- Right: Logout Button -->
             <div>
-                <button onclick="handleLogout()" type="button" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide bg-red-950/40 border border-red-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer">
-                    <span>Logout</span> 🚪
+                <button onclick="handleLogout()" type="button" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide bg-red-950/40 border border-red-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                    <span>Logout</span>
                 </button>
             </div>
             
@@ -118,8 +121,8 @@
                     <p class="text-[10px] text-indigo-200">Add to home screen for 1-tap mobile app access!</p>
                 </div>
             </div>
-            <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap">
-                📲 Install
+            <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap flex items-center gap-1.5">
+                <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> Install
             </button>
         </div>
 
@@ -127,7 +130,7 @@
         <div class="mb-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
                 <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-1.5">
-                    Hi, <span id="user-greeting-name">{{ username }}</span> <span class="inline-block animate-bounce">👋</span>
+                    Hi, <span id="user-greeting-name">{{ username }}</span> <span class="inline-block animate-bounce text-yellow-400"><i data-lucide="hand-metal" class="w-4 h-4"></i></span>
                 </h2>
                 <p class="text-[11px] text-gray-500 font-medium mt-0.5">Here is your business overview today</p>
             </div>
@@ -143,7 +146,7 @@
             <!-- Total Sales Card -->
             <div class="bg-emerald-50 border border-emerald-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
                 <div class="flex items-center gap-1.5">
-                    <span class="text-emerald-500 text-sm">📈</span>
+                    <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Total Sales</p>
                 </div>
                 <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
@@ -152,7 +155,7 @@
             <!-- Total Expenses Card -->
             <div class="bg-rose-50 border border-rose-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
                 <div class="flex items-center gap-1.5">
-                    <span class="text-rose-500 text-sm">📉</span>
+                    <i data-lucide="trending-down" class="w-4 h-4 text-rose-500"></i>
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
                 </div>
                 <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
@@ -164,7 +167,9 @@
             {% set np = net_profit or 0.0 %}
             <div class="{% if np >= 0 %}bg-indigo-50 border-indigo-200{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-3 min-w-0">
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="text-lg">{% if np >= 0 %}💰{% else %}⚠️{% endif %}</span>
+                    <span class="flex-shrink-0 {% if np >= 0 %}text-indigo-500{% else %}text-amber-500{% endif %}">
+                        {% if np >= 0 %}<i data-lucide="wallet" class="w-5 h-5"></i>{% else %}<i data-lucide="alert-triangle" class="w-5 h-5"></i>{% endif %}
+                    </span>
                     <div>
                         <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-600{% endif %} tracking-wider leading-none">Net Profit</p>
                         <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5">Sales minus Expenses</p>
@@ -177,13 +182,13 @@
         <!-- Mobile-First Tab Navigation Bar -->
         <nav class="flex bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 mb-6 gap-1">
             <button id="btn-tab-expenses" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5">
-                <span>💸</span> Expenses
+                <i data-lucide="credit-card" class="w-3.5 h-3.5"></i> Expenses
             </button>
             <button id="btn-tab-income" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
-                <span>💰</span> Sales
+                <i data-lucide="banknote" class="w-3.5 h-3.5"></i> Sales
             </button>
             <button id="btn-tab-profile" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
-                <span>🏢</span> Profile
+                <i data-lucide="building-2" class="w-3.5 h-3.5"></i> Profile
             </button>
         </nav>
 
@@ -204,7 +209,7 @@
             <!-- Add Expense Form -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <span>📝</span> Log New Expense
+                    <i data-lucide="file-text" class="w-4 h-4 text-indigo-500"></i> Log New Expense
                 </h3>
                 <form id="expense-form" method="POST" action="/add" class="space-y-3">
                     <input type="number" step="any" name="amount" placeholder="Amount (e.g. 5000)" required 
@@ -223,7 +228,7 @@
                         class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     
                     <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition shadow-md flex items-center justify-center gap-2">
-                        <span>+</span> Save Expense
+                        <i data-lucide="plus" class="w-4 h-4"></i> Save Expense
                     </button>
                 </form>
             </div>
@@ -231,8 +236,8 @@
             <!-- Transaction Filter Bar -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">🔍 Filter Transactions</h3>
-                    <button type="button" id="btn-clear-filters" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">✕ Clear</button>
+                    <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2"><i data-lucide="sliders-horizontal" class="w-4 h-4 text-gray-500"></i> Filter Transactions</h3>
+                    <button type="button" id="btn-clear-filters" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1"><i data-lucide="x" class="w-3 h-3"></i> Clear</button>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -272,7 +277,7 @@
 
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-2">
-                        🧮 Calculation Report
+                        <i data-lucide="calculator" class="w-4 h-4"></i> Calculation Report
                         {% if search_term %}<span class="font-normal text-indigo-500 normal-case tracking-normal">for "{{ search_term }}"</span>{% endif %}
                     </h3>
                     <span class="text-xs text-indigo-400 font-medium">{{ search_results|length }} match{{ 'es' if search_results|length != 1 else '' }}</span>
@@ -359,10 +364,10 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold text-gray-800 flex items-center gap-2">
-                        <span>💵</span> Log New Sale / Revenue
+                        <i data-lucide="banknote" class="w-4 h-4 text-emerald-600"></i> Log New Sale / Revenue
                     </h3>
                     <button type="button" id="btn-add-sale-item-row" class="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1 shadow-sm">
-                        <span>+</span> Add Item
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Item
                     </button>
                 </div>
                 <form id="add-income-form" class="space-y-3">
@@ -380,13 +385,13 @@
                                 <input type="number" step="any" name="amount[]" class="income-amount w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount (₦)" required>
                             </div>
                             <div class="col-span-1 text-center">
-                                <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
+                                <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 p-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
                             </div>
                         </div>
                     </div>
 
                     <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2 mt-4">
-                        <span>+</span> Save Sale
+                        <i data-lucide="plus" class="w-4 h-4"></i> Save Sale
                     </button>
                 </form>
             </div>
@@ -412,7 +417,9 @@
             <!-- Brand Setup Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">🏢</div>
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                        <i data-lucide="building-2" class="w-5 h-5"></i>
+                    </div>
                     <div>
                         <h3 class="font-bold text-gray-800">Business Brand Setup</h3>
                         <p class="text-xs text-gray-500">Appears on your WhatsApp receipts</p>
@@ -2332,6 +2339,19 @@
             installBanner.classList.remove('hidden');
         }
     })();
+    </script>
+    <!-- ── Lucide icon initializer ─────────────────────────────────────── -->
+    <script>
+        // Render all data-lucide icons already in the DOM
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Re-run whenever JS injects new icon elements (e.g. income list rows)
+        if (typeof lucide !== 'undefined' && typeof MutationObserver !== 'undefined') {
+            const _lucideObserver = new MutationObserver(() => lucide.createIcons());
+            _lucideObserver.observe(document.body, { childList: true, subtree: true });
+        }
     </script>
 
 </body>
