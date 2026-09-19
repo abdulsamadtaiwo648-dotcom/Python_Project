@@ -563,14 +563,21 @@
         }
 
         window.addEventListener("load", async () => {
+            let attempts = 0;
+            while (!window.Clerk && attempts < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                attempts++;
+            }
+
+            if (!window.Clerk) {
+                console.error("Clerk script not loaded");
+                return;
+            }
+
             try {
-                if (!window.Clerk) {
-                    const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
-                    await clerk.load();
-                    window.Clerk = clerk;
-                } else {
-                    await window.Clerk.load();
-                }
+                await window.Clerk.load({
+                    publishableKey: CLERK_PUBLISHABLE_KEY
+                });
 
                 if (!window.Clerk.user) {
                     window.location.href = "/login";
@@ -578,7 +585,7 @@
                 }
 
                 const nameEl = document.getElementById("user-greeting-name");
-                if (nameEl) {
+                if (nameEl && window.Clerk.user) {
                     const displayName = window.Clerk.user.firstName || window.Clerk.user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Entrepreneur';
                     nameEl.innerText = displayName;
                 }

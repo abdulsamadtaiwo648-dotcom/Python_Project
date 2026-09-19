@@ -38,14 +38,29 @@
         const PUBLISHABLE_KEY = "{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}";
 
         window.addEventListener("load", async () => {
-            try {
-                if (!window.Clerk) {
-                    const clerk = new Clerk(PUBLISHABLE_KEY);
-                    await clerk.load();
-                    window.Clerk = clerk;
-                } else {
-                    await window.Clerk.load();
+            let attempts = 0;
+            while (!window.Clerk && attempts < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                attempts++;
+            }
+
+            if (!window.Clerk) {
+                const loadingEl = document.getElementById("clerk-loading");
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <div class="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-xs text-center">
+                            <p class="font-bold">CDN Connection Failed</p>
+                            <p class="mt-1 text-gray-300">Could not download Clerk JS SDK. Please check your network connection.</p>
+                        </div>
+                    `;
                 }
+                return;
+            }
+
+            try {
+                await window.Clerk.load({
+                    publishableKey: PUBLISHABLE_KEY
+                });
 
                 if (window.Clerk.user) {
                     window.location.href = "/";
@@ -60,7 +75,7 @@
                 if (loadingEl) {
                     loadingEl.innerHTML = `
                         <div class="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-xs text-center">
-                            <p class="font-bold">Sign-In Initialization Error</p>
+                            <p class="font-bold">Sign-In Error</p>
                             <p class="mt-1 text-gray-300">${err.message || 'Could not load Clerk Sign-In component.'}</p>
                         </div>
                     `;
