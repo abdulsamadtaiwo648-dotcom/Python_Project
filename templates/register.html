@@ -6,53 +6,52 @@
     <title>Sign Up | SoloBiz</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Clerk Browser CDN -->
+    <script src="https://cdn.clerk.com/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" crossorigin="anonymous"></script>
+    <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen px-4 py-8">
-    <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm">
-        <div class="flex flex-col items-center mb-6">
-            <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-14 h-14 mb-3 rounded-2xl shadow-md">
-            <h2 class="text-2xl font-bold text-gray-900 text-center">Create Account</h2>
-            <p class="text-xs text-gray-500 mt-1">Start tracking your business with SoloBiz</p>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="flex flex-col items-center w-full max-w-md">
+        <div class="flex items-center gap-3 mb-6">
+            <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-12 h-12 rounded-xl shadow-lg border border-indigo-500/20">
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">SoloBiz</h1>
+                <p class="text-xs text-indigo-400 font-medium">Create Your Free Account</p>
+            </div>
         </div>
-        
-        <form method="POST" action="/register" class="space-y-4">
-            
-            <!-- Flask Flash Messages & Error Box -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm font-medium">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            {% if error and not get_flashed_messages() %}
-                <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm font-medium">
-                    {{ error }}
-                </div>
-            {% endif %}
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Email</label>
-                <input type="email" name="email" placeholder="Email Address" required 
-                    class="w-full border border-gray-200 rounded-lg p-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+        <div id="clerk-app" class="w-full flex justify-center">
+            <div id="clerk-loading" class="text-center py-10">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+                <p class="text-xs text-gray-400 mt-3 font-medium">Loading sign up form...</p>
             </div>
-
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Password</label>
-                <input type="password" name="password" placeholder="Create a Password" required 
-                    class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-            </div>
-            
-            <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3 rounded-lg shadow-md hover:bg-gray-800">
-                Sign Up
-            </button>
-        </form>
-        
-        <p class="mt-4 text-center text-sm text-gray-600">
-            Already have an account? <a href="/login" class="text-indigo-600 font-bold">Log in</a>
-        </p>
+        </div>
     </div>
+
+    <script>
+        const CLERK_PUBLISHABLE_KEY = "{{ clerk_publishable_key }}" || "pk_test_Y2xlcmsuYWNjb3VudHMuZGV2JA";
+
+        window.addEventListener("load", async () => {
+            try {
+                const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
+                await clerk.load();
+                window.Clerk = clerk;
+
+                if (clerk.user) {
+                    window.location.href = "/";
+                } else {
+                    const loadingEl = document.getElementById("clerk-loading");
+                    if (loadingEl) loadingEl.style.display = "none";
+                    clerk.mountSignUp(document.getElementById("clerk-app"), {
+                        afterSignInUrl: "/",
+                        afterSignUpUrl: "/"
+                    });
+                }
+            } catch (err) {
+                console.error("Clerk loading error:", err);
+            }
+        });
+    </script>
 </body>
 </html>

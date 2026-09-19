@@ -5,6 +5,7 @@ import sqlite3
 import math
 import os
 import traceback
+import jwt
 
 try:
     import psycopg2
@@ -15,6 +16,25 @@ except ImportError:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_for_solobiz")
+CLERK_PUBLISHABLE_KEY = os.environ.get("CLERK_PUBLISHABLE_KEY", "pk_test_Y2xlcmsuYWNjb3VudHMuZGV2JA")
+
+def get_current_user_id():
+    """
+    Extract string-based user_id (e.g. 'user_2...') from Clerk JWT token in Authorization header,
+    or fallback to session['user_id'] if available.
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1]
+        try:
+            payload = jwt.decode(token, options={"verify_signature": False})
+            if "sub" in payload and payload["sub"]:
+                return str(payload["sub"])
+        except Exception:
+            pass
+    if "user_id" in session and session["user_id"]:
+        return str(session["user_id"])
+    return None
 
 # ==========================================
 # HYBRID CLOUD DATABASE (POSTGRESQL + SQLITE)
@@ -113,15 +133,15 @@ def init_db():
             # PostgreSQL Table Creation (Cloud Database)
             db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
+                    id TEXT PRIMARY KEY,
                     email TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL
+                    password TEXT
                 )
             """)
             db.execute("""
                 CREATE TABLE IF NOT EXISTS expenses (
                     id SERIAL PRIMARY KEY,
-                    user_id INTEGER REFERENCES users(id),
+                    user_id TEXT NOT NULL,
                     amount NUMERIC NOT NULL,
                     category TEXT NOT NULL,
                     description TEXT,
@@ -131,7 +151,7 @@ def init_db():
             db.execute("""
                 CREATE TABLE IF NOT EXISTS business_profiles (
                     id SERIAL PRIMARY KEY,
-                    user_id INTEGER UNIQUE REFERENCES users(id),
+                    user_id TEXT UNIQUE NOT NULL,
                     company_name TEXT,
                     business_phone TEXT,
                     business_address TEXT
@@ -140,7 +160,7 @@ def init_db():
             db.execute("""
                 CREATE TABLE IF NOT EXISTS income (
                     id SERIAL PRIMARY KEY,
-                    user_id INTEGER REFERENCES users(id),
+                    user_id TEXT NOT NULL,
                     amount NUMERIC NOT NULL,
                     item_sold TEXT,
                     customer_name TEXT,
@@ -148,50 +168,53 @@ def init_db():
                     receipt_id TEXT
                 )
             """)
-            try:
-                db.execute("ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT")
-            except Exception:
-                pass
+            for alter_cmd in [
+                "ALTER TABLE expenses ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+                "ALTER TABLE income ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+                "ALTER TABLE business_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+                "ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT"
+            ]:
+                try:
+                    db.execute(alter_cmd)
+                except Exception:
+                    pass
         else:
             # SQLite Table Creation (Local Development)
             db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id TEXT PRIMARY KEY,
                     email TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL
+                    password TEXT
                 )
             """)
             db.execute("""
                 CREATE TABLE IF NOT EXISTS expenses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
+                    user_id TEXT,
                     amount REAL NOT NULL,
                     category TEXT NOT NULL,
                     description TEXT,
-                    date TEXT,
-                    FOREIGN KEY(user_id) REFERENCES users(id)
+                    date TEXT
                 )
             """)
             db.execute("""
                 CREATE TABLE IF NOT EXISTS business_profiles (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER UNIQUE,
+                    user_id TEXT UNIQUE,
                     company_name TEXT,
                     business_phone TEXT,
-                    business_address TEXT,
-                    FOREIGN KEY(user_id) REFERENCES users(id)
+                    business_address TEXT
                 )
             """)
             db.execute("""
                 CREATE TABLE IF NOT EXISTS income (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
+                    user_id TEXT,
                     amount REAL NOT NULL,
                     item_sold TEXT,
                     customer_name TEXT,
                     date TEXT,
-                    receipt_id TEXT,
-                    FOREIGN KEY(user_id) REFERENCES users(id)
+                    receipt_id TEXT
                 )
             """)
             try:
@@ -203,67 +226,15 @@ def init_db():
 init_db()
 
 # ==========================================
-# AUTHENTICATION ROUTES
+# AUTHENTICATION ROUTES (CLERK INTEGRATION)
 # ==========================================
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == "POST":
-        raw_email = request.form.get("email", "")
-        raw_password = request.form.get("password", "")
-        
-        email = raw_email.strip().lower()
-        password = raw_password.strip()
-
-        if not email or not password:
-            flash("Please fill in all required fields.", "danger")
-            return render_template("register.html")
-
-        hashed_password = generate_password_hash(password)
-        
-        try:
-            with get_db() as db:
-                db.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, hashed_password))
-                db.commit()
-            flash("Account created successfully! Please log in.", "success")
-            return redirect("/login")
-        except sqlite3.IntegrityError:
-            error_msg = "Email already registered! Please log in with your password."
-            flash(error_msg, "danger")
-            return render_template("register.html", error=error_msg)
-        except Exception as e:
-            err_str = str(e).lower()
-            if "unique" in err_str or "duplicate" in err_str:
-                error_msg = "Email already registered! Please log in with your password."
-                flash(error_msg, "danger")
-                return render_template("register.html", error=error_msg)
-            return f"CRITICAL DATABASE ERROR: The database failed to save because -> {str(e)}"
-            
-    return render_template("register.html")
+    return render_template("register.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        raw_email = request.form.get("email", "")
-        raw_password = request.form.get("password", "")
-        
-        email = raw_email.strip().lower()
-        password = raw_password.strip()
-
-        if not email or not password:
-            flash("Please enter both email and password.", "danger")
-            return render_template("login.html")
-
-        with get_db() as db:
-            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-            
-            if not user or not check_password_hash(user["password"], password):
-                flash("Invalid email or password. Please try again.", "danger")
-                return render_template("login.html")
-                
-            session["user_id"] = user["id"] 
-            return redirect(url_for("index"))
-                
-    return render_template("login.html")
+    return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
 
 @app.route("/logout")
 def logout():
@@ -275,23 +246,23 @@ def logout():
 # ==========================================
 @app.route("/")
 def index():
-    if "user_id" not in session:
-        return redirect("/login")
-        
-    user_id = session["user_id"]
-    
+    user_id = get_current_user_id()
+
+    if not user_id:
+        return render_template(
+            "index.html",
+            expenses=[],
+            total=0.00,
+            total_sales=0.00,
+            total_expenses=0.00,
+            net_profit=0.00,
+            username="User",
+            clerk_publishable_key=CLERK_PUBLISHABLE_KEY
+        )
+
     with get_db() as db:
-        # 1. Fetch user account details
         user = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-
-        if user is None:
-            session.clear()
-            return redirect("/login")
-
-        # 2. Fetch isolated user transactions
         expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
-
-        # 3. Calculate user-isolated totals from the database
         sales_query = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
         expenses_query = db.execute("SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
 
@@ -299,8 +270,7 @@ def index():
     total_expenses = float(expenses_query["total"]) if expenses_query and expenses_query["total"] is not None else 0.00
     net_profit = float(total_sales) - float(total_expenses)
     
-    user_email = user["email"]
-    username = user_email.split("@")[0].capitalize()
+    username = user["email"].split("@")[0].capitalize() if user and hasattr(user, "__getitem__") and "email" in user else "User"
 
     return render_template(
         "index.html",
@@ -309,20 +279,21 @@ def index():
         total_sales=total_sales,
         total_expenses=total_expenses,
         net_profit=net_profit,
-        username=username
+        username=username,
+        clerk_publishable_key=CLERK_PUBLISHABLE_KEY
     )
 
 @app.route("/api/expenses", methods=["GET"])
 def get_expenses():
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
     with get_db() as db:
         cursor = db.execute(
             "SELECT id, amount, category, description, date FROM expenses WHERE user_id = ? ORDER BY id DESC",
-            (session["user_id"],)
+            (user_id,)
         )
-        # Fetch rows as a list of dictionaries
         rows = cursor.fetchall()
         expenses = [
             {
@@ -379,10 +350,9 @@ def calculate():
 
 @app.route("/add", methods=["POST"])
 def add_expense():
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-
-    user_id = session["user_id"]
 
     # Parse JSON payload from request
     data = request.get_json(silent=True) or request.get_json(force=True, silent=True)
@@ -434,10 +404,9 @@ def add_expense():
 
 @app.route("/api/expenses/<int:expense_id>", methods=["DELETE", "PUT"])
 def api_expense_detail(expense_id):
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-
-    user_id = session["user_id"]
 
     if request.method == "DELETE":
         with get_db() as db:
@@ -486,10 +455,9 @@ def api_expense_detail(expense_id):
 
 @app.route("/delete/<int:expense_id>", methods=["POST"])
 def delete_expense(expense_id):
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return redirect("/login")
-        
-    user_id = session["user_id"]
     
     with get_db() as db:
         db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
@@ -499,10 +467,9 @@ def delete_expense(expense_id):
 
 @app.route("/edit/<int:expense_id>", methods=["GET", "POST"])
 def edit_expense(expense_id):
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return redirect("/login")
-        
-    user_id = session["user_id"]
     
     if request.method == "GET":
         with get_db() as db:
@@ -525,12 +492,10 @@ def edit_expense(expense_id):
 
 @app.route("/search", methods=["POST"])
 def search():
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return redirect("/login")
-        
-    user_id = session["user_id"]
     
-    # 1. Capture what they typed
     raw_search = request.form["search_term"].strip()
     search_term = raw_search.lower()
     search_type = request.form["search_type"]
@@ -539,12 +504,10 @@ def search():
     display_term = raw_search
     
     with get_db() as db:
-        # Always fetch ALL expenses to keep the main dashboard total safe
         all_expenses = db.execute(
             "SELECT * FROM expenses WHERE user_id = ?", (user_id,)
         ).fetchall()
         
-        # Fetch only the matched items for the calculation report
         if search_type == "amount":
             try:
                 amount_val = float(search_term)
@@ -565,15 +528,13 @@ def search():
             if search_results:
                 display_term = search_results[0]["category"].capitalize()
 
-    # global_total keeps the main dashboard static
     global_total = sum(float(item["amount"] or 0) for item in all_expenses)
-    # search_total powers only the isolated calculation report box
     search_total = sum(float(item["amount"] or 0) for item in search_results)
     
     return render_template(
         "index.html",
-        expenses=all_expenses,       # full list — keeps the transaction list intact
-        total=global_total,          # always the real grand total for the dashboard
+        expenses=all_expenses,
+        total=global_total,
         search_results=search_results,
         search_total=search_total,
         searching=True,
@@ -585,10 +546,9 @@ def search():
 # ==========================================
 @app.route("/api/business_profile", methods=["GET", "POST"])
 def api_business_profile():
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-
-    user_id = session["user_id"]
 
     if request.method == "GET":
         with get_db() as db:
@@ -665,10 +625,9 @@ def api_business_profile():
 @app.route("/api/income", methods=["GET", "POST"])
 @app.route("/add_income", methods=["GET", "POST"])
 def api_income():
-    if "user_id" not in session:
+    user_id = get_current_user_id()
+    if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-
-    user_id = session["user_id"]
 
     if request.method == "GET":
         with get_db() as db:

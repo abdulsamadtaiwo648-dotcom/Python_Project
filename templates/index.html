@@ -21,6 +21,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Pulls in modern, clean Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Clerk Browser CDN -->
+    <script src="https://cdn.clerk.com/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" crossorigin="anonymous"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -40,9 +42,9 @@
             
             <!-- Right: Logout Button -->
             <div>
-                <a href="/logout" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide bg-red-950/40 border border-red-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+                <button onclick="handleClerkLogout()" type="button" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide bg-red-950/40 border border-red-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer">
                     <span>Logout</span> 🚪
-                </a>
+                </button>
             </div>
             
         </div>
@@ -68,7 +70,7 @@
         <div class="mb-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
                 <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-1.5">
-                    Hi, {{ username }} <span class="inline-block animate-bounce">👋</span>
+                    Hi, <span id="user-greeting-name">{{ username }}</span> <span class="inline-block animate-bounce">👋</span>
                 </h2>
                 <p class="text-[11px] text-gray-500 font-medium mt-0.5">Here is your business overview today</p>
             </div>
@@ -516,12 +518,65 @@
     </div>
 
     <script>
-        const CURRENT_USER_ID = {{ session.get('user_id', 0) | tojson }};
+        const CLERK_PUBLISHABLE_KEY = "{{ clerk_publishable_key }}" || "pk_test_Y2xlcmsuYWNjb3VudHMuZGV2JA";
+        const CURRENT_USER_ID = {{ session.get('user_id', '0') | tojson }};
         const DB_NAME = 'SoloBizDB_user_' + CURRENT_USER_ID;
         const DB_VERSION = 3;
         const STORE_NAME = 'expenses';
         const INCOME_STORE = 'income';
         const PROFILE_STORE = 'business_profile';
+
+        async function getClerkToken() {
+            if (window.Clerk && window.Clerk.session) {
+                try {
+                    return await window.Clerk.session.getToken();
+                } catch (e) {
+                    console.warn("Error retrieving Clerk token:", e);
+                }
+            }
+            return null;
+        }
+
+        async function authenticatedFetch(url, options = {}) {
+            options.headers = options.headers || {};
+            const token = await getClerkToken();
+            if (token) {
+                options.headers["Authorization"] = `Bearer ${token}`;
+            }
+            return fetch(url, options);
+        }
+
+        async function handleClerkLogout() {
+            if (window.Clerk) {
+                try {
+                    await window.Clerk.signOut();
+                } catch (e) {
+                    console.warn("Logout error:", e);
+                }
+            }
+            window.location.href = "/login";
+        }
+
+        window.addEventListener("load", async () => {
+            try {
+                const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
+                await clerk.load();
+                window.Clerk = clerk;
+
+                if (!clerk.user) {
+                    window.location.href = "/login";
+                    return;
+                }
+
+                const nameEl = document.getElementById("user-greeting-name");
+                if (nameEl) {
+                    const displayName = clerk.user.firstName || clerk.user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Entrepreneur';
+                    nameEl.innerText = displayName;
+                }
+            } catch (err) {
+                console.error("Clerk load error:", err);
+            }
+        });
 
         // -------------------------------------------------------------
         // UNIFIED DOM METRICS UPDATER
@@ -598,7 +653,7 @@
 
             if (navigator.onLine) {
                 try {
-                    const response = await fetch('/api/business_profile');
+                    const response = await authenticatedFetch('/api/business_profile');
                     const result = await response.json();
                     if (response.ok && result.status === 'success' && result.profile) {
                         const profileRecord = {
@@ -654,7 +709,7 @@
 
             if (navigator.onLine) {
                 try {
-                    const response = await fetch('/api/business_profile', {
+                    const response = await authenticatedFetch('/api/business_profile', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -732,7 +787,7 @@
 
             if (navigator.onLine) {
                 try {
-                    const response = await fetch('/api/income', {
+                    const response = await authenticatedFetch('/api/income', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -780,7 +835,7 @@
         async function syncIncomeFromServer() {
             if (!navigator.onLine) return;
             try {
-                const response = await fetch('/api/income');
+                const response = await authenticatedFetch('/api/income');
                 if (!response.ok) return;
                 const result = await response.json();
                 if (result.status === 'success' && Array.isArray(result.income)) {
@@ -840,7 +895,7 @@
                     for (const item of unsyncedExpenses) {
                         if (item.pending_delete && item.id) {
                             try {
-                                const res = await fetch(`/api/expenses/${item.id}`, { method: 'DELETE' });
+                                const res = await authenticatedFetch(`/api/expenses/${item.id}`, { method: 'DELETE' });
                                 if (res.ok) {
                                     const delTx = db.transaction(STORE_NAME, 'readwrite');
                                     delTx.objectStore(STORE_NAME).delete(item.local_id);
@@ -848,7 +903,7 @@
                             } catch (e) {}
                         } else if (item.pending_edit && item.id) {
                             try {
-                                const res = await fetch(`/api/expenses/${item.id}`, {
+                                const res = await authenticatedFetch(`/api/expenses/${item.id}`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ amount: item.amount, category: item.category, description: item.description })
@@ -862,7 +917,7 @@
                             } catch (e) {}
                         } else if (!item.synced) {
                             try {
-                                const res = await fetch('/add', {
+                                const res = await authenticatedFetch('/add', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ amount: item.amount, category: item.category, description: item.description })
@@ -892,7 +947,7 @@
 
                     for (const item of unsyncedIncome) {
                         try {
-                            const res = await fetch('/api/income', {
+                            const res = await authenticatedFetch('/api/income', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -929,7 +984,7 @@
                     const profile = getProfileReq.result;
                     if (profile && !profile.synced) {
                         try {
-                            const res = await fetch('/api/business_profile', {
+                            const res = await authenticatedFetch('/api/business_profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -1056,7 +1111,7 @@
             // 3. Send DELETE request to Python API if online & server_id exists
             if (isOnline && server_id) {
                 try {
-                    const response = await fetch(`/api/expenses/${server_id}`, {
+                    const response = await authenticatedFetch(`/api/expenses/${server_id}`, {
                         method: 'DELETE'
                     });
                     const result = await response.json();
@@ -1136,7 +1191,7 @@
             // 3. Send PUT request to Python API if online & server_id exists
             if (isOnline && server_id) {
                 try {
-                    const response = await fetch(`/api/expenses/${server_id}`, {
+                    const response = await authenticatedFetch(`/api/expenses/${server_id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ amount, category, description })
@@ -1168,7 +1223,7 @@
         // -------------------------------------------------------------
         async function syncExpenseToServer(expense) {
             try {
-                const response = await fetch('/add', {
+                const response = await authenticatedFetch('/add', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -2140,7 +2195,7 @@
             form.reset();
 
             // 4. BACKGROUND SAVE — send to Python/SQLite without blocking the UI
-            fetch('/add', {
+            authenticatedFetch('/add', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
