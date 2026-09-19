@@ -169,6 +169,7 @@ def init_db():
                 )
             """)
             for alter_cmd in [
+                "ALTER TABLE users ALTER COLUMN id TYPE TEXT USING id::TEXT",
                 "ALTER TABLE expenses ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
                 "ALTER TABLE income ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
                 "ALTER TABLE business_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
@@ -176,8 +177,8 @@ def init_db():
             ]:
                 try:
                     db.execute(alter_cmd)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"Migration note for '{alter_cmd}': {e}", flush=True)
         else:
             # SQLite Table Creation (Local Development)
             db.execute("""
@@ -258,11 +259,14 @@ def register():
             return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
         except Exception as e:
             err_str = str(e).lower()
+            import logging
+            logging.error(f"Registration failed for email '{email}': {e}", exc_info=True)
             if "unique" in err_str or "duplicate" in err_str:
                 error_msg = "Email already registered! Please log in."
-                flash(error_msg, "danger")
-                return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
-            return f"CRITICAL DATABASE ERROR: {str(e)}"
+            else:
+                error_msg = "An error occurred while creating your account. Please try again."
+            flash(error_msg, "danger")
+            return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
             
     return render_template("register.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
 
@@ -279,15 +283,21 @@ def login():
             flash("Please enter both email and password.", "danger")
             return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
 
-        with get_db() as db:
-            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-            
-            if not user or not user["password"] or not check_password_hash(user["password"], password):
-                flash("Invalid email or password. Please try again.", "danger")
-                return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+        try:
+            with get_db() as db:
+                user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
                 
-            session["user_id"] = str(user["id"])
-            return redirect("/")
+                if not user or not user["password"] or not check_password_hash(user["password"], password):
+                    flash("Invalid email or password. Please try again.", "danger")
+                    return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+                    
+                session["user_id"] = str(user["id"])
+                return redirect("/")
+        except Exception as e:
+            import logging
+            logging.error(f"Login error for email '{email}': {e}", exc_info=True)
+            flash("An unexpected error occurred. Please try again.", "danger")
+            return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
                 
     return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
 
@@ -776,10 +786,23 @@ def user_count():
             total = 0
     return f"<h1>Total Registered Users: {total}</h1>"
 
+@app.errorhandler(404)
+def handle_404(e):
+    if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
+        return jsonify({"status": "error", "message": "The requested resource was not found."}), 404
+    return render_template("404.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY), 404
+
+@app.errorhandler(500)
 @app.errorhandler(Exception)
 def handle_exception(e):
-    # Prints the exact traceback line directly to screen for real-time debugging
-    return f"<h2>We caught the bug! Here is the error:</h2><pre>{traceback.format_exc()}</pre>", 500
+    import logging
+    logging.error("Unhandled Server Exception: %s", e, exc_info=True)
+    if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
+        return jsonify({
+            "status": "error",
+            "message": "An internal server error occurred. Please try again later."
+        }), 500
+    return render_template("500.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY), 500
 
 if __name__ == "__main__":
     import os
