@@ -285,8 +285,8 @@ def index():
         sales_query = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
         expenses_query = db.execute("SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
 
-    total_sales = sales_query["total"] if sales_query and sales_query["total"] is not None else 0.00
-    total_expenses = expenses_query["total"] if expenses_query and expenses_query["total"] is not None else 0.00
+    total_sales = float(sales_query["total"]) if sales_query and sales_query["total"] is not None else 0.00
+    total_expenses = float(expenses_query["total"]) if expenses_query and expenses_query["total"] is not None else 0.00
     net_profit = total_sales - total_expenses
     
     user_email = user["email"]
@@ -317,7 +317,7 @@ def get_expenses():
         expenses = [
             {
                 "server_id": row["id"],
-                "amount": row["amount"],
+                "amount": float(row["amount"]),
                 "category": row["category"],
                 "description": row["description"],
                 "date": row["date"],
@@ -360,9 +360,9 @@ def calculate():
         expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
         
     # Do the math!
-    calc_result = sum(row["amount"] for row in items)
+    calc_result = sum(float(row["amount"] or 0) for row in items)
     
-    total = sum(item["amount"] for item in expenses)
+    total = sum(float(item["amount"] or 0) for item in expenses)
     username = user["email"].split("@")[0].capitalize()
     
     return render_template("index.html", expenses=expenses, total=total, username=username, calc_result=calc_result, calc_term=calc_term)
@@ -556,9 +556,9 @@ def search():
                 display_term = search_results[0]["category"].capitalize()
 
     # global_total keeps the main dashboard static
-    global_total = sum(item["amount"] for item in all_expenses)
+    global_total = sum(float(item["amount"] or 0) for item in all_expenses)
     # search_total powers only the isolated calculation report box
-    search_total = sum(item["amount"] for item in search_results)
+    search_total = sum(float(item["amount"] or 0) for item in search_results)
     
     return render_template(
         "index.html",
@@ -666,7 +666,7 @@ def api_income():
                 {
                     "id": row["id"],
                     "user_id": row["user_id"],
-                    "amount": row["amount"],
+                    "amount": float(row["amount"]),
                     "item_sold": row["item_sold"],
                     "customer_name": row["customer_name"] or "Walk-in Customer",
                     "date": row["date"]
