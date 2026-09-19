@@ -1,40 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In | SoloBiz</title>
-    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - SoloBiz</title>
+  <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
-    <div class="flex flex-col items-center w-full max-w-md">
-        <div class="flex items-center gap-3 mb-6">
-            <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-12 h-12 rounded-xl shadow-lg border border-indigo-500/20">
-            <div>
-                <h1 class="text-2xl font-bold text-white tracking-tight">SoloBiz</h1>
-                <p class="text-xs text-indigo-400 font-medium">Pocket CFO for Entrepreneurs</p>
-            </div>
-        </div>
+<body class="bg-[#0f172a] text-white min-h-screen flex items-center justify-center p-4">
 
-        <div id="clerk-sign-in" class="w-full flex justify-center"></div>
+  <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
+    
+    <!-- Header -->
+    <div class="flex flex-col items-center mb-6 text-center">
+      <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-12 h-12 rounded-xl shadow-lg border border-indigo-500/20 mb-3">
+      <h1 class="text-2xl font-bold">Welcome Back</h1>
+      <p class="text-xs text-slate-400 mt-1">Log in to your SoloBiz account</p>
     </div>
 
-    <!-- Clerk JS SDK via jsDelivr CDN -->
-    <script
-      async crossorigin="anonymous"
-      data-clerk-publishable-key="{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}"
-      src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
-      onload="window.Clerk.load().then(() => {
-        const clerk = window.Clerk;
-        if (clerk.user) {
-          window.location.href = '/';
-        } else {
-          clerk.mountSignIn(document.getElementById('clerk-sign-in'));
+    <!-- Flash Messages / Errors -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-xs font-medium text-center">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 1. Direct Email & Password Form -->
+    <form action="/login" method="POST" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
+        <input type="email" name="email" required placeholder="name@example.com" 
+               class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Password</label>
+        <input type="password" name="password" required placeholder="••••••••" 
+               class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
+      </div>
+
+      <button type="submit" 
+              class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200 text-sm cursor-pointer">
+        Log In with Email
+      </button>
+    </form>
+
+    <!-- Divider -->
+    <div class="relative my-6 text-center">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+      <span class="relative bg-slate-900 px-3 text-xs text-slate-500 uppercase font-medium">Or continue with</span>
+    </div>
+
+    <!-- 2. Clerk Authentication Option -->
+    <div id="clerk-container">
+      <button type="button" onclick="openClerkSignIn()" 
+              class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium rounded-lg transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
+        <svg class="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+        </svg>
+        Sign in with Clerk
+      </button>
+    </div>
+
+    <p class="mt-6 text-center text-xs text-slate-400">
+      Don't have an account? <a href="/register" class="text-indigo-400 font-bold hover:underline">Sign up</a>
+    </p>
+
+  </div>
+
+  <!-- Clerk SDK Loader -->
+  <script
+    async crossorigin="anonymous"
+    data-clerk-publishable-key="{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}"
+    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js">
+  </script>
+
+  <script>
+    async function openClerkSignIn() {
+      const container = document.getElementById('clerk-container');
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-2 animate-pulse">Loading Clerk...</p>';
+      
+      let attempts = 0;
+      while (!window.Clerk && attempts < 50) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+
+      if (window.Clerk) {
+        try {
+          await window.Clerk.load({
+            publishableKey: "{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}"
+          });
+          container.innerHTML = '';
+          if (!window.Clerk.user) {
+            window.Clerk.mountSignIn(container);
+          } else {
+            window.location.href = '/';
+          }
+        } catch (e) {
+          console.error("Clerk load error:", e);
+          container.innerHTML = '<p class="text-xs text-red-400 text-center py-2">Could not load Clerk. Please use the email form above.</p>';
         }
-      })">
-    </script>
+      } else {
+        alert('Clerk SDK is taking time to load. Please use the email form above or refresh the page.');
+        container.innerHTML = `
+          <button type="button" onclick="openClerkSignIn()" class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium rounded-lg text-sm flex items-center justify-center gap-2">
+            Sign in with Clerk
+          </button>
+        `;
+      }
+    }
+  </script>
+
 </body>
 </html>

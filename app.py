@@ -226,14 +226,69 @@ def init_db():
 init_db()
 
 # ==========================================
-# AUTHENTICATION ROUTES (CLERK INTEGRATION)
+# AUTHENTICATION ROUTES (HYBRID FORM + CLERK)
 # ==========================================
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if request.method == "POST":
+        raw_email = request.form.get("email", "")
+        raw_password = request.form.get("password", "")
+        
+        email = raw_email.strip().lower()
+        password = raw_password.strip()
+
+        if not email or not password:
+            flash("Please fill in all required fields.", "danger")
+            return render_template("register.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+
+        hashed_password = generate_password_hash(password)
+        import time, uuid
+        new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+        
+        try:
+            with get_db() as db:
+                db.execute("INSERT INTO users (id, email, password) VALUES (?, ?, ?)", (new_user_id, email, hashed_password))
+                db.commit()
+            session["user_id"] = new_user_id
+            flash("Account created successfully!", "success")
+            return redirect("/")
+        except sqlite3.IntegrityError:
+            error_msg = "Email already registered! Please log in."
+            flash(error_msg, "danger")
+            return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+        except Exception as e:
+            err_str = str(e).lower()
+            if "unique" in err_str or "duplicate" in err_str:
+                error_msg = "Email already registered! Please log in."
+                flash(error_msg, "danger")
+                return render_template("register.html", error=error_msg, clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+            return f"CRITICAL DATABASE ERROR: {str(e)}"
+            
     return render_template("register.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if request.method == "POST":
+        raw_email = request.form.get("email", "")
+        raw_password = request.form.get("password", "")
+        
+        email = raw_email.strip().lower()
+        password = raw_password.strip()
+
+        if not email or not password:
+            flash("Please enter both email and password.", "danger")
+            return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+
+        with get_db() as db:
+            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            
+            if not user or not user["password"] or not check_password_hash(user["password"], password):
+                flash("Invalid email or password. Please try again.", "danger")
+                return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
+                
+            session["user_id"] = str(user["id"])
+            return redirect("/")
+                
     return render_template("login.html", clerk_publishable_key=CLERK_PUBLISHABLE_KEY)
 
 @app.route("/logout")
