@@ -38,48 +38,30 @@
             .stat-value { font-size: clamp(0.8rem, 1.8vw, 1rem); }
         }
 
-        /* ── Business Card ─────────────────────────────────────────── */
+        /* ── Business Card: Professional white printed-card style ─── */
         .biz-card {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-            border-radius: 20px;
+            background: #ffffff;
+            border-radius: 16px;
             position: relative;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
         }
+        /* Gold accent top bar */
         .biz-card::before {
             content: '';
             position: absolute;
-            top: -60px; right: -60px;
-            width: 200px; height: 200px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .biz-card::after {
-            content: '';
-            position: absolute;
-            bottom: -40px; left: -40px;
-            width: 160px; height: 160px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(236,72,153,0.18) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .biz-card-logo {
-            width: 52px; height: 52px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; font-weight: 900;
-            color: #fff;
-            letter-spacing: -1px;
-            flex-shrink: 0;
-            box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+            top: 0; left: 0; right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #1e293b 0%, #334155 40%, #c9a84c 100%);
+            border-radius: 16px 16px 0 0;
         }
         .biz-card-divider {
             border: none;
             height: 1px;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.12), transparent);
-            margin: 14px 0;
+            background: #e2e8f0;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -430,54 +412,45 @@
                 <!-- View Mode Container (Digital Business Card) -->
                 <div id="profile-view-mode" class="space-y-5 hidden">
 
-                    <!-- ═══════════════════════════════════════════════ -->
-                    <!-- PREMIUM DIGITAL BUSINESS CARD                  -->
-                    <!-- ═══════════════════════════════════════════════ -->
-                    <div id="digital-business-card" class="biz-card w-full mx-auto shadow-2xl border border-white/5 text-white" style="padding: 24px 24px 20px; aspect-ratio: 1.75/1; display: flex; flex-direction: column; justify-content: space-between;">
+                    <!-- ══════════════════════════════════════════════════════ -->
+                    <!-- PROFESSIONAL PRINTED BUSINESS CARD                    -->
+                    <!-- White card, gold accent, clean typography              -->
+                    <!-- ══════════════════════════════════════════════════════ -->
+                    <div id="digital-business-card" class="biz-card w-full mx-auto" style="aspect-ratio:1.75/1; display:flex; flex-direction:column; justify-content:space-between; padding: 24px 24px 16px;">
 
-                        <!-- TOP ROW: Logo Initial + Company Name -->
-                        <div style="display: flex; align-items: flex-start; gap: 14px;">
-                            <!-- Gradient Logo Initial -->
-                            <div class="biz-card-logo" id="card-logo-initial">B</div>
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                    <h2 id="card-company-name" style="font-size: clamp(1rem,4vw,1.5rem); font-weight: 900; letter-spacing: -0.5px; color: #fff; line-height: 1.1; word-break: break-word;">Your Business</h2>
-                                    <span style="background: linear-gradient(90deg,#6366f1,#a855f7); border-radius: 6px; font-size: 9px; font-weight: 700; padding: 2px 7px; color: #fff; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0;">PRO</span>
+                        <!-- LEFT-ALIGNED TOP: Company Name + Tagline -->
+                        <div>
+                            <!-- Accent dot + company name row -->
+                            <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+                                <div id="card-logo-initial" style="width:38px; height:38px; border-radius:8px; background:linear-gradient(135deg,#1e293b,#334155); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:900; color:#c9a84c; flex-shrink:0; letter-spacing:-1px;">B</div>
+                                <div>
+                                    <h2 id="card-company-name" style="font-size:clamp(0.95rem,3.5vw,1.3rem); font-weight:900; color:#0f172a; letter-spacing:-0.5px; line-height:1.1; word-break:break-word;">Your Business</h2>
+                                    <p id="card-tagline" style="font-size:9px; color:#94a3b8; font-weight:500; margin-top:1px; letter-spacing:0.3px;">Professional · Trusted · Reliable</p>
                                 </div>
-                                <p style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 3px; font-weight: 500; letter-spacing: 0.5px;">Est. 2024 · SoloBiz Verified</p>
                             </div>
                         </div>
 
-                        <!-- MIDDLE: Divider -->
+                        <!-- MIDDLE DIVIDER -->
                         <hr class="biz-card-divider">
 
-                        <!-- CONTACT INFO ROW -->
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <!-- Phone -->
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#818cf8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                                </div>
-                                <span id="card-phone" style="font-size: clamp(0.7rem,2.5vw,0.85rem); color: rgba(255,255,255,0.85); font-weight: 600; letter-spacing: 0.3px;">—</span>
+                        <!-- CONTACT GRID -->
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <!-- Phone row -->
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                <span id="card-phone" style="font-size:clamp(0.65rem,2.2vw,0.78rem); color:#1e293b; font-weight:600;">—</span>
                             </div>
-                            <!-- Address -->
-                            <div style="display: flex; align-items: flex-start; gap: 10px;">
-                                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(236,72,153,0.12); border: 1px solid rgba(236,72,153,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
-                                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#f472b6" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                </div>
-                                <span id="card-address" style="font-size: clamp(0.65rem,2.2vw,0.8rem); color: rgba(255,255,255,0.7); font-weight: 500; word-break: break-word; line-height: 1.35;">—</span>
+                            <!-- Address row -->
+                            <div style="display:flex; align-items:flex-start; gap:8px;">
+                                <svg style="margin-top:1px; flex-shrink:0;" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                <span id="card-address" style="font-size:clamp(0.6rem,2vw,0.73rem); color:#475569; font-weight:500; line-height:1.3; word-break:break-word;">—</span>
                             </div>
                         </div>
 
-                        <!-- BOTTOM ROW: Branding strip -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
-                            <span style="font-size: 9px; color: rgba(255,255,255,0.2); letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">SOLOBIZ · POCKET CFO</span>
-                            <!-- Decorative dots -->
-                            <div style="display: flex; gap: 4px;">
-                                <div style="width: 6px; height: 6px; border-radius: 50%; background: #6366f1; opacity: 0.7;"></div>
-                                <div style="width: 6px; height: 6px; border-radius: 50%; background: #8b5cf6; opacity: 0.5;"></div>
-                                <div style="width: 6px; height: 6px; border-radius: 50%; background: #ec4899; opacity: 0.4;"></div>
-                            </div>
+                        <!-- BOTTOM FOOTER: SoloBiz watermark -->
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+                            <div style="width:30px; height:2px; background:linear-gradient(90deg,#1e293b,#c9a84c); border-radius:2px;"></div>
+                            <span style="font-size:8px; color:#cbd5e1; letter-spacing:1.5px; text-transform:uppercase; font-weight:700;">SoloBiz · Pocket CFO</span>
                         </div>
 
                     </div><!-- /digital-business-card -->
@@ -1595,11 +1568,6 @@
             // STEP 3: PDF RECEIPT GENERATOR (jsPDF)
             // -------------------------------------------------------------
             window.generatePDFReceipt = async function(saleLocalId) {
-                if (!navigator.onLine) {
-                    alert("You must be online to generate a receipt.");
-                    return;
-                }
-
                 try {
                     const db = await openIndexedDB();
 
@@ -1617,151 +1585,203 @@
                         req.onerror = () => resolve(null);
                     });
 
-                    if (!saleRecord) {
-                        alert("Sale record not found.");
-                        return;
-                    }
+                    if (!saleRecord) { alert('Sale record not found.'); return; }
 
                     const allLocalIncome = await getIncomeLocal();
                     let receiptItems = [];
                     if (saleRecord.receipt_id) {
-                        receiptItems = allLocalIncome.filter(item => item.receipt_id === saleRecord.receipt_id);
+                        receiptItems = allLocalIncome.filter(i => i.receipt_id === saleRecord.receipt_id);
                     }
-                    if (receiptItems.length === 0) {
-                        receiptItems = [saleRecord];
-                    }
+                    if (receiptItems.length === 0) receiptItems = [saleRecord];
 
-                    const companyName = (profileRecord?.company_name || 'Official Receipt').toUpperCase();
-                    const businessPhone = profileRecord?.business_phone || '';
-                    const businessAddress = profileRecord?.business_address || '';
-
+                    // ── Data ──────────────────────────────────────────────────
+                    const companyName  = (profileRecord?.company_name  || 'SoloBiz Business').toUpperCase();
+                    const bizPhone     = profileRecord?.business_phone  || '';
+                    const bizAddress   = profileRecord?.business_address || '';
                     const customerName = saleRecord.customer_name || 'Valued Customer';
-                    const receiptId = saleRecord.receipt_id || (`REC-${saleLocalId}`);
-                    const dateStr = saleRecord.date ? new Date(saleRecord.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString();
+                    const receiptId    = saleRecord.receipt_id   || `REC-${String(saleLocalId).padStart(5,'0')}`;
+                    const dateStr      = saleRecord.date
+                        ? new Date(saleRecord.date).toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' })
+                        : new Date().toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' });
+                    const timeStr      = new Date().toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
+                    const grandTotal   = receiptItems.reduce((s,i) => s + parseFloat(i.amount||0), 0);
+                    const fmt          = (n) => 'NGN ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-                    const grandTotal = receiptItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-                    const formattedGrandTotal = 'NGN ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    // ── Page size: 80mm wide, height auto ─────────────────────
+                    const lineCount  = receiptItems.length;
+                    const docHeight  = 148 + (lineCount * 7);
+                    const { jsPDF }  = window.jspdf;
+                    const doc        = new jsPDF({ orientation:'portrait', unit:'mm', format:[80, docHeight] });
 
-                    const baseHeight = 135;
-                    const extraHeight = Math.max(0, receiptItems.length - 1) * 6;
-                    const docHeight = baseHeight + extraHeight;
-
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: [80, docHeight]
-                    });
-
-                    // Header Banner
+                    // ────────────────────────────────────────────────────────
+                    //  HEADER BLOCK
+                    // ────────────────────────────────────────────────────────
+                    // Dark navy top bar
                     doc.setFillColor(15, 23, 42);
-                    doc.rect(0, 0, 80, 18, 'F');
+                    doc.roundedRect(0, 0, 80, 24, 0, 0, 'F');
 
+                    // Gold accent line under header
+                    doc.setFillColor(201, 168, 76);
+                    doc.rect(0, 24, 80, 1.5, 'F');
+
+                    // Company name
                     doc.setTextColor(255, 255, 255);
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(11);
-                    doc.text(companyName, 40, 10, { align: 'center' });
+                    doc.setFontSize(12);
+                    doc.text(companyName, 40, 11, { align: 'center' });
 
-                    // Subheader Info
+                    // Sub-line: OFFICIAL RECEIPT
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(201, 168, 76);
+                    doc.text('OFFICIAL RECEIPT', 40, 18, { align: 'center' });
+
+                    // ── Contact Info under header ──────────────────────────
+                    let y = 30;
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
                     doc.setTextColor(71, 85, 105);
+                    if (bizPhone)   { doc.text(`Tel: ${bizPhone}`,  40, y, { align:'center' }); y += 4.5; }
+                    if (bizAddress) { doc.text(bizAddress,           40, y, { align:'center' }); y += 4.5; }
+                    y += 2;
+
+                    // ── Dotted divider ────────────────────────────────────
+                    doc.setDrawColor(203, 213, 225);
+                    doc.setLineDash([1, 1.5], 0);
+                    doc.line(5, y, 75, y);
+                    doc.setLineDash([], 0);
+                    y += 6;
+
+                    // ── Receipt Meta: Receipt# / Date / Customer ──────────
+                    const metaLeft  = 6;
+                    const metaRight = 74;
+
+                    // Receipt #
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8);
+                    doc.setTextColor(100, 116, 139);
+                    doc.text('Receipt No:', metaLeft, y);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(15, 23, 42);
+                    doc.text(receiptId, metaRight, y, { align: 'right' });
+                    y += 5;
+
+                    // Date & Time
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(100, 116, 139);
+                    doc.text('Date:', metaLeft, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(15, 23, 42);
+                    doc.text(`${dateStr}  ${timeStr}`, metaRight, y, { align: 'right' });
+                    y += 5;
+
+                    // Customer
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(100, 116, 139);
+                    doc.text('Bill To:', metaLeft, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(15, 23, 42);
+                    doc.text(customerName, metaRight, y, { align: 'right' });
+                    y += 7;
+
+                    // ── Items Table Header ─────────────────────────────────
+                    doc.setFillColor(241, 245, 249);
+                    doc.rect(4, y - 1, 72, 7, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(51, 65, 85);
+                    doc.text('DESCRIPTION', metaLeft, y + 4);
+                    doc.text('AMOUNT', metaRight, y + 4, { align: 'right' });
+                    y += 9;
+
+                    // ── Item Rows ─────────────────────────────────────────
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(8);
-                    let currentY = 24;
+                    receiptItems.forEach((item, idx) => {
+                        const rowBg = idx % 2 === 0;
+                        if (rowBg) {
+                            doc.setFillColor(248, 250, 252);
+                            doc.rect(4, y - 2, 72, 7, 'F');
+                        }
+                        doc.setTextColor(30, 41, 59);
+                        const title = item.item_sold || 'Goods / Services';
+                        const amt   = fmt(parseFloat(item.amount || 0));
+                        // Truncate long item names
+                        const maxW = 40;
+                        doc.text(doc.splitTextToSize(title, maxW)[0], metaLeft, y + 3);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(amt, metaRight, y + 3, { align: 'right' });
+                        doc.setFont('helvetica', 'normal');
+                        y += 7;
+                    });
+                    y += 2;
 
-                    if (businessPhone) {
-                        doc.text(`Tel: ${businessPhone}`, 40, currentY, { align: 'center' });
-                        currentY += 4;
-                    }
-                    if (businessAddress) {
-                        doc.text(businessAddress, 40, currentY, { align: 'center' });
-                        currentY += 4;
-                    }
+                    // ── Dotted divider ─────────────────────────────────────
+                    doc.setDrawColor(203, 213, 225);
+                    doc.setLineDash([1, 1.5], 0);
+                    doc.line(5, y, 75, y);
+                    doc.setLineDash([], 0);
+                    y += 5;
 
-                    // Title Badge
-                    currentY += 2;
-                    doc.setFillColor(241, 245, 249);
-                    doc.rect(5, currentY, 70, 7, 'F');
+                    // ── TOTAL PAID box ─────────────────────────────────────
+                    doc.setFillColor(15, 23, 42);
+                    doc.roundedRect(4, y, 72, 12, 2, 2, 'F');
+                    doc.setFillColor(201, 168, 76);
+                    doc.roundedRect(4, y, 3, 12, 1, 1, 'F');
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(201, 168, 76);
+                    doc.text('TOTAL PAID', 11, y + 8);
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(10);
+                    doc.text(fmt(grandTotal), metaRight, y + 8, { align: 'right' });
+                    y += 18;
+
+                    // ── Payment note ──────────────────────────────────────
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(7);
+                    doc.setTextColor(148, 163, 184);
+                    doc.text('Payment received in full.', 40, y, { align: 'center' });
+                    y += 8;
+
+                    // ── Dotted divider ─────────────────────────────────────
+                    doc.setDrawColor(203, 213, 225);
+                    doc.setLineDash([1, 1.5], 0);
+                    doc.line(5, y, 75, y);
+                    doc.setLineDash([], 0);
+                    y += 7;
+
+                    // ── Thank you message ─────────────────────────────────
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(9);
-                    doc.setTextColor(30, 41, 59);
-                    doc.text('OFFICIAL RECEIPT', 40, currentY + 5, { align: 'center' });
-                    currentY += 12;
-
-                    // Receipt Fields
-                    doc.setFontSize(8);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Receipt #:', 8, currentY);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text(receiptId, 72, currentY, { align: 'right' });
-                    currentY += 5;
-
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Date:', 8, currentY);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text(dateStr, 72, currentY, { align: 'right' });
-                    currentY += 5;
-
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Customer:', 8, currentY);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text(customerName, 72, currentY, { align: 'right' });
-                    currentY += 6;
-
-                    // Divider
-                    doc.setDrawColor(203, 213, 225);
-                    doc.line(8, currentY, 72, currentY);
-                    currentY += 6;
-
-                    // Item Description Header
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Item / Service', 8, currentY);
-                    doc.text('Amount', 72, currentY, { align: 'right' });
-                    currentY += 5;
-
-                    // Loop through order items
-                    doc.setFont('helvetica', 'normal');
-                    receiptItems.forEach(item => {
-                        const itemTitle = item.item_sold || 'Goods/Services';
-                        const itemAmt = 'NGN ' + parseFloat(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        doc.text(itemTitle, 8, currentY);
-                        doc.text(itemAmt, 72, currentY, { align: 'right' });
-                        currentY += 6;
-                    });
-                    currentY += 2;
-
-                    // Divider
-                    doc.line(8, currentY, 72, currentY);
-                    currentY += 6;
-
-                    // Total Paid
-                    doc.setFillColor(236, 253, 245);
-                    doc.rect(5, currentY, 70, 10, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(10);
-                    doc.setTextColor(5, 150, 105);
-                    doc.text('TOTAL PAID:', 8, currentY + 7);
-                    doc.text(formattedGrandTotal, 72, currentY + 7, { align: 'right' });
-                    currentY += 16;
-
-                    // Footer
+                    doc.setTextColor(15, 23, 42);
+                    doc.text('Thank you for your business!', 40, y, { align: 'center' });
+                    y += 5;
                     doc.setFont('helvetica', 'italic');
-                    doc.setFontSize(8);
-                    doc.setTextColor(148, 163, 184);
-                    doc.text('Thank you for your patronage!', 40, currentY, { align: 'center' });
-                    currentY += 5;
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(100, 116, 139);
+                    doc.text('We appreciate your continued patronage.', 40, y, { align: 'center' });
+                    y += 8;
 
+                    // ── Footer: SoloBiz watermark ─────────────────────────
+                    doc.setFillColor(248, 250, 252);
+                    doc.rect(0, y, 80, 12, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7);
+                    doc.setTextColor(201, 168, 76);
+                    doc.text('SoloBiz', 40, y + 5, { align: 'center' });
                     doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(156, 163, 175);
-                    doc.text('Powered by Solobiz', 40, currentY, { align: 'center' });
+                    doc.setTextColor(148, 163, 184);
+                    doc.text('Powered by SoloBiz · Pocket CFO Platform', 40, y + 10, { align: 'center' });
 
-                    // Save PDF
-                    const safeCustomerName = customerName.replace(/[^a-zA-Z0-9]/g, '_');
-                    doc.save(`Receipt_${safeCustomerName}_${receiptId}.pdf`);
+                    // ── Save ──────────────────────────────────────────────
+                    const safeName = customerName.replace(/[^a-zA-Z0-9]/g, '_');
+                    doc.save(`Receipt_${safeName}_${receiptId}.pdf`);
 
                 } catch (err) {
                     console.error('Error generating PDF receipt:', err);
-                    alert('Could not generate PDF receipt.');
+                    alert('Could not generate PDF. Make sure you have internet so the PDF library can load.');
                 }
             };
 
@@ -2050,7 +2070,7 @@
                 return await html2canvas(cardElement, { 
                     scale: 2,
                     useCORS: true,
-                    backgroundColor: "#0f172a" // Matches Tailwind bg-slate-900
+                    backgroundColor: "#ffffff"
                 });
             }
 
