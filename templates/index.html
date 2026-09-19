@@ -575,9 +575,9 @@
             }
 
             try {
-                await window.Clerk.load({
-                    publishableKey: CLERK_PUBLISHABLE_KEY
-                });
+                if (!window.Clerk.loaded) {
+                    await window.Clerk.load();
+                }
 
                 if (window.Clerk.user) {
                     const nameEl = document.getElementById("user-greeting-name");

@@ -122,12 +122,14 @@
       }
 
       if (!window.Clerk) {
-        skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Clerk is unavailable. Please use the email form above.</p>';
+        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Clerk is unavailable. Please use the email form above.</p>';
         return;
       }
 
       try {
-        await window.Clerk.load({ publishableKey: CLERK_PK });
+        if (!window.Clerk.loaded) {
+          await window.Clerk.load();
+        }
 
         // If user is already signed in via Clerk, sync to Flask then go to dashboard
         if (window.Clerk.user) {
@@ -136,9 +138,9 @@
         }
 
         // Remove skeleton, mount the Clerk SignUp component
-        skeleton.remove();
+        if (skeleton) skeleton.remove();
         window.Clerk.mountSignUp(container, {
-          afterSignUpUrl: "__clerk_sync__",
+          afterSignUpUrl: "/register?clerk_signed_in=1",
           signInUrl: "/login"
         });
 
@@ -152,7 +154,7 @@
 
       } catch (err) {
         console.error("Clerk load error:", err);
-        skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Could not load Clerk. Please use the email form above.</p>';
+        if (skeleton) skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Could not load Clerk. Please use the email form above.</p>';
       }
     });
   </script>

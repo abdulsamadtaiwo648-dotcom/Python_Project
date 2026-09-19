@@ -377,16 +377,7 @@ def index():
     user_id = get_current_user_id()
 
     if not user_id:
-        return render_template(
-            "index.html",
-            expenses=[],
-            total=0.00,
-            total_sales=0.00,
-            total_expenses=0.00,
-            net_profit=0.00,
-            username="User",
-            clerk_publishable_key=CLERK_PUBLISHABLE_KEY
-        )
+        return redirect("/login")
 
     with get_db() as db:
         user = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
