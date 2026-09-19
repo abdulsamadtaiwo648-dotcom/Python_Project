@@ -382,21 +382,87 @@
         .footer-links a:hover { color: var(--ink); }
         .footer-copy { font-size: 0.8rem; color: var(--light); }
 
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .nav-links { display: none; }
-            .hero { padding: 64px 20px 48px; }
-            .hero-cta { flex-direction: column; align-items: flex-start; width: 100%; }
-            .hero-cta .btn { width: 100%; text-align: center; justify-content: center; }
-            .preview-wrap { padding: 0 20px; margin-bottom: 56px; }
-            .mock-cards { grid-template-columns: 1fr 1fr; }
-            .features-grid { grid-template-columns: 1fr; }
-            .steps { grid-template-columns: 1fr; gap: 28px; }
-            .cta-box { flex-direction: column; align-items: flex-start; padding: 36px 28px; }
-            .cta-actions { width: 100%; flex-direction: column; }
-            .cta-actions .btn { width: 100%; text-align: center; justify-content: center; }
-            .footer-inner { flex-direction: column; align-items: flex-start; }
+        /* ── RESPONSIVE: tablet ──────────────────────────────────────── */
+        @media (max-width: 900px) {
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* ── RESPONSIVE: mobile ──────────────────────────────────────── */
+        @media (max-width: 768px) {
+
+            /* Nav */
+            .nav-links { display: none; }
+            .nav-inner { padding: 0 16px; }
+            .btn { padding: 7px 14px; font-size: 0.82rem; }
+            .btn-lg { padding: 13px 20px; font-size: 0.9rem; }
+
+            /* Hero */
+            .hero { padding: 52px 16px 40px; }
+            .hero-badge { font-size: 0.72rem; padding: 4px 10px; }
+            .hero h1 { letter-spacing: -0.8px; margin-bottom: 16px; }
+            .hero > p { font-size: 1rem; margin-bottom: 28px; }
+            .hero-cta { flex-direction: column; width: 100%; gap: 10px; }
+            .hero-cta .btn { width: 100%; }
+            .hero-note { font-size: 0.75rem; }
+
+            /* Preview */
+            .preview-wrap { padding: 0 16px; margin-bottom: 48px; }
+            .mock-cards { grid-template-columns: 1fr 1fr; }
+            .mock-card-val { font-size: 0.9rem; }
+            .mock-title { font-size: 0.78rem; }
+            /* Hide last table row on mobile to avoid scroll */
+            .mock-row:last-child { display: none; }
+
+            /* Social proof */
+            .trust-items { gap: 20px; justify-content: flex-start; padding: 0 4px; }
+            .trust-item { font-size: 0.8rem; }
+
+            /* Sections */
+            .features  { padding: 56px 16px; }
+            .how-inner { padding: 56px 16px; }
+            .cta-section { padding: 48px 16px; }
+
+            /* Section titles */
+            .section-title { letter-spacing: -0.5px; }
+            .section-sub { font-size: 0.925rem; margin-bottom: 32px; }
+
+            /* Features grid: single column */
+            .features-grid { grid-template-columns: 1fr; }
+            .feature-cell { padding: 22px 20px 26px; }
+
+            /* Steps */
+            .steps { grid-template-columns: 1fr; gap: 24px; margin-top: 32px; }
+
+            /* CTA */
+            .cta-box {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 32px 24px;
+                border-radius: 12px;
+            }
+            .cta-text h2 { font-size: 1.4rem; }
+            .cta-actions { width: 100%; flex-direction: column; gap: 10px; }
+            .cta-actions .btn { width: 100%; }
+
+            /* Footer */
+            .footer-inner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+                padding: 24px 16px;
+            }
+            .footer-links { flex-wrap: wrap; gap: 12px 20px; }
+        }
+
+        /* ── RESPONSIVE: very small (≤ 400px) ───────────────────────── */
+        @media (max-width: 400px) {
+            .mock-cards { grid-template-columns: 1fr; }
+            .mock-card:last-child { display: none; }
+            .hero h1 { font-size: 2rem; }
+            .browser-url { font-size: 0.65rem; }
+            .trust-items { gap: 14px; }
+        }
+
     </style>
 </head>
 <body>
