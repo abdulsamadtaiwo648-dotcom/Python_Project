@@ -190,32 +190,25 @@ def init_db():
             except Exception as e:
                 print(f"Migration note for '{alter_cmd}': {e}", flush=True)
 
-        # Fail-safe check: verify users.id column type is TEXT on PostgreSQL
-        try:
-            with get_db() as db:
-                res = db.execute("""
-                    SELECT data_type 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'users' AND column_name = 'id'
-                """).fetchone()
-                if res:
-                    col_type = str(res["data_type"] if isinstance(res, dict) and "data_type" in res else (res[0] if hasattr(res, "__getitem__") else "")).lower()
-                    if "int" in col_type:
-                        print(f"users.id is still '{col_type}'. Rebuilding users table to TEXT...", flush=True)
-                        db.execute("ALTER TABLE users RENAME TO users_old")
-                        db.execute("""
-                            CREATE TABLE users (
-                                id TEXT PRIMARY KEY,
-                                email TEXT UNIQUE NOT NULL,
-                                password TEXT
-                            )
-                        """)
-                        db.execute("INSERT INTO users (id, email, password) SELECT id::TEXT, email, password FROM users_old ON CONFLICT DO NOTHING")
-                        db.execute("DROP TABLE users_old CASCADE")
-                        db.commit()
-                        print("users table successfully rebuilt with TEXT primary key!", flush=True)
-        except Exception as rebuild_ex:
-            print(f"Fail-safe rebuild note: {rebuild_ex}", flush=True)
+        # Fail-safe check: verify and convert user_id column types to TEXT for all PostgreSQL tables
+        for target_table, target_col in [("users", "id"), ("expenses", "user_id"), ("income", "user_id"), ("business_profiles", "user_id")]:
+            try:
+                with get_db() as db:
+                    res = db.execute(f"""
+                        SELECT data_type 
+                        FROM information_schema.columns 
+                        WHERE table_name = '{target_table}' AND column_name = '{target_col}'
+                    """).fetchone()
+                    if res:
+                        col_type = str(res["data_type"] if isinstance(res, dict) and "data_type" in res else (res[0] if hasattr(res, "__getitem__") else "")).lower()
+                        if "int" in col_type:
+                            print(f"{target_table}.{target_col} is '{col_type}'. Converting to TEXT...", flush=True)
+                            db.execute(f"ALTER TABLE {target_table} ALTER COLUMN {target_col} DROP DEFAULT")
+                            db.execute(f"ALTER TABLE {target_table} ALTER COLUMN {target_col} TYPE TEXT USING {target_col}::TEXT")
+                            db.commit()
+                            print(f"{target_table}.{target_col} converted to TEXT successfully!", flush=True)
+            except Exception as col_ex:
+                print(f"Fail-safe conversion note for {target_table}.{target_col}: {col_ex}", flush=True)
     else:
         with get_db() as db:
             db.execute("""
@@ -419,17 +412,44 @@ def dashboard():
     if not user_id:
         return redirect("/login")
 
-    with get_db() as db:
-        user = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-        expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
-        sales_query = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
-        expenses_query = db.execute("SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
+    expenses = []
+    total_sales = 0.00
+    total_expenses = 0.00
+    username = "Entrepreneur"
 
-    total_sales = float(sales_query["total"]) if sales_query and sales_query["total"] is not None else 0.00
-    total_expenses = float(expenses_query["total"]) if expenses_query and expenses_query["total"] is not None else 0.00
+    try:
+        with get_db() as db:
+            try:
+                user = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+                if user and hasattr(user, "__getitem__") and "email" in user and user["email"]:
+                    username = user["email"].split("@")[0].capitalize()
+            except Exception as u_ex:
+                print(f"Dashboard user query note: {u_ex}", flush=True)
+
+            try:
+                expenses = db.execute("SELECT * FROM expenses WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall() or []
+            except Exception as e_ex:
+                print(f"Dashboard expenses list note: {e_ex}", flush=True)
+
+            try:
+                sales_query = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+                if sales_query and sales_query["total"] is not None:
+                    total_sales = float(sales_query["total"])
+            except Exception as s_ex:
+                print(f"Dashboard sales sum note: {s_ex}", flush=True)
+
+            try:
+                expenses_query = db.execute("SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
+                if expenses_query and expenses_query["total"] is not None:
+                    total_expenses = float(expenses_query["total"])
+            except Exception as es_ex:
+                print(f"Dashboard expenses sum note: {es_ex}", flush=True)
+
+    except Exception as general_ex:
+        import logging
+        logging.error(f"Error fetching dashboard data for user '{user_id}': {general_ex}", exc_info=True)
+
     net_profit = float(total_sales) - float(total_expenses)
-    
-    username = user["email"].split("@")[0].capitalize() if user and hasattr(user, "__getitem__") and "email" in user and user["email"] else "User"
 
     return render_template(
         "index.html",
