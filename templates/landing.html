@@ -173,6 +173,7 @@
             overflow: hidden;
             background: var(--bg);
             box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.06);
+            max-width: 100%;
         }
 
         .browser-bar {
@@ -200,17 +201,17 @@
             text-align: center;
         }
 
-        .app-mockup { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .app-mockup { padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
 
-        .mock-header { display: flex; justify-content: space-between; align-items: center; }
-        .mock-title  { font-size: 0.85rem; font-weight: 700; color: var(--black); }
-        .mock-pill   { font-size: 0.7rem; font-weight: 600; color: var(--blue); background: #eef2ff; padding: 3px 9px; border-radius: 20px; }
+        .mock-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+        .mock-title  { font-size: 0.85rem; font-weight: 700; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+        .mock-pill   { font-size: 0.7rem; font-weight: 600; color: var(--blue); background: #eef2ff; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
 
         .mock-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
-        .mock-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+        .mock-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
         .mock-card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; color: var(--light); margin-bottom: 4px; }
-        .mock-card-val { font-size: 1rem; font-weight: 800; }
+        .mock-card-val { font-size: clamp(0.82rem, 2.5vw, 1rem); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .mock-card-val.green { color: #059669; }
         .mock-card-val.red   { color: #dc2626; }
         .mock-card-val.blue  { color: var(--blue); }
@@ -224,12 +225,15 @@
             padding: 9px 14px;
             border-bottom: 1px solid var(--border);
             font-size: 0.75rem;
+            gap: 8px;
+            min-width: 0;
         }
 
         .mock-row:last-child { border-bottom: none; }
-        .mock-row-label { color: var(--ink); font-weight: 500; }
-        .mock-row-amt   { font-weight: 700; color: var(--black); }
-        .mock-row-tag   { font-size: 0.65rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+        .mock-row-label { color: var(--ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+        .mock-row-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .mock-row-amt   { font-weight: 700; color: var(--black); white-space: nowrap; }
+        .mock-row-tag   { font-size: 0.65rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
         .tag-green { background: #d1fae5; color: #065f46; }
         .tag-red   { background: #fee2e2; color: #991b1b; }
 
@@ -539,25 +543,25 @@
                 <div class="mock-table">
                     <div class="mock-row" style="background:#f8fafc;">
                         <span style="font-size:0.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.6px;">Recent Transactions</span>
-                        <span class="mock-row-tag tag-green">This Week</span>
+                        <span class="mock-row-tag tag-green" style="flex-shrink:0;">This Week</span>
                     </div>
                     <div class="mock-row">
                         <span class="mock-row-label">5x Eden Cap &mdash; Fatima</span>
-                        <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="mock-row-right">
                             <span class="mock-row-tag tag-green">Sale</span>
                             <span class="mock-row-amt">&#8358;12,500</span>
                         </div>
                     </div>
                     <div class="mock-row">
-                        <span class="mock-row-label">Stock Purchase &mdash; Balogun Mkt</span>
-                        <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="mock-row-label">Stock Purchase &mdash; Balogun</span>
+                        <div class="mock-row-right">
                             <span class="mock-row-tag tag-red">Expense</span>
                             <span class="mock-row-amt">&#8358;8,000</span>
                         </div>
                     </div>
                     <div class="mock-row">
                         <span class="mock-row-label">DLNZ Hoodie x2 &mdash; Ahmed</span>
-                        <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="mock-row-right">
                             <span class="mock-row-tag tag-green">Sale</span>
                             <span class="mock-row-amt">&#8358;15,000</span>
                         </div>
