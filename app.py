@@ -4,6 +4,7 @@ from datetime import datetime
 import sqlite3
 import math
 import os
+import traceback
 
 try:
     import psycopg2
@@ -715,6 +716,11 @@ def api_income():
                 "date": income_date
             }
         }), 201
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Prints the exact traceback line directly to screen for real-time debugging
+    return f"<h2>We caught the bug! Here is the error:</h2><pre>{traceback.format_exc()}</pre>", 500
 
 if __name__ == "__main__":
     import os
