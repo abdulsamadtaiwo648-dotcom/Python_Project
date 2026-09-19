@@ -426,7 +426,7 @@ def root():
     user_id = get_current_user_id()
     if user_id:
         return redirect("/dashboard")
-    return redirect("/login")
+    return render_template("landing.html")
 
 @app.route("/dashboard")
 def dashboard():

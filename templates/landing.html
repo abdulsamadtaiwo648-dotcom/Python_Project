@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoloBiz — Smart Finance for Independent Vendors</title>
+    <meta name="description" content="Log sales, track expenses, and generate professional receipts in seconds. Built for independent vendors who mean business.">
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --black:   #0f172a;
+            --ink:     #1e293b;
+            --muted:   #64748b;
+            --light:   #94a3b8;
+            --border:  #e2e8f0;
+            --bg:      #f8fafc;
+            --white:   #ffffff;
+            --blue:    #4f46e5;
+            --blue-dk: #4338ca;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--white);
+            color: var(--ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* NAV */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--black);
+            letter-spacing: -0.3px;
+        }
+
+        .logo-mark {
+            width: 30px;
+            height: 30px;
+            background: var(--blue);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-right { display: flex; align-items: center; gap: 8px; }
+
+        .nav-links { display: flex; align-items: center; gap: 4px; margin-right: 16px; }
+
+        .nav-links a {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--muted);
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .nav-links a:hover { color: var(--ink); background: var(--bg); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-ghost { color: var(--ink); border: 1px solid var(--border); background: var(--white); }
+        .btn-ghost:hover { background: var(--bg); }
+        .btn-blue  { background: var(--blue); color: #fff; border: 1px solid transparent; }
+        .btn-blue:hover { background: var(--blue-dk); }
+        .btn-lg    { padding: 12px 24px; font-size: 0.95rem; }
+
+        /* HERO */
+        .hero {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 96px 24px 80px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--blue);
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 28px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.4rem, 6vw, 3.6rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            color: var(--black);
+            max-width: 680px;
+            margin-bottom: 22px;
+        }
+
+        .hero h1 em { font-style: normal; color: var(--blue); }
+
+        .hero > p {
+            font-size: 1.1rem;
+            color: var(--muted);
+            max-width: 540px;
+            margin-bottom: 36px;
+            line-height: 1.7;
+        }
+
+        .hero-cta { display: flex; align-items: center; gap: 12px; }
+
+        .hero-note {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* APP PREVIEW */
+        .preview-wrap {
+            max-width: 1100px;
+            margin: 0 auto 80px;
+            padding: 0 24px;
+        }
+
+        .preview-frame {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.06);
+        }
+
+        .browser-bar {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .browser-dots { display: flex; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+
+        .browser-url {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            color: var(--light);
+            max-width: 340px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .app-mockup { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+        .mock-header { display: flex; justify-content: space-between; align-items: center; }
+        .mock-title  { font-size: 0.85rem; font-weight: 700; color: var(--black); }
+        .mock-pill   { font-size: 0.7rem; font-weight: 600; color: var(--blue); background: #eef2ff; padding: 3px 9px; border-radius: 20px; }
+
+        .mock-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+        .mock-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+        .mock-card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; color: var(--light); margin-bottom: 4px; }
+        .mock-card-val { font-size: 1rem; font-weight: 800; }
+        .mock-card-val.green { color: #059669; }
+        .mock-card-val.red   { color: #dc2626; }
+        .mock-card-val.blue  { color: var(--blue); }
+
+        .mock-table { background: var(--white); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+
+        .mock-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+        }
+
+        .mock-row:last-child { border-bottom: none; }
+        .mock-row-label { color: var(--ink); font-weight: 500; }
+        .mock-row-amt   { font-weight: 700; color: var(--black); }
+        .mock-row-tag   { font-size: 0.65rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+        .tag-green { background: #d1fae5; color: #065f46; }
+        .tag-red   { background: #fee2e2; color: #991b1b; }
+
+        /* SOCIAL PROOF */
+        .social-proof {
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+            padding: 28px 24px;
+            text-align: center;
+        }
+
+        .social-proof p {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: var(--light);
+            margin-bottom: 16px;
+        }
+
+        .trust-items { display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap; }
+
+        .trust-item {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .trust-item svg { width: 15px; height: 15px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* FEATURES */
+        .features { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+
+        .section-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: var(--blue);
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: clamp(1.8rem, 4vw, 2.4rem);
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--black);
+            margin-bottom: 14px;
+            line-height: 1.15;
+        }
+
+        .section-sub { font-size: 1rem; color: var(--muted); max-width: 500px; margin-bottom: 48px; line-height: 1.7; }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .feature-cell { background: var(--white); padding: 28px 28px 32px; transition: background 0.15s; }
+        .feature-cell:hover { background: var(--bg); }
+
+        .feature-icon {
+            width: 36px;
+            height: 36px;
+            background: #eef2ff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .feature-icon svg { width: 18px; height: 18px; stroke: var(--blue); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .feature-title { font-size: 0.95rem; font-weight: 700; color: var(--black); margin-bottom: 8px; }
+        .feature-desc  { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+        /* HOW IT WORKS */
+        .how { background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .how-inner { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+
+        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 48px; }
+
+        .step { display: flex; flex-direction: column; gap: 12px; }
+
+        .step-num {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--muted);
+        }
+
+        .step-title { font-size: 1rem; font-weight: 700; color: var(--black); }
+        .step-desc  { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+        /* CTA */
+        .cta-section { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+
+        .cta-box {
+            background: var(--black);
+            border-radius: 16px;
+            padding: 56px 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 32px;
+        }
+
+        .cta-text h2 { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 8px; }
+        .cta-text p  { font-size: 0.95rem; color: #94a3b8; }
+
+        .cta-actions { display: flex; gap: 10px; flex-shrink: 0; }
+
+        .btn-white { background: #fff; color: var(--black); border: 1px solid transparent; }
+        .btn-white:hover { background: var(--bg); }
+
+        .btn-outline-white { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-outline-white:hover { background: rgba(255,255,255,0.06); }
+
+        /* FOOTER */
+        footer { border-top: 1px solid var(--border); }
+
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-links { display: flex; gap: 20px; }
+        .footer-links a { font-size: 0.825rem; color: var(--muted); transition: color 0.15s; }
+        .footer-links a:hover { color: var(--ink); }
+        .footer-copy { font-size: 0.8rem; color: var(--light); }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero { padding: 64px 20px 48px; }
+            .hero-cta { flex-direction: column; align-items: flex-start; width: 100%; }
+            .hero-cta .btn { width: 100%; text-align: center; justify-content: center; }
+            .preview-wrap { padding: 0 20px; margin-bottom: 56px; }
+            .mock-cards { grid-template-columns: 1fr 1fr; }
+            .features-grid { grid-template-columns: 1fr; }
+            .steps { grid-template-columns: 1fr; gap: 28px; }
+            .cta-box { flex-direction: column; align-items: flex-start; padding: 36px 28px; }
+            .cta-actions { width: 100%; flex-direction: column; }
+            .cta-actions .btn { width: 100%; text-align: center; justify-content: center; }
+            .footer-inner { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="nav-inner">
+            <a href="/" class="logo">
+                <div class="logo-mark">SB</div>
+                SoloBiz
+            </a>
+            <div class="nav-right">
+                <div class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How it works</a>
+                </div>
+                <a href="/login" class="btn btn-ghost">Log in</a>
+                <a href="/register" class="btn btn-blue" style="margin-left:4px;">Get started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-badge">Built for Nigerian Independent Vendors</div>
+
+        <h1>Your business finances,<br><em>under control.</em></h1>
+
+        <p>Log sales, track daily expenses, and generate professional receipts — all from your phone. No spreadsheets. No confusion. Just clarity.</p>
+
+        <div class="hero-cta">
+            <a href="/register" class="btn btn-blue btn-lg">Start for free</a>
+            <a href="/login" class="btn btn-ghost btn-lg">Sign in</a>
+        </div>
+
+        <p class="hero-note">No credit card required &nbsp;&middot;&nbsp; Works on any mobile browser</p>
+    </section>
+
+    <!-- APP PREVIEW -->
+    <div class="preview-wrap">
+        <div class="preview-frame">
+            <!-- Browser chrome -->
+            <div class="browser-bar">
+                <div class="browser-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="browser-url">solobiz.onrender.com/dashboard</div>
+            </div>
+
+            <!-- Mini dashboard mockup -->
+            <div class="app-mockup">
+                <div class="mock-header">
+                    <span class="mock-title">Good morning, Abdulsamad &#128075;</span>
+                    <span class="mock-pill">Overview</span>
+                </div>
+
+                <div class="mock-cards">
+                    <div class="mock-card">
+                        <div class="mock-card-label">Total Sales</div>
+                        <div class="mock-card-val green">&#8358;84,500.00</div>
+                    </div>
+                    <div class="mock-card">
+                        <div class="mock-card-label">Expenses</div>
+                        <div class="mock-card-val red">&#8358;21,200.00</div>
+                    </div>
+                    <div class="mock-card">
+                        <div class="mock-card-label">Net Profit</div>
+                        <div class="mock-card-val blue">&#8358;63,300.00</div>
+                    </div>
+                </div>
+
+                <div class="mock-table">
+                    <div class="mock-row" style="background:#f8fafc;">
+                        <span style="font-size:0.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.6px;">Recent Transactions</span>
+                        <span class="mock-row-tag tag-green">This Week</span>
+                    </div>
+                    <div class="mock-row">
+                        <span class="mock-row-label">5x Eden Cap &mdash; Fatima</span>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span class="mock-row-tag tag-green">Sale</span>
+                            <span class="mock-row-amt">&#8358;12,500</span>
+                        </div>
+                    </div>
+                    <div class="mock-row">
+                        <span class="mock-row-label">Stock Purchase &mdash; Balogun Mkt</span>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span class="mock-row-tag tag-red">Expense</span>
+                            <span class="mock-row-amt">&#8358;8,000</span>
+                        </div>
+                    </div>
+                    <div class="mock-row">
+                        <span class="mock-row-label">DLNZ Hoodie x2 &mdash; Ahmed</span>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span class="mock-row-tag tag-green">Sale</span>
+                            <span class="mock-row-amt">&#8358;15,000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SOCIAL PROOF -->
+    <div class="social-proof">
+        <p>Trusted by independent vendors for</p>
+        <div class="trust-items">
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                Sales Logging
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Receipt Generation
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/></svg>
+                Expense Tracking
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Business Profiles
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                Mobile-First PWA
+            </span>
+        </div>
+    </div>
+
+    <!-- FEATURES -->
+    <section id="features" class="features">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Everything you need.<br>Nothing you don&rsquo;t.</h2>
+        <p class="section-sub">Built from the ground up for vendors in the market &mdash; fast, offline-capable, and genuinely simple to use.</p>
+
+        <div class="features-grid">
+            <div class="feature-cell">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                </div>
+                <div class="feature-title">Fast Sales Logging</div>
+                <p class="feature-desc">Add one item or build a full multi-item order for a single customer. Each sale gets a unique receipt ID automatically.</p>
+            </div>
+
+            <div class="feature-cell">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </div>
+                <div class="feature-title">Professional Receipts</div>
+                <p class="feature-desc">Generate a clean, printable PDF receipt for any sale in one tap. Includes your business name, customer, items, and total.</p>
+            </div>
+
+            <div class="feature-cell">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+                </div>
+                <div class="feature-title">Expense Tracking</div>
+                <p class="feature-desc">Log logistics, stock restocking, and daily costs. Know exactly where every naira is going at all times.</p>
+            </div>
+
+            <div class="feature-cell">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg>
+                </div>
+                <div class="feature-title">Live Profit Dashboard</div>
+                <p class="feature-desc">Your total sales, expenses, and net profit update in real time. Always know if you are making money today.</p>
+            </div>
+
+            <div class="feature-cell">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                </div>
+                <div class="feature-title">Works on Any Phone</div>
+                <p class="feature-desc">No app store needed. Open in your browser, add to home screen, and it works just like a native app &mdash; even offline.</p>
+            </div>
+
+            <div class="feature-cell">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z"/><path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2"/><path d="M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2"/></svg>
+                </div>
+                <div class="feature-title">Digital Business Card</div>
+                <p class="feature-desc">Set up your brand once. Get a professional card with your name, phone, and address, ready to share or download instantly.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how-it-works" class="how">
+        <div class="how-inner">
+            <div class="section-label">How it works</div>
+            <h2 class="section-title">Up and running in minutes.</h2>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-title">Create your free account</div>
+                    <p class="step-desc">Sign up with your email and password. No payment required. Your account is ready immediately with no waiting.</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-title">Set up your business profile</div>
+                    <p class="step-desc">Add your business name, phone number, and address. This appears on every receipt you generate for your customers.</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-title">Start logging and growing</div>
+                    <p class="step-desc">Log your first sale, track expenses, and download a receipt &mdash; all within your first session on the platform.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BOTTOM CTA -->
+    <div class="cta-section">
+        <div class="cta-box">
+            <div class="cta-text">
+                <h2>Ready to take control?</h2>
+                <p>Join vendors who track their business properly with SoloBiz.</p>
+            </div>
+            <div class="cta-actions">
+                <a href="/register" class="btn btn-white btn-lg">Create free account</a>
+                <a href="/login" class="btn btn-outline-white btn-lg">Sign in</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-inner">
+            <a href="/" class="logo" style="font-size:0.95rem;">
+                <div class="logo-mark" style="width:24px;height:24px;font-size:0.65rem;border-radius:5px;">SB</div>
+                SoloBiz
+            </a>
+            <div class="footer-links">
+                <a href="/login">Sign in</a>
+                <a href="/register">Sign up</a>
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it works</a>
+            </div>
+            <p class="footer-copy">&copy; 2026 SoloBiz. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
