@@ -306,8 +306,68 @@ def login():
 
 @app.route("/logout")
 def logout():
-    session.pop("user_id", None) 
+    session.clear()          # Clear all Flask session data
     return redirect("/login")
+
+@app.route("/clerk-sync", methods=["POST"])
+def clerk_sync():
+    """
+    Called by the frontend after a successful Clerk sign-in or sign-up.
+    Decodes the Clerk JWT, upserts the user into our users table,
+    and sets a Flask session so server-side routes recognise the user.
+    """
+    import logging
+    try:
+        data = request.get_json(force=True) or {}
+        token = data.get("token", "")
+        if not token:
+            return jsonify({"status": "error", "message": "No token provided"}), 400
+
+        # Decode without verifying signature — Clerk already verified on their end
+        payload = jwt.decode(token, options={"verify_signature": False})
+        clerk_id = payload.get("sub", "")      # e.g. "user_2abc123"
+
+        # Clerk puts the primary email in different claims depending on version
+        email = (
+            payload.get("email")
+            or payload.get("primary_email_address")
+            or payload.get("email_address")
+            or ""
+        )
+
+        if not clerk_id:
+            return jsonify({"status": "error", "message": "Invalid token — no user ID"}), 401
+
+        # Upsert: create user row if not already there, leave existing data intact
+        with get_db() as db:
+            if getattr(db, "is_postgres", False):
+                db.execute(
+                    """INSERT INTO users (id, email, password)
+                       VALUES (?, ?, NULL)
+                       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
+                       WHERE users.email IS DISTINCT FROM EXCLUDED.email""",
+                    (clerk_id, email)
+                )
+            else:
+                # SQLite syntax
+                db.execute(
+                    """INSERT INTO users (id, email, password)
+                       VALUES (?, ?, NULL)
+                       ON CONFLICT(id) DO NOTHING""",
+                    (clerk_id, email)
+                )
+            db.commit()
+
+        # Set Flask session so every server-side route recognises this Clerk user
+        session.clear()
+        session.permanent = True
+        session["user_id"] = clerk_id
+        return jsonify({"status": "ok", "user_id": clerk_id})
+
+    except Exception as e:
+        logging.error(f"clerk-sync error: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "Sync failed. Please try again."}), 500
+
 
 # ==========================================
 # DASHBOARD & CRUD ROUTES

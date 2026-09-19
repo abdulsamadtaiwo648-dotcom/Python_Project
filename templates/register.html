@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register - SoloBiz</title>
+  <title>Create Account - SoloBiz</title>
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style> body { font-family: 'Inter', sans-serif; } </style>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    #clerk-sign-up .cl-rootBox { width: 100%; }
+    #clerk-sign-up .cl-card { background: transparent; box-shadow: none; padding: 0; }
+  </style>
 </head>
 <body class="bg-[#0f172a] text-white min-h-screen flex items-center justify-center p-4">
 
@@ -17,63 +21,68 @@
     <div class="flex flex-col items-center mb-6 text-center">
       <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-12 h-12 rounded-xl shadow-lg border border-indigo-500/20 mb-3">
       <h1 class="text-2xl font-bold">Create Your Free Account</h1>
-      <p class="text-xs text-slate-400 mt-1">Start tracking your business finances</p>
+      <p class="text-xs text-slate-400 mt-1">Start tracking your business finances today</p>
     </div>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-xs font-medium text-center">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-xs font-medium text-center animate-pulse">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
     {% endwith %}
     {% if error and not get_flashed_messages() %}
-        <div class="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-xs font-medium text-center">
-            {{ error }}
-        </div>
+      <div class="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-xs font-medium text-center">
+        {{ error }}
+      </div>
     {% endif %}
 
-    <!-- 1. Email & Password Form -->
-    <form action="/register" method="POST" class="space-y-4">
+    <!-- ① Manual Email + Password Form -->
+    <form id="manual-register-form" action="/register" method="POST" class="space-y-4">
       <div>
         <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
         <input type="email" name="email" required placeholder="name@example.com"
                class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
       </div>
-
       <div>
         <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Password</label>
-        <input type="password" name="password" required placeholder="••••••••"
+        <input type="password" name="password" required placeholder="Min 8 characters"
                class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
       </div>
-
       <button type="submit"
-              class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200 text-sm cursor-pointer">
-        Sign Up with Email
+              class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-lg shadow-md transition duration-200 text-sm cursor-pointer">
+        Create Account with Email
       </button>
     </form>
 
     <!-- Divider -->
     <div class="relative my-6 text-center">
-      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
-      <span class="relative bg-slate-900 px-3 text-xs text-slate-500 uppercase font-medium">Or continue with</span>
+      <div class="absolute inset-0 flex items-center">
+        <div class="w-full border-t border-slate-700"></div>
+      </div>
+      <span class="relative bg-slate-900 px-3 text-xs text-slate-500 uppercase font-medium tracking-wider">Or sign up with</span>
     </div>
 
-    <!-- 2. Clerk Auth Component (auto-mounted) -->
-    <div id="clerk-sign-up"></div>
+    <!-- ② Clerk Component Container -->
+    <div id="clerk-sign-up" class="min-h-[48px]">
+      <div id="clerk-skeleton" class="w-full h-12 bg-slate-800 rounded-lg animate-pulse flex items-center justify-center">
+        <span class="text-slate-500 text-xs">Loading Clerk…</span>
+      </div>
+    </div>
 
     <p class="mt-6 text-center text-xs text-slate-400">
-      Already have an account? <a href="/login" class="text-indigo-400 font-bold hover:underline">Log in</a>
+      Already have an account?
+      <a href="/login" class="text-indigo-400 font-bold hover:underline">Log in</a>
     </p>
-
   </div>
 
-  <!-- Clerk SDK – hardcoded publishable key -->
+  <!-- ─── Clerk SDK ─── -->
   <script
-    async crossorigin="anonymous"
+    async
+    crossorigin="anonymous"
     data-clerk-publishable-key="pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA"
     src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js">
   </script>
@@ -81,12 +90,31 @@
   <script>
     const CLERK_PK = "pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA";
 
-    // Auto-mount the Clerk SignUp component when the page loads
-    window.addEventListener('load', async function () {
-      const container = document.getElementById('clerk-sign-up');
-      if (!container) return;
+    // ─── Sync Clerk session into Flask ───────────────────────────────────────
+    async function syncClerkSession() {
+      try {
+        const token = await window.Clerk.session.getToken();
+        if (!token) return false;
 
-      // Wait up to 5 s for the async Clerk SDK script to arrive
+        const res = await fetch("/clerk-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token })
+        });
+        const data = await res.json();
+        return data.status === "ok";
+      } catch (err) {
+        console.error("clerk-sync failed:", err);
+        return false;
+      }
+    }
+
+    // ─── Auto-mount Clerk SignUp on page load ─────────────────────────────────
+    window.addEventListener("load", async function () {
+      const container = document.getElementById("clerk-sign-up");
+      const skeleton  = document.getElementById("clerk-skeleton");
+
+      // Wait up to 5 s for the async Clerk script to initialise
       let attempts = 0;
       while (!window.Clerk && attempts < 50) {
         await new Promise(r => setTimeout(r, 100));
@@ -94,24 +122,37 @@
       }
 
       if (!window.Clerk) {
-        container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">Clerk is unavailable. Please use the email form above.</p>';
+        skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Clerk is unavailable. Please use the email form above.</p>';
         return;
       }
 
       try {
         await window.Clerk.load({ publishableKey: CLERK_PK });
 
-        // If already signed in via Clerk, send straight to dashboard
+        // If user is already signed in via Clerk, sync to Flask then go to dashboard
         if (window.Clerk.user) {
-          window.location.href = '/';
-          return;
+          const ok = await syncClerkSession();
+          if (ok) { window.location.href = "/"; return; }
         }
 
-        // Render the full Clerk sign-up component
-        window.Clerk.mountSignUp(container);
+        // Remove skeleton, mount the Clerk SignUp component
+        skeleton.remove();
+        window.Clerk.mountSignUp(container, {
+          afterSignUpUrl: "__clerk_sync__",
+          signInUrl: "/login"
+        });
+
+        // Listen for sign-up completion
+        window.Clerk.addListener(async ({ session }) => {
+          if (session) {
+            const ok = await syncClerkSession();
+            if (ok) window.location.href = "/";
+          }
+        });
+
       } catch (err) {
-        console.error('Clerk load error:', err);
-        container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">Could not load Clerk. Please use the email form above.</p>';
+        console.error("Clerk load error:", err);
+        skeleton.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">Could not load Clerk. Please use the email form above.</p>';
       }
     });
   </script>
