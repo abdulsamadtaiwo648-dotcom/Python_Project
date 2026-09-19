@@ -653,6 +653,7 @@ def api_business_profile():
 # INCOME (SALES) API ROUTES
 # ==========================================
 @app.route("/api/income", methods=["GET", "POST"])
+@app.route("/add_income", methods=["GET", "POST"])
 def api_income():
     if "user_id" not in session:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -678,7 +679,7 @@ def api_income():
     elif request.method == "POST":
         data = request.get_json(silent=True) or request.get_json(force=True, silent=True)
         if not isinstance(data, dict):
-            return jsonify({"status": "error", "message": "Invalid JSON payload"}), 400
+            data = request.form.to_dict()
 
         amount_val = data.get("amount")
         item_sold = str(data.get("item_sold", "")).strip()

@@ -742,6 +742,48 @@
             });
         }
 
+        async function syncIncomeFromServer() {
+            if (!navigator.onLine) return;
+            try {
+                const response = await fetch('/api/income');
+                if (!response.ok) return;
+                const result = await response.json();
+                if (result.status === 'success' && Array.isArray(result.income)) {
+                    const db = await openIndexedDB();
+                    const localIncome = await getIncomeLocal();
+                    const existingServerIds = new Set(
+                        localIncome.map(i => i.server_id).filter(Boolean)
+                    );
+
+                    let addedAny = false;
+                    for (const item of result.income) {
+                        if (!existingServerIds.has(item.id)) {
+                            const record = {
+                                amount: parseFloat(item.amount),
+                                item_sold: item.item_sold,
+                                customer_name: item.customer_name,
+                                date: item.date,
+                                synced: true,
+                                server_id: item.id
+                            };
+                            await new Promise((resolve, reject) => {
+                                const tx = db.transaction(INCOME_STORE, 'readwrite');
+                                const req = tx.objectStore(INCOME_STORE).add(record);
+                                req.onsuccess = () => resolve();
+                                req.onerror = (e) => reject(e.target.error);
+                            });
+                            addedAny = true;
+                        }
+                    }
+                    if (addedAny && typeof renderIncomeListUI === 'function') {
+                        await renderIncomeListUI();
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not sync income from server:', err);
+            }
+        }
+
         // -------------------------------------------------------------
         // BACKGROUND NETWORK RECONNECTION LISTENER
         // -------------------------------------------------------------
@@ -839,6 +881,9 @@
             } catch (err) {
                 console.warn('Error syncing pending income:', err);
             }
+
+            // Pull latest income from server to ensure device parity
+            await syncIncomeFromServer();
 
             // 3. Sync pending Business Profile
             try {
@@ -1631,6 +1676,7 @@
             // Initial calculations and renders
             renderIncomeListUI();
             calculateDashboard();
+            syncIncomeFromServer();
 
             // -------------------------------------------------------------
             // TRANSACTION FILTER — DOM-based, category & amount only
