@@ -172,9 +172,13 @@ def init_db():
                 print(f"Table init note: {e}", flush=True)
 
         migrations = [
+            "ALTER TABLE users ALTER COLUMN id DROP DEFAULT",
             "ALTER TABLE users ALTER COLUMN id TYPE TEXT USING id::TEXT",
+            "ALTER TABLE expenses ALTER COLUMN user_id DROP DEFAULT",
             "ALTER TABLE expenses ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+            "ALTER TABLE income ALTER COLUMN user_id DROP DEFAULT",
             "ALTER TABLE income ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
+            "ALTER TABLE business_profiles ALTER COLUMN user_id DROP DEFAULT",
             "ALTER TABLE business_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT"
         ]
@@ -185,6 +189,33 @@ def init_db():
                     db.commit()
             except Exception as e:
                 print(f"Migration note for '{alter_cmd}': {e}", flush=True)
+
+        # Fail-safe check: verify users.id column type is TEXT on PostgreSQL
+        try:
+            with get_db() as db:
+                res = db.execute("""
+                    SELECT data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'id'
+                """).fetchone()
+                if res:
+                    col_type = str(res["data_type"] if isinstance(res, dict) and "data_type" in res else (res[0] if hasattr(res, "__getitem__") else "")).lower()
+                    if "int" in col_type:
+                        print(f"users.id is still '{col_type}'. Rebuilding users table to TEXT...", flush=True)
+                        db.execute("ALTER TABLE users RENAME TO users_old")
+                        db.execute("""
+                            CREATE TABLE users (
+                                id TEXT PRIMARY KEY,
+                                email TEXT UNIQUE NOT NULL,
+                                password TEXT
+                            )
+                        """)
+                        db.execute("INSERT INTO users (id, email, password) SELECT id::TEXT, email, password FROM users_old ON CONFLICT DO NOTHING")
+                        db.execute("DROP TABLE users_old CASCADE")
+                        db.commit()
+                        print("users table successfully rebuilt with TEXT primary key!", flush=True)
+        except Exception as rebuild_ex:
+            print(f"Fail-safe rebuild note: {rebuild_ex}", flush=True)
     else:
         with get_db() as db:
             db.execute("""
