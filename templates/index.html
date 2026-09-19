@@ -21,12 +21,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Pulls in modern, clean Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Clerk Browser CDN -->
-    <script 
-        async 
-        crossorigin="anonymous" 
-        data-clerk-publishable-key="{{ clerk_publishable_key or 'pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA' }}" 
-        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js">
+    <!-- Clerk SDK -->
+    <script
+        defer
+        crossorigin="anonymous"
+        src="https://innocent-ocelot-9835.clerk.accounts.dev/npm/@clerk/ui@1/dist/ui.browser.js"
+        type="text/javascript">
+    </script>
+    <script
+        defer
+        crossorigin="anonymous"
+        data-clerk-publishable-key="pk_test_aW5ub2NlbnQtb2NlbG90LTk4MzUuY2xlcmsuYWNjb3VudHMuZGV2JA"
+        src="https://innocent-ocelot-9835.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+        type="text/javascript">
     </script>
     <style>
         body { font-family: 'Inter', sans-serif; }
