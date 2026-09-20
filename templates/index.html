@@ -23,23 +23,34 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
 
-        /* ── Stat Cards: fluid number sizing so figures never overflow ── */
+        /* ── Stat Cards: fluid number sizing so figures NEVER overflow their box ── */
         .stat-value {
-            font-size: clamp(0.65rem, 3.5vw, 1.1rem);
+            font-size: clamp(0.55rem, 3.2vw, 1.1rem);
             font-weight: 800;
             line-height: 1.2;
-            word-break: break-all;
-            overflow-wrap: anywhere;
-            display: block;
-            white-space: normal;
             overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
             max-width: 100%;
         }
-        @media (min-width: 400px) {
-            .stat-value { font-size: clamp(0.75rem, 3.8vw, 1.15rem); }
+        @media (min-width: 640px) {
+            .stat-value { font-size: 1.2rem; white-space: nowrap; }
+        }
+
+        /* ── Big central total display: scales down to fit screen width ── */
+        .big-total-value {
+            font-size: clamp(1.25rem, 7vw, 2.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+            width: 100%;
         }
         @media (min-width: 640px) {
-            .stat-value { font-size: 1.25rem; }
+            .big-total-value { font-size: 2.5rem; }
         }
 
         /* ── Business Card: Professional white printed-card style ─── */
@@ -152,17 +163,17 @@
         <!-- Bottom row: Net Profit — full width so it has maximum space -->
         <div class="mb-5">
             {% set np = net_profit or 0.0 %}
-            <div class="{% if np >= 0 %}bg-indigo-50 border-indigo-200{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-3 min-w-0">
-                <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="{% if np >= 0 %}bg-indigo-50 border-indigo-200{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+                <div class="flex items-center gap-2 flex-shrink-0 min-w-0" style="max-width:55%">
                     <span class="flex-shrink-0 {% if np >= 0 %}text-indigo-500{% else %}text-amber-500{% endif %}">
-                        {% if np >= 0 %}<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>{% else %}<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{% endif %}
+                        {% if np >= 0 %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>{% else %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{% endif %}
                     </span>
-                    <div>
-                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-600{% endif %} tracking-wider leading-none">Net Profit</p>
-                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5">Sales minus Expenses</p>
+                    <div class="min-w-0">
+                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-600{% endif %} tracking-wider leading-none truncate">Net Profit</p>
+                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Sales − Expenses</p>
                     </div>
                 </div>
-                <span class="stat-value {% if np >= 0 %}text-indigo-800{% else %}text-amber-700{% endif %} text-right ml-2" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
+                <span class="stat-value {% if np >= 0 %}text-indigo-800{% else %}text-amber-700{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
             </div>
         </div>
 
@@ -185,9 +196,9 @@
         <section id="tab-expenses-content" class="tab-content space-y-6">
             
             <!-- Total Spent Card — always shows the global grand total, never overwritten by search -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-                <p class="text-sm text-gray-500 font-medium uppercase tracking-wider mb-1">Total Expenses</p>
-                <h2 class="text-4xl font-bold text-gray-900" id="main-dashboard-total" data-total="{{ total }}">₦{{ "{:,.2f}".format(total) }}</h2>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center overflow-hidden">
+                <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Total Expenses</p>
+                <h2 class="big-total-value text-gray-900" id="main-dashboard-total" data-total="{{ total }}">₦{{ "{:,.2f}".format(total) }}</h2>
                 {% if searching %}
                     <a href="/" class="inline-block mt-4 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full font-semibold transition">← Clear Search</a>
                 {% endif %}
@@ -341,9 +352,9 @@
         <section id="tab-income-content" class="tab-content hidden space-y-6">
             
             <!-- Sales Summary Card -->
-            <div class="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl shadow-sm p-6 text-white text-center">
+            <div class="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl shadow-sm p-5 text-white text-center overflow-hidden">
                 <p class="text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
-                <h2 class="text-4xl font-bold text-white" id="total-income-amount">₦0.00</h2>
+                <h2 class="big-total-value text-white" id="total-income-amount">₦0.00</h2>
                 <p class="text-xs text-emerald-100/90 mt-2 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span> Auto-saved locally &amp; synced to cloud</p>
             </div>
 
