@@ -197,7 +197,7 @@
             gap: 10px;
         }
 
-        .browser-dots { display: flex; gap: 5px; }
+        .browser-dots { display: flex; gap: 5px; flex-shrink: 0; }
         .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
 
         .browser-url {
@@ -211,19 +211,22 @@
             max-width: 340px;
             margin: 0 auto;
             text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .app-mockup { padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+        .app-mockup { padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; width: 100%; }
 
         .mock-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
         .mock-title  { font-size: 0.85rem; font-weight: 700; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
         .mock-pill   { font-size: 0.7rem; font-weight: 600; color: var(--blue); background: #eef2ff; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
 
-        .mock-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .mock-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
 
-        .mock-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-        .mock-card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; color: var(--light); margin-bottom: 4px; }
-        .mock-card-val { font-size: clamp(0.82rem, 2.5vw, 1rem); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mock-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; overflow: hidden; }
+        .mock-card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; color: var(--light); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mock-card-val { font-size: clamp(0.75rem, 2.2vw, 1rem); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
         .mock-card-val.green { color: #059669; }
         .mock-card-val.red   { color: #dc2626; }
         .mock-card-val.blue  { color: var(--blue); }
@@ -422,12 +425,15 @@
             .hero-note { font-size: 0.75rem; }
 
             /* Preview */
-            .preview-wrap { padding: 0 16px; margin-bottom: 48px; }
-            .mock-cards { grid-template-columns: 1fr 1fr; }
-            .mock-card-val { font-size: 0.9rem; }
+            .preview-wrap { padding: 0 12px; margin-bottom: 48px; }
+            .app-mockup { padding: 12px 10px; gap: 10px; }
+            .mock-cards { gap: 6px; grid-template-columns: repeat(3, 1fr); }
+            .mock-card { padding: 8px 6px; border-radius: 8px; }
+            .mock-card-label { font-size: 0.55rem; letter-spacing: 0.2px; margin-bottom: 2px; }
+            .mock-card-val { font-size: clamp(0.68rem, 3.2vw, 0.88rem); }
             .mock-title { font-size: 0.78rem; }
-            /* Hide last table row on mobile to avoid scroll */
-            .mock-row:last-child { display: none; }
+            .mock-row { padding: 8px 10px; font-size: 0.7rem; }
+            .mock-row-tag { font-size: 0.6rem; padding: 2px 5px; }
 
             /* Social proof */
             .trust-items { gap: 20px; justify-content: flex-start; padding: 0 4px; }
@@ -472,10 +478,12 @@
 
         /* ── RESPONSIVE: very small (≤ 400px) ───────────────────────── */
         @media (max-width: 400px) {
-            .mock-cards { grid-template-columns: 1fr; }
-            .mock-card:last-child { display: none; }
+            .mock-cards { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+            .mock-card { padding: 6px 4px; border-radius: 6px; }
+            .mock-card-label { font-size: 0.5rem; letter-spacing: 0; }
+            .mock-card-val { font-size: 0.64rem; }
             .hero h1 { font-size: 2rem; }
-            .browser-url { font-size: 0.65rem; }
+            .browser-url { font-size: 0.65rem; padding: 2px 6px; max-width: 200px; }
             .trust-items { gap: 14px; }
         }
 
