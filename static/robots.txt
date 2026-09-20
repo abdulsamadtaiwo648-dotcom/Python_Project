@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Disallow: /dashboard
+Disallow: /api/
+
+Sitemap: https://solobiz.onrender.com/sitemap.xml

@@ -430,7 +430,39 @@ def root():
 
 @app.route("/sitemap.xml")
 def sitemap():
-    return send_from_directory('static', 'sitemap.xml')
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://solobiz.onrender.com/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://solobiz.onrender.com/login</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://solobiz.onrender.com/register</loc>
+    <priority>0.8</priority>
+  </url>
+</urlset>"""
+    response = make_response(xml)
+    response.headers["Content-Type"] = "application/xml; charset=utf-8"
+    return response
+
+@app.route("/robots.txt")
+def robots():
+    txt = """User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Disallow: /dashboard
+Disallow: /api/
+
+Sitemap: https://solobiz.onrender.com/sitemap.xml"""
+    response = make_response(txt)
+    response.headers["Content-Type"] = "text/plain; charset=utf-8"
+    return response
 
 @app.route("/dashboard")
 def dashboard():
