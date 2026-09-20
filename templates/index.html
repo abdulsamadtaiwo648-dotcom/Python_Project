@@ -410,47 +410,81 @@
                 </div>
 
                 <!-- View Mode Container (Digital Business Card) -->
-                <div id="profile-view-mode" class="space-y-5 hidden">
+                <div id="profile-view-mode" class="space-y-4">
 
                     <!-- ══════════════════════════════════════════════════════ -->
-                    <!-- PROFESSIONAL PRINTED BUSINESS CARD                    -->
-                    <!-- White card, gold accent, clean typography              -->
+                    <!-- HIGH-END BRANDED BUSINESS CARD                         -->
                     <!-- ══════════════════════════════════════════════════════ -->
-                    <div id="digital-business-card" class="biz-card w-full mx-auto" style="aspect-ratio:1.75/1; display:flex; flex-direction:column; justify-content:space-between; padding: 24px 24px 16px;">
+                    <div id="digital-business-card" class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
 
-                        <!-- LEFT-ALIGNED TOP: Company Name + Tagline -->
-                        <div>
-                            <!-- Accent dot + company name row -->
-                            <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
-                                <div id="card-logo-initial" style="width:38px; height:38px; border-radius:8px; background:linear-gradient(135deg,#1e293b,#334155); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:900; color:#c9a84c; flex-shrink:0; letter-spacing:-1px;">B</div>
-                                <div>
-                                    <h2 id="card-company-name" style="font-size:clamp(0.95rem,3.5vw,1.3rem); font-weight:900; color:#0f172a; letter-spacing:-0.5px; line-height:1.1; word-break:break-word;">Your Business</h2>
-                                    <p id="card-tagline" style="font-size:9px; color:#94a3b8; font-weight:500; margin-top:1px; letter-spacing:0.3px;">Professional · Trusted · Reliable</p>
-                                </div>
+                        <!-- Top Brand Color Accent Line -->
+                        <div id="card-top-accent" class="absolute top-0 left-0 right-0 h-2" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }};"></div>
+
+                        <!-- Header: Logo/Avatar + Business Name -->
+                        <div class="flex items-center gap-3.5 pt-1">
+                            <div id="card-logo-container" class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-md flex-shrink-0 overflow-hidden border border-indigo-100" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }};">
+                                {% if profile and profile.logo_url %}
+                                    <img id="card-logo-img" src="{{ profile.logo_url }}" alt="Logo" class="w-full h-full object-cover">
+                                {% else %}
+                                    <span id="card-logo-initial">{{ (profile.company_name if profile and profile.company_name else 'B')[:1] | upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h2 id="card-company-name" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate flex items-center gap-1.5">
+                                    {{ profile.company_name if profile and profile.company_name else 'Your Business' }}
+                                    <svg class="w-4 h-4 text-indigo-600 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                </h2>
+                                <p class="text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Verified Vendor Profile
+                                </p>
                             </div>
                         </div>
 
-                        <!-- MIDDLE DIVIDER -->
-                        <hr class="biz-card-divider">
-
-                        <!-- CONTACT GRID -->
-                        <div style="display:flex; flex-direction:column; gap:6px;">
-                            <!-- Phone row -->
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                                <span id="card-phone" style="font-size:clamp(0.65rem,2.2vw,0.78rem); color:#1e293b; font-weight:600;">—</span>
+                        <!-- Contact Badges Grid -->
+                        <div class="space-y-2 text-xs pt-1 border-t border-slate-100">
+                            <div class="flex items-center gap-2 text-slate-700 font-medium">
+                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                <span id="card-phone">{{ profile.business_phone if profile and profile.business_phone else 'Not set' }}</span>
                             </div>
-                            <!-- Address row -->
-                            <div style="display:flex; align-items:flex-start; gap:8px;">
-                                <svg style="margin-top:1px; flex-shrink:0;" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                <span id="card-address" style="font-size:clamp(0.6rem,2vw,0.73rem); color:#475569; font-weight:500; line-height:1.3; word-break:break-word;">—</span>
+
+                            <div class="flex items-center gap-2 text-slate-700 font-medium">
+                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                <span id="card-address" class="truncate">{{ profile.business_address if profile and profile.business_address else 'Not set' }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1 flex-wrap">
+                                <span id="card-whatsapp-pill" class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2.5 py-1 rounded-full {% if not profile or not profile.whatsapp_number %}hidden{% endif %}">
+                                    💬 WA: <span id="card-whatsapp">{{ profile.whatsapp_number if profile else '' }}</span>
+                                </span>
+                                <span id="card-instagram-pill" class="inline-flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 text-[10px] font-bold px-2.5 py-1 rounded-full {% if not profile or not profile.instagram_handle %}hidden{% endif %}">
+                                    📸 <span id="card-instagram">{{ profile.instagram_handle if profile else '' }}</span>
+                                </span>
                             </div>
                         </div>
 
-                        <!-- BOTTOM FOOTER: SoloBiz watermark -->
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-                            <div style="width:30px; height:2px; background:linear-gradient(90deg,#1e293b,#c9a84c); border-radius:2px;"></div>
-                            <span style="font-size:8px; color:#cbd5e1; letter-spacing:1.5px; text-transform:uppercase; font-weight:700;">SoloBiz · Pocket CFO</span>
+                        <!-- Store Policy Box (if set) -->
+                        <div id="card-policy-box" class="bg-slate-50 border border-slate-100 rounded-2xl p-3 text-[11px] text-slate-600 italic font-medium flex items-start gap-2 {% if not profile or not profile.store_policy %}hidden{% endif %}">
+                            <svg class="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span id="card-policy-text">"{{ profile.store_policy if profile else '' }}"</span>
+                        </div>
+
+                        <!-- Digital Storefront Link Badge -->
+                        <div id="card-storefront-badge" class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-3.5 flex items-center justify-between gap-2 shadow-inner">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[9px] uppercase font-bold text-indigo-300 tracking-wider">Public Digital Storefront</p>
+                                <p class="text-xs font-mono font-bold text-white truncate" id="card-store-url">
+                                    solobiz.onrender.com/store/{{ profile.store_slug if profile and profile.store_slug else 'your-store' }}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-shrink-0">
+                                <button onclick="copyStorefrontLink()" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
+                                    📋 Copy
+                                </button>
+                                <a id="card-store-visit-btn" href="/store/{{ profile.store_slug if profile and profile.store_slug else '' }}" target="_blank" class="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+                                    🌐 Visit
+                                </a>
+                            </div>
                         </div>
 
                     </div><!-- /digital-business-card -->
@@ -464,86 +498,96 @@
 
                     <!-- Action Buttons -->
                     <div class="grid grid-cols-3 gap-2">
-                        <!-- Share Button -->
-                        <button onclick="shareBusinessCard()" class="col-span-1 flex flex-col items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition-all duration-150 text-xs">
+                        <button onclick="shareBusinessCard()" type="button" class="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 px-3 rounded-2xl shadow-md transition-all text-xs cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                            Share
+                            <span>Share</span>
                         </button>
 
-                        <!-- Download Button -->
-                        <button onclick="downloadBusinessCard()" class="col-span-1 flex flex-col items-center justify-center gap-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition-all duration-150 text-xs border border-slate-700">
+                        <button onclick="downloadBusinessCard()" type="button" class="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-3 px-3 rounded-2xl shadow-md transition-all text-xs border border-slate-700 cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Download
+                            <span>Download</span>
                         </button>
 
-                        <!-- Edit Profile Button -->
-                        <button type="button" id="btn-edit-profile" class="col-span-1 flex flex-col items-center justify-center gap-1 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 font-bold py-3 px-2 rounded-xl transition-all duration-150 border border-indigo-200 text-xs">
+                        <button type="button" id="btn-edit-profile" class="flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 font-bold py-3 px-3 rounded-2xl transition-all border border-indigo-200 text-xs cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            Edit
+                            <span>Edit Profile</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Edit Mode Container -->
-                <div id="profile-edit-mode">
-                    <form id="profile-form" class="space-y-3">
+                <div id="profile-edit-mode" class="hidden">
+                    <form id="profile-form" class="space-y-4" enctype="multipart/form-data">
+                        
+                        <!-- Company Name -->
                         <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Company / Brand Name *</label>
-                            <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Apex Electronics" required value="{{ profile.company_name if profile else '' }}"
-                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Company / Brand Name *</label>
+                            <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Aisha Wears" required value="{{ profile.company_name if profile else '' }}"
+                                class="w-full border border-gray-200 rounded-xl p-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Business Phone Number</label>
-                            <input type="tel" name="business_phone" id="profile-business-phone" placeholder="e.g. +2348012345678" value="{{ profile.business_phone if profile else '' }}"
-                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <!-- Phone & WhatsApp -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Business Phone</label>
+                                <input type="tel" name="business_phone" id="profile-business-phone" placeholder="+2348012345678" value="{{ profile.business_phone if profile else '' }}"
+                                    class="w-full border border-gray-200 rounded-xl p-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">WhatsApp Chat</label>
+                                <input type="tel" name="whatsapp_number" id="profile-whatsapp-number" placeholder="+2348012345678" value="{{ profile.whatsapp_number if profile else '' }}"
+                                    class="w-full border border-gray-200 rounded-xl p-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">WhatsApp Number (for Storefront Chat)</label>
-                            <input type="tel" name="whatsapp_number" id="profile-whatsapp-number" placeholder="e.g. +2348012345678" value="{{ profile.whatsapp_number if profile else '' }}"
-                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <!-- Instagram & Address -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Instagram Handle</label>
+                                <input type="text" name="instagram_handle" id="profile-instagram-handle" placeholder="@aisha_wears" value="{{ profile.instagram_handle if profile else '' }}"
+                                    class="w-full border border-gray-200 rounded-xl p-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Business Address</label>
+                                <input type="text" name="business_address" id="profile-business-address" placeholder="12 Market St, Lagos" value="{{ profile.business_address if profile else '' }}"
+                                    class="w-full border border-gray-200 rounded-xl p-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            </div>
                         </div>
 
+                        <!-- Store Policy -->
                         <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Instagram Handle</label>
-                            <input type="text" name="instagram_handle" id="profile-instagram-handle" placeholder="e.g. @aisha_wears" value="{{ profile.instagram_handle if profile else '' }}"
-                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Business Address</label>
-                            <input type="text" name="business_address" id="profile-business-address" placeholder="e.g. 12 Market Street, Lagos" value="{{ profile.business_address if profile else '' }}"
-                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Store Policy (Prints on Receipts & Storefront)</label>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Store Terms / Policy (Receipts & Storefront)</label>
                             <textarea name="store_policy" id="profile-store-policy" rows="2" placeholder="e.g. No refunds after 24 hours. Thanks for choosing us!"
-                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">{{ profile.store_policy if profile else '' }}</textarea>
+                                class="w-full border border-gray-200 rounded-xl p-3 text-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">{{ profile.store_policy if profile else '' }}</textarea>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 items-center">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 mb-1">Brand Color Accent</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="color" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}"
-                                        class="w-10 h-10 rounded border p-1 cursor-pointer">
-                                    <span class="text-xs font-mono text-gray-500" id="brand-color-hex">{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 mb-1">Business Logo</label>
-                                <input type="file" name="logo" id="profile-logo-file" accept="image/*"
-                                    class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <!-- Brand Color Theme Preset Palette -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Select Brand Color Theme</label>
+                            <input type="hidden" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}">
+                            <div class="flex items-center gap-3 flex-wrap" id="color-palette-presets">
+                                <button type="button" data-color="#4F46E5" class="palette-swatch w-9 h-9 rounded-full bg-[#4F46E5] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Indigo"></button>
+                                <button type="button" data-color="#059669" class="palette-swatch w-9 h-9 rounded-full bg-[#059669] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Emerald"></button>
+                                <button type="button" data-color="#2563EB" class="palette-swatch w-9 h-9 rounded-full bg-[#2563EB] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Royal Blue"></button>
+                                <button type="button" data-color="#DC2626" class="palette-swatch w-9 h-9 rounded-full bg-[#DC2626] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Crimson"></button>
+                                <button type="button" data-color="#D97706" class="palette-swatch w-9 h-9 rounded-full bg-[#D97706] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Amber"></button>
+                                <button type="button" data-color="#7C3AED" class="palette-swatch w-9 h-9 rounded-full bg-[#7C3AED] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Violet"></button>
+                                <button type="button" data-color="#0F172A" class="palette-swatch w-9 h-9 rounded-full bg-[#0F172A] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Midnight"></button>
                             </div>
                         </div>
 
-                        <div class="flex gap-2 pt-1">
-                            <button type="button" id="btn-cancel-profile" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-lg transition text-xs">
+                        <!-- Business Logo File Upload -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Business Logo Image</label>
+                            <input type="file" name="logo" id="profile-logo-file" accept="image/*"
+                                class="w-full text-xs text-gray-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                        </div>
+
+                        <div class="flex gap-2 pt-2">
+                            <button type="button" id="btn-cancel-profile" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-2xl transition text-xs cursor-pointer">
                                 Cancel
                             </button>
-                            <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition shadow-md text-xs">
+                            <button type="submit" id="btn-save-profile" class="flex-1 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-3.5 rounded-2xl transition shadow-md text-xs cursor-pointer">
                                 Save Profile
                             </button>
                         </div>
@@ -727,6 +771,12 @@
                             company_name: result.profile.company_name || '',
                             business_phone: result.profile.business_phone || '',
                             business_address: result.profile.business_address || '',
+                            whatsapp_number: result.profile.whatsapp_number || '',
+                            instagram_handle: result.profile.instagram_handle || '',
+                            store_policy: result.profile.store_policy || '',
+                            brand_color: result.profile.brand_color || '#4F46E5',
+                            logo_url: result.profile.logo_url || '',
+                            store_slug: result.profile.store_slug || '',
                             synced: true,
                             updated_at: new Date().toISOString()
                         };
@@ -738,6 +788,7 @@
                             req.onerror = (e) => reject(e.target.error);
                         });
 
+                        window.SOLOBIZ_PROFILE = profileRecord;
                         return profileRecord;
                     }
                 } catch (err) {
@@ -745,60 +796,64 @@
                 }
             }
 
-            return new Promise((resolve, reject) => {
+            const cached = await new Promise((resolve, reject) => {
                 const tx = db.transaction(PROFILE_STORE, 'readonly');
                 const req = tx.objectStore(PROFILE_STORE).get('current');
                 req.onsuccess = () => resolve(req.result || null);
                 req.onerror = (e) => reject(e.target.error);
             });
+            if (cached) window.SOLOBIZ_PROFILE = cached;
+            return cached;
         }
 
-        async function saveBusinessProfile(profileData) {
+        async function saveBusinessProfile(formDataOrData) {
             const db = await openIndexedDB();
+            let response, result;
 
-            const profileRecord = {
-                id: 'current',
-                company_name: String(profileData.company_name || '').trim(),
-                business_phone: String(profileData.business_phone || '').trim(),
-                business_address: String(profileData.business_address || '').trim(),
-                synced: false,
-                updated_at: new Date().toISOString()
-            };
-
-            await new Promise((resolve, reject) => {
-                const tx = db.transaction(PROFILE_STORE, 'readwrite');
-                const req = tx.objectStore(PROFILE_STORE).put(profileRecord);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = (e) => reject(e.target.error);
-            });
-
-            if (navigator.onLine) {
-                try {
-                    const response = await authenticatedFetch('/api/business_profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            company_name: profileRecord.company_name,
-                            business_phone: profileRecord.business_phone,
-                            business_address: profileRecord.business_address
-                        })
-                    });
-
-                    const result = await response.json();
-                    if (response.ok && result.status === 'success') {
-                        profileRecord.synced = true;
-                        profileRecord.server_id = result.profile.id;
-
-                        const tx = db.transaction(PROFILE_STORE, 'readwrite');
-                        tx.objectStore(PROFILE_STORE).put(profileRecord);
-                        console.log('Business Profile successfully pushed to Python API.');
-                    }
-                } catch (err) {
-                    console.warn('Network error pushing Business Profile. Kept in IndexedDB.', err);
-                }
+            if (formDataOrData instanceof FormData) {
+                response = await authenticatedFetch('/api/business_profile', {
+                    method: 'POST',
+                    body: formDataOrData
+                });
+            } else {
+                response = await authenticatedFetch('/api/business_profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formDataOrData)
+                });
             }
 
-            return profileRecord;
+            result = await response.json();
+            if (response.ok && result.status === 'success' && result.profile) {
+                const p = result.profile;
+                const profileRecord = {
+                    id: 'current',
+                    server_id: p.id || null,
+                    company_name: p.company_name || '',
+                    business_phone: p.business_phone || '',
+                    business_address: p.business_address || '',
+                    whatsapp_number: p.whatsapp_number || '',
+                    instagram_handle: p.instagram_handle || '',
+                    store_policy: p.store_policy || '',
+                    brand_color: p.brand_color || '#4F46E5',
+                    logo_url: p.logo_url || '',
+                    store_slug: p.store_slug || '',
+                    synced: true,
+                    updated_at: new Date().toISOString()
+                };
+
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(PROFILE_STORE, 'readwrite');
+                    const req = tx.objectStore(PROFILE_STORE).put(profileRecord);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = (e) => reject(e.target.error);
+                });
+
+                window.SOLOBIZ_PROFILE = profileRecord;
+                return profileRecord;
+            } else {
+                throw new Error(result.message || 'Failed to save business profile');
+            }
         }
 
         async function getBusinessProfileLocal() {
@@ -2185,21 +2240,93 @@
             window.shareBusinessCard = shareBusinessCard;
             window.downloadBusinessCard = downloadBusinessCard;
 
+            window.copyStorefrontLink = function() {
+                const urlEl = document.getElementById('card-store-url');
+                const slug = window.SOLOBIZ_PROFILE?.store_slug || 'your-store';
+                const fullUrl = `https://solobiz.onrender.com/store/${slug}`;
+
+                navigator.clipboard.writeText(fullUrl).then(() => {
+                    const btn = document.querySelector('[onclick="copyStorefrontLink()"]');
+                    if (btn) {
+                        const origHTML = btn.innerHTML;
+                        btn.innerHTML = '✓ Copied!';
+                        btn.classList.add('bg-emerald-600');
+                        setTimeout(() => {
+                            btn.innerHTML = origHTML;
+                            btn.classList.remove('bg-emerald-600');
+                        }, 2000);
+                    }
+                }).catch(err => {
+                    console.error('Copy storefront link failed:', err);
+                });
+            };
+
+            function highlightActiveSwatch(colorHex) {
+                const targetColor = (colorHex || '#4F46E5').toUpperCase();
+                const swatches = document.querySelectorAll('.palette-swatch');
+                swatches.forEach(swatch => {
+                    const swatchColor = (swatch.getAttribute('data-color') || '').toUpperCase();
+                    if (swatchColor === targetColor) {
+                        swatch.className = 'palette-swatch w-9 h-9 rounded-full ring-2 ring-offset-2 ring-slate-900 scale-110 shadow-md transition cursor-pointer flex items-center justify-center text-white text-xs font-bold';
+                        swatch.style.backgroundColor = swatchColor;
+                        swatch.innerHTML = '✓';
+                    } else {
+                        swatch.className = 'palette-swatch w-9 h-9 rounded-full ring-2 ring-offset-2 ring-transparent opacity-80 hover:opacity-100 hover:scale-105 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm';
+                        swatch.style.backgroundColor = swatchColor;
+                        swatch.innerHTML = '';
+                    }
+                });
+            }
+
+            function updateCardThemeColor(colorHex) {
+                const color = colorHex || '#4F46E5';
+                const hiddenInput = document.getElementById('profile-brand-color');
+                if (hiddenInput) hiddenInput.value = color;
+
+                const accentBar = document.getElementById('card-top-accent');
+                if (accentBar) accentBar.style.backgroundColor = color;
+
+                const logoContainer = document.getElementById('card-logo-container');
+                if (logoContainer) logoContainer.style.backgroundColor = color;
+
+                highlightActiveSwatch(color);
+            }
+
+            // Attach swatch click events
+            document.querySelectorAll('.palette-swatch').forEach(swatch => {
+                swatch.addEventListener('click', (e) => {
+                    const selectedColor = e.currentTarget.getAttribute('data-color');
+                    if (selectedColor) updateCardThemeColor(selectedColor);
+                });
+            });
+
             async function populateProfileFormUI() {
                 const profile = await loadBusinessProfile();
-                
+
+                // Form Inputs
                 const compEl = document.getElementById('profile-company-name');
                 const phoneEl = document.getElementById('profile-business-phone');
+                const waEl = document.getElementById('profile-whatsapp-number');
+                const igEl = document.getElementById('profile-instagram-handle');
                 const addrEl = document.getElementById('profile-business-address');
+                const polEl = document.getElementById('profile-store-policy');
+                const colorEl = document.getElementById('profile-brand-color');
 
-                const vComp = document.getElementById('view-company-name');
-                const vPhone = document.getElementById('view-business-phone');
-                const vAddr = document.getElementById('view-business-address');
-
+                // Card Elements
                 const cComp = document.getElementById('card-company-name');
-                const cPhone = document.getElementById('card-phone') || document.getElementById('card-business-phone');
-                const cAddr = document.getElementById('card-address') || document.getElementById('card-business-address');
+                const cPhone = document.getElementById('card-phone');
+                const cAddr = document.getElementById('card-address');
+                const cWaPill = document.getElementById('card-whatsapp-pill');
+                const cWa = document.getElementById('card-whatsapp');
+                const cIgPill = document.getElementById('card-instagram-pill');
+                const cIg = document.getElementById('card-instagram');
+                const cPolBox = document.getElementById('card-policy-box');
+                const cPolText = document.getElementById('card-policy-text');
+                const cStoreUrl = document.getElementById('card-store-url');
+                const cVisitBtn = document.getElementById('card-store-visit-btn');
+                const logoContainer = document.getElementById('card-logo-container');
 
+                // Preview Card
                 const pComp = document.getElementById('preview-company-name');
                 const pPhone = document.getElementById('preview-business-phone');
                 const pAddr = document.getElementById('preview-business-address');
@@ -2207,36 +2334,70 @@
                 if (profile && profile.company_name) {
                     if (compEl) compEl.value = profile.company_name || '';
                     if (phoneEl) phoneEl.value = profile.business_phone || '';
+                    if (waEl) waEl.value = profile.whatsapp_number || '';
+                    if (igEl) igEl.value = profile.instagram_handle || '';
                     if (addrEl) addrEl.value = profile.business_address || '';
+                    if (polEl) polEl.value = profile.store_policy || '';
+                    if (colorEl) colorEl.value = profile.brand_color || '#4F46E5';
 
-                    if (vComp) vComp.textContent = profile.company_name || 'Not set';
-                    if (vPhone) vPhone.textContent = profile.business_phone || 'Not set';
-                    if (vAddr) vAddr.textContent = profile.business_address || 'Not set';
+                    updateCardThemeColor(profile.brand_color || '#4F46E5');
 
-                    if (cComp) cComp.textContent = profile.company_name || 'Your Business';
-                    if (cPhone) cPhone.textContent = profile.business_phone || '—';
-                    if (cAddr) cAddr.textContent = profile.business_address || '—';
+                    if (cComp) cComp.childNodes[0].nodeValue = profile.company_name + ' ';
+                    if (cPhone) cPhone.textContent = profile.business_phone || 'Not set';
+                    if (cAddr) cAddr.textContent = profile.business_address || 'Not set';
 
-                    // Update logo initial
-                    const logoInit = document.getElementById('card-logo-initial');
-                    if (logoInit && profile.company_name) {
-                        logoInit.textContent = profile.company_name.trim().charAt(0).toUpperCase();
+                    // WhatsApp Pill
+                    if (cWaPill && cWa) {
+                        if (profile.whatsapp_number) {
+                            cWa.textContent = profile.whatsapp_number;
+                            cWaPill.classList.remove('hidden');
+                        } else {
+                            cWaPill.classList.add('hidden');
+                        }
                     }
 
-                    if (pComp) pComp.textContent = profile.company_name || 'Your Company Name';
+                    // Instagram Pill
+                    if (cIgPill && cIg) {
+                        if (profile.instagram_handle) {
+                            cIg.textContent = profile.instagram_handle.startsWith('@') ? profile.instagram_handle : '@' + profile.instagram_handle;
+                            cIgPill.classList.remove('hidden');
+                        } else {
+                            cIgPill.classList.add('hidden');
+                        }
+                    }
+
+                    // Policy Box
+                    if (cPolBox && cPolText) {
+                        if (profile.store_policy) {
+                            cPolText.textContent = `"${profile.store_policy}"`;
+                            cPolBox.classList.remove('hidden');
+                        } else {
+                            cPolBox.classList.add('hidden');
+                        }
+                    }
+
+                    // Store URL Badge
+                    const slug = profile.store_slug || 'your-store';
+                    if (cStoreUrl) cStoreUrl.textContent = `solobiz.onrender.com/store/${slug}`;
+                    if (cVisitBtn) cVisitBtn.href = `/store/${slug}`;
+
+                    // Logo Container Image vs Letter Initial
+                    if (logoContainer) {
+                        if (profile.logo_url) {
+                            logoContainer.innerHTML = `<img id="card-logo-img" src="${profile.logo_url}" alt="Logo" class="w-full h-full object-cover">`;
+                        } else {
+                            const initChar = (profile.company_name || 'B').trim().charAt(0).toUpperCase();
+                            logoContainer.innerHTML = `<span id="card-logo-initial">${initChar}</span>`;
+                        }
+                    }
+
+                    if (pComp) pComp.textContent = profile.company_name;
                     if (pPhone) pPhone.textContent = profile.business_phone || '+234 000 000 0000';
                     if (pAddr) pAddr.textContent = profile.business_address || 'Business Address Preview';
 
                     toggleProfileMode('view');
                 } else {
-                    if (vComp) vComp.textContent = 'Not set';
-                    if (vPhone) vPhone.textContent = 'Not set';
-                    if (vAddr) vAddr.textContent = 'Not set';
-
-                    if (cComp) cComp.textContent = 'Your Business';
-                    if (cPhone) cPhone.textContent = '—';
-                    if (cAddr) cAddr.textContent = '—';
-
+                    updateCardThemeColor('#4F46E5');
                     toggleProfileMode('edit');
                 }
             }
@@ -2255,54 +2416,37 @@
             if (profileForm) {
                 profileForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const company_name = document.getElementById('profile-company-name').value.trim();
-                    const business_phone = document.getElementById('profile-business-phone').value.trim();
-                    const business_address = document.getElementById('profile-business-address').value.trim();
-
-                    if (!company_name) return;
-
-                    await saveBusinessProfile({ company_name, business_phone, business_address });
-
-                    // Update View Mode elements
-                    const vComp = document.getElementById('view-company-name');
-                    const vPhone = document.getElementById('view-business-phone');
-                    const vAddr = document.getElementById('view-business-address');
-
-                    if (vComp) vComp.textContent = company_name;
-                    if (vPhone) vPhone.textContent = business_phone || 'Not set';
-                    if (vAddr) vAddr.textContent = business_address || 'Not set';
-
-                    // Update Digital Card elements
-                    const cComp = document.getElementById('card-company-name');
-                    const cPhone = document.getElementById('card-phone') || document.getElementById('card-business-phone');
-                    const cAddr = document.getElementById('card-address') || document.getElementById('card-business-address');
-
-                    if (cComp) cComp.textContent = company_name;
-                    if (cPhone) cPhone.textContent = business_phone || '—';
-                    if (cAddr) cAddr.textContent = business_address || '—';
-
-                    // Sync logo initial
-                    const logoInit = document.getElementById('card-logo-initial');
-                    if (logoInit && company_name) {
-                        logoInit.textContent = company_name.trim().charAt(0).toUpperCase();
+                    const saveBtn = document.getElementById('btn-save-profile');
+                    if (saveBtn) {
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = `
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg> Saving Profile...`;
                     }
 
-                    // Update Preview Card elements
-                    const pComp = document.getElementById('preview-company-name');
-                    const pPhone = document.getElementById('preview-business-phone');
-                    const pAddr = document.getElementById('preview-business-address');
+                    try {
+                        const formData = new FormData(profileForm);
+                        await saveBusinessProfile(formData);
+                        await populateProfileFormUI();
 
-                    if (pComp) pComp.textContent = company_name;
-                    if (pPhone) pPhone.textContent = business_phone || '+234 000 000 0000';
-                    if (pAddr) pAddr.textContent = business_address || 'Business Address Preview';
+                        const statusMsg = document.getElementById('profile-status-msg');
+                        if (statusMsg) {
+                            statusMsg.classList.remove('hidden');
+                            setTimeout(() => statusMsg.classList.add('hidden'), 3500);
+                        }
 
-                    const statusMsg = document.getElementById('profile-status-msg');
-                    if (statusMsg) {
-                        statusMsg.classList.remove('hidden');
-                        setTimeout(() => statusMsg.classList.add('hidden'), 3000);
+                        toggleProfileMode('view');
+                    } catch (err) {
+                        console.error('Save profile error:', err);
+                        alert('Error saving profile: ' + (err.message || 'Network issue'));
+                    } finally {
+                        if (saveBtn) {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = 'Save Profile';
+                        }
                     }
-
-                    toggleProfileMode('view');
                 });
             }
 
