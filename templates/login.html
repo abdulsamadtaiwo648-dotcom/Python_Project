@@ -103,7 +103,12 @@
       <!-- Step 2 Form: Code + New Password -->
       <form id="reset-step2-form" class="hidden space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">6-Digit Verification PIN</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-slate-300 uppercase">6-Digit Verification PIN</label>
+            <button type="button" id="resend-otp-btn" disabled class="text-xs text-indigo-400 hover:underline disabled:text-slate-500 disabled:no-underline font-medium cursor-pointer disabled:cursor-not-allowed">
+              Resend PIN (<span id="resend-timer">30</span>s)
+            </button>
+          </div>
           <input type="text" id="reset-code-input" maxlength="6" required placeholder="123456"
                  class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white text-center tracking-widest text-lg font-mono placeholder-slate-600 transition">
         </div>
@@ -122,11 +127,12 @@
   </div>
 
   <script>
-    // ─── Modern Password Reset Modal Controller ────────────────────────────────
+    // ─── Modern Password Reset & Resend OTP Modal Controller ──────────────────
     const resetModal = document.getElementById("reset-modal");
     const resetAlert = document.getElementById("reset-alert");
     const step1Form  = document.getElementById("reset-step1-form");
     const step2Form  = document.getElementById("reset-step2-form");
+    let resendInterval = null;
 
     function showAlert(msg, isError = false) {
       resetAlert.className = `mb-4 p-3 rounded-lg text-xs font-semibold text-center ${
@@ -135,6 +141,59 @@
       resetAlert.innerHTML = msg;
       resetAlert.classList.remove("hidden");
     }
+
+    function startResendTimer() {
+      let secondsLeft = 30;
+      const resendBtn = document.getElementById("resend-otp-btn");
+      
+      resendBtn.disabled = true;
+      if (resendInterval) clearInterval(resendInterval);
+      
+      resendBtn.innerHTML = `Resend PIN (<span id="resend-timer">${secondsLeft}</span>s)`;
+      
+      resendInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+          clearInterval(resendInterval);
+          resendBtn.disabled = false;
+          resendBtn.innerHTML = "Resend PIN 📩";
+        } else {
+          const timerSpan = document.getElementById("resend-timer");
+          if (timerSpan) timerSpan.textContent = secondsLeft;
+          else resendBtn.innerHTML = `Resend PIN (<span id="resend-timer">${secondsLeft}</span>s)`;
+        }
+      }, 1000);
+    }
+
+    document.getElementById("resend-otp-btn").addEventListener("click", async function () {
+      const email = document.getElementById("reset-email-input").value.trim();
+      if (!email) return;
+
+      const resendBtn = document.getElementById("resend-otp-btn");
+      resendBtn.disabled = true;
+      resendBtn.innerText = "Sending…";
+
+      try {
+        const res = await fetch("/api/forgot-password/resend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.status === "ok") {
+          showAlert(data.message, false);
+          startResendTimer();
+        } else {
+          showAlert(data.message || "Failed to resend PIN.", true);
+          resendBtn.disabled = false;
+          resendBtn.innerText = "Resend PIN 📩";
+        }
+      } catch (err) {
+        showAlert("Error connecting to server.", true);
+        resendBtn.disabled = false;
+        resendBtn.innerText = "Resend PIN 📩";
+      }
+    });
 
     document.getElementById("forgot-btn").addEventListener("click", function () {
       const currentEmail = document.getElementById("login-email").value.trim();
@@ -149,6 +208,7 @@
 
     document.getElementById("close-reset-modal").addEventListener("click", function () {
       resetModal.classList.add("hidden");
+      if (resendInterval) clearInterval(resendInterval);
     });
 
     // Step 1: Request PIN
@@ -172,6 +232,7 @@
           showAlert(data.message, false);
           step1Form.classList.add("hidden");
           step2Form.classList.remove("hidden");
+          startResendTimer();
         } else {
           showAlert(data.message || "Failed to send PIN.", true);
         }

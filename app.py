@@ -12,6 +12,12 @@ try:
 except ImportError:
     HAS_PSYCOPG2 = False
 
+try:
+    import resend
+    HAS_RESEND = True
+except ImportError:
+    HAS_RESEND = False
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
 app.permanent_session_lifetime = timedelta(days=30)
@@ -337,9 +343,79 @@ def logout():
     return resp
 
 # ==========================================
-# PASSWORD RESET API
+# OTP & EMAIL SERVICES (RESEND API)
 # ==========================================
 RESET_CODES = {}
+
+def send_otp_email(to_email, otp_code):
+    """
+    Sends a 6-digit OTP verification code via Resend.
+    Falls back gracefully if RESEND_API_KEY is not set.
+    """
+    api_key = os.environ.get("RESEND_API_KEY")
+    from_email = os.environ.get("RESEND_FROM_EMAIL", "SoloBiz <onboarding@resend.dev>")
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color:#0f172a; margin:0; padding:40px 20px; color:#f8fafc;">
+      <div style="max-width:480px; margin:0 auto; background:#1e293b; border:1px solid #334155; border-radius:16px; padding:32px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+        <div style="font-size:24px; font-weight:800; color:#6366f1; margin-bottom:8px; letter-spacing:-0.5px;">SoloBiz</div>
+        <div style="font-size:20px; font-weight:700; color:#ffffff; margin-bottom:12px;">Verification Code</div>
+        <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin-bottom:24px;">Use the 6-digit verification PIN below to reset your password or verify your account. This code expires in 15 minutes.</p>
+        <div style="background:#0f172a; border:2px dashed #6366f1; border-radius:12px; padding:18px; font-size:32px; font-weight:900; letter-spacing:8px; color:#818cf8; margin:20px 0; font-family:monospace;">{otp_code}</div>
+        <p style="font-size:13px; color:#64748b; margin-top:20px;">If you didn't request this code, please ignore this email.</p>
+        <div style="font-size:12px; color:#475569; margin-top:24px; border-top:1px solid #334155; padding-top:16px;">&copy; SoloBiz — Smart Finance for Independent Vendors</div>
+      </div>
+    </body>
+    </html>
+    """
+
+    print(f"\n==========================================")
+    print(f"🔑 PASSWORD RESET PIN FOR {to_email}: {otp_code}")
+    print(f"==========================================\n", flush=True)
+
+    if not api_key:
+        return True, f"Dev PIN generated: {otp_code}"
+
+    try:
+        if HAS_RESEND:
+            resend.api_key = api_key
+            resend.Emails.send({
+                "from": from_email,
+                "to": [to_email],
+                "subject": f"Your SoloBiz Verification Code: {otp_code}",
+                "html": html_content
+            })
+        else:
+            import requests
+            resp = requests.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "from": from_email,
+                    "to": [to_email],
+                    "subject": f"Your SoloBiz Verification Code: {otp_code}",
+                    "html": html_content
+                },
+                timeout=10
+            )
+            resp.raise_for_status()
+
+        print(f"✅ OTP Email sent via Resend to {to_email}!")
+        return True, "Verification code sent to your email!"
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to send OTP via Resend to {to_email}: {e}", exc_info=True)
+        print(f"❌ Resend API error: {e}", flush=True)
+        return False, f"Resend error: {str(e)}"
 
 @app.route("/api/forgot-password/request", methods=["POST"])
 def forgot_password_request():
@@ -360,24 +436,68 @@ def forgot_password_request():
         import random
         code = str(random.randint(100000, 999999))
         expires = datetime.now() + timedelta(minutes=15)
-        RESET_CODES[email] = {"code": code, "expires": expires}
+        RESET_CODES[email] = {"code": code, "expires": expires, "last_sent": datetime.now()}
 
-        import logging
-        logging.info(f"Generated reset PIN for '{email}': {code}")
-        print(f"\n==========================================")
-        print(f"🔑 PASSWORD RESET PIN FOR {email}: {code}")
-        print(f"==========================================\n", flush=True)
+        sent, msg = send_otp_email(email, code)
+
+        has_api_key = bool(os.environ.get("RESEND_API_KEY"))
+        resp_msg = "Verification PIN sent to your email address!" if has_api_key else f"Verification PIN sent! (Dev PIN: {code})"
 
         return jsonify({
             "status": "ok",
-            "message": f"Verification PIN sent! PIN: {code}",
-            "code": code
+            "message": resp_msg,
+            "code": code if not has_api_key else None
         })
 
     except Exception as e:
         import logging
         logging.error(f"forgot_password_request error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to generate PIN. Please try again."}), 500
+
+@app.route("/api/forgot-password/resend", methods=["POST"])
+def forgot_password_resend():
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return jsonify({"status": "error", "message": "Please enter a valid email address."}), 400
+
+        with get_db() as db:
+            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            if not user:
+                return jsonify({"status": "error", "message": "No account found with this email address."}), 404
+
+        # 30-second rate limiting per email
+        existing = RESET_CODES.get(email)
+        if existing and "last_sent" in existing:
+            seconds_since = (datetime.now() - existing["last_sent"]).total_seconds()
+            if seconds_since < 30:
+                remaining = int(30 - seconds_since)
+                return jsonify({
+                    "status": "error",
+                    "message": f"Please wait {remaining} seconds before requesting a new PIN."
+                }), 429
+
+        import random
+        code = str(random.randint(100000, 999999))
+        expires = datetime.now() + timedelta(minutes=15)
+        RESET_CODES[email] = {"code": code, "expires": expires, "last_sent": datetime.now()}
+
+        sent, msg = send_otp_email(email, code)
+
+        has_api_key = bool(os.environ.get("RESEND_API_KEY"))
+        resp_msg = "New verification PIN sent to your email!" if has_api_key else f"New PIN sent! (Dev PIN: {code})"
+
+        return jsonify({
+            "status": "ok",
+            "message": resp_msg,
+            "code": code if not has_api_key else None
+        })
+
+    except Exception as e:
+        import logging
+        logging.error(f"forgot_password_resend error: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "Failed to resend PIN. Please try again."}), 500
 
 @app.route("/api/forgot-password/reset", methods=["POST"])
 def forgot_password_reset():
