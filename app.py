@@ -299,42 +299,250 @@ def register():
     if request.method == "POST":
         raw_email = request.form.get("email", "")
         raw_password = request.form.get("password", "")
+        raw_otp = request.form.get("otp_code", "")
         
         email = raw_email.strip().lower()
         password = raw_password.strip()
+        otp_code = raw_otp.strip()
 
+        # Case A: Submitting OTP Verification
+        if otp_code:
+            if not email:
+                flash("Email is required for OTP verification.", "danger")
+                return render_template("register.html")
+            
+            record = REGISTRATION_CODES.get(email)
+            if not record:
+                flash("No pending registration found for this email. Please try again.", "danger")
+                return render_template("register.html")
+            
+            if record["code"] != otp_code:
+                flash("Incorrect verification PIN. Please check and try again.", "danger")
+                return render_template("register.html", step="otp", pending_email=email)
+
+            if datetime.now() > record["expires"]:
+                REGISTRATION_CODES.pop(email, None)
+                flash("Verification PIN expired. Please request a new code.", "danger")
+                return render_template("register.html")
+
+            # Verified! Insert into DB
+            import time, uuid
+            new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+            password_hash = record["password_hash"]
+
+            try:
+                with get_db() as db:
+                    db.execute("INSERT INTO users (id, email, password) VALUES (?, ?, ?)", (new_user_id, email, password_hash))
+                    db.commit()
+                session.permanent = True
+                session["user_id"] = new_user_id
+                REGISTRATION_CODES.pop(email, None)
+                flash("Email verified successfully! Welcome to SoloBiz!", "success")
+                return redirect("/dashboard")
+            except sqlite3.IntegrityError:
+                flash("Email already registered! Please log in.", "danger")
+                return render_template("register.html")
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to create user after OTP verify: {e}", exc_info=True)
+                flash("Failed to create account. Please try again.", "danger")
+                return render_template("register.html", step="otp", pending_email=email)
+
+        # Case B: Initial Registration Request (sending OTP)
         if not email or not password:
             flash("Please fill in all required fields.", "danger")
             return render_template("register.html")
 
-        hashed_password = generate_password_hash(password)
-        import time, uuid
-        new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-        
+        if len(password) < 6:
+            flash("Password must be at least 6 characters long.", "danger")
+            return render_template("register.html")
+
+        # Check existing user
         try:
             with get_db() as db:
-                db.execute("INSERT INTO users (id, email, password) VALUES (?, ?, ?)", (new_user_id, email, hashed_password))
-                db.commit()
-            session.permanent = True
-            session["user_id"] = new_user_id
-            flash("Account created successfully!", "success")
-            return redirect("/dashboard")
-        except sqlite3.IntegrityError:
-            error_msg = "Email already registered! Please log in."
-            flash(error_msg, "danger")
-            return render_template("register.html", error=error_msg)
+                user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+                if user:
+                    flash("Email already registered! Please log in.", "danger")
+                    return render_template("register.html", error="Email already registered! Please log in.")
         except Exception as e:
-            err_str = str(e).lower()
             import logging
-            logging.error(f"Registration failed for email '{email}': {e}", exc_info=True)
-            if "unique" in err_str or "duplicate" in err_str or "already exists" in err_str:
-                error_msg = "Email already registered! Please log in."
-            else:
-                error_msg = "An error occurred while creating your account. Please try again."
-            flash(error_msg, "danger")
-            return render_template("register.html", error=error_msg)
+            logging.error(f"Error checking user existence: {e}", exc_info=True)
+
+        import random
+        code = str(random.randint(100000, 999999))
+        hashed_password = generate_password_hash(password)
+        expires = datetime.now() + timedelta(minutes=15)
+
+        REGISTRATION_CODES[email] = {
+            "code": code,
+            "password_hash": hashed_password,
+            "expires": expires,
+            "last_sent": datetime.now()
+        }
+
+        sent, msg = send_otp_email(email, code, subject_type="Email Verification")
+
+        has_email_service = bool(os.environ.get("RESEND_API_KEY") or os.environ.get("SMTP_USER") or os.environ.get("GMAIL_USER"))
+        info_msg = f"We sent a 6-digit verification PIN to {email}. Please enter it below." if has_email_service else f"Verification PIN sent! (Dev PIN: {code})"
+        flash(info_msg, "success")
+        return render_template("register.html", step="otp", pending_email=email)
             
     return render_template("register.html")
+
+
+@app.route("/api/register/request", methods=["POST"])
+def register_api_request():
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+        password = (data.get("password") or "").strip()
+
+        if not email or not password:
+            return jsonify({"status": "error", "message": "Email and password are required."}), 400
+
+        if len(password) < 6:
+            return jsonify({"status": "error", "message": "Password must be at least 6 characters long."}), 400
+
+        # Check DB for existing user
+        with get_db() as db:
+            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            if user:
+                return jsonify({"status": "error", "message": "Email already registered! Please log in instead."}), 400
+
+        # Check rate limiting (30 sec)
+        existing = REGISTRATION_CODES.get(email)
+        if existing and "last_sent" in existing:
+            seconds_since = (datetime.now() - existing["last_sent"]).total_seconds()
+            if seconds_since < 30:
+                remaining = int(30 - seconds_since)
+                return jsonify({
+                    "status": "error",
+                    "message": f"Please wait {remaining} seconds before requesting a new PIN."
+                }), 429
+
+        import random
+        code = str(random.randint(100000, 999999))
+        hashed_password = generate_password_hash(password)
+        expires = datetime.now() + timedelta(minutes=15)
+
+        REGISTRATION_CODES[email] = {
+            "code": code,
+            "password_hash": hashed_password,
+            "expires": expires,
+            "last_sent": datetime.now()
+        }
+
+        sent, msg = send_otp_email(email, code, subject_type="Email Verification")
+
+        has_email_service = bool(os.environ.get("RESEND_API_KEY") or os.environ.get("SMTP_USER") or os.environ.get("GMAIL_USER"))
+        resp_msg = f"Verification PIN sent to {email}! Check your inbox or spam folder." if has_email_service else f"Verification PIN sent! (Dev PIN: {code})"
+
+        return jsonify({
+            "status": "ok",
+            "message": resp_msg,
+            "code": code if not has_email_service else None
+        })
+
+    except Exception as e:
+        import logging
+        logging.error(f"register_api_request error: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "Failed to send verification PIN. Please try again."}), 500
+
+
+@app.route("/api/register/verify", methods=["POST"])
+def register_api_verify():
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+        code = (data.get("code") or "").strip()
+
+        if not email or not code:
+            return jsonify({"status": "error", "message": "Email and verification PIN are required."}), 400
+
+        record = REGISTRATION_CODES.get(email)
+        if not record:
+            return jsonify({"status": "error", "message": "No pending registration found for this email."}), 400
+
+        if record["code"] != code:
+            return jsonify({"status": "error", "message": "Incorrect verification PIN. Please check and try again."}), 400
+
+        if datetime.now() > record["expires"]:
+            REGISTRATION_CODES.pop(email, None)
+            return jsonify({"status": "error", "message": "Verification PIN has expired. Please request a new code."}), 400
+
+        import time, uuid
+        new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+        password_hash = record["password_hash"]
+
+        with get_db() as db:
+            db.execute("INSERT INTO users (id, email, password) VALUES (?, ?, ?)", (new_user_id, email, password_hash))
+            db.commit()
+
+        session.permanent = True
+        session["user_id"] = new_user_id
+        REGISTRATION_CODES.pop(email, None)
+
+        flash("Email verified successfully! Welcome to SoloBiz!", "success")
+        return jsonify({
+            "status": "ok",
+            "message": "Account verified and created successfully!",
+            "redirect": "/dashboard"
+        })
+
+    except sqlite3.IntegrityError:
+        return jsonify({"status": "error", "message": "Email already registered! Please log in."}), 400
+    except Exception as e:
+        import logging
+        logging.error(f"register_api_verify error: {e}", exc_info=True)
+        err_str = str(e).lower()
+        if "unique" in err_str or "duplicate" in err_str or "already exists" in err_str:
+            return jsonify({"status": "error", "message": "Email already registered! Please log in."}), 400
+        return jsonify({"status": "error", "message": "Failed to verify account. Please try again."}), 500
+
+
+@app.route("/api/register/resend", methods=["POST"])
+def register_api_resend():
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+
+        if not email:
+            return jsonify({"status": "error", "message": "Email address is required."}), 400
+
+        record = REGISTRATION_CODES.get(email)
+        if not record:
+            return jsonify({"status": "error", "message": "No pending registration found for this email."}), 400
+
+        if "last_sent" in record:
+            seconds_since = (datetime.now() - record["last_sent"]).total_seconds()
+            if seconds_since < 30:
+                remaining = int(30 - seconds_since)
+                return jsonify({
+                    "status": "error",
+                    "message": f"Please wait {remaining} seconds before requesting a new PIN."
+                }), 429
+
+        import random
+        code = str(random.randint(100000, 999999))
+        record["code"] = code
+        record["expires"] = datetime.now() + timedelta(minutes=15)
+        record["last_sent"] = datetime.now()
+
+        sent, msg = send_otp_email(email, code, subject_type="Email Verification")
+
+        has_email_service = bool(os.environ.get("RESEND_API_KEY") or os.environ.get("SMTP_USER") or os.environ.get("GMAIL_USER"))
+        resp_msg = "New verification PIN sent to your email!" if has_email_service else f"New PIN sent! (Dev PIN: {code})"
+
+        return jsonify({
+            "status": "ok",
+            "message": resp_msg,
+            "code": code if not has_email_service else None
+        })
+
+    except Exception as e:
+        import logging
+        logging.error(f"register_api_resend error: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": "Failed to resend PIN. Please try again."}), 500
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -378,15 +586,22 @@ def logout():
 # ==========================================
 # OTP & EMAIL SERVICES (RESEND API)
 # ==========================================
+# OTP & EMAIL SERVICES (RESEND API & SMTP)
+# ==========================================
 RESET_CODES = {}
+REGISTRATION_CODES = {}
 
-def send_otp_email(to_email, otp_code):
+def send_otp_email(to_email, otp_code, subject_type="Email Verification"):
     """
-    Sends a 6-digit OTP verification code via Resend.
-    Falls back gracefully if RESEND_API_KEY is not set.
+    Sends a 6-digit OTP verification code via Resend or SMTP (e.g. Gmail SMTP).
+    Falls back gracefully to server log printing if no email keys are set.
     """
     api_key = os.environ.get("RESEND_API_KEY")
-    from_email = os.environ.get("RESEND_FROM_EMAIL", "SoloBiz <onboarding@resend.dev>")
+    smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USER") or os.environ.get("SMTP_USERNAME") or os.environ.get("GMAIL_USER")
+    smtp_pass = os.environ.get("SMTP_PASSWORD") or os.environ.get("GMAIL_APP_PASSWORD")
+    from_email = os.environ.get("RESEND_FROM_EMAIL") or (f"SoloBiz <{smtp_user}>" if smtp_user else "SoloBiz <onboarding@resend.dev>")
 
     html_content = f"""
     <!DOCTYPE html>
@@ -398,8 +613,8 @@ def send_otp_email(to_email, otp_code):
     <body style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color:#0f172a; margin:0; padding:40px 20px; color:#f8fafc;">
       <div style="max-width:480px; margin:0 auto; background:#1e293b; border:1px solid #334155; border-radius:16px; padding:32px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
         <div style="font-size:24px; font-weight:800; color:#6366f1; margin-bottom:8px; letter-spacing:-0.5px;">SoloBiz</div>
-        <div style="font-size:20px; font-weight:700; color:#ffffff; margin-bottom:12px;">Verification Code</div>
-        <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin-bottom:24px;">Use the 6-digit verification PIN below to reset your password or verify your account. This code expires in 15 minutes.</p>
+        <div style="font-size:20px; font-weight:700; color:#ffffff; margin-bottom:12px;">{subject_type}</div>
+        <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin-bottom:24px;">Use the 6-digit verification PIN below to verify your Gmail address and complete your SoloBiz setup. This code expires in 15 minutes.</p>
         <div style="background:#0f172a; border:2px dashed #6366f1; border-radius:12px; padding:18px; font-size:32px; font-weight:900; letter-spacing:8px; color:#818cf8; margin:20px 0; font-family:monospace;">{otp_code}</div>
         <p style="font-size:13px; color:#64748b; margin-top:20px;">If you didn't request this code, please ignore this email.</p>
         <div style="font-size:12px; color:#475569; margin-top:24px; border-top:1px solid #334155; padding-top:16px;">&copy; SoloBiz — Smart Finance for Independent Vendors</div>
@@ -409,46 +624,68 @@ def send_otp_email(to_email, otp_code):
     """
 
     print(f"\n==========================================")
-    print(f"🔑 PASSWORD RESET PIN FOR {to_email}: {otp_code}")
+    print(f"🔑 {subject_type.upper()} PIN FOR {to_email}: {otp_code}")
     print(f"==========================================\n", flush=True)
 
-    if not api_key:
-        return True, f"Dev PIN generated: {otp_code}"
-
-    try:
-        if HAS_RESEND:
-            resend.api_key = api_key
-            resend.Emails.send({
-                "from": from_email,
-                "to": [to_email],
-                "subject": f"Your SoloBiz Verification Code: {otp_code}",
-                "html": html_content
-            })
-        else:
-            import requests
-            resp = requests.post(
-                "https://api.resend.com/emails",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
+    # 1. Try Resend if API key set
+    if api_key:
+        try:
+            if HAS_RESEND:
+                resend.api_key = api_key
+                resend.Emails.send({
                     "from": from_email,
                     "to": [to_email],
-                    "subject": f"Your SoloBiz Verification Code: {otp_code}",
+                    "subject": f"Your SoloBiz {subject_type} Code: {otp_code}",
                     "html": html_content
-                },
-                timeout=10
-            )
-            resp.raise_for_status()
+                })
+            else:
+                import requests
+                resp = requests.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "from": from_email,
+                        "to": [to_email],
+                        "subject": f"Your SoloBiz {subject_type} Code: {otp_code}",
+                        "html": html_content
+                    },
+                    timeout=10
+                )
+                resp.raise_for_status()
+            print(f"✅ OTP Email sent via Resend to {to_email}!")
+            return True, "Verification code sent to your email!"
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to send OTP via Resend to {to_email}: {e}", exc_info=True)
 
-        print(f"✅ OTP Email sent via Resend to {to_email}!")
-        return True, "Verification code sent to your email!"
-    except Exception as e:
-        import logging
-        logging.error(f"Failed to send OTP via Resend to {to_email}: {e}", exc_info=True)
-        print(f"❌ Resend API error: {e}", flush=True)
-        return False, f"Resend error: {str(e)}"
+    # 2. Try SMTP (e.g. Gmail SMTP)
+    if smtp_user and smtp_pass:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = f"Your SoloBiz {subject_type} Code: {otp_code}"
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg.attach(MIMEText(html_content, "html"))
+
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_email, [to_email], msg.as_string())
+            print(f"✅ OTP Email sent via SMTP ({smtp_server}) to {to_email}!")
+            return True, "Verification code sent to your email!"
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to send OTP via SMTP to {to_email}: {e}", exc_info=True)
+
+    print(f"ℹ️ No live email service configured. Dev PIN generated for {to_email}: {otp_code}", flush=True)
+    return True, f"Dev PIN generated: {otp_code}"
 
 @app.route("/api/forgot-password/request", methods=["POST"])
 def forgot_password_request():
