@@ -1,10 +1,21 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, send_from_directory, Response
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
-import sqlite3
+import logging
 import math
 import os
-import traceback
+import random
+import re
+import smtplib
+import sqlite3
+import time
+import uuid
+from datetime import datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from flask import (Flask, Response, jsonify, make_response, redirect,
+                   render_template, request, send_from_directory, session,
+                   flash)
+from werkzeug.security import check_password_hash, generate_password_hash
+
 try:
     import psycopg2
     import psycopg2.extras
@@ -18,26 +29,24 @@ try:
 except ImportError:
     HAS_RESEND = False
 
+try:
+    import requests as http_requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+
+# ==========================================
+# FLASK APP CONFIG
+# ==========================================
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
 app.permanent_session_lifetime = timedelta(days=30)
 
-# ── Session / Cookie hardening ───────────────────────────────────────────────
-# SameSite=Lax  → cookie survives desktop↔mobile view-mode toggles in Chrome
-# HttpOnly      → JS cannot read/delete the session cookie
-# Secure        → only send over HTTPS in production (safe to set; falls back
-#                 to HTTP on localhost automatically via werkzeug)
+# Session / Cookie hardening
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SECURE"]   = os.environ.get("DATABASE_URL") is not None  # True on Render (HTTPS)
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("DATABASE_URL") is not None  # True on Render (HTTPS)
 
-def get_current_user_id():
-    """
-    Retrieve string-based user_id from active Flask session cookie.
-    """
-    if "user_id" in session and session["user_id"]:
-        return str(session["user_id"])
-    return None
 
 # ==========================================
 # HYBRID CLOUD DATABASE (POSTGRESQL + SQLITE)
@@ -55,6 +64,7 @@ class CursorWrapper:
 
     def __getattr__(self, name):
         return getattr(self._cursor, name)
+
 
 class DBWrapper:
     def __init__(self, conn, is_postgres=False):
@@ -96,7 +106,7 @@ class DBWrapper:
                 pg_sql += " RETURNING id"
 
             cur.execute(pg_sql, params)
-            
+
             last_id = None
             if is_insert:
                 try:
@@ -118,6 +128,7 @@ class DBWrapper:
         if hasattr(self.conn, "commit"):
             self.conn.commit()
 
+
 def get_db():
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:
@@ -129,6 +140,14 @@ def get_db():
         conn = sqlite3.connect("solobiz.db")
         conn.row_factory = sqlite3.Row
         return DBWrapper(conn, is_postgres=False)
+
+
+def get_current_user_id():
+    """Retrieve string-based user_id from active Flask session cookie."""
+    if "user_id" in session and session["user_id"]:
+        return str(session["user_id"])
+    return None
+
 
 def init_db():
     database_url = os.environ.get("DATABASE_URL")
@@ -204,13 +223,13 @@ def init_db():
             except Exception as e:
                 print(f"Migration note for '{alter_cmd}': {e}", flush=True)
 
-        # Fail-safe check: verify and convert user_id column types to TEXT for all PostgreSQL tables
+        # Fail-safe: verify and convert user_id column types to TEXT
         for target_table, target_col in [("users", "id"), ("expenses", "user_id"), ("income", "user_id"), ("business_profiles", "user_id")]:
             try:
                 with get_db() as db:
                     res = db.execute(f"""
-                        SELECT data_type 
-                        FROM information_schema.columns 
+                        SELECT data_type
+                        FROM information_schema.columns
                         WHERE table_name = '{target_table}' AND column_name = '{target_col}'
                     """).fetchone()
                     if res:
@@ -268,28 +287,148 @@ def init_db():
                     receipt_id TEXT
                 )
             """)
-            try:
-                db.execute("ALTER TABLE income ADD COLUMN receipt_id TEXT")
-            except Exception:
-                pass
-
-            profile_cols = [
+            for col_name, col_type in [
                 ("instagram_handle", "TEXT"),
                 ("whatsapp_number", "TEXT"),
                 ("store_policy", "TEXT"),
                 ("brand_color", "TEXT DEFAULT '#4F46E5'"),
                 ("logo_url", "TEXT"),
-                ("store_slug", "TEXT")
-            ]
-            for col_name, col_type in profile_cols:
+                ("store_slug", "TEXT"),
+                ("receipt_id", "TEXT"),
+            ]:
                 try:
                     db.execute(f"ALTER TABLE business_profiles ADD COLUMN {col_name} {col_type}")
                 except Exception:
                     pass
-
+            try:
+                db.execute("ALTER TABLE income ADD COLUMN receipt_id TEXT")
+            except Exception:
+                pass
             db.commit()
 
+
 init_db()
+
+
+# ==========================================
+# OTP & EMAIL SERVICES (RESEND API + SMTP)
+# ==========================================
+# In-memory stores for pending OTP codes (keyed by email)
+RESET_CODES = {}
+REGISTRATION_CODES = {}
+
+
+def _build_otp_html(subject_type: str, otp_code: str) -> str:
+    """Build the HTML body for OTP emails."""
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#0f172a;margin:0;padding:40px 20px;color:#f8fafc;">
+  <div style="max-width:480px;margin:0 auto;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+    <div style="font-size:24px;font-weight:800;color:#6366f1;margin-bottom:8px;letter-spacing:-0.5px;">SoloBiz</div>
+    <div style="font-size:20px;font-weight:700;color:#ffffff;margin-bottom:12px;">{subject_type}</div>
+    <p style="font-size:14px;color:#94a3b8;line-height:1.6;margin-bottom:24px;">
+      Use the 6-digit verification PIN below to verify your email address. This code expires in 15 minutes.
+    </p>
+    <div style="background:#0f172a;border:2px dashed #6366f1;border-radius:12px;padding:18px;font-size:32px;font-weight:900;letter-spacing:8px;color:#818cf8;margin:20px 0;font-family:monospace;">{otp_code}</div>
+    <p style="font-size:13px;color:#64748b;margin-top:20px;">If you didn't request this code, please ignore this email.</p>
+    <div style="font-size:12px;color:#475569;margin-top:24px;border-top:1px solid #334155;padding-top:16px;">&copy; SoloBiz &mdash; Smart Finance for Independent Vendors</div>
+  </div>
+</body>
+</html>"""
+
+
+def send_otp_email(to_email: str, otp_code: str, subject_type: str = "Email Verification"):
+    """
+    Send a 6-digit OTP via Resend API (primary) or SMTP (fallback).
+    Returns (success: bool, message: str, is_live_delivered: bool).
+
+    Environment variables:
+      RESEND_API_KEY        — Resend API key (primary)
+      RESEND_FROM_EMAIL     — Verified sender address, e.g. "SoloBiz <noreply@yourdomain.com>"
+      SMTP_SERVER           — SMTP host (default: smtp.gmail.com)
+      SMTP_PORT             — SMTP port (default: 587)
+      SMTP_USER / GMAIL_USER        — SMTP login username
+      SMTP_PASSWORD / GMAIL_APP_PASSWORD — SMTP login password
+    """
+    api_key = os.environ.get("RESEND_API_KEY")
+    smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = (os.environ.get("SMTP_USER")
+                 or os.environ.get("SMTP_USERNAME")
+                 or os.environ.get("GMAIL_USER"))
+    smtp_pass = (os.environ.get("SMTP_PASSWORD")
+                 or os.environ.get("GMAIL_APP_PASSWORD"))
+    from_email = (os.environ.get("RESEND_FROM_EMAIL")
+                  or "SoloBiz <noreply@solobiz.dev>")
+
+    subject = f"Your SoloBiz {subject_type} Code: {otp_code}"
+    html_content = _build_otp_html(subject_type, otp_code)
+
+    # Always log to server console (visible in Render logs)
+    print(f"\n==========================================", flush=True)
+    print(f"🔑 [{subject_type.upper()}] PIN for {to_email}: {otp_code}", flush=True)
+    print(f"==========================================\n", flush=True)
+
+    # 1. Try Resend API
+    if api_key:
+        try:
+            if HAS_RESEND:
+                resend.api_key = api_key
+                resend.Emails.send({
+                    "from": from_email,
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": html_content
+                })
+            elif HAS_REQUESTS:
+                resp = http_requests.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "from": from_email,
+                        "to": [to_email],
+                        "subject": subject,
+                        "html": html_content
+                    },
+                    timeout=10
+                )
+                resp.raise_for_status()
+            print(f"✅ OTP email sent via Resend to {to_email}", flush=True)
+            return True, "Verification code sent to your email!", True
+        except Exception as e:
+            logging.error(f"Resend API failed for {to_email}: {e}", exc_info=True)
+            print(f"❌ Resend failed: {e}", flush=True)
+
+    # 2. Try SMTP (Gmail or other)
+    if smtp_user and smtp_pass:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg.attach(MIMEText(html_content, "html"))
+
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_email, [to_email], msg.as_string())
+            print(f"✅ OTP email sent via SMTP to {to_email}", flush=True)
+            return True, "Verification code sent to your email!", True
+        except Exception as e:
+            logging.error(f"SMTP failed for {to_email}: {e}", exc_info=True)
+            print(f"❌ SMTP failed: {e}", flush=True)
+
+    # 3. Dev/test fallback — PIN is printed in server logs
+    print(f"ℹ️  No live email configured — dev mode. PIN shown above.", flush=True)
+    return True, f"Dev PIN: {otp_code}", False
+
 
 # ==========================================
 # AUTHENTICATION ROUTES
@@ -297,58 +436,52 @@ init_db()
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        raw_email = request.form.get("email", "")
-        raw_password = request.form.get("password", "")
-        raw_otp = request.form.get("otp_code", "")
-        
-        email = raw_email.strip().lower()
-        password = raw_password.strip()
-        otp_code = raw_otp.strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "").strip()
+        otp_code = request.form.get("otp_code", "").strip()
 
-        # Case A: Submitting OTP Verification
+        # ── Step 2: Verify OTP and create account ──
         if otp_code:
             if not email:
                 flash("Email is required for OTP verification.", "danger")
                 return render_template("register.html")
-            
+
             record = REGISTRATION_CODES.get(email)
             if not record:
-                flash("No pending registration found for this email. Please try again.", "danger")
+                flash("No pending registration found. Please start over.", "danger")
                 return render_template("register.html")
-            
+
             if record["code"] != otp_code:
-                flash("Incorrect verification PIN. Please check and try again.", "danger")
+                flash("Incorrect verification PIN. Please try again.", "danger")
                 return render_template("register.html", step="otp", pending_email=email)
 
             if datetime.now() > record["expires"]:
                 REGISTRATION_CODES.pop(email, None)
-                flash("Verification PIN expired. Please request a new code.", "danger")
+                flash("Verification PIN expired. Please request a new one.", "danger")
                 return render_template("register.html")
 
-            # Verified! Insert into DB
-            import time, uuid
             new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-            password_hash = record["password_hash"]
-
             try:
                 with get_db() as db:
-                    db.execute("INSERT INTO users (id, email, password) VALUES (?, ?, ?)", (new_user_id, email, password_hash))
+                    db.execute(
+                        "INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
+                        (new_user_id, email, record["password_hash"])
+                    )
                     db.commit()
+                REGISTRATION_CODES.pop(email, None)
                 session.permanent = True
                 session["user_id"] = new_user_id
-                REGISTRATION_CODES.pop(email, None)
-                flash("Email verified successfully! Welcome to SoloBiz!", "success")
+                flash("Email verified! Welcome to SoloBiz!", "success")
                 return redirect("/dashboard")
             except sqlite3.IntegrityError:
-                flash("Email already registered! Please log in.", "danger")
+                flash("Email already registered. Please log in.", "danger")
                 return render_template("register.html")
             except Exception as e:
-                import logging
-                logging.error(f"Failed to create user after OTP verify: {e}", exc_info=True)
-                flash("Failed to create account. Please try again.", "danger")
+                logging.error(f"Account creation failed after OTP verify: {e}", exc_info=True)
+                flash("Account creation failed. Please try again.", "danger")
                 return render_template("register.html", step="otp", pending_email=email)
 
-        # Case B: Initial Registration Request (sending OTP)
+        # ── Step 1: Validate and send OTP ──
         if not email or not password:
             flash("Please fill in all required fields.", "danger")
             return render_template("register.html")
@@ -357,36 +490,32 @@ def register():
             flash("Password must be at least 6 characters long.", "danger")
             return render_template("register.html")
 
-        # Check existing user
         try:
             with get_db() as db:
-                user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-                if user:
-                    flash("Email already registered! Please log in.", "danger")
-                    return render_template("register.html", error="Email already registered! Please log in.")
+                existing = db.execute(
+                    "SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)
+                ).fetchone()
+                if existing:
+                    flash("Email already registered. Please log in.", "danger")
+                    return render_template("register.html", error="Email already registered. Please log in.")
         except Exception as e:
-            import logging
-            logging.error(f"Error checking user existence: {e}", exc_info=True)
+            logging.error(f"User check error during registration: {e}", exc_info=True)
 
-        import random
         code = str(random.randint(100000, 999999))
-        hashed_password = generate_password_hash(password)
-        expires = datetime.now() + timedelta(minutes=15)
-
         REGISTRATION_CODES[email] = {
             "code": code,
-            "password_hash": hashed_password,
-            "expires": expires,
+            "password_hash": generate_password_hash(password),
+            "expires": datetime.now() + timedelta(minutes=15),
             "last_sent": datetime.now()
         }
 
-        sent, msg = send_otp_email(email, code, subject_type="Email Verification")
+        _, _, is_live = send_otp_email(email, code, subject_type="Email Verification")
+        if is_live:
+            flash(f"We sent a 6-digit PIN to {email}. Please check your inbox or spam folder.", "success")
+        else:
+            flash(f"Dev mode — verification PIN: {code}", "success")
+        return render_template("register.html", step="otp", pending_email=email, dev_code=code if not is_live else None)
 
-        has_email_service = bool(os.environ.get("RESEND_API_KEY") or os.environ.get("SMTP_USER") or os.environ.get("GMAIL_USER"))
-        info_msg = f"We sent a 6-digit verification PIN to {email}. Please enter it below." if has_email_service else f"Verification PIN sent! (Dev PIN: {code})"
-        flash(info_msg, "success")
-        return render_template("register.html", step="otp", pending_email=email)
-            
     return render_template("register.html")
 
 
@@ -399,52 +528,45 @@ def register_api_request():
 
         if not email or not password:
             return jsonify({"status": "error", "message": "Email and password are required."}), 400
-
         if len(password) < 6:
             return jsonify({"status": "error", "message": "Password must be at least 6 characters long."}), 400
 
-        # Check DB for existing user
         with get_db() as db:
-            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-            if user:
-                return jsonify({"status": "error", "message": "Email already registered! Please log in instead."}), 400
+            if db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
+                return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
 
-        # Check rate limiting (30 sec)
+        # Rate-limit resend requests (30 seconds)
         existing = REGISTRATION_CODES.get(email)
         if existing and "last_sent" in existing:
-            seconds_since = (datetime.now() - existing["last_sent"]).total_seconds()
-            if seconds_since < 30:
-                remaining = int(30 - seconds_since)
-                return jsonify({
-                    "status": "error",
-                    "message": f"Please wait {remaining} seconds before requesting a new PIN."
-                }), 429
+            elapsed = (datetime.now() - existing["last_sent"]).total_seconds()
+            if elapsed < 30:
+                remaining = int(30 - elapsed)
+                return jsonify({"status": "error", "message": f"Please wait {remaining}s before requesting a new PIN."}), 429
 
-        import random
         code = str(random.randint(100000, 999999))
-        hashed_password = generate_password_hash(password)
-        expires = datetime.now() + timedelta(minutes=15)
-
         REGISTRATION_CODES[email] = {
             "code": code,
-            "password_hash": hashed_password,
-            "expires": expires,
+            "password_hash": generate_password_hash(password),
+            "expires": datetime.now() + timedelta(minutes=15),
             "last_sent": datetime.now()
         }
 
-        sent, msg = send_otp_email(email, code, subject_type="Email Verification")
+        _, _, is_live = send_otp_email(email, code, subject_type="Email Verification")
 
-        has_email_service = bool(os.environ.get("RESEND_API_KEY") or os.environ.get("SMTP_USER") or os.environ.get("GMAIL_USER"))
-        resp_msg = f"Verification PIN sent to {email}! Check your inbox or spam folder." if has_email_service else f"Verification PIN sent! (Dev PIN: {code})"
-
-        return jsonify({
-            "status": "ok",
-            "message": resp_msg,
-            "code": code if not has_email_service else None
-        })
+        if is_live:
+            return jsonify({
+                "status": "ok",
+                "message": f"Verification PIN sent to {email}! Please check your inbox or spam folder.",
+                "code": None
+            })
+        else:
+            return jsonify({
+                "status": "ok",
+                "message": f"Dev mode — verification PIN: {code}",
+                "code": code
+            })
 
     except Exception as e:
-        import logging
         logging.error(f"register_api_request error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to send verification PIN. Please try again."}), 500
 
@@ -462,41 +584,33 @@ def register_api_verify():
         record = REGISTRATION_CODES.get(email)
         if not record:
             return jsonify({"status": "error", "message": "No pending registration found for this email."}), 400
-
         if record["code"] != code:
-            return jsonify({"status": "error", "message": "Incorrect verification PIN. Please check and try again."}), 400
-
+            return jsonify({"status": "error", "message": "Incorrect verification PIN. Please try again."}), 400
         if datetime.now() > record["expires"]:
             REGISTRATION_CODES.pop(email, None)
-            return jsonify({"status": "error", "message": "Verification PIN has expired. Please request a new code."}), 400
+            return jsonify({"status": "error", "message": "Verification PIN expired. Please request a new one."}), 400
 
-        import time, uuid
         new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-        password_hash = record["password_hash"]
-
         with get_db() as db:
-            db.execute("INSERT INTO users (id, email, password) VALUES (?, ?, ?)", (new_user_id, email, password_hash))
+            db.execute(
+                "INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
+                (new_user_id, email, record["password_hash"])
+            )
             db.commit()
 
+        REGISTRATION_CODES.pop(email, None)
         session.permanent = True
         session["user_id"] = new_user_id
-        REGISTRATION_CODES.pop(email, None)
-
-        flash("Email verified successfully! Welcome to SoloBiz!", "success")
-        return jsonify({
-            "status": "ok",
-            "message": "Account verified and created successfully!",
-            "redirect": "/dashboard"
-        })
+        flash("Email verified! Welcome to SoloBiz!", "success")
+        return jsonify({"status": "ok", "message": "Account created successfully!", "redirect": "/dashboard"})
 
     except sqlite3.IntegrityError:
-        return jsonify({"status": "error", "message": "Email already registered! Please log in."}), 400
+        return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
     except Exception as e:
-        import logging
         logging.error(f"register_api_verify error: {e}", exc_info=True)
-        err_str = str(e).lower()
-        if "unique" in err_str or "duplicate" in err_str or "already exists" in err_str:
-            return jsonify({"status": "error", "message": "Email already registered! Please log in."}), 400
+        err = str(e).lower()
+        if "unique" in err or "duplicate" in err or "already exists" in err:
+            return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
         return jsonify({"status": "error", "message": "Failed to verify account. Please try again."}), 500
 
 
@@ -514,44 +628,33 @@ def register_api_resend():
             return jsonify({"status": "error", "message": "No pending registration found for this email."}), 400
 
         if "last_sent" in record:
-            seconds_since = (datetime.now() - record["last_sent"]).total_seconds()
-            if seconds_since < 30:
-                remaining = int(30 - seconds_since)
-                return jsonify({
-                    "status": "error",
-                    "message": f"Please wait {remaining} seconds before requesting a new PIN."
-                }), 429
+            elapsed = (datetime.now() - record["last_sent"]).total_seconds()
+            if elapsed < 30:
+                remaining = int(30 - elapsed)
+                return jsonify({"status": "error", "message": f"Please wait {remaining}s before requesting a new PIN."}), 429
 
-        import random
         code = str(random.randint(100000, 999999))
         record["code"] = code
         record["expires"] = datetime.now() + timedelta(minutes=15)
         record["last_sent"] = datetime.now()
 
-        sent, msg = send_otp_email(email, code, subject_type="Email Verification")
+        _, _, is_live = send_otp_email(email, code, subject_type="Email Verification")
 
-        has_email_service = bool(os.environ.get("RESEND_API_KEY") or os.environ.get("SMTP_USER") or os.environ.get("GMAIL_USER"))
-        resp_msg = "New verification PIN sent to your email!" if has_email_service else f"New PIN sent! (Dev PIN: {code})"
-
-        return jsonify({
-            "status": "ok",
-            "message": resp_msg,
-            "code": code if not has_email_service else None
-        })
+        if is_live:
+            return jsonify({"status": "ok", "message": "New verification PIN sent to your email!", "code": None})
+        else:
+            return jsonify({"status": "ok", "message": f"Dev mode — new PIN: {code}", "code": code})
 
     except Exception as e:
-        import logging
         logging.error(f"register_api_resend error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to resend PIN. Please try again."}), 500
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        raw_email = request.form.get("email", "")
-        raw_password = request.form.get("password", "")
-        
-        email = raw_email.strip().lower()
-        password = raw_password.strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "").strip()
 
         if not email or not password:
             flash("Please enter both email and password.", "danger")
@@ -560,21 +663,19 @@ def login():
         try:
             with get_db() as db:
                 user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-                
                 if not user or not user["password"] or not check_password_hash(user["password"], password):
                     flash("Invalid email or password. Please try again.", "danger")
                     return render_template("login.html")
-                    
                 session.permanent = True
                 session["user_id"] = str(user["id"])
                 return redirect("/dashboard")
         except Exception as e:
-            import logging
-            logging.error(f"Login error for email '{email}': {e}", exc_info=True)
+            logging.error(f"Login error for '{email}': {e}", exc_info=True)
             flash("An unexpected error occurred. Please try again.", "danger")
             return render_template("login.html")
-                
+
     return render_template("login.html")
+
 
 @app.route("/logout")
 def logout():
@@ -583,110 +684,10 @@ def logout():
     resp.delete_cookie(app.config.get("SESSION_COOKIE_NAME", "session"))
     return resp
 
+
 # ==========================================
-# OTP & EMAIL SERVICES (RESEND API)
+# FORGOT PASSWORD ROUTES
 # ==========================================
-# OTP & EMAIL SERVICES (RESEND API & SMTP)
-# ==========================================
-RESET_CODES = {}
-REGISTRATION_CODES = {}
-
-def send_otp_email(to_email, otp_code, subject_type="Email Verification"):
-    """
-    Sends a 6-digit OTP verification code via Resend or SMTP (e.g. Gmail SMTP).
-    Falls back gracefully to server log printing if no email keys are set.
-    """
-    api_key = os.environ.get("RESEND_API_KEY")
-    smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", 587))
-    smtp_user = os.environ.get("SMTP_USER") or os.environ.get("SMTP_USERNAME") or os.environ.get("GMAIL_USER")
-    smtp_pass = os.environ.get("SMTP_PASSWORD") or os.environ.get("GMAIL_APP_PASSWORD")
-    from_email = os.environ.get("RESEND_FROM_EMAIL") or (f"SoloBiz <{smtp_user}>" if smtp_user else "SoloBiz <onboarding@resend.dev>")
-
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color:#0f172a; margin:0; padding:40px 20px; color:#f8fafc;">
-      <div style="max-width:480px; margin:0 auto; background:#1e293b; border:1px solid #334155; border-radius:16px; padding:32px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
-        <div style="font-size:24px; font-weight:800; color:#6366f1; margin-bottom:8px; letter-spacing:-0.5px;">SoloBiz</div>
-        <div style="font-size:20px; font-weight:700; color:#ffffff; margin-bottom:12px;">{subject_type}</div>
-        <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin-bottom:24px;">Use the 6-digit verification PIN below to verify your Gmail address and complete your SoloBiz setup. This code expires in 15 minutes.</p>
-        <div style="background:#0f172a; border:2px dashed #6366f1; border-radius:12px; padding:18px; font-size:32px; font-weight:900; letter-spacing:8px; color:#818cf8; margin:20px 0; font-family:monospace;">{otp_code}</div>
-        <p style="font-size:13px; color:#64748b; margin-top:20px;">If you didn't request this code, please ignore this email.</p>
-        <div style="font-size:12px; color:#475569; margin-top:24px; border-top:1px solid #334155; padding-top:16px;">&copy; SoloBiz — Smart Finance for Independent Vendors</div>
-      </div>
-    </body>
-    </html>
-    """
-
-    print(f"\n==========================================")
-    print(f"🔑 {subject_type.upper()} PIN FOR {to_email}: {otp_code}")
-    print(f"==========================================\n", flush=True)
-
-    # 1. Try Resend if API key set
-    if api_key:
-        try:
-            if HAS_RESEND:
-                resend.api_key = api_key
-                resend.Emails.send({
-                    "from": from_email,
-                    "to": [to_email],
-                    "subject": f"Your SoloBiz {subject_type} Code: {otp_code}",
-                    "html": html_content
-                })
-            else:
-                import requests
-                resp = requests.post(
-                    "https://api.resend.com/emails",
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "from": from_email,
-                        "to": [to_email],
-                        "subject": f"Your SoloBiz {subject_type} Code: {otp_code}",
-                        "html": html_content
-                    },
-                    timeout=10
-                )
-                resp.raise_for_status()
-            print(f"✅ OTP Email sent via Resend to {to_email}!")
-            return True, "Verification code sent to your email!"
-        except Exception as e:
-            import logging
-            logging.error(f"Failed to send OTP via Resend to {to_email}: {e}", exc_info=True)
-
-    # 2. Try SMTP (e.g. Gmail SMTP)
-    if smtp_user and smtp_pass:
-        try:
-            import smtplib
-            from email.mime.text import MIMEText
-            from email.mime.multipart import MIMEMultipart
-
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"Your SoloBiz {subject_type} Code: {otp_code}"
-            msg["From"] = from_email
-            msg["To"] = to_email
-            msg.attach(MIMEText(html_content, "html"))
-
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(from_email, [to_email], msg.as_string())
-            print(f"✅ OTP Email sent via SMTP ({smtp_server}) to {to_email}!")
-            return True, "Verification code sent to your email!"
-        except Exception as e:
-            import logging
-            logging.error(f"Failed to send OTP via SMTP to {to_email}: {e}", exc_info=True)
-
-    print(f"ℹ️ No live email service configured. Dev PIN generated for {to_email}: {otp_code}", flush=True)
-    return True, f"Dev PIN generated: {otp_code}"
-
 @app.route("/api/forgot-password/request", methods=["POST"])
 def forgot_password_request():
     try:
@@ -696,33 +697,24 @@ def forgot_password_request():
             return jsonify({"status": "error", "message": "Please enter a valid email address."}), 400
 
         with get_db() as db:
-            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
             if not user:
-                return jsonify({
-                    "status": "error",
-                    "message": "No account found with this email address. Please register first."
-                }), 404
+                return jsonify({"status": "error", "message": "No account found with this email. Please register first."}), 404
 
-        import random
         code = str(random.randint(100000, 999999))
-        expires = datetime.now() + timedelta(minutes=15)
-        RESET_CODES[email] = {"code": code, "expires": expires, "last_sent": datetime.now()}
+        RESET_CODES[email] = {"code": code, "expires": datetime.now() + timedelta(minutes=15), "last_sent": datetime.now()}
 
-        sent, msg = send_otp_email(email, code)
+        _, _, is_live = send_otp_email(email, code, subject_type="Password Reset")
 
-        has_api_key = bool(os.environ.get("RESEND_API_KEY"))
-        resp_msg = "Verification PIN sent to your email address!" if has_api_key else f"Verification PIN sent! (Dev PIN: {code})"
-
-        return jsonify({
-            "status": "ok",
-            "message": resp_msg,
-            "code": code if not has_api_key else None
-        })
+        if is_live:
+            return jsonify({"status": "ok", "message": "Verification PIN sent to your email!", "code": None})
+        else:
+            return jsonify({"status": "ok", "message": f"Dev mode — PIN: {code}", "code": code})
 
     except Exception as e:
-        import logging
         logging.error(f"forgot_password_request error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to generate PIN. Please try again."}), 500
+
 
 @app.route("/api/forgot-password/resend", methods=["POST"])
 def forgot_password_resend():
@@ -733,41 +725,30 @@ def forgot_password_resend():
             return jsonify({"status": "error", "message": "Please enter a valid email address."}), 400
 
         with get_db() as db:
-            user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-            if not user:
-                return jsonify({"status": "error", "message": "No account found with this email address."}), 404
+            if not db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
+                return jsonify({"status": "error", "message": "No account found with this email."}), 404
 
-        # 30-second rate limiting per email
         existing = RESET_CODES.get(email)
         if existing and "last_sent" in existing:
-            seconds_since = (datetime.now() - existing["last_sent"]).total_seconds()
-            if seconds_since < 30:
-                remaining = int(30 - seconds_since)
-                return jsonify({
-                    "status": "error",
-                    "message": f"Please wait {remaining} seconds before requesting a new PIN."
-                }), 429
+            elapsed = (datetime.now() - existing["last_sent"]).total_seconds()
+            if elapsed < 30:
+                remaining = int(30 - elapsed)
+                return jsonify({"status": "error", "message": f"Please wait {remaining}s before requesting a new PIN."}), 429
 
-        import random
         code = str(random.randint(100000, 999999))
-        expires = datetime.now() + timedelta(minutes=15)
-        RESET_CODES[email] = {"code": code, "expires": expires, "last_sent": datetime.now()}
+        RESET_CODES[email] = {"code": code, "expires": datetime.now() + timedelta(minutes=15), "last_sent": datetime.now()}
 
-        sent, msg = send_otp_email(email, code)
+        _, _, is_live = send_otp_email(email, code, subject_type="Password Reset")
 
-        has_api_key = bool(os.environ.get("RESEND_API_KEY"))
-        resp_msg = "New verification PIN sent to your email!" if has_api_key else f"New PIN sent! (Dev PIN: {code})"
-
-        return jsonify({
-            "status": "ok",
-            "message": resp_msg,
-            "code": code if not has_api_key else None
-        })
+        if is_live:
+            return jsonify({"status": "ok", "message": "New verification PIN sent to your email!", "code": None})
+        else:
+            return jsonify({"status": "ok", "message": f"Dev mode — new PIN: {code}", "code": code})
 
     except Exception as e:
-        import logging
         logging.error(f"forgot_password_resend error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to resend PIN. Please try again."}), 500
+
 
 @app.route("/api/forgot-password/reset", methods=["POST"])
 def forgot_password_reset():
@@ -779,13 +760,12 @@ def forgot_password_reset():
 
         if not email or not code or not new_password:
             return jsonify({"status": "error", "message": "Email, verification PIN, and new password are required."}), 400
-
         if len(new_password) < 6:
             return jsonify({"status": "error", "message": "New password must be at least 6 characters long."}), 400
 
         record = RESET_CODES.get(email)
         if not record or record["code"] != code or datetime.now() > record["expires"]:
-            return jsonify({"status": "error", "message": "Invalid or expired verification PIN. Please request a new code."}), 400
+            return jsonify({"status": "error", "message": "Invalid or expired verification PIN. Please request a new one."}), 400
 
         hashed = generate_password_hash(new_password)
         with get_db() as db:
@@ -804,41 +784,32 @@ def forgot_password_reset():
         return jsonify({"status": "ok", "message": "Password updated successfully!", "redirect": "/dashboard"})
 
     except Exception as e:
-        import logging
         logging.error(f"forgot_password_reset error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to update password. Please try again."}), 500
 
+
 # ==========================================
-# DASHBOARD & CRUD ROUTES
+# STATIC & SEO ROUTES
 # ==========================================
 @app.route("/")
 def root():
-    user_id = get_current_user_id()
-    if user_id:
+    if get_current_user_id():
         return redirect("/dashboard")
     return render_template("landing.html")
+
 
 @app.route("/sitemap.xml")
 def sitemap():
     xml = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://solobiz.onrender.com/</loc>
-    <lastmod>2026-09-20</lastmod>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://solobiz.onrender.com/login</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://solobiz.onrender.com/register</loc>
-    <priority>0.8</priority>
-  </url>
+  <url><loc>https://solobiz.dev/</loc><lastmod>2026-09-20</lastmod><priority>1.0</priority></url>
+  <url><loc>https://solobiz.dev/login</loc><priority>0.8</priority></url>
+  <url><loc>https://solobiz.dev/register</loc><priority>0.8</priority></url>
 </urlset>"""
     response = make_response(xml)
     response.headers["Content-Type"] = "application/xml; charset=utf-8"
     return response
+
 
 @app.route("/robots.txt")
 def robots():
@@ -849,69 +820,74 @@ Allow: /register
 Disallow: /dashboard
 Disallow: /api/
 
-Sitemap: https://solobiz.onrender.com/sitemap.xml"""
+Sitemap: https://solobiz.dev/sitemap.xml"""
     response = make_response(txt)
     response.headers["Content-Type"] = "text/plain; charset=utf-8"
     return response
+
 
 @app.route("/favicon.ico")
 def favicon():
     return send_from_directory(os.path.join(app.root_path, "static"), "favicon.png", mimetype="image/png")
 
+
+# ==========================================
+# DASHBOARD ROUTE
+# ==========================================
 @app.route("/dashboard")
 def dashboard():
     user_id = get_current_user_id()
-
     if not user_id:
         return redirect("/login")
 
     expenses = []
-    total_sales = 0.00
-    total_expenses = 0.00
+    total_sales = 0.0
+    total_expenses = 0.0
     username = "Entrepreneur"
 
     try:
         with get_db() as db:
             try:
-                user = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-                if user and hasattr(user, "__getitem__") and "email" in user and user["email"]:
+                user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+                if user and user["email"]:
                     username = user["email"].split("@")[0].capitalize()
-            except Exception as u_ex:
-                print(f"Dashboard user query note: {u_ex}", flush=True)
+            except Exception as e:
+                print(f"Dashboard user query note: {e}", flush=True)
 
             try:
-                expenses = db.execute("SELECT * FROM expenses WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall() or []
-            except Exception as e_ex:
-                print(f"Dashboard expenses list note: {e_ex}", flush=True)
+                expenses = db.execute(
+                    "SELECT * FROM expenses WHERE user_id = ? ORDER BY id DESC", (user_id,)
+                ).fetchall() or []
+            except Exception as e:
+                print(f"Dashboard expenses list note: {e}", flush=True)
 
             try:
-                sales_query = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
-                if sales_query and sales_query["total"] is not None:
-                    total_sales = float(sales_query["total"])
-            except Exception as s_ex:
-                print(f"Dashboard sales sum note: {s_ex}", flush=True)
+                row = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+                if row and row["total"] is not None:
+                    total_sales = float(row["total"])
+            except Exception as e:
+                print(f"Dashboard sales sum note: {e}", flush=True)
 
             try:
-                expenses_query = db.execute("SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
-                if expenses_query and expenses_query["total"] is not None:
-                    total_expenses = float(expenses_query["total"])
-            except Exception as es_ex:
-                print(f"Dashboard expenses sum note: {es_ex}", flush=True)
+                row = db.execute("SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
+                if row and row["total"] is not None:
+                    total_expenses = float(row["total"])
+            except Exception as e:
+                print(f"Dashboard expenses sum note: {e}", flush=True)
 
-    except Exception as general_ex:
-        import logging
-        logging.error(f"Error fetching dashboard data for user '{user_id}': {general_ex}", exc_info=True)
+    except Exception as e:
+        logging.error(f"Dashboard data fetch error for user '{user_id}': {e}", exc_info=True)
 
-    net_profit = float(total_sales) - float(total_expenses)
+    net_profit = total_sales - total_expenses
 
     profile = None
-    with get_db() as db:
-        try:
+    try:
+        with get_db() as db:
             prof_row = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
             if prof_row:
                 profile = dict(prof_row)
-        except Exception as p_ex:
-            print(f"Dashboard profile query note: {p_ex}", flush=True)
+    except Exception as e:
+        print(f"Dashboard profile query note: {e}", flush=True)
 
     return render_template(
         "index.html",
@@ -924,6 +900,10 @@ def dashboard():
         profile=profile
     )
 
+
+# ==========================================
+# EXPENSES API ROUTES
+# ==========================================
 @app.route("/api/expenses", methods=["GET"])
 def get_expenses():
     user_id = get_current_user_id()
@@ -931,11 +911,10 @@ def get_expenses():
         return jsonify({"error": "Unauthorized"}), 401
 
     with get_db() as db:
-        cursor = db.execute(
+        rows = db.execute(
             "SELECT id, amount, category, description, date FROM expenses WHERE user_id = ? ORDER BY id DESC",
             (user_id,)
-        )
-        rows = cursor.fetchall()
+        ).fetchall()
         expenses = [
             {
                 "server_id": row["id"],
@@ -947,69 +926,8 @@ def get_expenses():
             }
             for row in rows
         ]
-
     return jsonify({"expenses": expenses}), 200
 
-@app.route("/calculate", methods=["POST"])
-def calculate():
-    if "user_id" not in session:
-        return redirect("/login")
-        
-    user_id = session["user_id"]
-    
-    # Get what the user wants to calculate
-    calc_term = request.form["calc_term"].strip()
-    calc_term_lower = calc_term.lower()
-    calc_type = request.form["calc_type"]
-    
-    items = []
-    
-    with get_db() as db:
-        # Match their choice exactly like your terminal if/elif statements
-        if calc_type == "amount":
-            try:
-                val = float(calc_term_lower)
-                items = db.execute("SELECT amount FROM expenses WHERE user_id = ? AND amount = ?", (user_id, val)).fetchall()
-            except ValueError:
-                items = []
-        elif calc_type == "category":
-            items = db.execute("SELECT amount FROM expenses WHERE user_id = ? AND LOWER(category) LIKE ?", (user_id, f"%{calc_term_lower}%")).fetchall()
-        elif calc_type == "description":
-            items = db.execute("SELECT amount FROM expenses WHERE user_id = ? AND LOWER(description) LIKE ?", (user_id, f"%{calc_term_lower}%")).fetchall()
-            
-        # We also need to load the main dashboard data so the page doesn't break
-        user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
-        expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
-        
-    # Do the math!
-    calc_result = sum(float(row["amount"] or 0) for row in items)
-
-    total_expenses = sum(float(item["amount"] or 0) for item in expenses)
-    username = user["email"].split("@")[0].capitalize() if user and user.get("email") else "Entrepreneur"
-
-    # Fetch sales total for full template render
-    total_sales = 0.00
-    try:
-        with get_db() as db:
-            sales_q = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
-            if sales_q and sales_q["total"] is not None:
-                total_sales = float(sales_q["total"])
-    except Exception:
-        pass
-
-    net_profit = total_sales - total_expenses
-
-    return render_template(
-        "index.html",
-        expenses=expenses,
-        total=total_expenses,
-        total_sales=total_sales,
-        total_expenses=total_expenses,
-        net_profit=net_profit,
-        username=username,
-        calc_result=calc_result,
-        calc_term=calc_term
-    )
 
 @app.route("/add", methods=["POST"])
 def add_expense():
@@ -1017,7 +935,6 @@ def add_expense():
     if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
-    # Parse JSON payload from request
     data = request.get_json(silent=True) or request.get_json(force=True, silent=True)
     if not isinstance(data, dict):
         return jsonify({"status": "error", "message": "Invalid JSON payload"}), 400
@@ -1027,7 +944,7 @@ def add_expense():
     description_val = data.get("description")
 
     if amount_val is None or category_val is None or description_val is None:
-        return jsonify({"status": "error", "message": "Missing required fields: amount, category, and description are required"}), 400
+        return jsonify({"status": "error", "message": "Missing required fields: amount, category, and description"}), 400
 
     try:
         amount = float(amount_val)
@@ -1038,12 +955,10 @@ def add_expense():
 
     category = str(category_val).strip()
     description = str(description_val).strip()
-
     if not category or not description:
         return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
 
     expense_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
-
     with get_db() as db:
         cursor = db.execute(
             "INSERT INTO expenses (user_id, amount, category, description, date) VALUES (?, ?, ?, ?, ?)",
@@ -1064,6 +979,7 @@ def add_expense():
             "date": expense_date
         }
     }), 201
+
 
 @app.route("/api/expenses/<int:expense_id>", methods=["DELETE", "PUT"])
 def api_expense_detail(expense_id):
@@ -1091,12 +1007,10 @@ def api_expense_detail(expense_id):
 
         category = str(data.get("category", "")).strip()
         description = str(data.get("description", "")).strip()
-
         if not category or not description:
             return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
 
         expense_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
-
         with get_db() as db:
             db.execute(
                 "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
@@ -1107,82 +1021,131 @@ def api_expense_detail(expense_id):
         return jsonify({
             "status": "success",
             "message": "Expense updated successfully",
-            "expense": {
-                "id": expense_id,
-                "amount": amount,
-                "category": category,
-                "description": description,
-                "date": expense_date
-            }
+            "expense": {"id": expense_id, "amount": amount, "category": category, "description": description, "date": expense_date}
         }), 200
+
 
 @app.route("/delete/<int:expense_id>", methods=["POST"])
 def delete_expense(expense_id):
     user_id = get_current_user_id()
     if not user_id:
         return redirect("/login")
-    
     with get_db() as db:
         db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
         db.commit()
-
     return redirect("/dashboard")
+
 
 @app.route("/edit/<int:expense_id>", methods=["GET", "POST"])
 def edit_expense(expense_id):
     user_id = get_current_user_id()
     if not user_id:
         return redirect("/login")
-    
+
     if request.method == "GET":
         with get_db() as db:
             item = db.execute("SELECT * FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id)).fetchone()
         if item:
             return render_template("edit.html", item=item)
         return redirect("/")
-        
+
     if request.method == "POST":
         amount = float(request.form["amount"])
         category = request.form["category"].strip()
         description = request.form["description"].strip()
         expenses_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
-        
         with get_db() as db:
-            db.execute("UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
-                       (amount, category, description, expenses_date, expense_id, user_id))
+            db.execute(
+                "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
+                (amount, category, description, expenses_date, expense_id, user_id)
+            )
             db.commit()
         return redirect("/dashboard")
+
+
+@app.route("/calculate", methods=["POST"])
+def calculate():
+    user_id = get_current_user_id()
+    if not user_id:
+        return redirect("/login")
+
+    calc_term = request.form["calc_term"].strip()
+    calc_term_lower = calc_term.lower()
+    calc_type = request.form["calc_type"]
+    items = []
+
+    with get_db() as db:
+        if calc_type == "amount":
+            try:
+                val = float(calc_term_lower)
+                items = db.execute("SELECT amount FROM expenses WHERE user_id = ? AND amount = ?", (user_id, val)).fetchall()
+            except ValueError:
+                items = []
+        elif calc_type == "category":
+            items = db.execute(
+                "SELECT amount FROM expenses WHERE user_id = ? AND LOWER(category) LIKE ?",
+                (user_id, f"%{calc_term_lower}%")
+            ).fetchall()
+        elif calc_type == "description":
+            items = db.execute(
+                "SELECT amount FROM expenses WHERE user_id = ? AND LOWER(description) LIKE ?",
+                (user_id, f"%{calc_term_lower}%")
+            ).fetchall()
+
+        user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+        expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
+
+    calc_result = sum(float(row["amount"] or 0) for row in items)
+    total_expenses = sum(float(item["amount"] or 0) for item in expenses)
+    username = user["email"].split("@")[0].capitalize() if user and user.get("email") else "Entrepreneur"
+
+    total_sales = 0.0
+    try:
+        with get_db() as db:
+            row = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            if row and row["total"] is not None:
+                total_sales = float(row["total"])
+    except Exception:
+        pass
+
+    return render_template(
+        "index.html",
+        expenses=expenses,
+        total=total_expenses,
+        total_sales=total_sales,
+        total_expenses=total_expenses,
+        net_profit=total_sales - total_expenses,
+        username=username,
+        calc_result=calc_result,
+        calc_term=calc_term
+    )
+
 
 @app.route("/search", methods=["POST"])
 def search():
     user_id = get_current_user_id()
     if not user_id:
         return redirect("/login")
-    
+
     raw_search = request.form["search_term"].strip()
     search_term = raw_search.lower()
     search_type = request.form["search_type"]
-    
     search_results = []
     display_term = raw_search
-    
+
     with get_db() as db:
-        all_expenses = db.execute(
-            "SELECT * FROM expenses WHERE user_id = ?", (user_id,)
-        ).fetchall()
-        
+        all_expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
+
         if search_type == "amount":
             try:
                 amount_val = float(search_term)
                 search_results = db.execute(
-                    "SELECT * FROM expenses WHERE user_id = ? AND amount = ?",
-                    (user_id, amount_val)
+                    "SELECT * FROM expenses WHERE user_id = ? AND amount = ?", (user_id, amount_val)
                 ).fetchall()
                 if search_results:
                     display_term = f"₦{amount_val:,.2f}"
             except ValueError:
                 search_results = []
-                
         elif search_type == "category":
             search_results = db.execute(
                 "SELECT * FROM expenses WHERE user_id = ? AND LOWER(category) LIKE ?",
@@ -1194,21 +1157,18 @@ def search():
     global_total = sum(float(item["amount"] or 0) for item in all_expenses)
     search_total = sum(float(item["amount"] or 0) for item in search_results)
 
-    # Fetch username and sales totals for full template render
     username = "Entrepreneur"
-    total_sales = 0.00
+    total_sales = 0.0
     try:
         with get_db() as db:
             user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
             if user and user["email"]:
                 username = user["email"].split("@")[0].capitalize()
-            sales_q = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
-            if sales_q and sales_q["total"] is not None:
-                total_sales = float(sales_q["total"])
+            row = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            if row and row["total"] is not None:
+                total_sales = float(row["total"])
     except Exception:
         pass
-
-    net_profit = total_sales - global_total
 
     return render_template(
         "index.html",
@@ -1216,7 +1176,7 @@ def search():
         total=global_total,
         total_sales=total_sales,
         total_expenses=global_total,
-        net_profit=net_profit,
+        net_profit=total_sales - global_total,
         username=username,
         search_results=search_results,
         search_total=search_total,
@@ -1224,8 +1184,11 @@ def search():
         search_term=display_term
     )
 
+
+# ==========================================
+# HELPER: URL SLUG GENERATOR
+# ==========================================
 def slugify(text):
-    import re
     if not text:
         return "store"
     text = text.lower().strip()
@@ -1233,15 +1196,19 @@ def slugify(text):
     text = re.sub(r'[\s_-]+', '-', text)
     return text.strip('-') or "store"
 
+
 # ==========================================
-# PUBLIC DIGITAL STOREFRONT (BUSINESS CARD)
+# PUBLIC DIGITAL STOREFRONT
 # ==========================================
 @app.route("/api/avatar/<store_slug>")
 def dynamic_business_avatar(store_slug):
     company_name = store_slug
     color_hex = "4F46E5"
     with get_db() as db:
-        profile = db.execute("SELECT company_name, brand_color FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)", (store_slug,)).fetchone()
+        profile = db.execute(
+            "SELECT company_name, brand_color FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)",
+            (store_slug,)
+        ).fetchone()
         if profile:
             if profile["company_name"]:
                 company_name = profile["company_name"]
@@ -1252,27 +1219,27 @@ def dynamic_business_avatar(store_slug):
         color_hex = "4F46E5"
 
     initials = (company_name[:2] if len(company_name) >= 2 else (company_name[:1] or "B")).upper()
-
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-      <rect width="512" height="512" rx="120" fill="#{color_hex}"/>
-      <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="210">{initials}</text>
-    </svg>'''
-
+  <rect width="512" height="512" rx="120" fill="#{color_hex}"/>
+  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="210">{initials}</text>
+</svg>'''
     return Response(svg, mimetype="image/svg+xml")
+
 
 @app.route("/store/<store_slug>")
 def public_storefront(store_slug):
     with get_db() as db:
-        profile = db.execute("SELECT * FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)", (store_slug,)).fetchone()
+        profile = db.execute(
+            "SELECT * FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)", (store_slug,)
+        ).fetchone()
 
     if not profile:
         return render_template("landing.html"), 404
 
     profile_dict = dict(profile)
     user_id = profile_dict["user_id"]
-
-    # Calculate absolute logo URL for Open Graph & favicon social sharing
     base_url = request.host_url.rstrip("/")
+
     if profile_dict.get("logo_url"):
         logo_path = profile_dict["logo_url"]
         if logo_path.startswith("http://") or logo_path.startswith("https://"):
@@ -1283,13 +1250,13 @@ def public_storefront(store_slug):
         logo_absolute_url = f"{base_url}/api/avatar/{store_slug}"
 
     sales_count = 0
-    with get_db() as db:
-        try:
+    try:
+        with get_db() as db:
             res = db.execute("SELECT COUNT(*) as count FROM income WHERE user_id = ?", (user_id,)).fetchone()
             if res:
                 sales_count = res["count"] if hasattr(res, "__getitem__") else 0
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     return render_template(
         "storefront.html",
@@ -1298,8 +1265,9 @@ def public_storefront(store_slug):
         logo_absolute_url=logo_absolute_url
     )
 
+
 # ==========================================
-# BUSINESS PROFILE API ROUTES
+# BUSINESS PROFILE API
 # ==========================================
 @app.route("/api/business_profile", methods=["GET", "POST"])
 def api_business_profile():
@@ -1315,15 +1283,9 @@ def api_business_profile():
             return jsonify({
                 "status": "success",
                 "profile": {
-                    "company_name": "",
-                    "business_phone": "",
-                    "business_address": "",
-                    "instagram_handle": "",
-                    "whatsapp_number": "",
-                    "store_policy": "",
-                    "brand_color": "#4F46E5",
-                    "logo_url": "",
-                    "store_slug": ""
+                    "company_name": "", "business_phone": "", "business_address": "",
+                    "instagram_handle": "", "whatsapp_number": "", "store_policy": "",
+                    "brand_color": "#4F46E5", "logo_url": "", "store_slug": ""
                 }
             }), 200
 
@@ -1361,7 +1323,6 @@ def api_business_profile():
 
         store_slug = slugify(company_name)
 
-        # Handle Logo File Upload if provided
         logo_url = None
         if "logo" in request.files:
             file = request.files["logo"]
@@ -1381,11 +1342,11 @@ def api_business_profile():
 
             if existing:
                 db.execute(
-                    """UPDATE business_profiles 
-                       SET company_name = ?, business_phone = ?, business_address = ?,
-                           instagram_handle = ?, whatsapp_number = ?, store_policy = ?,
-                           brand_color = ?, logo_url = ?, store_slug = ?
-                       WHERE user_id = ?""",
+                    """UPDATE business_profiles
+                       SET company_name=?, business_phone=?, business_address=?,
+                           instagram_handle=?, whatsapp_number=?, store_policy=?,
+                           brand_color=?, logo_url=?, store_slug=?
+                       WHERE user_id=?""",
                     (company_name, business_phone, business_address,
                      instagram_handle, whatsapp_number, store_policy,
                      brand_color, current_logo, store_slug, user_id)
@@ -1393,8 +1354,9 @@ def api_business_profile():
                 profile_id = existing_dict["id"]
             else:
                 cursor = db.execute(
-                    """INSERT INTO business_profiles 
-                       (user_id, company_name, business_phone, business_address, instagram_handle, whatsapp_number, store_policy, brand_color, logo_url, store_slug)
+                    """INSERT INTO business_profiles
+                       (user_id, company_name, business_phone, business_address, instagram_handle,
+                        whatsapp_number, store_policy, brand_color, logo_url, store_slug)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (user_id, company_name, business_phone, business_address,
                      instagram_handle, whatsapp_number, store_policy,
@@ -1407,23 +1369,17 @@ def api_business_profile():
             "status": "success",
             "message": "Business profile saved successfully!",
             "profile": {
-                "id": profile_id,
-                "user_id": user_id,
-                "company_name": company_name,
-                "business_phone": business_phone,
-                "business_address": business_address,
-                "instagram_handle": instagram_handle,
-                "whatsapp_number": whatsapp_number,
-                "store_policy": store_policy,
-                "brand_color": brand_color,
-                "logo_url": current_logo,
-                "store_slug": store_slug
+                "id": profile_id, "user_id": user_id, "company_name": company_name,
+                "business_phone": business_phone, "business_address": business_address,
+                "instagram_handle": instagram_handle, "whatsapp_number": whatsapp_number,
+                "store_policy": store_policy, "brand_color": brand_color,
+                "logo_url": current_logo, "store_slug": store_slug
             }
         }), 200
 
 
 # ==========================================
-# INCOME (SALES) API ROUTES
+# INCOME (SALES) API
 # ==========================================
 @app.route("/api/income", methods=["GET", "POST"])
 @app.route("/add_income", methods=["GET", "POST"])
@@ -1435,18 +1391,18 @@ def api_income():
     if request.method == "GET":
         with get_db() as db:
             rows = db.execute("SELECT * FROM income WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall()
-            income_list = []
-            for row in rows:
-                row_dict = dict(row)
-                income_list.append({
-                    "id": row_dict["id"],
-                    "user_id": row_dict["user_id"],
-                    "amount": float(row_dict["amount"]),
-                    "item_sold": row_dict.get("item_sold", ""),
-                    "customer_name": row_dict.get("customer_name") or "Walk-in Customer",
-                    "date": row_dict.get("date"),
-                    "receipt_id": row_dict.get("receipt_id") or f"REC-{row_dict['id']}"
-                })
+            income_list = [
+                {
+                    "id": dict(row)["id"],
+                    "user_id": dict(row)["user_id"],
+                    "amount": float(dict(row)["amount"]),
+                    "item_sold": dict(row).get("item_sold", ""),
+                    "customer_name": dict(row).get("customer_name") or "Walk-in Customer",
+                    "date": dict(row).get("date"),
+                    "receipt_id": dict(row).get("receipt_id") or f"REC-{dict(row)['id']}"
+                }
+                for row in rows
+            ]
         return jsonify({"status": "success", "income": income_list}), 200
 
     elif request.method == "POST":
@@ -1454,14 +1410,12 @@ def api_income():
         if not isinstance(data, dict):
             data = request.form.to_dict()
 
-        import time
         income_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
         receipt_id = data.get("receipt_id") or f"REC-{int(time.time())}"
         customer_name = str(data.get("customer_name", "Walk-in Customer")).strip() or "Walk-in Customer"
 
         items = data.get("items")
         if not items or not isinstance(items, list):
-            # Fallback if submitted as single item
             amount_val = data.get("amount")
             item_sold = str(data.get("item_sold", "")).strip()
             if amount_val is not None and item_sold:
@@ -1473,9 +1427,8 @@ def api_income():
             return jsonify({"status": "error", "message": "Missing required fields: item_sold and amount are required"}), 400
 
         saved_items = []
-
         with get_db() as db:
-            for idx, product in enumerate(items):
+            for product in items:
                 item_name = str(product.get("item_sold", "")).strip()
                 try:
                     amt = float(product.get("amount", 0))
@@ -1484,20 +1437,14 @@ def api_income():
                 except (TypeError, ValueError):
                     continue
 
-                item_receipt_id = receipt_id if len(items) > 1 else (receipt_id + (f"-{idx+1}" if idx > 0 else ""))
                 cursor = db.execute(
                     "INSERT INTO income (user_id, amount, item_sold, customer_name, date, receipt_id) VALUES (?, ?, ?, ?, ?, ?)",
                     (user_id, amt, item_name, customer_name, income_date, receipt_id)
                 )
-                income_id = cursor.lastrowid
                 saved_items.append({
-                    "id": income_id,
-                    "user_id": user_id,
-                    "amount": amt,
-                    "item_sold": item_name,
-                    "customer_name": customer_name,
-                    "date": income_date,
-                    "receipt_id": receipt_id
+                    "id": cursor.lastrowid, "user_id": user_id, "amount": amt,
+                    "item_sold": item_name, "customer_name": customer_name,
+                    "date": income_date, "receipt_id": receipt_id
                 })
             db.commit()
 
@@ -1512,37 +1459,40 @@ def api_income():
             "items": saved_items
         }), 201
 
+
+# ==========================================
+# UTILITY ROUTES
+# ==========================================
 @app.route("/user-count")
 def user_count():
     with get_db() as db:
         row = db.execute("SELECT COUNT(*) AS total FROM users").fetchone()
-        if isinstance(row, dict) or hasattr(row, "keys"):
-            total = row["total"]
-        elif row:
-            total = row[0]
-        else:
-            total = 0
+        total = row["total"] if (isinstance(row, dict) or hasattr(row, "keys")) else (row[0] if row else 0)
     return f"<h1>Total Registered Users: {total}</h1>"
 
+
+# ==========================================
+# ERROR HANDLERS
+# ==========================================
 @app.errorhandler(404)
 def handle_404(e):
     if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
         return jsonify({"status": "error", "message": "The requested resource was not found."}), 404
     return render_template("404.html"), 404
 
+
 @app.errorhandler(500)
 @app.errorhandler(Exception)
 def handle_exception(e):
-    import logging
     logging.error("Unhandled Server Exception: %s", e, exc_info=True)
     if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
-        return jsonify({
-            "status": "error",
-            "message": "An internal server error occurred. Please try again later."
-        }), 500
+        return jsonify({"status": "error", "message": "An internal server error occurred. Please try again later."}), 500
     return render_template("500.html"), 500
 
+
+# ==========================================
+# ENTRY POINT
+# ==========================================
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

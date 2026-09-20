@@ -5,4 +5,4 @@ Allow: /register
 Disallow: /dashboard
 Disallow: /api/
 
-Sitemap: https://solobiz.onrender.com/sitemap.xml
+Sitemap: https://solobiz.dev/sitemap.xml
