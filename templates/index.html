@@ -86,10 +86,10 @@
     <header class="bg-gray-900 text-white p-3.5 sm:p-4 shadow-md sticky top-0 z-40">
         <div class="max-w-md mx-auto flex justify-between items-center">
             
-            <!-- Left: App Logo, Name & Beta Tag (updates dynamically to business branding) -->
+            <!-- Left: App Logo, Name & Pocket CFO Tag -->
             <div class="flex items-center gap-2">
                 <div id="app-header-logo-wrap" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg shadow-sm overflow-hidden flex-shrink-0 bg-indigo-600 flex items-center justify-center">
-                    <img id="app-header-logo" src="/static/logo.svg" alt="Business Logo" class="w-full h-full object-cover rounded-lg">
+                    <img id="app-header-logo" src="/static/logo.svg" alt="SoloBiz Logo" class="w-full h-full object-cover rounded-lg">
                 </div>
                 <h1 id="app-header-biz-name" class="font-bold text-base sm:text-lg tracking-wide text-indigo-400">SoloBiz</h1>
                 <span class="text-[9px] font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800 px-1.5 py-0.5 rounded-full">Pocket CFO</span>
@@ -2441,38 +2441,7 @@
                     if (pPhone) pPhone.textContent = profile.business_phone || '+234 000 000 0000';
                     if (pAddr) pAddr.textContent = profile.business_address || 'Business Address Preview';
 
-                    // ── Dynamic App Branding: Update header logo + name ──────
-                    const headerLogo = document.getElementById('app-header-logo');
-                    const headerName = document.getElementById('app-header-biz-name');
-                    const pwaLogo = document.getElementById('pwa-banner-logo');
-                    const pwaBannerTitle = document.getElementById('pwa-banner-title');
-
-                    if (profile.logo_url) {
-                        // Show business logo in header & PWA banner
-                        if (headerLogo) {
-                            headerLogo.src = profile.logo_url;
-                            headerLogo.onerror = () => { headerLogo.src = '/static/logo.svg'; };
-                        }
-                        if (pwaLogo) {
-                            pwaLogo.src = profile.logo_url;
-                            pwaLogo.onerror = () => { pwaLogo.src = '/static/logo.svg'; };
-                        }
-                        // Update browser favicon to business logo
-                        let faviconEl = document.querySelector('link[rel="icon"]');
-                        if (faviconEl) faviconEl.href = profile.logo_url;
-                        let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-                        if (appleIcon) appleIcon.href = profile.logo_url;
-                    }
-
-                    if (profile.company_name) {
-                        // Update header business name
-                        if (headerName) headerName.textContent = profile.company_name;
-                        // Update browser page title
-                        document.title = `${profile.company_name} | SoloBiz`;
-                        // Update PWA install banner title
-                        if (pwaBannerTitle) pwaBannerTitle.textContent = `Install ${profile.company_name} App`;
-                    }
-
+                    // ── Dynamic App Branding: Profile UI populated ──────
                     toggleProfileMode('view');
                 } else {
                     updateCardThemeColor('#4F46E5');
