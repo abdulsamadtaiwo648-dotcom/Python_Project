@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, send_from_directory, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import sqlite3
@@ -999,6 +999,30 @@ def slugify(text):
 # ==========================================
 # PUBLIC DIGITAL STOREFRONT (BUSINESS CARD)
 # ==========================================
+@app.route("/api/avatar/<store_slug>")
+def dynamic_business_avatar(store_slug):
+    company_name = store_slug
+    color_hex = "4F46E5"
+    with get_db() as db:
+        profile = db.execute("SELECT company_name, brand_color FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)", (store_slug,)).fetchone()
+        if profile:
+            if profile["company_name"]:
+                company_name = profile["company_name"]
+            if profile["brand_color"]:
+                color_hex = profile["brand_color"].replace("#", "")
+
+    if len(color_hex) not in [3, 6]:
+        color_hex = "4F46E5"
+
+    initials = (company_name[:2] if len(company_name) >= 2 else (company_name[:1] or "B")).upper()
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="120" fill="#{color_hex}"/>
+      <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="210">{initials}</text>
+    </svg>'''
+
+    return Response(svg, mimetype="image/svg+xml")
+
 @app.route("/store/<store_slug>")
 def public_storefront(store_slug):
     with get_db() as db:
@@ -1009,6 +1033,17 @@ def public_storefront(store_slug):
 
     profile_dict = dict(profile)
     user_id = profile_dict["user_id"]
+
+    # Calculate absolute logo URL for Open Graph & favicon social sharing
+    base_url = request.host_url.rstrip("/")
+    if profile_dict.get("logo_url"):
+        logo_path = profile_dict["logo_url"]
+        if logo_path.startswith("http://") or logo_path.startswith("https://"):
+            logo_absolute_url = logo_path
+        else:
+            logo_absolute_url = base_url + (logo_path if logo_path.startswith("/") else "/" + logo_path)
+    else:
+        logo_absolute_url = f"{base_url}/api/avatar/{store_slug}"
 
     sales_count = 0
     with get_db() as db:
@@ -1022,7 +1057,8 @@ def public_storefront(store_slug):
     return render_template(
         "storefront.html",
         profile=profile_dict,
-        sales_count=sales_count
+        sales_count=sales_count,
+        logo_absolute_url=logo_absolute_url
     )
 
 # ==========================================

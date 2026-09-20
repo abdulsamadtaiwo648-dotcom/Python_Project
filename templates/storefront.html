@@ -3,8 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ profile.company_name or 'Business Profile' }} — SoloBiz Storefront</title>
-  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <title>{{ profile.company_name or 'Business Profile' }} | Digital Storefront</title>
+  
+  <!-- Dynamic Favicon: Displays vendor's custom logo or branded avatar -->
+  <link rel="icon" href="{{ logo_absolute_url }}">
+  <link rel="apple-touch-icon" href="{{ logo_absolute_url }}">
+
+  <!-- Open Graph Meta Tags (WhatsApp, Facebook, LinkedIn, iMessage preview) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ profile.company_name or 'Business Profile' }}">
+  <meta property="og:title" content="{{ profile.company_name or 'Business Storefront' }}">
+  <meta property="og:description" content="Verified Business Profile for {{ profile.company_name or 'Vendor' }}. Contact via WhatsApp, call store, or view business terms.">
+  <meta property="og:image" content="{{ logo_absolute_url }}">
+  <meta property="og:image:width" content="500">
+  <meta property="og:image:height" content="500">
+  <meta property="og:url" content="{{ request.url }}">
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ profile.company_name or 'Business Storefront' }}">
+  <meta name="twitter:description" content="Verified Business Profile for {{ profile.company_name or 'Vendor' }}">
+  <meta name="twitter:image" content="{{ logo_absolute_url }}">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -28,7 +48,10 @@
       <!-- Logo / Avatar -->
       <div class="mx-auto w-24 h-24 rounded-2xl p-1 bg-slate-800 border-2 brand-border shadow-xl mb-4 flex items-center justify-center overflow-hidden">
         {% if profile.logo_url %}
-          <img src="{{ profile.logo_url }}" alt="{{ profile.company_name }}" class="w-full h-full object-cover rounded-xl">
+          <img src="{{ profile.logo_url }}" alt="{{ profile.company_name }}" class="w-full h-full object-cover rounded-xl" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="w-full h-full rounded-xl brand-bg hidden items-center justify-center text-white text-3xl font-black">
+            {{ (profile.company_name or 'SB')[:2] | upper }}
+          </div>
         {% else %}
           <div class="w-full h-full rounded-xl brand-bg flex items-center justify-center text-white text-3xl font-black">
             {{ (profile.company_name or 'SB')[:2] | upper }}
