@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import sqlite3
@@ -427,6 +427,10 @@ def root():
     if user_id:
         return redirect("/dashboard")
     return render_template("landing.html")
+
+@app.route("/sitemap.xml")
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
 
 @app.route("/dashboard")
 def dashboard():
