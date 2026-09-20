@@ -25,13 +25,18 @@
 
         /* ── Stat Cards: fluid number sizing so figures never overflow ── */
         .stat-value {
-            font-size: clamp(0.75rem, 3.8vw, 1.15rem);
+            font-size: clamp(0.65rem, 3.5vw, 1.1rem);
             font-weight: 800;
-            line-height: 1.25;
-            word-break: break-word;
-            overflow-wrap: break-word;
+            line-height: 1.2;
+            word-break: break-all;
+            overflow-wrap: anywhere;
             display: block;
             white-space: normal;
+            overflow: hidden;
+            max-width: 100%;
+        }
+        @media (min-width: 400px) {
+            .stat-value { font-size: clamp(0.75rem, 3.8vw, 1.15rem); }
         }
         @media (min-width: 640px) {
             .stat-value { font-size: 1.25rem; }
@@ -70,10 +75,12 @@
     <header class="bg-gray-900 text-white p-3.5 sm:p-4 shadow-md sticky top-0 z-40">
         <div class="max-w-md mx-auto flex justify-between items-center">
             
-            <!-- Left: App Logo, Name & Beta Tag -->
+            <!-- Left: App Logo, Name & Beta Tag (updates dynamically to business branding) -->
             <div class="flex items-center gap-2">
-                <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg shadow-sm">
-                <h1 class="font-bold text-base sm:text-lg tracking-wide text-indigo-400">SoloBiz</h1>
+                <div id="app-header-logo-wrap" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg shadow-sm overflow-hidden flex-shrink-0 bg-indigo-600 flex items-center justify-center">
+                    <img id="app-header-logo" src="/static/logo.svg" alt="Business Logo" class="w-full h-full object-cover rounded-lg">
+                </div>
+                <h1 id="app-header-biz-name" class="font-bold text-base sm:text-lg tracking-wide text-indigo-400">SoloBiz</h1>
                 <span class="text-[9px] font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800 px-1.5 py-0.5 rounded-full">Pocket CFO</span>
             </div>
             
@@ -93,10 +100,12 @@
         <!-- PWA Mobile Install App Banner -->
         <div id="pwa-install-banner" class="hidden mb-4 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-md flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <img src="/static/logo.svg" alt="App Icon" class="w-10 h-10 rounded-xl fill-current shadow">
+                <div id="pwa-banner-icon" class="w-10 h-10 rounded-xl overflow-hidden bg-indigo-500 flex-shrink-0 flex items-center justify-center">
+                    <img id="pwa-banner-logo" src="/static/logo.svg" alt="App Icon" class="w-full h-full object-cover rounded-xl">
+                </div>
                 <div>
-                    <h3 class="text-xs font-bold text-white">Install SoloBiz App</h3>
-                    <p class="text-[10px] text-indigo-200">Add to home screen for 1-tap mobile app access!</p>
+                    <h3 id="pwa-banner-title" class="text-xs font-bold text-white">Install SoloBiz App</h3>
+                    <p class="text-[10px] text-indigo-200">Add to home screen for offline access!</p>
                 </div>
             </div>
             <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap flex items-center gap-1.5">
@@ -2215,23 +2224,31 @@
             async function shareBusinessCard() {
                 try {
                     const canvas = await generateCardCanvas();
+                    const profile = window.SOLOBIZ_PROFILE || {};
+                    const displayName = profile.company_name || document.getElementById('card-company-name')?.textContent?.trim() || 'SoloBiz Vendor';
                     
                     canvas.toBlob(async (blob) => {
-                        const companyName = (document.getElementById('card-company-name')?.textContent || 'solobiz').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-                        const file = new File([blob], `${companyName}_card.png`, { type: "image/png" });
+                        const safeFileName = displayName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                        const file = new File([blob], `${safeFileName}_business_card.png`, { type: "image/png" });
+                        const storeSlug = profile.store_slug || '';
+                        const storeLink = storeSlug ? `\n🌐 View storefront: https://solobiz.onrender.com/store/${storeSlug}` : '';
 
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
                             try {
                                 await navigator.share({
-                                    title: 'My Business Card',
-                                    text: 'Here is my business card, powered by SoloBiz!',
+                                    title: `${displayName} — Business Card`,
+                                    text: `Here is my business card for ${displayName}!${storeLink}`,
                                     files: [file]
                                 });
                             } catch (error) {
                                 console.log('Share window closed by user.');
                             }
                         } else {
-                            alert("Your current browser doesn't support the native share menu. Please use the Download button instead.");
+                            // Fallback: download the card
+                            const link = document.createElement('a');
+                            link.download = `${safeFileName}_business_card.png`;
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
                         }
                     }, "image/png");
                 } catch (error) {
@@ -2412,6 +2429,38 @@
                     if (pComp) pComp.textContent = profile.company_name;
                     if (pPhone) pPhone.textContent = profile.business_phone || '+234 000 000 0000';
                     if (pAddr) pAddr.textContent = profile.business_address || 'Business Address Preview';
+
+                    // ── Dynamic App Branding: Update header logo + name ──────
+                    const headerLogo = document.getElementById('app-header-logo');
+                    const headerName = document.getElementById('app-header-biz-name');
+                    const pwaLogo = document.getElementById('pwa-banner-logo');
+                    const pwaBannerTitle = document.getElementById('pwa-banner-title');
+
+                    if (profile.logo_url) {
+                        // Show business logo in header & PWA banner
+                        if (headerLogo) {
+                            headerLogo.src = profile.logo_url;
+                            headerLogo.onerror = () => { headerLogo.src = '/static/logo.svg'; };
+                        }
+                        if (pwaLogo) {
+                            pwaLogo.src = profile.logo_url;
+                            pwaLogo.onerror = () => { pwaLogo.src = '/static/logo.svg'; };
+                        }
+                        // Update browser favicon to business logo
+                        let faviconEl = document.querySelector('link[rel="icon"]');
+                        if (faviconEl) faviconEl.href = profile.logo_url;
+                        let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+                        if (appleIcon) appleIcon.href = profile.logo_url;
+                    }
+
+                    if (profile.company_name) {
+                        // Update header business name
+                        if (headerName) headerName.textContent = profile.company_name;
+                        // Update browser page title
+                        document.title = `${profile.company_name} | SoloBiz`;
+                        // Update PWA install banner title
+                        if (pwaBannerTitle) pwaBannerTitle.textContent = `Install ${profile.company_name} App`;
+                    }
 
                     toggleProfileMode('view');
                 } else {
