@@ -464,6 +464,10 @@ Sitemap: https://solobiz.onrender.com/sitemap.xml"""
     response.headers["Content-Type"] = "text/plain; charset=utf-8"
     return response
 
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.png", mimetype="image/png")
+
 @app.route("/dashboard")
 def dashboard():
     user_id = get_current_user_id()
