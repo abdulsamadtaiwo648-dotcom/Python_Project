@@ -489,20 +489,54 @@
                     <form id="profile-form" class="space-y-3">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1">Company / Brand Name *</label>
-                            <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Apex Electronics" required 
+                            <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Apex Electronics" required value="{{ profile.company_name if profile else '' }}"
                                 class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                         </div>
 
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1">Business Phone Number</label>
-                            <input type="tel" name="business_phone" id="profile-business-phone" placeholder="e.g. +2348012345678" 
+                            <input type="tel" name="business_phone" id="profile-business-phone" placeholder="e.g. +2348012345678" value="{{ profile.business_phone if profile else '' }}"
+                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">WhatsApp Number (for Storefront Chat)</label>
+                            <input type="tel" name="whatsapp_number" id="profile-whatsapp-number" placeholder="e.g. +2348012345678" value="{{ profile.whatsapp_number if profile else '' }}"
+                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Instagram Handle</label>
+                            <input type="text" name="instagram_handle" id="profile-instagram-handle" placeholder="e.g. @aisha_wears" value="{{ profile.instagram_handle if profile else '' }}"
                                 class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                         </div>
 
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1">Business Address</label>
-                            <input type="text" name="business_address" id="profile-business-address" placeholder="e.g. 12 Market Street, Lagos" 
+                            <input type="text" name="business_address" id="profile-business-address" placeholder="e.g. 12 Market Street, Lagos" value="{{ profile.business_address if profile else '' }}"
                                 class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Store Policy (Prints on Receipts & Storefront)</label>
+                            <textarea name="store_policy" id="profile-store-policy" rows="2" placeholder="e.g. No refunds after 24 hours. Thanks for choosing us!"
+                                class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">{{ profile.store_policy if profile else '' }}</textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 items-center">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Brand Color Accent</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}"
+                                        class="w-10 h-10 rounded border p-1 cursor-pointer">
+                                    <span class="text-xs font-mono text-gray-500" id="brand-color-hex">{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Business Logo</label>
+                                <input type="file" name="logo" id="profile-logo-file" accept="image/*"
+                                    class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            </div>
                         </div>
 
                         <div class="flex gap-2 pt-1">
@@ -1595,33 +1629,46 @@
                     if (receiptItems.length === 0) receiptItems = [saleRecord];
 
                     // ── Data ──────────────────────────────────────────────────
-                    const companyName  = (profileRecord?.company_name  || 'SoloBiz Business').toUpperCase();
-                    const bizPhone     = profileRecord?.business_phone  || '';
-                    const bizAddress   = profileRecord?.business_address || '';
-                    const customerName = saleRecord.customer_name || 'Valued Customer';
-                    const receiptId    = saleRecord.receipt_id   || `REC-${String(saleLocalId).padStart(5,'0')}`;
-                    const dateStr      = saleRecord.date
+                    const companyName     = (profileRecord?.company_name  || 'SoloBiz Business').toUpperCase();
+                    const bizPhone        = profileRecord?.business_phone  || '';
+                    const bizAddress      = profileRecord?.business_address || '';
+                    const whatsappNumber  = profileRecord?.whatsapp_number || '';
+                    const instagramHandle = profileRecord?.instagram_handle || '';
+                    const storePolicy     = profileRecord?.store_policy || '';
+                    const brandColorHex   = profileRecord?.brand_color || '#4F46E5';
+                    const customerName    = saleRecord.customer_name || 'Valued Customer';
+                    const receiptId       = saleRecord.receipt_id   || `REC-${String(saleLocalId).padStart(5,'0')}`;
+                    const dateStr         = saleRecord.date
                         ? new Date(saleRecord.date).toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' })
                         : new Date().toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' });
-                    const timeStr      = new Date().toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
-                    const grandTotal   = receiptItems.reduce((s,i) => s + parseFloat(i.amount||0), 0);
-                    const fmt          = (n) => 'NGN ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                    const timeStr         = new Date().toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
+                    const grandTotal      = receiptItems.reduce((s,i) => s + parseFloat(i.amount||0), 0);
+                    const fmt             = (n) => 'NGN ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+                    function hexToRgb(hex) {
+                        let c = (hex || '#4F46E5').replace('#', '');
+                        if (c.length === 3) c = c.split('').map(x => x + x).join('');
+                        const num = parseInt(c, 16) || 0x4F46E5;
+                        return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+                    }
+                    const [brandR, brandG, brandB] = hexToRgb(brandColorHex);
 
                     // ── Page size: 80mm wide, height auto ─────────────────────
                     const lineCount  = receiptItems.length;
-                    const docHeight  = 148 + (lineCount * 7);
+                    const extraHeight = storePolicy ? 12 : 0;
+                    const docHeight  = 155 + (lineCount * 7) + extraHeight;
                     const { jsPDF }  = window.jspdf;
                     const doc        = new jsPDF({ orientation:'portrait', unit:'mm', format:[80, docHeight] });
 
                     // ────────────────────────────────────────────────────────
                     //  HEADER BLOCK
                     // ────────────────────────────────────────────────────────
-                    // Dark navy top bar
-                    doc.setFillColor(15, 23, 42);
+                    // Brand color top bar
+                    doc.setFillColor(brandR, brandG, brandB);
                     doc.roundedRect(0, 0, 80, 24, 0, 0, 'F');
 
-                    // Gold accent line under header
-                    doc.setFillColor(201, 168, 76);
+                    // Dark accent line under header
+                    doc.setFillColor(15, 23, 42);
                     doc.rect(0, 24, 80, 1.5, 'F');
 
                     // Company name
@@ -1633,7 +1680,7 @@
                     // Sub-line: OFFICIAL RECEIPT
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(7.5);
-                    doc.setTextColor(201, 168, 76);
+                    doc.setTextColor(255, 255, 255);
                     doc.text('OFFICIAL RECEIPT', 40, 18, { align: 'center' });
 
                     // ── Contact Info under header ──────────────────────────
@@ -1641,8 +1688,17 @@
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(7.5);
                     doc.setTextColor(71, 85, 105);
-                    if (bizPhone)   { doc.text(`Tel: ${bizPhone}`,  40, y, { align:'center' }); y += 4.5; }
-                    if (bizAddress) { doc.text(bizAddress,           40, y, { align:'center' }); y += 4.5; }
+                    
+                    let contactParts = [];
+                    if (bizPhone) contactParts.push(`Tel: ${bizPhone}`);
+                    if (whatsappNumber) contactParts.push(`WA: ${whatsappNumber}`);
+                    if (contactParts.length > 0) { doc.text(contactParts.join(' · '), 40, y, { align:'center' }); y += 4.5; }
+
+                    if (instagramHandle) {
+                        const handleStr = instagramHandle.startsWith('@') ? instagramHandle : '@' + instagramHandle;
+                        doc.text(`IG: ${handleStr}`, 40, y, { align:'center' }); y += 4.5;
+                    }
+                    if (bizAddress) { doc.text(bizAddress, 40, y, { align:'center' }); y += 4.5; }
                     y += 2;
 
                     // ── Dotted divider ────────────────────────────────────
@@ -1706,8 +1762,7 @@
                         doc.setTextColor(30, 41, 59);
                         const title = item.item_sold || 'Goods / Services';
                         const amt   = fmt(parseFloat(item.amount || 0));
-                        // Truncate long item names
-                        const maxW = 40;
+                        const maxW  = 40;
                         doc.text(doc.splitTextToSize(title, maxW)[0], metaLeft, y + 3);
                         doc.setFont('helvetica', 'bold');
                         doc.text(amt, metaRight, y + 3, { align: 'right' });
@@ -1726,17 +1781,26 @@
                     // ── TOTAL PAID box ─────────────────────────────────────
                     doc.setFillColor(15, 23, 42);
                     doc.roundedRect(4, y, 72, 12, 2, 2, 'F');
-                    doc.setFillColor(201, 168, 76);
+                    doc.setFillColor(brandR, brandG, brandB);
                     doc.roundedRect(4, y, 3, 12, 1, 1, 'F');
 
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(8.5);
-                    doc.setTextColor(201, 168, 76);
-                    doc.text('TOTAL PAID', 11, y + 8);
                     doc.setTextColor(255, 255, 255);
+                    doc.text('TOTAL PAID', 11, y + 8);
                     doc.setFontSize(10);
                     doc.text(fmt(grandTotal), metaRight, y + 8, { align: 'right' });
                     y += 18;
+
+                    // ── Store Policy Footer (if provided) ─────────────────
+                    if (storePolicy) {
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(6.5);
+                        doc.setTextColor(100, 116, 139);
+                        const splitPolicy = doc.splitTextToSize(`Policy: ${storePolicy}`, 70);
+                        doc.text(splitPolicy, 40, y, { align: 'center' });
+                        y += (splitPolicy.length * 3.5) + 3;
+                    }
 
                     // ── Payment note ──────────────────────────────────────
                     doc.setFont('helvetica', 'italic');

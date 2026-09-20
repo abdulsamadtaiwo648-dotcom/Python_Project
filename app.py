@@ -153,7 +153,13 @@ def init_db():
                 user_id TEXT UNIQUE NOT NULL,
                 company_name TEXT,
                 business_phone TEXT,
-                business_address TEXT
+                business_address TEXT,
+                instagram_handle TEXT,
+                whatsapp_number TEXT,
+                store_policy TEXT,
+                brand_color TEXT DEFAULT '#4F46E5',
+                logo_url TEXT,
+                store_slug TEXT
             )""",
             """CREATE TABLE IF NOT EXISTS income (
                 id SERIAL PRIMARY KEY,
@@ -182,7 +188,13 @@ def init_db():
             "ALTER TABLE income ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
             "ALTER TABLE business_profiles ALTER COLUMN user_id DROP DEFAULT",
             "ALTER TABLE business_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
-            "ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT"
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_policy TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS brand_color TEXT DEFAULT '#4F46E5'",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_slug TEXT"
         ]
         for alter_cmd in migrations:
             try:
@@ -236,7 +248,13 @@ def init_db():
                     user_id TEXT UNIQUE,
                     company_name TEXT,
                     business_phone TEXT,
-                    business_address TEXT
+                    business_address TEXT,
+                    instagram_handle TEXT,
+                    whatsapp_number TEXT,
+                    store_policy TEXT,
+                    brand_color TEXT DEFAULT '#4F46E5',
+                    logo_url TEXT,
+                    store_slug TEXT
                 )
             """)
             db.execute("""
@@ -254,6 +272,21 @@ def init_db():
                 db.execute("ALTER TABLE income ADD COLUMN receipt_id TEXT")
             except Exception:
                 pass
+
+            profile_cols = [
+                ("instagram_handle", "TEXT"),
+                ("whatsapp_number", "TEXT"),
+                ("store_policy", "TEXT"),
+                ("brand_color", "TEXT DEFAULT '#4F46E5'"),
+                ("logo_url", "TEXT"),
+                ("store_slug", "TEXT")
+            ]
+            for col_name, col_type in profile_cols:
+                try:
+                    db.execute(f"ALTER TABLE business_profiles ADD COLUMN {col_name} {col_type}")
+                except Exception:
+                    pass
+
             db.commit()
 
 init_db()
@@ -634,6 +667,15 @@ def dashboard():
 
     net_profit = float(total_sales) - float(total_expenses)
 
+    profile = None
+    with get_db() as db:
+        try:
+            prof_row = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
+            if prof_row:
+                profile = dict(prof_row)
+        except Exception as p_ex:
+            print(f"Dashboard profile query note: {p_ex}", flush=True)
+
     return render_template(
         "index.html",
         expenses=expenses,
@@ -641,7 +683,8 @@ def dashboard():
         total_sales=total_sales,
         total_expenses=total_expenses,
         net_profit=net_profit,
-        username=username
+        username=username,
+        profile=profile
     )
 
 @app.route("/api/expenses", methods=["GET"])
@@ -944,6 +987,44 @@ def search():
         search_term=display_term
     )
 
+def slugify(text):
+    import re
+    if not text:
+        return "store"
+    text = text.lower().strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[\s_-]+', '-', text)
+    return text.strip('-') or "store"
+
+# ==========================================
+# PUBLIC DIGITAL STOREFRONT (BUSINESS CARD)
+# ==========================================
+@app.route("/store/<store_slug>")
+def public_storefront(store_slug):
+    with get_db() as db:
+        profile = db.execute("SELECT * FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)", (store_slug,)).fetchone()
+
+    if not profile:
+        return render_template("landing.html"), 404
+
+    profile_dict = dict(profile)
+    user_id = profile_dict["user_id"]
+
+    sales_count = 0
+    with get_db() as db:
+        try:
+            res = db.execute("SELECT COUNT(*) as count FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            if res:
+                sales_count = res["count"] if hasattr(res, "__getitem__") else 0
+        except Exception:
+            pass
+
+    return render_template(
+        "storefront.html",
+        profile=profile_dict,
+        sales_count=sales_count
+    )
+
 # ==========================================
 # BUSINESS PROFILE API ROUTES
 # ==========================================
@@ -963,61 +1044,107 @@ def api_business_profile():
                 "profile": {
                     "company_name": "",
                     "business_phone": "",
-                    "business_address": ""
+                    "business_address": "",
+                    "instagram_handle": "",
+                    "whatsapp_number": "",
+                    "store_policy": "",
+                    "brand_color": "#4F46E5",
+                    "logo_url": "",
+                    "store_slug": ""
                 }
             }), 200
 
+        profile_dict = dict(profile)
         return jsonify({
             "status": "success",
             "profile": {
-                "id": profile["id"],
-                "user_id": profile["user_id"],
-                "company_name": profile["company_name"] or "",
-                "business_phone": profile["business_phone"] or "",
-                "business_address": profile["business_address"] or ""
+                "id": profile_dict.get("id"),
+                "user_id": profile_dict.get("user_id"),
+                "company_name": profile_dict.get("company_name") or "",
+                "business_phone": profile_dict.get("business_phone") or "",
+                "business_address": profile_dict.get("business_address") or "",
+                "instagram_handle": profile_dict.get("instagram_handle") or "",
+                "whatsapp_number": profile_dict.get("whatsapp_number") or "",
+                "store_policy": profile_dict.get("store_policy") or "",
+                "brand_color": profile_dict.get("brand_color") or "#4F46E5",
+                "logo_url": profile_dict.get("logo_url") or "",
+                "store_slug": profile_dict.get("store_slug") or ""
             }
         }), 200
 
     elif request.method == "POST":
-        data = request.get_json(silent=True) or request.get_json(force=True, silent=True)
-        if not isinstance(data, dict):
-            return jsonify({"status": "error", "message": "Invalid JSON payload"}), 400
+        data = request.form if request.form else (request.get_json(silent=True) or {})
 
         company_name = str(data.get("company_name", "")).strip()
         business_phone = str(data.get("business_phone", "")).strip()
         business_address = str(data.get("business_address", "")).strip()
+        instagram_handle = str(data.get("instagram_handle", "")).strip()
+        whatsapp_number = str(data.get("whatsapp_number", "")).strip()
+        store_policy = str(data.get("store_policy", "")).strip()
+        brand_color = str(data.get("brand_color", "#4F46E5")).strip() or "#4F46E5"
 
         if not company_name:
             return jsonify({"status": "error", "message": "Company name is required"}), 400
 
+        store_slug = slugify(company_name)
+
+        # Handle Logo File Upload if provided
+        logo_url = None
+        if "logo" in request.files:
+            file = request.files["logo"]
+            if file and file.filename:
+                os.makedirs(os.path.join(app.root_path, "static", "uploads", "logos"), exist_ok=True)
+                filename = f"logo_{user_id}_{int(datetime.now().timestamp())}.png"
+                file_path = os.path.join(app.root_path, "static", "uploads", "logos", filename)
+                file.save(file_path)
+                logo_url = f"/static/uploads/logos/{filename}"
+        elif data.get("logo_url"):
+            logo_url = str(data.get("logo_url")).strip()
+
         with get_db() as db:
-            existing = db.execute("SELECT id FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
+            existing = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
+            existing_dict = dict(existing) if existing else {}
+            current_logo = logo_url if logo_url is not None else (existing_dict.get("logo_url") or "")
+
             if existing:
                 db.execute(
                     """UPDATE business_profiles 
-                       SET company_name = ?, business_phone = ?, business_address = ?
+                       SET company_name = ?, business_phone = ?, business_address = ?,
+                           instagram_handle = ?, whatsapp_number = ?, store_policy = ?,
+                           brand_color = ?, logo_url = ?, store_slug = ?
                        WHERE user_id = ?""",
-                    (company_name, business_phone, business_address, user_id)
+                    (company_name, business_phone, business_address,
+                     instagram_handle, whatsapp_number, store_policy,
+                     brand_color, current_logo, store_slug, user_id)
                 )
-                profile_id = existing["id"]
+                profile_id = existing_dict["id"]
             else:
                 cursor = db.execute(
-                    """INSERT INTO business_profiles (user_id, company_name, business_phone, business_address)
-                       VALUES (?, ?, ?, ?)""",
-                    (user_id, company_name, business_phone, business_address)
+                    """INSERT INTO business_profiles 
+                       (user_id, company_name, business_phone, business_address, instagram_handle, whatsapp_number, store_policy, brand_color, logo_url, store_slug)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (user_id, company_name, business_phone, business_address,
+                     instagram_handle, whatsapp_number, store_policy,
+                     brand_color, current_logo, store_slug)
                 )
                 profile_id = cursor.lastrowid
             db.commit()
 
         return jsonify({
             "status": "success",
-            "message": "Business profile saved successfully",
+            "message": "Business profile saved successfully!",
             "profile": {
                 "id": profile_id,
                 "user_id": user_id,
                 "company_name": company_name,
                 "business_phone": business_phone,
-                "business_address": business_address
+                "business_address": business_address,
+                "instagram_handle": instagram_handle,
+                "whatsapp_number": whatsapp_number,
+                "store_policy": store_policy,
+                "brand_color": brand_color,
+                "logo_url": current_logo,
+                "store_slug": store_slug
             }
         }), 200
 
