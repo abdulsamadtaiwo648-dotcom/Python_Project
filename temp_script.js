@@ -394,6 +394,16 @@
             });
         }
 
+        async function getExpensesLocal() {
+            const db = await openIndexedDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(EXPENSES_STORE, 'readonly');
+                const req = tx.objectStore(EXPENSES_STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
         async function syncIncomeFromServer() {
             if (!navigator.onLine) return;
             try {
@@ -1814,6 +1824,7 @@
 
             async function renderAnalytics(period) {
                 const incomeItems = await getIncomeLocal();
+                const expenseItems = await getExpensesLocal();
                 
                 // Helper to format date keys
                 const getPeriodKey = (dateStr) => {
@@ -1829,19 +1840,23 @@
                     return 'Unknown';
                 };
 
-                // Group data
+                // Group data for the expandable list
                 const groups = {};
+                
+                // Global Totals
                 let totalRevenue = 0;
-                let totalTx = 0;
+                let totalCOGS = 0;
+                let totalOPEX = 0;
+                let realizedCash = 0;
+                let unpaidDebt = 0;
 
+                // Process Income
                 incomeItems.forEach(item => {
                     if (!item.date) return;
                     
-                    // Filter based on period limits (optional, keeping it simple to just group all local data)
                     const key = getPeriodKey(item.date);
                     if (!groups[key]) groups[key] = { revenue: 0, items: [] };
                     
-                    // Calculate real amount paid
                     const discount = parseFloat(item.discount || 0);
                     const deliveryFee = parseFloat(item.delivery_fee || 0);
                     const finalPaid = parseFloat(item.amount) - discount + deliveryFee;
@@ -1850,13 +1865,95 @@
                     groups[key].items.push(item);
                     
                     totalRevenue += finalPaid;
-                    totalTx++;
+
+                    // Cash Flow Tracking
+                    const pMode = item.paymentMode || item.payment_mode || 'Cash';
+                    if (pMode === 'Credit / Unpaid') {
+                        unpaidDebt += finalPaid;
+                    } else if (pMode === 'Split') {
+                        const sCash = parseFloat(item.splitCash || item.split_cash || 0);
+                        const sTrans = parseFloat(item.splitTransfer || item.split_transfer || 0);
+                        const totalSplit = sCash + sTrans;
+                        realizedCash += totalSplit;
+                        if (totalSplit < finalPaid) unpaidDebt += (finalPaid - totalSplit);
+                    } else {
+                        realizedCash += finalPaid;
+                    }
                 });
 
-                // Update Hero Cards
-                document.getElementById('analytics-total-revenue').textContent = `₦${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-                document.getElementById('analytics-total-tx').textContent = totalTx;
-                document.getElementById('analytics-avg-sale').textContent = `₦${(totalTx > 0 ? (totalRevenue / totalTx) : 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                // Process Expenses
+                expenseItems.forEach(item => {
+                    if (!item.date) return;
+                    const amount = parseFloat(item.amount || 0);
+                    
+                    // Identify category
+                    const cat = item.category || '';
+                    if (cat.includes('Inventory') || cat.includes('Materials')) {
+                        totalCOGS += amount;
+                    } else if (cat.includes("Owner's Draw")) {
+                        // Personal draw: ignore from P&L
+                    } else {
+                        // Everything else is OPEX
+                        totalOPEX += amount;
+                    }
+                });
+
+                // Calculate Margins
+                const grossProfit = totalRevenue - totalCOGS;
+                const netProfit = grossProfit - totalOPEX;
+                const netMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(0) : 0;
+
+                // Update Metric Grid
+                const f = (val) => `₦${val.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                
+                const elRev = document.getElementById('analytics-revenue');
+                const elCogs = document.getElementById('analytics-cogs');
+                const elGross = document.getElementById('analytics-gross-profit');
+                const elOpex = document.getElementById('analytics-opex');
+                const elCash = document.getElementById('analytics-cash');
+                const elNet = document.getElementById('analytics-net-profit');
+                const elMargin = document.getElementById('analytics-margin');
+
+                if(elRev) elRev.textContent = f(totalRevenue);
+                if(elCogs) elCogs.textContent = f(totalCOGS);
+                if(elGross) elGross.textContent = f(grossProfit);
+                if(elOpex) elOpex.textContent = f(totalOPEX);
+                if(elCash) elCash.textContent = f(realizedCash);
+                if(elNet) {
+                    elNet.textContent = f(netProfit);
+                    if (netProfit < 0) elNet.classList.replace('text-indigo-700', 'text-rose-600');
+                    else elNet.classList.replace('text-rose-600', 'text-indigo-700');
+                }
+                if(elMargin) {
+                    elMargin.textContent = `${netMargin}% Margin`;
+                    if (netProfit < 0) {
+                        elMargin.classList.replace('bg-indigo-100', 'bg-rose-100');
+                        elMargin.classList.replace('text-indigo-700', 'text-rose-700');
+                    } else {
+                        elMargin.classList.replace('bg-rose-100', 'bg-indigo-100');
+                        elMargin.classList.replace('text-rose-700', 'text-indigo-700');
+                    }
+                }
+
+                // Update Narrative
+                const narrativeEl = document.getElementById('analytics-narrative');
+                if (narrativeEl) {
+                    if (totalRevenue === 0 && totalOPEX === 0 && totalCOGS === 0) {
+                        narrativeEl.innerHTML = "You have no financial data recorded for this period. Log sales or expenses to see insights.";
+                    } else {
+                        let text = `You sold <strong>${f(totalRevenue)}</strong> across the selected period. `;
+                        text += `It cost you <strong>${f(totalCOGS)}</strong> to buy those goods (Gross Profit: <strong>${f(grossProfit)}</strong>). `;
+                        text += `You spent <strong>${f(totalOPEX)}</strong> on operating overhead (transport, data, fuel). `;
+                        text += `Your Net Profit is <strong>${f(netProfit)}</strong> (<strong>${netMargin}%</strong> Net Margin). `;
+                        
+                        if (unpaidDebt > 0) {
+                            text += `<br><br><span class="text-amber-700">However, <strong>${f(unpaidDebt)}</strong> is still owed to you by customers.</span> You have <strong>${f(realizedCash)}</strong> in liquid cash right now.`;
+                        } else {
+                            text += `<br><br>All sales were paid. You have <strong>${f(realizedCash)}</strong> in liquid cash right now.`;
+                        }
+                        narrativeEl.innerHTML = text;
+                    }
+                }
 
                 // Render List
                 const listEl = document.getElementById('analytics-grouped-list');

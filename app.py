@@ -291,7 +291,12 @@ def init_db():
                     item_sold TEXT,
                     customer_name TEXT,
                     date TEXT,
-                    receipt_id TEXT
+                    receipt_id TEXT,
+                    discount REAL DEFAULT 0,
+                    delivery_fee REAL DEFAULT 0,
+                    payment_mode TEXT DEFAULT 'Cash',
+                    split_cash REAL DEFAULT 0,
+                    split_transfer REAL DEFAULT 0
                 )
             """)
             db.execute("""
@@ -1545,7 +1550,12 @@ def api_income():
                     "item_sold": dict(row).get("item_sold", ""),
                     "customer_name": dict(row).get("customer_name") or "Walk-in Customer",
                     "date": dict(row).get("date"),
-                    "receipt_id": dict(row).get("receipt_id") or f"REC-{dict(row)['id']}"
+                    "receipt_id": dict(row).get("receipt_id") or f"REC-{dict(row)['id']}",
+                    "discount": float(dict(row).get("discount") or 0),
+                    "delivery_fee": float(dict(row).get("delivery_fee") or 0),
+                    "payment_mode": dict(row).get("payment_mode") or "Cash",
+                    "split_cash": float(dict(row).get("split_cash") or 0),
+                    "split_transfer": float(dict(row).get("split_transfer") or 0)
                 }
                 for row in rows
             ]
@@ -1583,14 +1593,23 @@ def api_income():
                 except (TypeError, ValueError):
                     continue
 
+                discount = float(str(product.get("discount", "0")).replace(',', ''))
+                delivery_fee = float(str(product.get("delivery_fee", "0")).replace(',', ''))
+                payment_mode = str(product.get("payment_mode", "Cash")).strip()
+                split_cash = float(str(product.get("split_cash", "0")).replace(',', ''))
+                split_transfer = float(str(product.get("split_transfer", "0")).replace(',', ''))
+
                 cursor = db.execute(
-                    "INSERT INTO income (user_id, amount, item_sold, customer_name, date, receipt_id) VALUES (?, ?, ?, ?, ?, ?)",
-                    (user_id, amt, item_name, customer_name, income_date, receipt_id)
+                    "INSERT INTO income (user_id, amount, item_sold, customer_name, date, receipt_id, discount, delivery_fee, payment_mode, split_cash, split_transfer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (user_id, amt, item_name, customer_name, income_date, receipt_id, discount, delivery_fee, payment_mode, split_cash, split_transfer)
                 )
                 saved_items.append({
                     "id": cursor.lastrowid, "user_id": user_id, "amount": amt,
                     "item_sold": item_name, "customer_name": customer_name,
-                    "date": income_date, "receipt_id": receipt_id
+                    "date": income_date, "receipt_id": receipt_id,
+                    "discount": discount, "delivery_fee": delivery_fee,
+                    "payment_mode": payment_mode, "split_cash": split_cash,
+                    "split_transfer": split_transfer
                 })
             db.commit()
 

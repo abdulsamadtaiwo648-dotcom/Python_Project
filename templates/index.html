@@ -223,6 +223,7 @@
                         <option value="Fuel & Electricity">Fuel & Electricity</option>
                         <option value="Others">Others</option>
                         <option value="Data & Airtime">Data & Airtime</option>
+                        <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                     </select>
 
                     <input type="text" name="description" placeholder="What did you pay for?" required 
@@ -249,6 +250,7 @@
                             <option value="Delivery &amp; Logistics">Delivery &amp; Logistics</option>
                             <option value="Fuel &amp; Electricity">Fuel &amp; Electricity</option>
                             <option value="Data &amp; Airtime">Data &amp; Airtime</option>
+                            <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                             <option value="Others">Others</option>
                         </select>
                     </div>
@@ -460,6 +462,7 @@
                                     <option value="Transfer">🏦 Transfer</option>
                                     <option value="POS">💳 POS</option>
                                     <option value="Split">🔀 Split Payment</option>
+                                    <option value="Credit / Unpaid">⏳ Credit / Unpaid</option>
                                 </select>
                             </div>
                             <div id="split-payment-fields" class="hidden grid grid-cols-2 gap-2 mt-2">
@@ -514,19 +517,48 @@
                     <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-500 hover:text-gray-700">Yearly</button>
                 </div>
 
-                <!-- Hero Summary Cards -->
+                <!-- Narrative Box (Actionable Insights) -->
+                <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 w-16 h-16 bg-indigo-100 rounded-full opacity-50"></div>
+                    <div class="flex gap-3 mb-2">
+                        <div class="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 flex-shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <h3 class="font-bold text-indigo-900">Financial Insights</h3>
+                    </div>
+                    <p id="analytics-narrative" class="text-sm text-indigo-800 leading-relaxed font-medium pl-11">
+                        Loading your financial narrative...
+                    </p>
+                </div>
+
+                <!-- Detailed Metrics Grid (Tiered P&L) -->
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center col-span-2 bg-gradient-to-br from-indigo-50 to-white">
+                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
                         <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Total Revenue</p>
-                        <h3 class="text-2xl font-bold text-indigo-700" id="analytics-total-revenue">₦0.00</h3>
+                        <h3 class="text-lg font-bold text-emerald-700 mt-auto" id="analytics-revenue">₦0.00</h3>
                     </div>
-                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Transactions</p>
-                        <h3 class="text-xl font-bold text-gray-800" id="analytics-total-tx">0</h3>
+                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">COGS (Restock)</p>
+                        <h3 class="text-lg font-bold text-rose-600 mt-auto" id="analytics-cogs">₦0.00</h3>
                     </div>
-                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Avg. Sale</p>
-                        <h3 class="text-xl font-bold text-gray-800" id="analytics-avg-sale">₦0.00</h3>
+                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col col-span-2 bg-gradient-to-r from-gray-50 to-white">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Gross Profit</p>
+                        <h3 class="text-xl font-black text-gray-800" id="analytics-gross-profit">₦0.00</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">OPEX (Overhead)</p>
+                        <h3 class="text-lg font-bold text-amber-600 mt-auto" id="analytics-opex">₦0.00</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Realized Cash</p>
+                        <h3 class="text-lg font-bold text-blue-600 mt-auto" id="analytics-cash">₦0.00</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-col col-span-2 bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[11px] uppercase font-black text-indigo-400 tracking-wider">Net Profit</p>
+                            <span id="analytics-margin" class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">0% Margin</span>
+                        </div>
+                        <h3 class="text-3xl font-black text-indigo-700 mt-1" id="analytics-net-profit">₦0.00</h3>
                     </div>
                 </div>
 
@@ -800,6 +832,7 @@
                         <option value="Fuel & Electricity">Fuel & Electricity</option>
                         <option value="Others">Others</option>
                         <option value="Data & Airtime">Data & Airtime</option>
+                        <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                     </select>
                 </div>
 
@@ -1234,6 +1267,16 @@
             });
         }
 
+        async function getExpensesLocal() {
+            const db = await openIndexedDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(EXPENSES_STORE, 'readonly');
+                const req = tx.objectStore(EXPENSES_STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
         async function syncIncomeFromServer() {
             if (!navigator.onLine) return;
             try {
@@ -1353,9 +1396,17 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    amount: item.amount,
-                                    item_sold: item.item_sold,
-                                    customer_name: item.customer_name
+                                    items: [{
+                                        amount: item.amount,
+                                        item_sold: item.item_sold,
+                                        discount: item.discount,
+                                        delivery_fee: item.delivery_fee,
+                                        payment_mode: item.payment_mode,
+                                        split_cash: item.split_cash,
+                                        split_transfer: item.split_transfer
+                                    }],
+                                    customer_name: item.customer_name,
+                                    receipt_id: item.receipt_id
                                 })
                             });
                             const data = await res.json();
@@ -2654,6 +2705,7 @@
 
             async function renderAnalytics(period) {
                 const incomeItems = await getIncomeLocal();
+                const expenseItems = await getExpensesLocal();
                 
                 // Helper to format date keys
                 const getPeriodKey = (dateStr) => {
@@ -2669,19 +2721,23 @@
                     return 'Unknown';
                 };
 
-                // Group data
+                // Group data for the expandable list
                 const groups = {};
+                
+                // Global Totals
                 let totalRevenue = 0;
-                let totalTx = 0;
+                let totalCOGS = 0;
+                let totalOPEX = 0;
+                let realizedCash = 0;
+                let unpaidDebt = 0;
 
+                // Process Income
                 incomeItems.forEach(item => {
                     if (!item.date) return;
                     
-                    // Filter based on period limits (optional, keeping it simple to just group all local data)
                     const key = getPeriodKey(item.date);
                     if (!groups[key]) groups[key] = { revenue: 0, items: [] };
                     
-                    // Calculate real amount paid
                     const discount = parseFloat(item.discount || 0);
                     const deliveryFee = parseFloat(item.delivery_fee || 0);
                     const finalPaid = parseFloat(item.amount) - discount + deliveryFee;
@@ -2690,13 +2746,95 @@
                     groups[key].items.push(item);
                     
                     totalRevenue += finalPaid;
-                    totalTx++;
+
+                    // Cash Flow Tracking
+                    const pMode = item.paymentMode || item.payment_mode || 'Cash';
+                    if (pMode === 'Credit / Unpaid') {
+                        unpaidDebt += finalPaid;
+                    } else if (pMode === 'Split') {
+                        const sCash = parseFloat(item.splitCash || item.split_cash || 0);
+                        const sTrans = parseFloat(item.splitTransfer || item.split_transfer || 0);
+                        const totalSplit = sCash + sTrans;
+                        realizedCash += totalSplit;
+                        if (totalSplit < finalPaid) unpaidDebt += (finalPaid - totalSplit);
+                    } else {
+                        realizedCash += finalPaid;
+                    }
                 });
 
-                // Update Hero Cards
-                document.getElementById('analytics-total-revenue').textContent = `₦${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-                document.getElementById('analytics-total-tx').textContent = totalTx;
-                document.getElementById('analytics-avg-sale').textContent = `₦${(totalTx > 0 ? (totalRevenue / totalTx) : 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                // Process Expenses
+                expenseItems.forEach(item => {
+                    if (!item.date) return;
+                    const amount = parseFloat(item.amount || 0);
+                    
+                    // Identify category
+                    const cat = item.category || '';
+                    if (cat.includes('Inventory') || cat.includes('Materials')) {
+                        totalCOGS += amount;
+                    } else if (cat.includes("Owner's Draw")) {
+                        // Personal draw: ignore from P&L
+                    } else {
+                        // Everything else is OPEX
+                        totalOPEX += amount;
+                    }
+                });
+
+                // Calculate Margins
+                const grossProfit = totalRevenue - totalCOGS;
+                const netProfit = grossProfit - totalOPEX;
+                const netMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(0) : 0;
+
+                // Update Metric Grid
+                const f = (val) => `₦${val.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                
+                const elRev = document.getElementById('analytics-revenue');
+                const elCogs = document.getElementById('analytics-cogs');
+                const elGross = document.getElementById('analytics-gross-profit');
+                const elOpex = document.getElementById('analytics-opex');
+                const elCash = document.getElementById('analytics-cash');
+                const elNet = document.getElementById('analytics-net-profit');
+                const elMargin = document.getElementById('analytics-margin');
+
+                if(elRev) elRev.textContent = f(totalRevenue);
+                if(elCogs) elCogs.textContent = f(totalCOGS);
+                if(elGross) elGross.textContent = f(grossProfit);
+                if(elOpex) elOpex.textContent = f(totalOPEX);
+                if(elCash) elCash.textContent = f(realizedCash);
+                if(elNet) {
+                    elNet.textContent = f(netProfit);
+                    if (netProfit < 0) elNet.classList.replace('text-indigo-700', 'text-rose-600');
+                    else elNet.classList.replace('text-rose-600', 'text-indigo-700');
+                }
+                if(elMargin) {
+                    elMargin.textContent = `${netMargin}% Margin`;
+                    if (netProfit < 0) {
+                        elMargin.classList.replace('bg-indigo-100', 'bg-rose-100');
+                        elMargin.classList.replace('text-indigo-700', 'text-rose-700');
+                    } else {
+                        elMargin.classList.replace('bg-rose-100', 'bg-indigo-100');
+                        elMargin.classList.replace('text-rose-700', 'text-indigo-700');
+                    }
+                }
+
+                // Update Narrative
+                const narrativeEl = document.getElementById('analytics-narrative');
+                if (narrativeEl) {
+                    if (totalRevenue === 0 && totalOPEX === 0 && totalCOGS === 0) {
+                        narrativeEl.innerHTML = "You have no financial data recorded for this period. Log sales or expenses to see insights.";
+                    } else {
+                        let text = `You sold <strong>${f(totalRevenue)}</strong> across the selected period. `;
+                        text += `It cost you <strong>${f(totalCOGS)}</strong> to buy those goods (Gross Profit: <strong>${f(grossProfit)}</strong>). `;
+                        text += `You spent <strong>${f(totalOPEX)}</strong> on operating overhead (transport, data, fuel). `;
+                        text += `Your Net Profit is <strong>${f(netProfit)}</strong> (<strong>${netMargin}%</strong> Net Margin). `;
+                        
+                        if (unpaidDebt > 0) {
+                            text += `<br><br><span class="text-amber-700">However, <strong>${f(unpaidDebt)}</strong> is still owed to you by customers.</span> You have <strong>${f(realizedCash)}</strong> in liquid cash right now.`;
+                        } else {
+                            text += `<br><br>All sales were paid. You have <strong>${f(realizedCash)}</strong> in liquid cash right now.`;
+                        }
+                        narrativeEl.innerHTML = text;
+                    }
+                }
 
                 // Render List
                 const listEl = document.getElementById('analytics-grouped-list');
