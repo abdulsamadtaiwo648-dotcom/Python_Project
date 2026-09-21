@@ -433,6 +433,50 @@
                         </div>
                     </div>
 
+                    <!-- Receipt Adjustments -->
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 space-y-2 mt-3">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Receipt Adjustments (Optional)</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="relative">
+                                <label class="block text-[10px] font-semibold text-red-400 mb-0.5">Discount</label>
+                                <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
+                                <input type="text" inputmode="numeric" id="sale-discount" placeholder="0"
+                                       class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-400">
+                            </div>
+                            <div class="relative">
+                                <label class="block text-[10px] font-semibold text-blue-400 mb-0.5">Delivery / Waybill</label>
+                                <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
+                                <input type="text" inputmode="numeric" id="sale-delivery-fee" placeholder="0"
+                                       class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-gray-500 mb-0.5">Payment Mode</label>
+                            <div class="flex gap-2">
+                                <select id="sale-payment-mode" class="flex-1 border border-gray-200 rounded-lg p-2 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <option value="Cash">💵 Cash</option>
+                                    <option value="Transfer">🏦 Transfer</option>
+                                    <option value="POS">💳 POS</option>
+                                    <option value="Split">🔀 Split Payment</option>
+                                </select>
+                            </div>
+                            <div id="split-payment-fields" class="hidden grid grid-cols-2 gap-2 mt-2">
+                                <div class="relative">
+                                    <label class="block text-[10px] font-semibold text-gray-400 mb-0.5">Cash Portion</label>
+                                    <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
+                                    <input type="text" inputmode="numeric" id="sale-split-cash" placeholder="0"
+                                           class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-[10px] font-semibold text-gray-400 mb-0.5">Transfer Portion</label>
+                                    <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
+                                    <input type="text" inputmode="numeric" id="sale-split-transfer" placeholder="0"
+                                           class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2 mt-4">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Sale
                     </button>
@@ -1030,6 +1074,12 @@
             const createdRecords = [];
             const isoDate = new Date().toISOString();
 
+            const discount = parseFloat(incomeData.discount || 0);
+            const deliveryFee = parseFloat(incomeData.deliveryFee || 0);
+            const paymentMode = incomeData.paymentMode || 'Cash';
+            const splitCash = parseFloat(incomeData.splitCash || 0);
+            const splitTransfer = parseFloat(incomeData.splitTransfer || 0);
+
             for (const item of items) {
                 const saleRecord = {
                     amount: parseFloat(item.amount),
@@ -1038,7 +1088,12 @@
                     receipt_id: receipt_id,
                     date: isoDate,
                     synced: false,
-                    server_id: null
+                    server_id: null,
+                    discount: discount,
+                    delivery_fee: deliveryFee,
+                    payment_mode: paymentMode,
+                    split_cash: splitCash,
+                    split_transfer: splitTransfer
                 };
 
                 const local_id = await new Promise((resolve, reject) => {
@@ -1877,6 +1932,13 @@
                     const timeStr         = dateObj.toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
                     
                     const grandTotal      = receiptItems.reduce((s,i) => s + parseFloat(i.amount||0), 0);
+                    const discount        = parseFloat(saleRecord.discount || 0);
+                    const deliveryFee     = parseFloat(saleRecord.delivery_fee || 0);
+                    const finalTotal      = grandTotal - discount + deliveryFee;
+                    const paymentMode     = saleRecord.payment_mode || 'Cash';
+                    const splitCash       = parseFloat(saleRecord.split_cash || 0);
+                    const splitTransfer   = parseFloat(saleRecord.split_transfer || 0);
+                    const hasAdjustments  = discount > 0 || deliveryFee > 0;
                     const fmt             = (n) => 'NGN ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
                     function hexToRgb(hex) {
@@ -1890,7 +1952,8 @@
                     // ── Page size: 80mm wide, height auto ─────────────────────
                     const lineCount   = receiptItems.length;
                     const policyLines = storePolicy ? Math.ceil(storePolicy.length / 42) : 0;
-                    const docHeight   = Math.max(160, 130 + (lineCount * 8) + (policyLines * 4.5));
+                    const adjustmentHeight = (hasAdjustments ? 25 : 0) + (paymentMode === 'Split' ? 10 : 5);
+                    const docHeight   = Math.max(180, 130 + (lineCount * 8) + (policyLines * 4.5) + adjustmentHeight);
                     const { jsPDF }   = window.jspdf;
                     const doc         = new jsPDF({ orientation:'portrait', unit:'mm', format:[80, docHeight] });
 
@@ -2027,8 +2090,37 @@
                     y += 4;
 
                     // ────────────────────────────────────────────────────────
-                    // 5. TOTAL PAID BOX
+                    // 5. ADJUSTMENTS & TOTAL PAID
                     // ────────────────────────────────────────────────────────
+                    if (hasAdjustments) {
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(7.5);
+                        doc.setTextColor(100, 116, 139);
+                        doc.text('Subtotal:', metaLeft, y + 4);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(fmt(grandTotal), metaRight, y + 4, { align: 'right' });
+                        y += 6;
+
+                        if (discount > 0) {
+                            doc.setFont('helvetica', 'normal');
+                            doc.setTextColor(220, 38, 38);
+                            doc.text('Discount:', metaLeft, y + 4);
+                            doc.setFont('helvetica', 'bold');
+                            doc.text('- ' + fmt(discount), metaRight, y + 4, { align: 'right' });
+                            y += 6;
+                        }
+
+                        if (deliveryFee > 0) {
+                            doc.setFont('helvetica', 'normal');
+                            doc.setTextColor(37, 99, 235);
+                            doc.text('Delivery / Waybill:', metaLeft, y + 4);
+                            doc.setFont('helvetica', 'bold');
+                            doc.text('+ ' + fmt(deliveryFee), metaRight, y + 4, { align: 'right' });
+                            y += 6;
+                        }
+                        y += 2;
+                    }
+
                     doc.setFillColor(15, 23, 42);
                     doc.roundedRect(4, y, 72, 13, 2, 2, 'F');
                     
@@ -2042,9 +2134,20 @@
                     doc.text('TOTAL AMOUNT PAID', 11, y + 8.5);
                     doc.setFontSize(10.5);
                     doc.setTextColor(255, 255, 255);
-                    doc.text(fmt(grandTotal), metaRight, y + 8.5, { align: 'right' });
+                    doc.text(fmt(finalTotal), metaRight, y + 8.5, { align: 'right' });
 
-                    y += 18;
+                    y += 16;
+
+                    // Payment mode badge
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7);
+                    doc.setTextColor(100, 116, 139);
+                    if (paymentMode === 'Split') {
+                        doc.text(`Paid: \u20a6${splitCash.toLocaleString()} Cash + \u20a6${splitTransfer.toLocaleString()} Transfer`, 40, y, { align: 'center' });
+                    } else {
+                        doc.text(`Payment Mode: ${paymentMode}`, 40, y, { align: 'center' });
+                    }
+                    y += 5;
 
                     // ────────────────────────────────────────────────────────
                     // 6. STORE POLICY & FOOTER
@@ -2091,9 +2194,33 @@
                     doc.setTextColor(148, 163, 184);
                     doc.text('Verified Financial Document · solobiz.dev', 40, y + 7.5, { align: 'center' });
 
-                    // Save PDF
+                    // Save PDF & offer native sharing
                     const safeName = customerName.replace(/[^a-zA-Z0-9]/g, '_');
-                    doc.save(`Receipt_${safeName}_${receiptId}.pdf`);
+                    const pdfFileName = `Receipt_${safeName}_${receiptId}.pdf`;
+
+                    // Try Web Share API first (native mobile sharing)
+                    if (navigator.share && navigator.canShare) {
+                        try {
+                            const pdfBlob = doc.output('blob');
+                            const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
+                            if (navigator.canShare({ files: [pdfFile] })) {
+                                await navigator.share({
+                                    title: `Receipt - ${customerName}`,
+                                    text: `Receipt ${receiptId} from ${companyName} - ${fmt(finalTotal)}`,
+                                    files: [pdfFile]
+                                });
+                                return; // Shared successfully
+                            }
+                        } catch (shareErr) {
+                            if (shareErr.name !== 'AbortError') {
+                                console.warn('Web Share failed, falling back to download:', shareErr);
+                            } else {
+                                return; // User cancelled share
+                            }
+                        }
+                    }
+                    // Fallback: direct download
+                    doc.save(pdfFileName);
 
                 } catch (err) {
                     console.error('Error generating PDF receipt:', err);
@@ -2220,7 +2347,17 @@
 
                     if (items.length === 0) return;
 
-                    await logSale({ customer_name, items });
+                    // Receipt adjustments
+                    const discount = parseFloat((document.getElementById('sale-discount')?.value || '0').replace(/,/g, '')) || 0;
+                    const deliveryFee = parseFloat((document.getElementById('sale-delivery-fee')?.value || '0').replace(/,/g, '')) || 0;
+                    const paymentMode = document.getElementById('sale-payment-mode')?.value || 'Cash';
+                    let splitCash = 0, splitTransfer = 0;
+                    if (paymentMode === 'Split') {
+                        splitCash = parseFloat((document.getElementById('sale-split-cash')?.value || '0').replace(/,/g, '')) || 0;
+                        splitTransfer = parseFloat((document.getElementById('sale-split-transfer')?.value || '0').replace(/,/g, '')) || 0;
+                    }
+
+                    await logSale({ customer_name, items, discount, deliveryFee, paymentMode, splitCash, splitTransfer });
 
                     addIncomeForm.reset();
                     // Reset to single item row
@@ -2254,6 +2391,16 @@
             const noPresetsMsg = document.getElementById('no-presets-msg');
             const managePanel = document.getElementById('manage-presets-panel');
             const manageList = document.getElementById('presets-manage-list');
+
+            // Split Payment Mode toggle
+            document.getElementById('sale-payment-mode')?.addEventListener('change', function() {
+                const splitFields = document.getElementById('split-payment-fields');
+                if (splitFields) {
+                    splitFields.classList.toggle('hidden', this.value !== 'Split');
+                    if (this.value !== 'Split') splitFields.classList.add('hidden');
+                    else splitFields.classList.remove('hidden');
+                }
+            });
 
             // Toggle manage panel
             document.getElementById('btn-manage-presets')?.addEventListener('click', () => {
