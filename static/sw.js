@@ -5,7 +5,8 @@ const PRECACHE_ASSETS = [
   '/dashboard',
   '/static/logo.svg',
   '/static/manifest.json',
-  '/static/favicon.png'
+  '/static/favicon.png',
+  '/static/tailwind.js'
 ];
 
 // 1. Install & Cache App Shell
