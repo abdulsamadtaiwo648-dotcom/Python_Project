@@ -354,12 +354,14 @@
         <!-- ========================================================= -->
         <section id="tab-income-content" class="tab-content hidden space-y-6">
             
-            <!-- Sales Summary Card -->
-            <div class="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl shadow-sm p-5 text-white text-center overflow-hidden">
-                <p class="text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
-                <h2 class="big-total-value text-white" id="total-income-amount">₦0.00</h2>
-                <p class="text-xs text-emerald-100/90 mt-2 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span> Auto-saved locally &amp; synced to cloud</p>
-            </div>
+            <div id="sales-main-view" class="space-y-6">
+                <!-- Sales Summary Card -->
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl shadow-sm p-5 text-white text-center overflow-hidden relative">
+                    <p class="text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
+                    <h2 class="big-total-value text-white" id="total-income-amount">₦0.00</h2>
+                    <p class="text-xs text-emerald-100/90 mt-2 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span> Auto-saved locally &amp; synced to cloud</p>
+                    <button type="button" id="btn-show-analytics" class="mt-4 bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold py-1.5 px-4 rounded-full transition border border-white/30 tracking-wider">OVERVIEW</button>
+                </div>
 
             <!-- Quick-Tap Inventory Presets -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
@@ -490,7 +492,52 @@
                     <span class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Real-time Sync</span>
                 </h3>
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="income-list">
-                    <p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>
+                </div>
+            </div>
+            
+            <!-- Analytics View (Hidden by default) -->
+            <div id="analytics-view" class="hidden space-y-6">
+                <div class="flex items-center gap-3">
+                    <button type="button" id="btn-hide-analytics" class="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center transition shadow-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    </button>
+                    <h2 class="font-bold text-gray-800 text-lg">Sales Analytics</h2>
+                </div>
+
+                <!-- Segmented Control Bar -->
+                <div class="bg-gray-100 p-1 rounded-xl flex gap-1 text-sm font-semibold">
+                    <button type="button" data-period="daily" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg bg-white shadow-sm text-gray-900">Daily</button>
+                    <button type="button" data-period="weekly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-500 hover:text-gray-700">Weekly</button>
+                    <button type="button" data-period="monthly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-500 hover:text-gray-700">Monthly</button>
+                    <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-500 hover:text-gray-700">Yearly</button>
+                </div>
+
+                <!-- Hero Summary Cards -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center col-span-2 bg-gradient-to-br from-indigo-50 to-white">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Total Revenue</p>
+                        <h3 class="text-2xl font-bold text-indigo-700" id="analytics-total-revenue">₦0.00</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Transactions</p>
+                        <h3 class="text-xl font-bold text-gray-800" id="analytics-total-tx">0</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Avg. Sale</p>
+                        <h3 class="text-xl font-bold text-gray-800" id="analytics-avg-sale">₦0.00</h3>
+                    </div>
+                </div>
+
+                <!-- Expandable Grouped List -->
+                <div>
+                    <h3 class="font-bold text-gray-800 mb-3 text-sm flex items-center justify-between">
+                        <span>Detailed Breakdown</span>
+                        <span id="analytics-period-label" class="text-xs text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full font-semibold border border-gray-100">Today</span>
+                    </h3>
+                    <div class="space-y-3" id="analytics-grouped-list">
+                        <!-- Populated via JS -->
+                        <p class="text-center text-gray-400 py-8 text-sm">No sales data available for this period.</p>
+                    </div>
                 </div>
             </div>
 
@@ -2551,6 +2598,139 @@
 
             // Load presets on init
             loadPresets();
+
+            // =========================================================
+            // SALES ANALYTICS ENGINE
+            // =========================================================
+            const salesMainView = document.getElementById('sales-main-view');
+            const analyticsView = document.getElementById('analytics-view');
+            
+            document.getElementById('btn-show-analytics')?.addEventListener('click', () => {
+                if(salesMainView && analyticsView) {
+                    salesMainView.classList.add('hidden');
+                    analyticsView.classList.remove('hidden');
+                    renderAnalytics('daily'); // default
+                }
+            });
+
+            document.getElementById('btn-hide-analytics')?.addEventListener('click', () => {
+                if(salesMainView && analyticsView) {
+                    analyticsView.classList.add('hidden');
+                    salesMainView.classList.remove('hidden');
+                }
+            });
+
+            const analyticsTabs = document.querySelectorAll('.analytics-tab-btn');
+            analyticsTabs.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const period = e.target.dataset.period;
+                    // Update active tab styles
+                    analyticsTabs.forEach(t => {
+                        t.classList.remove('bg-white', 'shadow-sm', 'text-gray-900');
+                        t.classList.add('text-gray-500');
+                    });
+                    e.target.classList.remove('text-gray-500');
+                    e.target.classList.add('bg-white', 'shadow-sm', 'text-gray-900');
+                    renderAnalytics(period);
+                });
+            });
+
+            async function renderAnalytics(period) {
+                const incomeItems = await getIncomeLocal();
+                
+                // Helper to format date keys
+                const getPeriodKey = (dateStr) => {
+                    const d = new Date(dateStr);
+                    if (period === 'daily') return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    if (period === 'weekly') {
+                        const first = d.getDate() - d.getDay();
+                        const weekStart = new Date(d.setDate(first));
+                        return "Week of " + weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }
+                    if (period === 'monthly') return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                    if (period === 'yearly') return d.getFullYear().toString();
+                    return 'Unknown';
+                };
+
+                // Group data
+                const groups = {};
+                let totalRevenue = 0;
+                let totalTx = 0;
+
+                incomeItems.forEach(item => {
+                    if (!item.date) return;
+                    
+                    // Filter based on period limits (optional, keeping it simple to just group all local data)
+                    const key = getPeriodKey(item.date);
+                    if (!groups[key]) groups[key] = { revenue: 0, items: [] };
+                    
+                    // Calculate real amount paid
+                    const discount = parseFloat(item.discount || 0);
+                    const deliveryFee = parseFloat(item.delivery_fee || 0);
+                    const finalPaid = parseFloat(item.amount) - discount + deliveryFee;
+                    
+                    groups[key].revenue += finalPaid;
+                    groups[key].items.push(item);
+                    
+                    totalRevenue += finalPaid;
+                    totalTx++;
+                });
+
+                // Update Hero Cards
+                document.getElementById('analytics-total-revenue').textContent = `₦${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('analytics-total-tx').textContent = totalTx;
+                document.getElementById('analytics-avg-sale').textContent = `₦${(totalTx > 0 ? (totalRevenue / totalTx) : 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+                // Render List
+                const listEl = document.getElementById('analytics-grouped-list');
+                const labelEl = document.getElementById('analytics-period-label');
+                
+                const labels = { 'daily': 'Per Day', 'weekly': 'Per Week', 'monthly': 'Per Month', 'yearly': 'Per Year' };
+                if(labelEl) labelEl.textContent = labels[period];
+
+                if (Object.keys(groups).length === 0) {
+                    listEl.innerHTML = '<p class="text-center text-gray-400 py-8 text-sm">No sales data available.</p>';
+                    return;
+                }
+
+                // Sort keys (newest first roughly)
+                const sortedKeys = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+
+                listEl.innerHTML = sortedKeys.map(key => {
+                    const g = groups[key];
+                    return `
+                    <details class="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group">
+                        <summary class="p-4 flex items-center justify-between cursor-pointer list-none outline-none">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                <span class="font-bold text-gray-800 text-sm">${key}</span>
+                                <span class="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">${g.items.length} tx</span>
+                            </div>
+                            <span class="font-bold text-indigo-600">₦${g.revenue.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        </summary>
+                        <div class="px-4 pb-4 pt-1 space-y-2 bg-white">
+                            ${g.items.map(item => {
+                                const discount = parseFloat(item.discount || 0);
+                                const deliveryFee = parseFloat(item.delivery_fee || 0);
+                                const finalPaid = parseFloat(item.amount) - discount + deliveryFee;
+                                const receiptBadge = item.receipt_id ? \`<span class="text-[9px] text-gray-400 font-mono ml-1">#\${item.receipt_id}</span>\` : '';
+                                return \`
+                                <div class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
+                                    <div>
+                                        <p class="font-semibold text-gray-700">\${item.item_sold}</p>
+                                        <p class="text-[10px] text-gray-400">\${item.customer_name || 'Walk-in'} \${receiptBadge}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-emerald-600">₦\${finalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                                    </div>
+                                </div>
+                                \`;
+                            }).join('')}
+                        </div>
+                    </details>
+                    `;
+                }).join('');
+            }
 
             // Initial calculations and renders
             renderIncomeListUI();
