@@ -528,8 +528,8 @@ def register_api_request():
 
         if not email or not password:
             return jsonify({"status": "error", "message": "Email and password are required."}), 400
-        if len(password) < 6:
-            return jsonify({"status": "error", "message": "Password must be at least 6 characters long."}), 400
+        if not re.match(r'^(?=.*[a-zA-Z])(?=.*\d).{8,}$', password):
+            return jsonify({"status": "error", "message": "Password must be at least 8 characters long and contain both letters and numbers."}), 400
 
         with get_db() as db:
             if db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
@@ -951,7 +951,7 @@ def add_expense():
         return jsonify({"status": "error", "message": "Missing required fields: amount, category, and description"}), 400
 
     try:
-        amount = float(amount_val)
+        amount = float(str(amount_val).replace(',', ''))
         if not math.isfinite(amount) or amount <= 0:
             return jsonify({"status": "error", "message": "Amount must be a positive number"}), 400
     except (TypeError, ValueError):
@@ -1003,7 +1003,7 @@ def api_expense_detail(expense_id):
             return jsonify({"status": "error", "message": "Invalid JSON payload"}), 400
 
         try:
-            amount = float(data.get("amount", 0))
+            amount = float(str(data.get("amount", "0")).replace(',', ''))
             if not math.isfinite(amount) or amount <= 0:
                 return jsonify({"status": "error", "message": "Amount must be a positive number"}), 400
         except (TypeError, ValueError):
@@ -1054,7 +1054,7 @@ def edit_expense(expense_id):
         return redirect("/")
 
     if request.method == "POST":
-        amount = float(request.form["amount"])
+        amount = float(str(request.form.get("amount", "0")).replace(',', ''))
         category = request.form["category"].strip()
         description = request.form["description"].strip()
         expenses_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
@@ -1273,6 +1273,28 @@ def public_storefront(store_slug):
 # ==========================================
 # BUSINESS PROFILE API
 # ==========================================
+@app.route("/api/business_profile/request-otp", methods=["POST"])
+def request_profile_otp():
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    
+    with get_db() as db:
+        user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+        
+    if not user:
+        return jsonify({"status": "error", "message": "User not found"}), 404
+        
+    email = user["email"]
+    otp_code = str(random.randint(100000, 999999))
+    session['profile_verification_code'] = otp_code
+    
+    send_otp_email(email, otp_code, subject_type="Profile Update Verification")
+    print(f"[DEBUG] Profile OTP Generated for {email}: {otp_code}")
+    
+    return jsonify({"status": "success", "message": "Verification code sent"})
+
+
 @app.route("/api/business_profile", methods=["GET", "POST"])
 def api_business_profile():
     user_id = get_current_user_id()
@@ -1313,6 +1335,16 @@ def api_business_profile():
 
     elif request.method == "POST":
         data = request.form if request.form else (request.get_json(silent=True) or {})
+
+        # OTP Validation
+        provided_otp = str(data.get("otp", "")).strip()
+        expected_otp = session.get('profile_verification_code')
+
+        if not expected_otp or provided_otp != str(expected_otp):
+            return jsonify({"status": "error", "message": "Invalid or expired verification code."}), 400
+
+        # Clear the OTP from session after successful validation
+        session.pop('profile_verification_code', None)
 
         company_name = str(data.get("company_name", "")).strip()
         business_phone = str(data.get("business_phone", "")).strip()
@@ -1435,7 +1467,7 @@ def api_income():
             for product in items:
                 item_name = str(product.get("item_sold", "")).strip()
                 try:
-                    amt = float(product.get("amount", 0))
+                    amt = float(str(product.get("amount", "0")).replace(',', ''))
                     if not math.isfinite(amt) or amt <= 0 or not item_name:
                         continue
                 except (TypeError, ValueError):
@@ -1491,7 +1523,7 @@ def sync_sales():
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
 
             try:
-                amt = float(amount_val)
+                amt = float(str(amount_val).replace(',', ''))
                 if not math.isfinite(amt) or amt <= 0 or not item_sold:
                     continue
             except (TypeError, ValueError):
