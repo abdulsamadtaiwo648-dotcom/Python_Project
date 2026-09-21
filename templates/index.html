@@ -685,6 +685,66 @@
         const INCOME_STORE = 'income';
         const PROFILE_STORE = 'business_profile';
 
+        // -------------------------------------------------------------
+        // STEP 1 & 3: OFFLINE BOUNCER & FAIL-SAFE TICKET
+        // -------------------------------------------------------------
+        (function checkOfflineBouncer() {
+            if (!navigator.onLine) {
+                const isOfflineLoggedIn = localStorage.getItem('solobiz_logged_in');
+                if (!isOfflineLoggedIn) {
+                    window.location.href = '/login';
+                }
+            } else {
+                localStorage.setItem('solobiz_logged_in', 'true');
+            }
+        })();
+
+        // -------------------------------------------------------------
+        // STEP 1: FAIL-SAFE LOCALSTORAGE STORE & FORWARD ENGINE
+        // -------------------------------------------------------------
+        function saveSaleOffline(saleData) {
+            let unsyncedSales = JSON.parse(localStorage.getItem('unsynced_sales')) || [];
+            unsyncedSales.push(saleData);
+            localStorage.setItem('unsynced_sales', JSON.stringify(unsyncedSales));
+            console.log("Sale saved locally in localStorage notebook!");
+        }
+
+        // -------------------------------------------------------------
+        // STEP 2 & 5: AUTO-SYNC ENGINE FOR UNACCEPTED OFFLINE SALES
+        // -------------------------------------------------------------
+        async function syncOfflineSales() {
+            let unsyncedSales = JSON.parse(localStorage.getItem('unsynced_sales')) || [];
+            if (unsyncedSales.length === 0) return;
+
+            console.log(`Attempting to sync ${unsyncedSales.length} offline sales...`);
+
+            try {
+                let response = await fetch('/api/sync-sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sales: unsyncedSales })
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('unsynced_sales');
+                    console.log("Offline sales successfully synced to database.");
+                    if (typeof showToast === 'function') {
+                        showToast("All offline sales have been successfully backed up to database!", "success");
+                    }
+                }
+            } catch (error) {
+                console.log("Still offline, will try syncing later.");
+            }
+        }
+
+        // Fire auto-sync on load & when network connection is restored
+        window.addEventListener('load', function() {
+            if (navigator.onLine) {
+                syncOfflineSales();
+            }
+        });
+        window.addEventListener('online', syncOfflineSales);
+
         function handleLogout() {
             localStorage.clear();
             sessionStorage.clear();
@@ -948,9 +1008,40 @@
                             const updateTx = db.transaction(INCOME_STORE, 'readwrite');
                             updateTx.objectStore(INCOME_STORE).put(rec);
                         }
+                    } else {
+                        // Backend error, queue in localStorage
+                        for (const item of items) {
+                            saveSaleOffline({
+                                item: String(item.item_sold || '').trim(),
+                                amount: parseFloat(item.amount || 0),
+                                customer_name: customer_name,
+                                receipt_id: receipt_id,
+                                date: isoDate
+                            });
+                        }
                     }
                 } catch (err) {
-                    console.warn('Network error logging sale. Saved in IndexedDB for background sync.', err);
+                    console.warn('Network error logging sale. Saved offline in localStorage & IndexedDB.', err);
+                    for (const item of items) {
+                        saveSaleOffline({
+                            item: String(item.item_sold || '').trim(),
+                            amount: parseFloat(item.amount || 0),
+                            customer_name: customer_name,
+                            receipt_id: receipt_id,
+                            date: isoDate
+                        });
+                    }
+                }
+            } else {
+                // Offline mode: queue in localStorage immediately
+                for (const item of items) {
+                    saveSaleOffline({
+                        item: String(item.item_sold || '').trim(),
+                        amount: parseFloat(item.amount || 0),
+                        customer_name: customer_name,
+                        receipt_id: receipt_id,
+                        date: isoDate
+                    });
                 }
             }
 

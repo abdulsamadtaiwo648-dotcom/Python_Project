@@ -1461,6 +1461,61 @@ def api_income():
 
 
 # ==========================================
+# BATCH OFFLINE SALES SYNC ROUTE
+# ==========================================
+@app.route("/api/sync-sales", methods=["POST"])
+def sync_sales():
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    data = request.get_json(silent=True) or request.get_json(force=True, silent=True) or {}
+    sales_array = data.get("sales", [])
+
+    if not sales_array or not isinstance(sales_array, list):
+        return jsonify({"status": "success", "success": True, "message": "No sales to sync", "count": 0}), 200
+
+    saved_items = []
+    with get_db() as db:
+        for sale in sales_array:
+            if not isinstance(sale, dict):
+                continue
+            item_sold = str(sale.get("item_sold") or sale.get("item") or "").strip()
+            amount_val = sale.get("amount")
+            customer_name = str(sale.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
+            sale_date = sale.get("date") or datetime.now().strftime("%Y-%m-%d %I:%M %p")
+            receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
+
+            try:
+                amt = float(amount_val)
+                if not math.isfinite(amt) or amt <= 0 or not item_sold:
+                    continue
+            except (TypeError, ValueError):
+                continue
+
+            cursor = db.execute(
+                "INSERT INTO income (user_id, amount, item_sold, customer_name, date, receipt_id) VALUES (?, ?, ?, ?, ?, ?)",
+                (user_id, amt, item_sold, customer_name, sale_date, receipt_id)
+            )
+            saved_items.append({
+                "id": cursor.lastrowid, "user_id": user_id, "amount": amt,
+                "item_sold": item_sold, "customer_name": customer_name,
+                "date": sale_date, "receipt_id": receipt_id
+            })
+        db.commit()
+
+    return jsonify({
+        "status": "success",
+        "success": True,
+        "message": f"Successfully synced {len(saved_items)} sales",
+        "count": len(saved_items),
+        "items": saved_items
+    }), 200
+
+
+
+
+# ==========================================
 # UTILITY ROUTES
 # ==========================================
 @app.route("/user-count")
