@@ -2665,9 +2665,9 @@
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/static/sw.js')
-                    .then(() => console.log('[PWA] Service Worker active.'))
-                    .catch(err => console.warn('[PWA] SW error:', err));
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then((reg) => console.log('[PWA] Service Worker Active with scope:', reg.scope))
+                    .catch(err => console.error('[PWA] Service Worker Registration Failed:', err));
             });
         }
 

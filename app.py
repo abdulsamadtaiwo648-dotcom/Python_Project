@@ -797,6 +797,10 @@ def root():
         return redirect("/dashboard")
     return render_template("landing.html")
 
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+
 
 @app.route("/sitemap.xml")
 def sitemap():
