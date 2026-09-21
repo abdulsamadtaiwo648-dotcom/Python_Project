@@ -210,8 +210,11 @@
                     <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Log New Expense
                 </h3>
                 <form id="expense-form" method="POST" action="/add" class="space-y-3">
-                    <input type="text" inputmode="numeric" name="amount" placeholder="Amount (e.g. 5000)" required 
-                        class="currency-input w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₦</span>
+                        <input type="text" inputmode="numeric" name="amount" placeholder="Amount (e.g. 5000)" required 
+                            class="currency-input w-full border border-gray-200 rounded-lg py-3 pr-3 pl-8 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
 
                     <select name="category" required class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
                         <option value="" disabled selected>Select a Category...</option>
@@ -380,7 +383,10 @@
                                 <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. DLNZ Hoodie)" required>
                             </div>
                             <div class="col-span-4">
-                                <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount (₦)" required>
+                                <div class="relative">
+                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
+                                    <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg py-2.5 pr-2.5 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount" required>
+                                </div>
                             </div>
                             <div class="col-span-1 text-center">
                                 <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 p-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -598,7 +604,8 @@
                         <!-- Business Logo File Upload -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Business Logo Image</label>
-                            <input type="file" name="logo" id="profile-logo-file" accept="image/*"
+                            <input type="file" name="logo" id="profile-logo-file" accept=".jpg, .jpeg, .png, image/jpeg, image/png"
+                                onchange="if(this.files[0].size > 2097152){ alert('Image is too large. Max size is 2MB.'); this.value=''; }"
                                 class="w-full text-xs text-gray-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
                         </div>
 
@@ -2132,7 +2139,10 @@
                             <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. Eden Cap)" required>
                         </div>
                         <div class="col-span-4">
-                            <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount (₦)" required>
+                            <div class="relative">
+                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
+                                <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg py-2.5 pr-2.5 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount" required>
+                            </div>
                         </div>
                         <div class="col-span-1 text-center">
                             <button type="button" class="btn-remove-item-row text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
@@ -2182,7 +2192,10 @@
                                 <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. DLNZ Hoodie)" required>
                             </div>
                             <div class="col-span-4">
-                                <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount (₦)" required>
+                                <div class="relative">
+                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
+                                    <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg py-2.5 pr-2.5 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount" required>
+                                </div>
                             </div>
                             <div class="col-span-1 text-center">
                                 <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
@@ -2572,6 +2585,7 @@
                 btnCancelProfile.addEventListener('click', () => toggleProfileMode('view'));
             }
 
+            const profileForm = document.getElementById('profile-form');
             let pendingProfileFormData = null;
 
             if (profileForm) {
