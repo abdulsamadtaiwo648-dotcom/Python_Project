@@ -1,5 +1,5 @@
 
-        const CURRENT_USER_ID = {{ session.get('user_id', '0') | tojson }};
+        const CURRENT_USER_ID = 1;
         const DB_NAME = 'SoloBizDB_user_' + CURRENT_USER_ID;
         const DB_VERSION = 3;
         const STORE_NAME = 'expenses';
@@ -1775,6 +1775,21 @@
                 }
             });
 
+            // Handle the top header "Overview" button
+            document.getElementById('btn-global-overview')?.addEventListener('click', () => {
+                // Switch to the Sales Tab first
+                if (typeof switchTab === 'function') switchTab('income');
+                
+                if(salesMainView && analyticsView) {
+                    salesMainView.classList.add('hidden');
+                    analyticsView.classList.remove('hidden');
+                    renderAnalytics('daily'); // default
+                    
+                    // Scroll to top to see it clearly
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+
             document.getElementById('btn-hide-analytics')?.addEventListener('click', () => {
                 if(salesMainView && analyticsView) {
                     analyticsView.classList.add('hidden');
@@ -1875,18 +1890,18 @@
                                 const discount = parseFloat(item.discount || 0);
                                 const deliveryFee = parseFloat(item.delivery_fee || 0);
                                 const finalPaid = parseFloat(item.amount) - discount + deliveryFee;
-                                const receiptBadge = item.receipt_id ? \`<span class="text-[9px] text-gray-400 font-mono ml-1">#\${item.receipt_id}</span>\` : '';
-                                return \`
+                                const receiptBadge = item.receipt_id ? `<span class="text-[9px] text-gray-400 font-mono ml-1">#${item.receipt_id}</span>` : '';
+                                return `
                                 <div class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
                                     <div>
-                                        <p class="font-semibold text-gray-700">\${item.item_sold}</p>
-                                        <p class="text-[10px] text-gray-400">\${item.customer_name || 'Walk-in'} \${receiptBadge}</p>
+                                        <p class="font-semibold text-gray-700">${item.item_sold}</p>
+                                        <p class="text-[10px] text-gray-400">${item.customer_name || 'Walk-in'} ${receiptBadge}</p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="font-bold text-emerald-600">₦\${finalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                                        <p class="font-bold text-emerald-600">₦${finalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
                                     </div>
                                 </div>
-                                \`;
+                                `;
                             }).join('')}
                         </div>
                     </details>
