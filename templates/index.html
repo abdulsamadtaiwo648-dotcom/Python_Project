@@ -185,6 +185,9 @@
             <button id="btn-tab-income" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Sales
             </button>
+            <button id="btn-tab-analytics" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Analytics
+            </button>
             <button id="btn-tab-profile" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg> Profile
             </button>
@@ -499,13 +502,15 @@
                 </div>
             </div>
             </div> <!-- Close sales-main-view -->
-            
-            <!-- Analytics View (Hidden by default) -->
-            <div id="analytics-view" class="hidden space-y-6">
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 4: ANALYTICS CONTENT                                  -->
+        <!-- ========================================================= -->
+        <section id="tab-analytics-content" class="tab-content hidden space-y-6">
+            <!-- Analytics View -->
+            <div id="analytics-view" class="space-y-6">
                 <div class="flex items-center gap-3">
-                    <button type="button" id="btn-hide-analytics" class="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center transition shadow-sm">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    </button>
                     <h2 class="font-bold text-gray-800 text-lg">Sales Analytics</h2>
                 </div>
 
@@ -1270,8 +1275,8 @@
         async function getExpensesLocal() {
             const db = await openIndexedDB();
             return new Promise((resolve, reject) => {
-                const tx = db.transaction(EXPENSES_STORE, 'readonly');
-                const req = tx.objectStore(EXPENSES_STORE).getAll();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).getAll();
                 req.onsuccess = () => resolve(req.result || []);
                 req.onerror = (e) => reject(e.target.error);
             });
@@ -1881,34 +1886,41 @@
             // -------------------------------------------------------------
             const btnExpenses = document.getElementById('btn-tab-expenses');
             const btnIncome = document.getElementById('btn-tab-income');
+            const btnAnalytics = document.getElementById('btn-tab-analytics');
             const btnProfile = document.getElementById('btn-tab-profile');
 
             const contentExpenses = document.getElementById('tab-expenses-content');
             const contentIncome = document.getElementById('tab-income-content');
+            const contentAnalytics = document.getElementById('tab-analytics-content');
             const contentProfile = document.getElementById('tab-profile-content');
 
             function switchTab(target) {
-                [contentExpenses, contentIncome, contentProfile].forEach(el => el && el.classList.add('hidden'));
-                [btnExpenses, btnIncome, btnProfile].forEach(btn => {
-                    if (btn) btn.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5';
+                [contentExpenses, contentIncome, contentAnalytics, contentProfile].forEach(el => el && el.classList.add('hidden'));
+                [btnExpenses, btnIncome, btnAnalytics, btnProfile].forEach(btn => {
+                    if (btn) btn.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                 });
 
                 if (target === 'expenses' && contentExpenses) {
                     contentExpenses.classList.remove('hidden');
-                    if (btnExpenses) btnExpenses.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    if (btnExpenses) btnExpenses.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                 } else if (target === 'income' && contentIncome) {
                     contentIncome.classList.remove('hidden');
-                    if (btnIncome) btnIncome.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-emerald-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    if (btnIncome) btnIncome.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-emerald-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                     renderIncomeListUI();
+                } else if (target === 'analytics' && contentAnalytics) {
+                    contentAnalytics.classList.remove('hidden');
+                    if (btnAnalytics) btnAnalytics.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
+                    if (typeof renderAnalytics === 'function') renderAnalytics('daily');
                 } else if (target === 'profile' && contentProfile) {
                     contentProfile.classList.remove('hidden');
-                    if (btnProfile) btnProfile.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    if (btnProfile) btnProfile.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                     populateProfileFormUI();
                 }
             }
 
             if (btnExpenses) btnExpenses.addEventListener('click', () => switchTab('expenses'));
             if (btnIncome) btnIncome.addEventListener('click', () => switchTab('income'));
+            if (btnAnalytics) btnAnalytics.addEventListener('click', () => switchTab('analytics'));
             if (btnProfile) btnProfile.addEventListener('click', () => switchTab('profile'));
 
             // -------------------------------------------------------------
@@ -2668,17 +2680,11 @@
 
             // Handle the top header "Overview" button
             document.getElementById('btn-global-overview')?.addEventListener('click', () => {
-                // Switch to the Sales Tab first
-                if (typeof switchTab === 'function') switchTab('income');
+                // Switch to the Analytics Tab directly
+                if (typeof switchTab === 'function') switchTab('analytics');
                 
-                if(salesMainView && analyticsView) {
-                    salesMainView.classList.add('hidden');
-                    analyticsView.classList.remove('hidden');
-                    renderAnalytics('daily'); // default
-                    
-                    // Scroll to top to see it clearly
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+                // Scroll to top to see it clearly
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
 
             document.getElementById('btn-hide-analytics')?.addEventListener('click', () => {

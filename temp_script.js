@@ -397,8 +397,8 @@
         async function getExpensesLocal() {
             const db = await openIndexedDB();
             return new Promise((resolve, reject) => {
-                const tx = db.transaction(EXPENSES_STORE, 'readonly');
-                const req = tx.objectStore(EXPENSES_STORE).getAll();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).getAll();
                 req.onsuccess = () => resolve(req.result || []);
                 req.onerror = (e) => reject(e.target.error);
             });
@@ -523,9 +523,17 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    amount: item.amount,
-                                    item_sold: item.item_sold,
-                                    customer_name: item.customer_name
+                                    items: [{
+                                        amount: item.amount,
+                                        item_sold: item.item_sold,
+                                        discount: item.discount,
+                                        delivery_fee: item.delivery_fee,
+                                        payment_mode: item.payment_mode,
+                                        split_cash: item.split_cash,
+                                        split_transfer: item.split_transfer
+                                    }],
+                                    customer_name: item.customer_name,
+                                    receipt_id: item.receipt_id
                                 })
                             });
                             const data = await res.json();
@@ -1000,34 +1008,41 @@
             // -------------------------------------------------------------
             const btnExpenses = document.getElementById('btn-tab-expenses');
             const btnIncome = document.getElementById('btn-tab-income');
+            const btnAnalytics = document.getElementById('btn-tab-analytics');
             const btnProfile = document.getElementById('btn-tab-profile');
 
             const contentExpenses = document.getElementById('tab-expenses-content');
             const contentIncome = document.getElementById('tab-income-content');
+            const contentAnalytics = document.getElementById('tab-analytics-content');
             const contentProfile = document.getElementById('tab-profile-content');
 
             function switchTab(target) {
-                [contentExpenses, contentIncome, contentProfile].forEach(el => el && el.classList.add('hidden'));
-                [btnExpenses, btnIncome, btnProfile].forEach(btn => {
-                    if (btn) btn.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5';
+                [contentExpenses, contentIncome, contentAnalytics, contentProfile].forEach(el => el && el.classList.add('hidden'));
+                [btnExpenses, btnIncome, btnAnalytics, btnProfile].forEach(btn => {
+                    if (btn) btn.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                 });
 
                 if (target === 'expenses' && contentExpenses) {
                     contentExpenses.classList.remove('hidden');
-                    if (btnExpenses) btnExpenses.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    if (btnExpenses) btnExpenses.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                 } else if (target === 'income' && contentIncome) {
                     contentIncome.classList.remove('hidden');
-                    if (btnIncome) btnIncome.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-emerald-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    if (btnIncome) btnIncome.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-emerald-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                     renderIncomeListUI();
+                } else if (target === 'analytics' && contentAnalytics) {
+                    contentAnalytics.classList.remove('hidden');
+                    if (btnAnalytics) btnAnalytics.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
+                    if (typeof renderAnalytics === 'function') renderAnalytics('daily');
                 } else if (target === 'profile' && contentProfile) {
                     contentProfile.classList.remove('hidden');
-                    if (btnProfile) btnProfile.className = 'tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+                    if (btnProfile) btnProfile.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
                     populateProfileFormUI();
                 }
             }
 
             if (btnExpenses) btnExpenses.addEventListener('click', () => switchTab('expenses'));
             if (btnIncome) btnIncome.addEventListener('click', () => switchTab('income'));
+            if (btnAnalytics) btnAnalytics.addEventListener('click', () => switchTab('analytics'));
             if (btnProfile) btnProfile.addEventListener('click', () => switchTab('profile'));
 
             // -------------------------------------------------------------
@@ -1787,17 +1802,11 @@
 
             // Handle the top header "Overview" button
             document.getElementById('btn-global-overview')?.addEventListener('click', () => {
-                // Switch to the Sales Tab first
-                if (typeof switchTab === 'function') switchTab('income');
+                // Switch to the Analytics Tab directly
+                if (typeof switchTab === 'function') switchTab('analytics');
                 
-                if(salesMainView && analyticsView) {
-                    salesMainView.classList.add('hidden');
-                    analyticsView.classList.remove('hidden');
-                    renderAnalytics('daily'); // default
-                    
-                    // Scroll to top to see it clearly
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+                // Scroll to top to see it clearly
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
 
             document.getElementById('btn-hide-analytics')?.addEventListener('click', () => {
