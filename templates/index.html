@@ -413,80 +413,39 @@
                     <h3 class="font-bold text-gray-800 flex items-center gap-2">
                         <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Log New Sale / Revenue
                     </h3>
-                    <button type="button" id="btn-add-sale-item-row" class="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1 shadow-sm">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Item
-                    </button>
+                    <!-- Orphaned Add Item Button Removed -->
                 </div>
                 <form id="add-income-form" class="space-y-3">
                     <div>
-                        <input type="text" name="customer_name" id="income-customer-name" placeholder="Customer Name (e.g. Abdulsamad)" 
+                        <input type="text" id="income-customer-name" placeholder="Customer Name (Optional)" 
                             class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
                     </div>
-
-                    <div id="sale-items-container" class="space-y-2.5">
-                        <div class="sale-item-row grid grid-cols-12 gap-2 items-center bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
-                            <div class="col-span-7">
-                                <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. DLNZ Hoodie)" required>
-                            </div>
-                            <div class="col-span-4">
-                                <div class="relative">
-                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
-                                    <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg py-2.5 pr-2.5 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount" required>
-                                </div>
-                            </div>
-                            <div class="col-span-1 text-center">
-                                <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 p-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                            </div>
+                    <div>
+                        <input type="text" id="income-description" class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Title / Description (e.g. Kitchen Tiling)" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="relative">
+                            <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Total Value</label>
+                            <span class="absolute left-2.5 bottom-2.5 text-gray-400 font-bold text-sm">₦</span>
+                            <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-gray-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
+                        </div>
+                        <div class="relative">
+                            <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Amount Paid</label>
+                            <span class="absolute left-2.5 bottom-2.5 text-gray-400 font-bold text-sm">₦</span>
+                            <input type="text" inputmode="numeric" id="income-amount-paid" class="currency-input w-full border border-gray-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
                         </div>
                     </div>
-
-                    <!-- Receipt Adjustments -->
-                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 space-y-2 mt-3">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Receipt Adjustments (Optional)</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="relative">
-                                <label class="block text-[10px] font-semibold text-red-400 mb-0.5">Discount</label>
-                                <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
-                                <input type="text" inputmode="numeric" id="sale-discount" placeholder="0"
-                                       class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-400">
-                            </div>
-                            <div class="relative">
-                                <label class="block text-[10px] font-semibold text-blue-400 mb-0.5">Delivery / Waybill</label>
-                                <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
-                                <input type="text" inputmode="numeric" id="sale-delivery-fee" placeholder="0"
-                                       class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-gray-500 mb-0.5">Payment Mode</label>
-                            <div class="flex gap-2">
-                                <select id="sale-payment-mode" class="flex-1 border border-gray-200 rounded-lg p-2 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                    <option value="Cash">💵 Cash</option>
-                                    <option value="Transfer">🏦 Transfer</option>
-                                    <option value="POS">💳 POS</option>
-                                    <option value="Split">🔀 Split Payment</option>
-                                    <option value="Credit / Unpaid">⏳ Credit / Unpaid</option>
-                                </select>
-                            </div>
-                            <div id="split-payment-fields" class="hidden grid grid-cols-2 gap-2 mt-2">
-                                <div class="relative">
-                                    <label class="block text-[10px] font-semibold text-gray-400 mb-0.5">Cash Portion</label>
-                                    <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
-                                    <input type="text" inputmode="numeric" id="sale-split-cash" placeholder="0"
-                                           class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                </div>
-                                <div class="relative">
-                                    <label class="block text-[10px] font-semibold text-gray-400 mb-0.5">Transfer Portion</label>
-                                    <span class="absolute left-2.5 bottom-2 text-gray-400 font-bold text-xs">₦</span>
-                                    <input type="text" inputmode="numeric" id="sale-split-transfer" placeholder="0"
-                                           class="currency-input w-full border border-gray-200 rounded-lg py-2 pr-2 pl-7 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                </div>
-                            </div>
-                        </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Payment Method</label>
+                        <select id="sale-payment-mode" class="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="Cash">💵 Cash</option>
+                            <option value="Transfer">🏦 Transfer</option>
+                            <option value="POS">💳 POS</option>
+                        </select>
                     </div>
 
                     <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2 mt-4">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Sale
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Transaction
                     </button>
                 </form>
             </div>
@@ -522,49 +481,36 @@
                     <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-500 hover:text-gray-700">Yearly</button>
                 </div>
 
-                <!-- Narrative Box (Actionable Insights) -->
-                <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-                    <div class="absolute -right-4 -top-4 w-16 h-16 bg-indigo-100 rounded-full opacity-50"></div>
-                    <div class="flex gap-3 mb-2">
-                        <div class="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 flex-shrink-0 mt-0.5">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <h3 class="font-bold text-indigo-900">Financial Insights</h3>
+                <!-- Top Summary Dashboard -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Value & Cash -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Value Booked</p>
+                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-total-value">₦0.00</p>
                     </div>
-                    <p id="analytics-narrative" class="text-sm text-indigo-800 leading-relaxed font-medium pl-11">
-                        Loading your financial narrative...
-                    </p>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Cash Collected</p>
+                        <p class="text-lg sm:text-xl font-bold text-emerald-600" id="analytics-cash-collected">₦0.00</p>
+                    </div>
+
+                    <!-- Expenses & Profit -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Expenses</p>
+                        <p class="text-lg sm:text-xl font-bold text-rose-500" id="analytics-total-expenses">₦0.00</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 bg-slate-50">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Liquid Profit</p>
+                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-liquid-profit">₦0.00</p>
+                    </div>
                 </div>
 
-                <!-- Detailed Metrics Grid (Tiered P&L) -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Total Revenue</p>
-                        <h3 class="text-lg font-bold text-emerald-700 mt-auto" id="analytics-revenue">₦0.00</h3>
+                <!-- Outstanding Alert (Only shows if money is owed) -->
+                <div id="analytics-outstanding-alert" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-semibold text-amber-800">Outstanding Payments</p>
+                        <p class="text-xs text-amber-600">Money still owed to you.</p>
                     </div>
-                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">COGS (Restock)</p>
-                        <h3 class="text-lg font-bold text-rose-600 mt-auto" id="analytics-cogs">₦0.00</h3>
-                    </div>
-                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col col-span-2 bg-gradient-to-r from-gray-50 to-white">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Gross Profit</p>
-                        <h3 class="text-xl font-black text-gray-800" id="analytics-gross-profit">₦0.00</h3>
-                    </div>
-                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">OPEX (Overhead)</p>
-                        <h3 class="text-lg font-bold text-amber-600 mt-auto" id="analytics-opex">₦0.00</h3>
-                    </div>
-                    <div class="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Realized Cash</p>
-                        <h3 class="text-lg font-bold text-blue-600 mt-auto" id="analytics-cash">₦0.00</h3>
-                    </div>
-                    <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-col col-span-2 bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
-                        <div class="flex justify-between items-center mb-1">
-                            <p class="text-[11px] uppercase font-black text-indigo-400 tracking-wider">Net Profit</p>
-                            <span id="analytics-margin" class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">0% Margin</span>
-                        </div>
-                        <h3 class="text-3xl font-black text-indigo-700 mt-1" id="analytics-net-profit">₦0.00</h3>
-                    </div>
+                    <p class="text-lg font-bold text-amber-700" id="analytics-outstanding-balance">₦0.00</p>
                 </div>
 
                 <!-- Expandable Grouped List -->
@@ -879,7 +825,7 @@
     <script>
         const CURRENT_USER_ID = {{ session.get('user_id', '0') | tojson }};
         const DB_NAME = 'SoloBizDB_user_' + CURRENT_USER_ID;
-        const DB_VERSION = 3;
+        const DB_VERSION = 4;
         const STORE_NAME = 'expenses';
         const INCOME_STORE = 'income';
         const PROFILE_STORE = 'business_profile';
@@ -1149,113 +1095,56 @@
             const db = await openIndexedDB();
             const customer_name = String(incomeData.customer_name || 'Walk-in Customer').trim();
             const receipt_id = incomeData.receipt_id || ('REC-' + Math.floor(Date.now() / 1000));
-
-            let items = incomeData.items;
-            if (!items || !Array.isArray(items) || items.length === 0) {
-                items = [{
-                    item_sold: String(incomeData.item_sold || '').trim(),
-                    amount: parseFloat(incomeData.amount || 0)
-                }];
-            }
-
-            const createdRecords = [];
             const isoDate = new Date().toISOString();
 
-            const discount = parseFloat(incomeData.discount || 0);
-            const deliveryFee = parseFloat(incomeData.deliveryFee || 0);
-            const paymentMode = incomeData.paymentMode || 'Cash';
-            const splitCash = parseFloat(incomeData.splitCash || 0);
-            const splitTransfer = parseFloat(incomeData.splitTransfer || 0);
+            const saleRecord = {
+                description: String(incomeData.description || '').trim(),
+                total_value: parseFloat(incomeData.total_value || 0),
+                amount_paid: parseFloat(incomeData.amount_paid || 0),
+                customer_name: customer_name,
+                receipt_id: receipt_id,
+                payment_mode: incomeData.payment_mode || 'Cash',
+                date: isoDate,
+                synced: false,
+                server_id: null
+            };
 
-            for (const item of items) {
-                const saleRecord = {
-                    amount: parseFloat(item.amount),
-                    item_sold: String(item.item_sold || '').trim(),
-                    customer_name: customer_name,
-                    receipt_id: receipt_id,
-                    date: isoDate,
-                    synced: false,
-                    server_id: null,
-                    discount: discount,
-                    delivery_fee: deliveryFee,
-                    payment_mode: paymentMode,
-                    split_cash: splitCash,
-                    split_transfer: splitTransfer
-                };
+            const local_id = await new Promise((resolve, reject) => {
+                const tx = db.transaction(INCOME_STORE, 'readwrite');
+                const req = tx.objectStore(INCOME_STORE).add(saleRecord);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
 
-                const local_id = await new Promise((resolve, reject) => {
-                    const tx = db.transaction(INCOME_STORE, 'readwrite');
-                    const req = tx.objectStore(INCOME_STORE).add(saleRecord);
-                    req.onsuccess = () => resolve(req.result);
-                    req.onerror = (e) => reject(e.target.error);
-                });
-
-                saleRecord.local_id = local_id;
-                createdRecords.push(saleRecord);
-            }
+            saleRecord.local_id = local_id;
 
             if (navigator.onLine) {
                 try {
                     const response = await authenticatedFetch('/api/income', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            customer_name: customer_name,
-                            receipt_id: receipt_id,
-                            items: items
-                        })
+                        body: JSON.stringify(saleRecord)
                     });
 
-                    const result = await response.json();
-                    if (response.ok && result.status === 'success') {
-                        const serverItems = Array.isArray(result.items) ? result.items : [result.income];
-                        for (let i = 0; i < createdRecords.length; i++) {
-                            const rec = createdRecords[i];
-                            const serverMatch = serverItems[i] || serverItems[0];
-                            rec.synced = true;
-                            rec.server_id = serverMatch ? serverMatch.id : result.receipt_id;
-
-                            const updateTx = db.transaction(INCOME_STORE, 'readwrite');
-                            updateTx.objectStore(INCOME_STORE).put(rec);
-                        }
+                    const resData = await response.json();
+                    if (response.ok && resData.status === 'success') {
+                        const tx = db.transaction(INCOME_STORE, 'readwrite');
+                        const store = tx.objectStore(INCOME_STORE);
+                        const serverItem = resData.income;
+                        saleRecord.server_id = serverItem.id;
+                        saleRecord.synced = true;
+                        store.put(saleRecord);
                     } else {
-                        // Backend error, queue in localStorage
-                        for (const item of items) {
-                            saveSaleOffline({
-                                item: String(item.item_sold || '').trim(),
-                                amount: parseFloat(item.amount || 0),
-                                customer_name: customer_name,
-                                receipt_id: receipt_id,
-                                date: isoDate
-                            });
-                        }
+                        saveSaleOffline(saleRecord);
                     }
                 } catch (err) {
                     console.warn('Network error logging sale. Saved offline in localStorage & IndexedDB.', err);
-                    for (const item of items) {
-                        saveSaleOffline({
-                            item: String(item.item_sold || '').trim(),
-                            amount: parseFloat(item.amount || 0),
-                            customer_name: customer_name,
-                            receipt_id: receipt_id,
-                            date: isoDate
-                        });
-                    }
+                    saveSaleOffline(saleRecord);
                 }
             } else {
-                // Offline mode: queue in localStorage immediately
-                for (const item of items) {
-                    saveSaleOffline({
-                        item: String(item.item_sold || '').trim(),
-                        amount: parseFloat(item.amount || 0),
-                        customer_name: customer_name,
-                        receipt_id: receipt_id,
-                        date: isoDate
-                    });
-                }
+                saveSaleOffline(saleRecord);
             }
-
-            return createdRecords[0];
+            return saleRecord;
         }
 
         async function saveIncomeLocal(incomeData) {
@@ -1299,9 +1188,11 @@
                     for (const item of result.income) {
                         if (!existingServerIds.has(item.id)) {
                             const record = {
-                                amount: parseFloat(item.amount),
-                                item_sold: item.item_sold,
-                                customer_name: item.customer_name,
+                                description: item.description || '',
+                                total_value: parseFloat(item.total_value || item.amount || 0),
+                                amount_paid: parseFloat(item.amount_paid || item.amount || 0),
+                                customer_name: item.customer_name || 'Walk-in Customer',
+                                payment_mode: item.payment_mode || 'Cash',
                                 receipt_id: item.receipt_id || ('REC-' + item.id),
                                 date: item.date,
                                 synced: true,
@@ -1401,16 +1292,11 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    items: [{
-                                        amount: item.amount,
-                                        item_sold: item.item_sold,
-                                        discount: item.discount,
-                                        delivery_fee: item.delivery_fee,
-                                        payment_mode: item.payment_mode,
-                                        split_cash: item.split_cash,
-                                        split_transfer: item.split_transfer
-                                    }],
-                                    customer_name: item.customer_name,
+                                    description: item.description || item.item_sold || 'Sales / Revenue',
+                                    total_value: parseFloat(item.total_value ?? item.amount ?? 0),
+                                    amount_paid: parseFloat(item.amount_paid ?? item.amount ?? 0),
+                                    customer_name: item.customer_name || 'Walk-in Customer',
+                                    payment_mode: item.payment_mode || 'Cash',
                                     receipt_id: item.receipt_id
                                 })
                             });
@@ -1943,7 +1829,7 @@
                     });
                     const totalSales = incomeItems
                         .filter(item => !item.pending_delete)
-                        .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+                        .reduce((sum, item) => sum + parseFloat(item.total_value ?? item.amount ?? 0), 0);
 
                     // --- Total Expenses (filtered by category and/or max amount) ---
                     const expTx = db.transaction(STORE_NAME, 'readonly');
@@ -2043,14 +1929,10 @@
                     const dateStr         = dateObj.toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' });
                     const timeStr         = dateObj.toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
                     
-                    const grandTotal      = receiptItems.reduce((s,i) => s + parseFloat(i.amount||0), 0);
-                    const discount        = parseFloat(saleRecord.discount || 0);
-                    const deliveryFee     = parseFloat(saleRecord.delivery_fee || 0);
-                    const finalTotal      = grandTotal - discount + deliveryFee;
+                    const grandTotal      = receiptItems.reduce((s,i) => s + parseFloat(i.total_value ?? i.amount ?? 0), 0);
+                    const finalPaid       = receiptItems.reduce((s,i) => s + parseFloat(i.amount_paid ?? i.amount ?? 0), 0);
                     const paymentMode     = saleRecord.payment_mode || 'Cash';
-                    const splitCash       = parseFloat(saleRecord.split_cash || 0);
-                    const splitTransfer   = parseFloat(saleRecord.split_transfer || 0);
-                    const hasAdjustments  = discount > 0 || deliveryFee > 0;
+                    const hasAdjustments  = false; // Removed in Universal Ledger
                     const fmt             = (n) => 'NGN ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
                     function hexToRgb(hex) {
@@ -2186,8 +2068,8 @@
                             doc.rect(4, y, 72, 7.5, 'F');
                         }
                         doc.setTextColor(30, 41, 59);
-                        const title = item.item_sold || 'Goods / Services';
-                        const amt   = parseFloat(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+                        const title = item.description || item.item_sold || 'Goods / Services';
+                        const amt   = parseFloat(item.total_value ?? item.amount ?? 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
                         const splitTitle = doc.splitTextToSize(title, 38)[0];
                         doc.text(splitTitle, metaLeft, y + 5);
                         doc.setFont('helvetica', 'bold');
@@ -2204,33 +2086,14 @@
                     // ────────────────────────────────────────────────────────
                     // 5. ADJUSTMENTS & TOTAL PAID
                     // ────────────────────────────────────────────────────────
-                    if (hasAdjustments) {
+                    if (finalPaid < grandTotal) {
                         doc.setFont('helvetica', 'normal');
                         doc.setFontSize(7.5);
                         doc.setTextColor(100, 116, 139);
-                        doc.text('Subtotal:', metaLeft, y + 4);
+                        doc.text('Total Invoice Value:', metaLeft, y + 4);
                         doc.setFont('helvetica', 'bold');
                         doc.text(fmt(grandTotal), metaRight, y + 4, { align: 'right' });
-                        y += 6;
-
-                        if (discount > 0) {
-                            doc.setFont('helvetica', 'normal');
-                            doc.setTextColor(220, 38, 38);
-                            doc.text('Discount:', metaLeft, y + 4);
-                            doc.setFont('helvetica', 'bold');
-                            doc.text('- ' + fmt(discount), metaRight, y + 4, { align: 'right' });
-                            y += 6;
-                        }
-
-                        if (deliveryFee > 0) {
-                            doc.setFont('helvetica', 'normal');
-                            doc.setTextColor(37, 99, 235);
-                            doc.text('Delivery / Waybill:', metaLeft, y + 4);
-                            doc.setFont('helvetica', 'bold');
-                            doc.text('+ ' + fmt(deliveryFee), metaRight, y + 4, { align: 'right' });
-                            y += 6;
-                        }
-                        y += 2;
+                        y += 8;
                     }
 
                     doc.setFillColor(15, 23, 42);
@@ -2246,7 +2109,7 @@
                     doc.text('TOTAL AMOUNT PAID', 11, y + 8.5);
                     doc.setFontSize(10.5);
                     doc.setTextColor(255, 255, 255);
-                    doc.text(fmt(finalTotal), metaRight, y + 8.5, { align: 'right' });
+                    doc.text(fmt(finalPaid), metaRight, y + 8.5, { align: 'right' });
 
                     y += 16;
 
@@ -2254,11 +2117,7 @@
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(7);
                     doc.setTextColor(100, 116, 139);
-                    if (paymentMode === 'Split') {
-                        doc.text(`Paid: \u20a6${splitCash.toLocaleString()} Cash + \u20a6${splitTransfer.toLocaleString()} Transfer`, 40, y, { align: 'center' });
-                    } else {
-                        doc.text(`Payment Mode: ${paymentMode}`, 40, y, { align: 'center' });
-                    }
+                    doc.text(`Payment Mode: ${paymentMode}`, 40, y, { align: 'center' });
                     y += 5;
 
                     // ────────────────────────────────────────────────────────
@@ -2347,8 +2206,24 @@
             // -------------------------------------------------------------
             function renderIncomeItemHTML(income) {
                 const offlineBadge = !income.synced ? `<span class="text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
-                const formattedAmount = parseFloat(income.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                // Fallback to old 'amount' if old schema
+                const totalValue = parseFloat(income.total_value || income.amount || 0);
+                const amountPaid = parseFloat(income.amount_paid || income.amount || 0);
+                const desc = income.description || income.item_sold || 'Income';
+
+                const formattedTotal = totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const formattedPaid = amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
                 const receiptTag = income.receipt_id ? `<span class="text-[10px] text-gray-400 font-mono ml-1.5">#${income.receipt_id}</span>` : '';
+
+                let paymentStatusHtml = '';
+                if (amountPaid >= totalValue) {
+                    paymentStatusHtml = `<span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold">Fully Paid</span>`;
+                } else {
+                    const diff = totalValue - amountPaid;
+                    paymentStatusHtml = `<span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-bold">Owes ₦${diff.toLocaleString('en-US')}</span>`;
+                }
 
                 return `
                 <div data-income-local-id="${income.local_id || ''}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-50 transition">
@@ -2356,15 +2231,16 @@
                         <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-lg">💰</div>
                         <div>
                             <p class="font-bold text-gray-800 text-sm capitalize flex items-center">
-                                ${income.item_sold} ${offlineBadge}
+                                ${desc} ${offlineBadge}
                             </p>
                             <p class="text-xs text-gray-500">Customer: ${income.customer_name || 'Walk-in'} ${receiptTag}</p>
+                            <div class="mt-1">${paymentStatusHtml}</div>
                         </div>
                     </div>
                     <div class="text-right">
-                        <p class="font-bold text-emerald-600 text-sm mb-1">₦${formattedAmount}</p>
+                        <p class="font-bold text-emerald-600 text-sm mb-1">₦${formattedPaid} <span class="text-[10px] text-gray-400 font-normal block">of ₦${formattedTotal}</span></p>
                         <button type="button" onclick="generatePDFReceipt(${income.local_id})" class="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded transition border border-emerald-200 shadow-sm">
-                            <span>📄</span> Download Receipt
+                            <span>📄</span> Receipt
                         </button>
                     </div>
                 </div>`;
@@ -2382,7 +2258,7 @@
                     listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
                 } else {
                     listContainer.innerHTML = incomeItems.map(item => {
-                        totalIncome += parseFloat(item.amount || 0);
+                        totalIncome += parseFloat(item.total_value || item.amount || 0);
                         return renderIncomeItemHTML(item);
                     }).reverse().join('');
                 }
@@ -2394,102 +2270,31 @@
                 calculateDashboard();
             }
 
-            // Multi-item row adder logic
-            const btnAddItemRow = document.getElementById('btn-add-sale-item-row');
-            const saleItemsContainer = document.getElementById('sale-items-container');
-
-            function updateRemoveButtonsVisibility() {
-                if (!saleItemsContainer) return;
-                const rows = saleItemsContainer.querySelectorAll('.sale-item-row');
-                rows.forEach(row => {
-                    const removeBtn = row.querySelector('.btn-remove-item-row');
-                    if (removeBtn) {
-                        removeBtn.classList.toggle('hidden', rows.length <= 1);
-                    }
-                });
-            }
-
-            if (btnAddItemRow && saleItemsContainer) {
-                btnAddItemRow.addEventListener('click', () => {
-                    const rowHTML = `
-                    <div class="sale-item-row grid grid-cols-12 gap-2 items-center bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
-                        <div class="col-span-7">
-                            <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. Eden Cap)" required>
-                        </div>
-                        <div class="col-span-4">
-                            <div class="relative">
-                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
-                                <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg py-2.5 pr-2.5 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount" required>
-                            </div>
-                        </div>
-                        <div class="col-span-1 text-center">
-                            <button type="button" class="btn-remove-item-row text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
-                        </div>
-                    </div>`;
-                    saleItemsContainer.insertAdjacentHTML('beforeend', rowHTML);
-                    updateRemoveButtonsVisibility();
-                });
-
-                saleItemsContainer.addEventListener('click', (e) => {
-                    if (e.target && e.target.classList.contains('btn-remove-item-row')) {
-                        const row = e.target.closest('.sale-item-row');
-                        if (row && saleItemsContainer.querySelectorAll('.sale-item-row').length > 1) {
-                            row.remove();
-                            updateRemoveButtonsVisibility();
-                        }
-                    }
-                });
-            }
-
             const addIncomeForm = document.getElementById('add-income-form');
             if (addIncomeForm) {
                 addIncomeForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const customer_name = document.getElementById('income-customer-name').value.trim() || 'Walk-in Customer';
-                    const itemRows = saleItemsContainer ? saleItemsContainer.querySelectorAll('.sale-item-row') : [];
+                    
+                    const customer_name = document.getElementById('income-customer-name')?.value.trim() || 'Walk-in Customer';
+                    const description = document.getElementById('income-description')?.value.trim();
+                    const total_value = parseFloat((document.getElementById('income-total-value')?.value || '').replace(/,/g, ''));
+                    const amount_paid = parseFloat((document.getElementById('income-amount-paid')?.value || '').replace(/,/g, ''));
+                    const payment_mode = document.getElementById('sale-payment-mode')?.value || 'Cash';
 
-                    const items = [];
-                    itemRows.forEach(row => {
-                        const item_sold = row.querySelector('.income-item-sold')?.value.trim();
-                        const amount = parseFloat((row.querySelector('.income-amount')?.value || '').replace(/,/g, ''));
-                        if (item_sold && !isNaN(amount) && amount > 0) {
-                            items.push({ item_sold, amount });
-                        }
+                    if (!description || isNaN(total_value) || isNaN(amount_paid)) {
+                        alert("Please fill in the description, total value, and amount paid correctly.");
+                        return;
+                    }
+
+                    await logSale({ 
+                        customer_name, 
+                        description, 
+                        total_value, 
+                        amount_paid, 
+                        payment_mode 
                     });
 
-                    if (items.length === 0) return;
-
-                    // Receipt adjustments
-                    const discount = parseFloat((document.getElementById('sale-discount')?.value || '0').replace(/,/g, '')) || 0;
-                    const deliveryFee = parseFloat((document.getElementById('sale-delivery-fee')?.value || '0').replace(/,/g, '')) || 0;
-                    const paymentMode = document.getElementById('sale-payment-mode')?.value || 'Cash';
-                    let splitCash = 0, splitTransfer = 0;
-                    if (paymentMode === 'Split') {
-                        splitCash = parseFloat((document.getElementById('sale-split-cash')?.value || '0').replace(/,/g, '')) || 0;
-                        splitTransfer = parseFloat((document.getElementById('sale-split-transfer')?.value || '0').replace(/,/g, '')) || 0;
-                    }
-
-                    await logSale({ customer_name, items, discount, deliveryFee, paymentMode, splitCash, splitTransfer });
-
                     addIncomeForm.reset();
-                    // Reset to single item row
-                    if (saleItemsContainer) {
-                        saleItemsContainer.innerHTML = `
-                        <div class="sale-item-row grid grid-cols-12 gap-2 items-center bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
-                            <div class="col-span-7">
-                                <input type="text" name="item_sold[]" class="income-item-sold w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Item / Service (e.g. DLNZ Hoodie)" required>
-                            </div>
-                            <div class="col-span-4">
-                                <div class="relative">
-                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
-                                    <input type="text" inputmode="numeric" name="amount[]" class="currency-input income-amount w-full border border-gray-200 rounded-lg py-2.5 pr-2.5 pl-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Amount" required>
-                                </div>
-                            </div>
-                            <div class="col-span-1 text-center">
-                                <button type="button" class="btn-remove-item-row hidden text-red-500 hover:text-red-700 text-sm font-bold p-1">✕</button>
-                            </div>
-                        </div>`;
-                    }
                     renderIncomeListUI();
                     calculateDashboard();
                 });
@@ -2503,16 +2308,6 @@
             const noPresetsMsg = document.getElementById('no-presets-msg');
             const managePanel = document.getElementById('manage-presets-panel');
             const manageList = document.getElementById('presets-manage-list');
-
-            // Split Payment Mode toggle
-            document.getElementById('sale-payment-mode')?.addEventListener('change', function() {
-                const splitFields = document.getElementById('split-payment-fields');
-                if (splitFields) {
-                    splitFields.classList.toggle('hidden', this.value !== 'Split');
-                    if (this.value !== 'Split') splitFields.classList.add('hidden');
-                    else splitFields.classList.remove('hidden');
-                }
-            });
 
             // Toggle manage panel
             document.getElementById('btn-manage-presets')?.addEventListener('click', () => {
@@ -2617,36 +2412,15 @@
                 const name = btn.dataset.name;
                 const price = btn.dataset.price;
 
-                // Fill the first empty row OR add a new row
-                const container = document.getElementById('sale-items-container');
-                if (!container) return;
+                // Fill the transaction form
+                const descInput = document.getElementById('income-description');
+                const valInput = document.getElementById('income-total-value');
+                const paidInput = document.getElementById('income-amount-paid');
+                
+                if (descInput) descInput.value = name;
+                if (valInput) valInput.value = parseInt(price, 10).toLocaleString('en-US');
+                if (paidInput) paidInput.value = parseInt(price, 10).toLocaleString('en-US');
 
-                const rows = container.querySelectorAll('.sale-item-row');
-                let filled = false;
-                for (const row of rows) {
-                    const nameInput = row.querySelector('.income-item-sold');
-                    const amountInput = row.querySelector('.income-amount');
-                    if (nameInput && !nameInput.value.trim()) {
-                        nameInput.value = name;
-                        amountInput.value = parseInt(price, 10).toLocaleString('en-US');
-                        filled = true;
-                        break;
-                    }
-                }
-
-                if (!filled) {
-                    // Click the "Add Item" button to create a new row, then fill it
-                    document.getElementById('btn-add-sale-item-row')?.click();
-                    await new Promise(r => setTimeout(r, 50));
-                    const newRows = container.querySelectorAll('.sale-item-row');
-                    const lastRow = newRows[newRows.length - 1];
-                    if (lastRow) {
-                        const nameInput = lastRow.querySelector('.income-item-sold');
-                        const amountInput = lastRow.querySelector('.income-amount');
-                        if (nameInput) nameInput.value = name;
-                        if (amountInput) amountInput.value = parseInt(price, 10).toLocaleString('en-US');
-                    }
-                }
 
                 // Decrement stock in background
                 const preset = inventoryPresets.find(p => p.id === presetId);
@@ -2731,11 +2505,10 @@
                 const groups = {};
                 
                 // Global Totals
-                let totalRevenue = 0;
-                let totalCOGS = 0;
-                let totalOPEX = 0;
-                let realizedCash = 0;
-                let unpaidDebt = 0;
+                let totalValue = 0;
+                let cashCollected = 0;
+                let totalExpenses = 0;
+                let outstandingBalance = 0;
 
                 // Process Income
                 incomeItems.forEach(item => {
@@ -2744,28 +2517,15 @@
                     const key = getPeriodKey(item.date);
                     if (!groups[key]) groups[key] = { revenue: 0, items: [] };
                     
-                    const discount = parseFloat(item.discount || 0);
-                    const deliveryFee = parseFloat(item.delivery_fee || 0);
-                    const finalPaid = parseFloat(item.amount) - discount + deliveryFee;
+                    const tVal = parseFloat(item.total_value || item.amount || 0); // fallback for old records
+                    const amtPaid = parseFloat(item.amount_paid || item.amount || 0);
                     
-                    groups[key].revenue += finalPaid;
+                    groups[key].revenue += tVal;
                     groups[key].items.push(item);
                     
-                    totalRevenue += finalPaid;
-
-                    // Cash Flow Tracking
-                    const pMode = item.paymentMode || item.payment_mode || 'Cash';
-                    if (pMode === 'Credit / Unpaid') {
-                        unpaidDebt += finalPaid;
-                    } else if (pMode === 'Split') {
-                        const sCash = parseFloat(item.splitCash || item.split_cash || 0);
-                        const sTrans = parseFloat(item.splitTransfer || item.split_transfer || 0);
-                        const totalSplit = sCash + sTrans;
-                        realizedCash += totalSplit;
-                        if (totalSplit < finalPaid) unpaidDebt += (finalPaid - totalSplit);
-                    } else {
-                        realizedCash += finalPaid;
-                    }
+                    totalValue += tVal;
+                    cashCollected += amtPaid;
+                    outstandingBalance += Math.max(0, tVal - amtPaid);
                 });
 
                 // Process Expenses
@@ -2775,70 +2535,47 @@
                     
                     // Identify category
                     const cat = item.category || '';
-                    if (cat.includes('Inventory') || cat.includes('Materials')) {
-                        totalCOGS += amount;
-                    } else if (cat.includes("Owner's Draw")) {
+                    if (cat.includes("Owner's Draw")) {
                         // Personal draw: ignore from P&L
                     } else {
-                        // Everything else is OPEX
-                        totalOPEX += amount;
+                        totalExpenses += amount;
                     }
                 });
 
                 // Calculate Margins
-                const grossProfit = totalRevenue - totalCOGS;
-                const netProfit = grossProfit - totalOPEX;
-                const netMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(0) : 0;
+                const liquidProfit = cashCollected - totalExpenses;
 
                 // Update Metric Grid
                 const f = (val) => `₦${val.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
                 
-                const elRev = document.getElementById('analytics-revenue');
-                const elCogs = document.getElementById('analytics-cogs');
-                const elGross = document.getElementById('analytics-gross-profit');
-                const elOpex = document.getElementById('analytics-opex');
-                const elCash = document.getElementById('analytics-cash');
-                const elNet = document.getElementById('analytics-net-profit');
-                const elMargin = document.getElementById('analytics-margin');
+                const elValue = document.getElementById('analytics-total-value');
+                const elCash = document.getElementById('analytics-cash-collected');
+                const elExp = document.getElementById('analytics-total-expenses');
+                const elProfit = document.getElementById('analytics-liquid-profit');
+                const elOutstandingAlert = document.getElementById('analytics-outstanding-alert');
+                const elOutstandingBalance = document.getElementById('analytics-outstanding-balance');
 
-                if(elRev) elRev.textContent = f(totalRevenue);
-                if(elCogs) elCogs.textContent = f(totalCOGS);
-                if(elGross) elGross.textContent = f(grossProfit);
-                if(elOpex) elOpex.textContent = f(totalOPEX);
-                if(elCash) elCash.textContent = f(realizedCash);
-                if(elNet) {
-                    elNet.textContent = f(netProfit);
-                    if (netProfit < 0) elNet.classList.replace('text-indigo-700', 'text-rose-600');
-                    else elNet.classList.replace('text-rose-600', 'text-indigo-700');
-                }
-                if(elMargin) {
-                    elMargin.textContent = `${netMargin}% Margin`;
-                    if (netProfit < 0) {
-                        elMargin.classList.replace('bg-indigo-100', 'bg-rose-100');
-                        elMargin.classList.replace('text-indigo-700', 'text-rose-700');
+                if (elValue) elValue.textContent = f(totalValue);
+                if (elCash) elCash.textContent = f(cashCollected);
+                if (elExp) elExp.textContent = f(totalExpenses);
+                
+                if (elProfit) {
+                    elProfit.textContent = f(liquidProfit);
+                    if (liquidProfit < 0) {
+                        elProfit.classList.replace('text-slate-900', 'text-rose-600');
+                        elProfit.classList.replace('text-emerald-600', 'text-rose-600');
                     } else {
-                        elMargin.classList.replace('bg-rose-100', 'bg-indigo-100');
-                        elMargin.classList.replace('text-rose-700', 'text-indigo-700');
+                        elProfit.classList.replace('text-rose-600', 'text-emerald-600');
+                        elProfit.classList.replace('text-slate-900', 'text-emerald-600');
                     }
                 }
 
-                // Update Narrative
-                const narrativeEl = document.getElementById('analytics-narrative');
-                if (narrativeEl) {
-                    if (totalRevenue === 0 && totalOPEX === 0 && totalCOGS === 0) {
-                        narrativeEl.innerHTML = "You have no financial data recorded for this period. Log sales or expenses to see insights.";
+                if (elOutstandingAlert && elOutstandingBalance) {
+                    if (outstandingBalance > 0) {
+                        elOutstandingAlert.classList.remove('hidden');
+                        elOutstandingBalance.textContent = f(outstandingBalance);
                     } else {
-                        let text = `You sold <strong>${f(totalRevenue)}</strong> across the selected period. `;
-                        text += `It cost you <strong>${f(totalCOGS)}</strong> to buy those goods (Gross Profit: <strong>${f(grossProfit)}</strong>). `;
-                        text += `You spent <strong>${f(totalOPEX)}</strong> on operating overhead (transport, data, fuel). `;
-                        text += `Your Net Profit is <strong>${f(netProfit)}</strong> (<strong>${netMargin}%</strong> Net Margin). `;
-                        
-                        if (unpaidDebt > 0) {
-                            text += `<br><br><span class="text-amber-700">However, <strong>${f(unpaidDebt)}</strong> is still owed to you by customers.</span> You have <strong>${f(realizedCash)}</strong> in liquid cash right now.`;
-                        } else {
-                            text += `<br><br>All sales were paid. You have <strong>${f(realizedCash)}</strong> in liquid cash right now.`;
-                        }
-                        narrativeEl.innerHTML = text;
+                        elOutstandingAlert.classList.add('hidden');
                     }
                 }
 
@@ -2871,14 +2608,13 @@
                         </summary>
                         <div class="px-4 pb-4 pt-1 space-y-2 bg-white">
                             ${g.items.map(item => {
-                                const discount = parseFloat(item.discount || 0);
-                                const deliveryFee = parseFloat(item.delivery_fee || 0);
-                                const finalPaid = parseFloat(item.amount) - discount + deliveryFee;
+                                const finalPaid = parseFloat(item.amount_paid ?? item.total_value ?? item.amount ?? 0);
+                                const title = item.description || item.item_sold || 'Income';
                                 const receiptBadge = item.receipt_id ? `<span class="text-[9px] text-gray-400 font-mono ml-1">#${item.receipt_id}</span>` : '';
                                 return `
                                 <div class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
                                     <div>
-                                        <p class="font-semibold text-gray-700">${item.item_sold}</p>
+                                        <p class="font-semibold text-gray-700">${title}</p>
                                         <p class="text-[10px] text-gray-400">${item.customer_name || 'Walk-in'} ${receiptBadge}</p>
                                     </div>
                                     <div class="text-right">
@@ -2978,7 +2714,7 @@
                     req.onsuccess = () => {
                         const totalSales = (req.result || [])
                             .filter(i => !i.pending_delete)
-                            .reduce((sum, i) => sum + parseFloat(i.amount || 0), 0);
+                            .reduce((sum, i) => sum + parseFloat(i.total_value ?? i.amount ?? 0), 0);
 
                         const netProfit = totalSales - filteredExpenseTotal;
                         const fmt = v => '\u20a6' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

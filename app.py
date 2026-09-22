@@ -183,9 +183,11 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS income (
                 id SERIAL PRIMARY KEY,
                 user_id TEXT NOT NULL,
-                amount NUMERIC NOT NULL,
-                item_sold TEXT,
+                description TEXT NOT NULL DEFAULT '',
+                total_value NUMERIC NOT NULL DEFAULT 0,
+                amount_paid NUMERIC NOT NULL DEFAULT 0,
                 customer_name TEXT,
+                payment_mode TEXT DEFAULT 'Cash',
                 date TEXT,
                 receipt_id TEXT
             )""",
@@ -215,6 +217,10 @@ def init_db():
             "ALTER TABLE business_profiles ALTER COLUMN user_id DROP DEFAULT",
             "ALTER TABLE business_profiles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS receipt_id TEXT",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS total_value NUMERIC DEFAULT 0",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS amount_paid NUMERIC DEFAULT 0",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS payment_mode TEXT DEFAULT 'Cash'",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_policy TEXT",
@@ -287,16 +293,13 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS income (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id TEXT,
-                    amount REAL NOT NULL,
-                    item_sold TEXT,
+                    description TEXT NOT NULL,
+                    total_value REAL NOT NULL,
+                    amount_paid REAL NOT NULL,
                     customer_name TEXT,
-                    date TEXT,
-                    receipt_id TEXT,
-                    discount REAL DEFAULT 0,
-                    delivery_fee REAL DEFAULT 0,
                     payment_mode TEXT DEFAULT 'Cash',
-                    split_cash REAL DEFAULT 0,
-                    split_transfer REAL DEFAULT 0
+                    date TEXT,
+                    receipt_id TEXT
                 )
             """)
             db.execute("""
@@ -887,7 +890,7 @@ def dashboard():
                 print(f"Dashboard expenses list note: {e}", flush=True)
 
             try:
-                row = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+                row = db.execute("SELECT SUM(total_value) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
                 if row and row["total"] is not None:
                     total_sales = float(row["total"])
             except Exception as e:
@@ -1127,7 +1130,7 @@ def calculate():
     total_sales = 0.0
     try:
         with get_db() as db:
-            row = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            row = db.execute("SELECT SUM(total_value) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
             if row and row["total"] is not None:
                 total_sales = float(row["total"])
     except Exception:
@@ -1189,7 +1192,7 @@ def search():
             user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
             if user and user["email"]:
                 username = user["email"].split("@")[0].capitalize()
-            row = db.execute("SELECT SUM(amount) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            row = db.execute("SELECT SUM(total_value) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
             if row and row["total"] is not None:
                 total_sales = float(row["total"])
     except Exception:
@@ -1546,16 +1549,13 @@ def api_income():
                 {
                     "id": dict(row)["id"],
                     "user_id": dict(row)["user_id"],
-                    "amount": float(dict(row)["amount"]),
-                    "item_sold": dict(row).get("item_sold", ""),
+                    "description": dict(row).get("description", ""),
+                    "total_value": float(dict(row).get("total_value", 0)),
+                    "amount_paid": float(dict(row).get("amount_paid", 0)),
                     "customer_name": dict(row).get("customer_name") or "Walk-in Customer",
-                    "date": dict(row).get("date"),
-                    "receipt_id": dict(row).get("receipt_id") or f"REC-{dict(row)['id']}",
-                    "discount": float(dict(row).get("discount") or 0),
-                    "delivery_fee": float(dict(row).get("delivery_fee") or 0),
                     "payment_mode": dict(row).get("payment_mode") or "Cash",
-                    "split_cash": float(dict(row).get("split_cash") or 0),
-                    "split_transfer": float(dict(row).get("split_transfer") or 0)
+                    "date": dict(row).get("date"),
+                    "receipt_id": dict(row).get("receipt_id") or f"REC-{dict(row)['id']}"
                 }
                 for row in rows
             ]
@@ -1570,58 +1570,41 @@ def api_income():
         receipt_id = data.get("receipt_id") or f"REC-{int(time.time())}"
         customer_name = str(data.get("customer_name", "Walk-in Customer")).strip() or "Walk-in Customer"
 
-        items = data.get("items")
-        if not items or not isinstance(items, list):
-            amount_val = data.get("amount")
-            item_sold = str(data.get("item_sold", "")).strip()
-            if amount_val is not None and item_sold:
-                items = [{"item_sold": item_sold, "amount": amount_val}]
-            else:
-                items = []
+        description = str(data.get("description", "")).strip()
+        try:
+            total_value = float(str(data.get("total_value", "0")).replace(',', ''))
+            amount_paid = float(str(data.get("amount_paid", "0")).replace(',', ''))
+        except (TypeError, ValueError):
+            return jsonify({"status": "error", "message": "Invalid amount format"}), 400
 
-        if not items:
-            return jsonify({"status": "error", "message": "Missing required fields: item_sold and amount are required"}), 400
+        payment_mode = str(data.get("payment_mode", "Cash")).strip()
 
-        saved_items = []
+        if not description or total_value < 0:
+            return jsonify({"status": "error", "message": "Description and a valid total value are required"}), 400
+
         with get_db() as db:
-            for product in items:
-                item_name = str(product.get("item_sold", "")).strip()
-                try:
-                    amt = float(str(product.get("amount", "0")).replace(',', ''))
-                    if not math.isfinite(amt) or amt <= 0 or not item_name:
-                        continue
-                except (TypeError, ValueError):
-                    continue
-
-                discount = float(str(product.get("discount", "0")).replace(',', ''))
-                delivery_fee = float(str(product.get("delivery_fee", "0")).replace(',', ''))
-                payment_mode = str(product.get("payment_mode", "Cash")).strip()
-                split_cash = float(str(product.get("split_cash", "0")).replace(',', ''))
-                split_transfer = float(str(product.get("split_transfer", "0")).replace(',', ''))
-
-                cursor = db.execute(
-                    "INSERT INTO income (user_id, amount, item_sold, customer_name, date, receipt_id, discount, delivery_fee, payment_mode, split_cash, split_transfer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (user_id, amt, item_name, customer_name, income_date, receipt_id, discount, delivery_fee, payment_mode, split_cash, split_transfer)
-                )
-                saved_items.append({
-                    "id": cursor.lastrowid, "user_id": user_id, "amount": amt,
-                    "item_sold": item_name, "customer_name": customer_name,
-                    "date": income_date, "receipt_id": receipt_id,
-                    "discount": discount, "delivery_fee": delivery_fee,
-                    "payment_mode": payment_mode, "split_cash": split_cash,
-                    "split_transfer": split_transfer
-                })
+            cursor = db.execute(
+                "INSERT INTO income (user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (user_id, description, total_value, amount_paid, customer_name, payment_mode, income_date, receipt_id)
+            )
+            saved_item = {
+                "id": cursor.lastrowid, 
+                "user_id": user_id, 
+                "description": description,
+                "total_value": total_value, 
+                "amount_paid": amount_paid, 
+                "customer_name": customer_name,
+                "payment_mode": payment_mode,
+                "date": income_date, 
+                "receipt_id": receipt_id
+            }
             db.commit()
-
-        if not saved_items:
-            return jsonify({"status": "error", "message": "No valid items were provided"}), 400
 
         return jsonify({
             "status": "success",
             "message": "Income logged successfully",
             "receipt_id": receipt_id,
-            "income": saved_items[0] if len(saved_items) == 1 else saved_items,
-            "items": saved_items
+            "income": saved_item
         }), 201
 
 
@@ -1645,26 +1628,31 @@ def sync_sales():
         for sale in sales_array:
             if not isinstance(sale, dict):
                 continue
-            item_sold = str(sale.get("item_sold") or sale.get("item") or "").strip()
-            amount_val = sale.get("amount")
+            
+            description = str(sale.get("description") or sale.get("item_sold") or sale.get("item") or "").strip()
+            total_value = float(sale.get("total_value", sale.get("amount", 0)))
+            amount_paid = float(sale.get("amount_paid", sale.get("amount", 0)))
+            payment_mode = str(sale.get("payment_mode", "Cash")).strip()
             customer_name = str(sale.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
             sale_date = sale.get("date") or datetime.now().strftime("%Y-%m-%d %I:%M %p")
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
 
             try:
-                amt = float(str(amount_val).replace(',', ''))
-                if not math.isfinite(amt) or amt <= 0 or not item_sold:
+                if not math.isfinite(total_value) or total_value <= 0 or not description:
                     continue
             except (TypeError, ValueError):
                 continue
 
             cursor = db.execute(
-                "INSERT INTO income (user_id, amount, item_sold, customer_name, date, receipt_id) VALUES (?, ?, ?, ?, ?, ?)",
-                (user_id, amt, item_sold, customer_name, sale_date, receipt_id)
+                """INSERT INTO income (
+                    user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, description, total_value, amount_paid, customer_name, payment_mode, sale_date, receipt_id)
             )
             saved_items.append({
-                "id": cursor.lastrowid, "user_id": user_id, "amount": amt,
-                "item_sold": item_sold, "customer_name": customer_name,
+                "id": cursor.lastrowid, "user_id": user_id, 
+                "description": description, "total_value": total_value, "amount_paid": amount_paid,
+                "customer_name": customer_name, "payment_mode": payment_mode,
                 "date": sale_date, "receipt_id": receipt_id
             })
         db.commit()
