@@ -1212,7 +1212,7 @@
                 const response = await authenticatedFetch('/api/expenses');
                 if (!response.ok) return;
                 const result = await response.json();
-                if (result.status === 'success' && Array.isArray(result.expenses)) {
+                if (result && Array.isArray(result.expenses)) {
                     const db = await openIndexedDB();
                     const localExpenses = await getExpensesLocal();
                     const existingServerIds = new Set(
