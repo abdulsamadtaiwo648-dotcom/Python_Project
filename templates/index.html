@@ -1701,7 +1701,7 @@
                     const categoryInput = addForm.querySelector('[name="category"]');
                     const descriptionInput = addForm.querySelector('[name="description"]');
 
-                    const amount = parseFloat(amountInput.value.replace(/,/g, ''));
+                    const amount = parseFloat((amountInput.value || '0').replace(/,/g, ''));
                     const category = categoryInput.value.trim();
                     const description = descriptionInput.value.trim();
 
@@ -3159,58 +3159,14 @@
     <script>
     (function () {
 
-        // ----------------------------------------------------------------
-        // HELPER: update ALL dashboard numbers synchronously in one shot
-        // Call this with a positive number when an expense is added.
-        // ----------------------------------------------------------------
-        function updateDashboardTotal(amountToAdd) {
-            recalculateTotalFromUI(amountToAdd);
-        }
-
-        // ----------------------------------------------------------------
-        // SUBMIT HANDLER for #expense-form
-        // ----------------------------------------------------------------
-        const form = document.getElementById('expense-form');
-        if (!form) return; // guard: page might not have the form
-
-        form.addEventListener('submit', function (e) {
-            // 1. Stop the native page reload
-            e.preventDefault();
-
-            const formData = new FormData(form);
-            const amountAdded = parseFloat(formData.get('amount'));
-
-            // 2. INSTANT UPDATE — paint every dashboard number immediately
-            if (!isNaN(amountAdded) && amountAdded > 0) {
-                updateDashboardTotal(amountAdded);
-            }
-
-            // 3. Clear the form instantly so the user can keep working
-            form.reset();
-
-            // 4. BACKGROUND SAVE — send to Python/SQLite without blocking the UI
-            authenticatedFetch('/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    amount: amountAdded,
-                    category: formData.get('category'),
-                    description: formData.get('description')
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log('[SoloBiz] Expense saved to server:', data.expense);
-                } else {
-                    console.warn('[SoloBiz] Server rejected expense:', data.message);
-                }
-            })
-            .catch(err => {
-                console.error('[SoloBiz] Background save failed (offline?):', err);
-                // IndexedDB offline fallback handled by the DOMContentLoaded handler above
-            });
-        });
+        // NOTE: The main expense form submission is handled by the DOMContentLoaded
+        // handler (around line 1697). That handler correctly:
+        //   1. Strips commas from the currency-formatted input
+        //   2. Saves to IndexedDB
+        //   3. Renders the new item in the UI
+        //   4. Syncs to server via syncExpenseToServer()
+        //   5. Recalculates dashboard totals
+        // No duplicate handler is needed here.
 
         // --- CURRENCY FORMATTING (REAL-TIME) ---
         document.addEventListener('input', function(e) {
