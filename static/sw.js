@@ -1,64 +1,52 @@
-const CACHE_NAME = 'solobiz-offline-v1';
+const CACHE_NAME = 'solobiz-offline-v2';
 
-// Assets to pre-cache on install
+// Only cache public, user-independent assets. Authenticated HTML pages must
+// never be cached because one user's dashboard could otherwise be shown after
+// logout or to another user on the same device.
 const PRECACHE_ASSETS = [
-  '/dashboard',
   '/static/logo.svg',
   '/static/manifest.json',
   '/static/favicon.png',
   '/static/tailwind.js'
 ];
 
-// 1. Install & Cache App Shell
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Force the new service worker to activate immediately
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('Some assets failed to precache:', err);
-      });
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
   );
 });
 
-// 2. Activate & Claim Control Immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    clients.claim() // Take control of all open pages immediately
+    caches.keys().then((keys) => Promise.all(
+      keys
+        .filter((key) => key !== CACHE_NAME)
+        .map((key) => caches.delete(key))
+    )).then(() => clients.claim())
   );
 });
 
-// 3. Intercept Refreshes and Network Requests
 self.addEventListener('fetch', (event) => {
-  // Handle Page Refreshes / Navigation (e.g. dragging down to refresh on /dashboard)
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          // If online, update the cached copy of this page
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
-          });
-        })
-        .catch(() => {
-          // IF OFFLINE: Return the cached page matching the requested URL
-          return caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Fallback to cached dashboard if exact URL match fails
-            return caches.match('/dashboard');
-          });
-        })
-    );
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Never intercept API calls or navigation requests. Navigation responses can
+  // contain private, session-specific dashboard data.
+  if (request.method !== 'GET' || url.origin !== self.location.origin ||
+      url.pathname.startsWith('/api/') || request.mode === 'navigate') {
     return;
   }
 
-  // Handle static assets (CSS, JS, Images)
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(request).then((networkResponse) => {
+        if (!networkResponse || !networkResponse.ok) return networkResponse;
+        const responseCopy = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy));
+        return networkResponse;
+      });
     })
   );
 });
