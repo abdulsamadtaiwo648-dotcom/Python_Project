@@ -180,17 +180,17 @@
         </div> <!-- End cfo-dashboard -->
 
         <!-- Mobile-First Tab Navigation Bar -->
-        <nav class="flex bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 mb-6 gap-1">
-            <button id="btn-tab-expenses" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Expenses
+        <nav class="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100 mb-6 gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <button id="btn-tab-expenses" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> <span class="hidden sm:inline">Expenses</span><span class="inline sm:hidden">Exp</span>
             </button>
-            <button id="btn-tab-income" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
+            <button id="btn-tab-income" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Sales
             </button>
-            <button id="btn-tab-analytics" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
+            <button id="btn-tab-analytics" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Analytics
             </button>
-            <button id="btn-tab-profile" type="button" class="tab-btn flex-1 py-2.5 px-3 text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1.5">
+            <button id="btn-tab-profile" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg> Profile
             </button>
         </nav>
@@ -703,20 +703,8 @@
                                 class="w-full border border-gray-200 rounded-xl p-3 text-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">{{ profile.store_policy if profile else '' }}</textarea>
                         </div>
 
-                        <!-- Brand Color Theme Preset Palette -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Select Brand Color Theme</label>
-                            <input type="hidden" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}">
-                            <div class="flex items-center gap-3 flex-wrap" id="color-palette-presets">
-                                <button type="button" data-color="#4F46E5" class="palette-swatch w-9 h-9 rounded-full bg-[#4F46E5] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Indigo"></button>
-                                <button type="button" data-color="#059669" class="palette-swatch w-9 h-9 rounded-full bg-[#059669] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Emerald"></button>
-                                <button type="button" data-color="#2563EB" class="palette-swatch w-9 h-9 rounded-full bg-[#2563EB] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Royal Blue"></button>
-                                <button type="button" data-color="#DC2626" class="palette-swatch w-9 h-9 rounded-full bg-[#DC2626] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Crimson"></button>
-                                <button type="button" data-color="#D97706" class="palette-swatch w-9 h-9 rounded-full bg-[#D97706] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Amber"></button>
-                                <button type="button" data-color="#7C3AED" class="palette-swatch w-9 h-9 rounded-full bg-[#7C3AED] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Violet"></button>
-                                <button type="button" data-color="#0F172A" class="palette-swatch w-9 h-9 rounded-full bg-[#0F172A] ring-2 ring-offset-2 ring-transparent hover:scale-110 transition cursor-pointer flex items-center justify-center text-white text-xs font-bold shadow-sm" title="Midnight"></button>
-                            </div>
-                        </div>
+                        <!-- Removed Brand Color Theme Preset Palette per user request -->
+                        <input type="hidden" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}">
 
                         <!-- Business Logo File Upload -->
                         <div>
@@ -1233,14 +1221,15 @@
 
                     let addedAny = false;
                     for (const item of result.expenses) {
-                        if (!existingServerIds.has(item.id)) {
+                        const sId = item.server_id || item.id;
+                        if (!existingServerIds.has(sId)) {
                             const record = {
                                 amount: parseFloat(item.amount),
                                 category: item.category,
                                 description: item.description,
                                 date: item.date,
                                 synced: true,
-                                server_id: item.id
+                                server_id: sId
                             };
                             await new Promise((resolve, reject) => {
                                 const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -1836,24 +1825,41 @@
                 }
                 
                 [contentExpenses, contentIncome, contentAnalytics, contentProfile].forEach(el => el && el.classList.add('hidden'));
+                
+                // Reset all tabs to inactive state
                 [btnExpenses, btnIncome, btnAnalytics, btnProfile].forEach(btn => {
-                    if (btn) btn.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
+                    if (btn) {
+                        btn.classList.remove('bg-indigo-600', 'bg-emerald-600', 'bg-blue-600', 'text-white', 'shadow-sm');
+                        btn.classList.add('text-gray-500', 'hover:text-gray-900', 'hover:bg-gray-50');
+                    }
                 });
 
                 if (target === 'expenses' && contentExpenses) {
                     contentExpenses.classList.remove('hidden');
-                    if (btnExpenses) btnExpenses.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
+                    if (btnExpenses) {
+                        btnExpenses.classList.remove('text-gray-500', 'hover:text-gray-900', 'hover:bg-gray-50');
+                        btnExpenses.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+                    }
                 } else if (target === 'income' && contentIncome) {
                     contentIncome.classList.remove('hidden');
-                    if (btnIncome) btnIncome.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-emerald-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
+                    if (btnIncome) {
+                        btnIncome.classList.remove('text-gray-500', 'hover:text-gray-900', 'hover:bg-gray-50');
+                        btnIncome.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+                    }
                     renderIncomeListUI();
                 } else if (target === 'analytics' && contentAnalytics) {
                     contentAnalytics.classList.remove('hidden');
-                    if (btnAnalytics) btnAnalytics.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
+                    if (btnAnalytics) {
+                        btnAnalytics.classList.remove('text-gray-500', 'hover:text-gray-900', 'hover:bg-gray-50');
+                        btnAnalytics.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+                    }
                     if (typeof renderAnalytics === 'function') renderAnalytics('daily');
                 } else if (target === 'profile' && contentProfile) {
                     contentProfile.classList.remove('hidden');
-                    if (btnProfile) btnProfile.className = 'tab-btn flex-1 py-2.5 px-3 text-[11px] font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:text-xs sm:gap-1.5';
+                    if (btnProfile) {
+                        btnProfile.classList.remove('text-gray-500', 'hover:text-gray-900', 'hover:bg-gray-50');
+                        btnProfile.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+                    }
                     populateProfileFormUI();
                 }
             }
