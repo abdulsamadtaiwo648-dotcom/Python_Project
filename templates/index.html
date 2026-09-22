@@ -890,6 +890,50 @@
             return fetch(url, options);
         }
 
+        function calculateTotal(expensesArray) {
+            let totalExpenses = 0;
+            const rows = Array.isArray(expensesArray) ? expensesArray : [];
+
+            rows.forEach(expense => {
+                const amount = Number.parseFloat(expense && (expense.amount ?? expense.total_value ?? expense.total ?? 0));
+                if (Number.isFinite(amount)) {
+                    totalExpenses += amount;
+                }
+            });
+
+            const salesEl = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
+            const salesValue = salesEl ? parseFloat(salesEl.dataset.sales || salesEl.innerText.replace(/[^0-9.-]+/g, '')) || 0 : 0;
+            updateAllDashboardTotals(salesValue, totalExpenses);
+            return totalExpenses;
+        }
+
+        async function syncAndFixData() {
+            try {
+                const response = await authenticatedFetch('/api/expenses');
+                if (!response.ok) {
+                    throw new Error('Could not fetch fresh expenses');
+                }
+
+                const payload = await response.json();
+                const freshExpenses = Array.isArray(payload) ? payload : (payload.expenses || []);
+                localStorage.setItem('saved_expenses', JSON.stringify(freshExpenses));
+                calculateTotal(freshExpenses);
+
+                if (typeof renderExpenseListFromIndexedDB === 'function') {
+                    await renderExpenseListFromIndexedDB();
+                }
+            } catch (error) {
+                console.log('Device is offline or sync failed. Using local cache.');
+                const fallback = JSON.parse(localStorage.getItem('saved_expenses') || '[]');
+                const cachedExpenses = Array.isArray(fallback) ? fallback : (fallback.expenses || []);
+                calculateTotal(cachedExpenses);
+
+                if (typeof renderExpenseListFromIndexedDB === 'function') {
+                    await renderExpenseListFromIndexedDB();
+                }
+            }
+        }
+
         // -------------------------------------------------------------
         // UNIFIED DOM METRICS UPDATER
         // Updates all 4 summary indicators on the page simultaneously
@@ -1151,12 +1195,25 @@
             });
         }
 
+        function normalizeExpenseRecord(record) {
+            if (!record) return record;
+            const serverId = record.server_id ?? record.id ?? null;
+            if (serverId !== null) {
+                record.server_id = serverId;
+                record.id = serverId;
+            }
+            return record;
+        }
+
         async function getExpensesLocal() {
             const db = await openIndexedDB();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_NAME, 'readonly');
                 const req = tx.objectStore(STORE_NAME).getAll();
-                req.onsuccess = () => resolve(req.result || []);
+                req.onsuccess = () => {
+                    const records = (req.result || []).map(normalizeExpenseRecord);
+                    resolve(records.filter(item => !item.pending_delete));
+                };
                 req.onerror = (e) => reject(e.target.error);
             });
         }
@@ -1215,21 +1272,92 @@
                 if (result && Array.isArray(result.expenses)) {
                     const db = await openIndexedDB();
                     const localExpenses = await getExpensesLocal();
-                    const existingServerIds = new Set(
-                        localExpenses.map(i => i.server_id).filter(Boolean)
-                    );
+                    const localByServerId = new Map();
 
-                    let addedAny = false;
+                    localExpenses.forEach((item) => {
+                        const serverId = item.server_id ?? item.id;
+                        if (serverId != null) {
+                            const key = String(serverId);
+                            if (!localByServerId.has(key)) {
+                                localByServerId.set(key, item);
+                            }
+                        }
+                    });
+
+                    const activeServerIds = new Set(result.expenses.map(item => String(item.server_id ?? item.id)).filter(Boolean));
+                    const staleLocalEntries = (await new Promise((resolve, reject) => {
+                        const tx = db.transaction(STORE_NAME, 'readonly');
+                        const req = tx.objectStore(STORE_NAME).getAll();
+                        req.onsuccess = () => resolve(req.result || []);
+                        req.onerror = (e) => reject(e.target.error);
+                    })).filter(item => {
+                        const serverId = item.server_id ?? item.id;
+                        return serverId != null && !activeServerIds.has(String(serverId));
+                    });
+
+                    for (const stale of staleLocalEntries) {
+                        const staleId = stale.local_id;
+                        if (staleId != null) {
+                            await new Promise((resolve, reject) => {
+                                const tx = db.transaction(STORE_NAME, 'readwrite');
+                                const req = tx.objectStore(STORE_NAME).delete(staleId);
+                                req.onsuccess = () => resolve();
+                                req.onerror = (e) => reject(e.target.error);
+                            });
+                        }
+                    }
+
+                    let changedAny = false;
                     for (const item of result.expenses) {
-                        const sId = item.server_id || item.id;
-                        if (!existingServerIds.has(sId)) {
+                        const sId = item.server_id ?? item.id;
+                        if (sId == null) continue;
+
+                        const existing = localByServerId.get(String(sId));
+                        if (existing && existing.pending_delete) {
+                            const localKey = existing.local_id;
+                            if (localKey != null) {
+                                await new Promise((resolve, reject) => {
+                                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                                    const req = tx.objectStore(STORE_NAME).delete(localKey);
+                                    req.onsuccess = () => resolve();
+                                    req.onerror = (e) => reject(e.target.error);
+                                });
+                            }
+                            continue;
+                        }
+
+                        if (existing) {
+                            const merged = {
+                                ...existing,
+                                amount: parseFloat(item.amount),
+                                category: item.category,
+                                description: item.description,
+                                date: item.date,
+                                synced: true,
+                                pending_edit: false,
+                                pending_delete: false,
+                                server_id: sId,
+                                id: sId
+                            };
+                            await new Promise((resolve, reject) => {
+                                const tx = db.transaction(STORE_NAME, 'readwrite');
+                                const req = tx.objectStore(STORE_NAME).put(merged);
+                                req.onsuccess = () => resolve();
+                                req.onerror = (e) => reject(e.target.error);
+                            });
+                            localByServerId.set(String(sId), merged);
+                            changedAny = true;
+                        } else {
                             const record = {
                                 amount: parseFloat(item.amount),
                                 category: item.category,
                                 description: item.description,
                                 date: item.date,
                                 synced: true,
-                                server_id: sId
+                                pending_edit: false,
+                                pending_delete: false,
+                                server_id: sId,
+                                id: sId
                             };
                             await new Promise((resolve, reject) => {
                                 const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -1237,12 +1365,16 @@
                                 req.onsuccess = () => resolve();
                                 req.onerror = (e) => reject(e.target.error);
                             });
-                            addedAny = true;
+                            changedAny = true;
                         }
                     }
-                    if (addedAny && typeof renderAnalytics === 'function') {
-                        const activeTab = document.querySelector('.analytics-tab-btn.bg-white')?.dataset.period || 'daily';
-                        renderAnalytics(activeTab);
+
+                    if (changedAny) {
+                        await renderExpenseListFromIndexedDB();
+                        if (typeof renderAnalytics === 'function') {
+                            const activeTab = document.querySelector('.analytics-tab-btn.bg-white')?.dataset.period || 'daily';
+                            renderAnalytics(activeTab);
+                        }
                     }
                 }
             } catch (err) {
@@ -1268,17 +1400,19 @@
                     const unsyncedExpenses = allExpenses.filter(item => !item.synced || item.pending_delete || item.pending_edit);
 
                     for (const item of unsyncedExpenses) {
-                        if (item.pending_delete && item.id) {
+                        const serverId = item.server_id || item.id;
+
+                        if (item.pending_delete && serverId) {
                             try {
-                                const res = await authenticatedFetch(`/api/expenses/${item.id}`, { method: 'DELETE' });
+                                const res = await authenticatedFetch(`/api/expenses/${serverId}`, { method: 'DELETE' });
                                 if (res.ok) {
                                     const delTx = db.transaction(STORE_NAME, 'readwrite');
                                     delTx.objectStore(STORE_NAME).delete(item.local_id);
                                 }
                             } catch (e) {}
-                        } else if (item.pending_edit && item.id) {
+                        } else if (item.pending_edit && serverId) {
                             try {
-                                const res = await authenticatedFetch(`/api/expenses/${item.id}`, {
+                                const res = await authenticatedFetch(`/api/expenses/${serverId}`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ amount: item.amount, category: item.category, description: item.description })
@@ -1286,6 +1420,7 @@
                                 if (res.ok) {
                                     item.pending_edit = false;
                                     item.synced = true;
+                                    item.server_id = serverId;
                                     const editTx = db.transaction(STORE_NAME, 'readwrite');
                                     editTx.objectStore(STORE_NAME).put(item);
                                 }
@@ -1300,6 +1435,7 @@
                                 const data = await res.json();
                                 if (res.ok && data.status === 'success') {
                                     item.synced = true;
+                                    item.server_id = data.expense.id;
                                     item.id = data.expense.id;
                                     const addTx = db.transaction(STORE_NAME, 'readwrite');
                                     addTx.objectStore(STORE_NAME).put(item);
@@ -1394,10 +1530,14 @@
 
         async function saveExpenseToIndexedDB(expenseData) {
             const db = await openDB();
+            const normalized = Object.assign({}, expenseData, {
+                server_id: expenseData.server_id ?? expenseData.id ?? null,
+                id: expenseData.id ?? null
+            });
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_NAME, 'readwrite');
                 const store = tx.objectStore(STORE_NAME);
-                const request = store.add(expenseData);
+                const request = store.add(normalized);
 
                 request.onsuccess = (event) => resolve(event.target.result);
                 request.onerror = (event) => reject(event.target.error);
@@ -1413,11 +1553,13 @@
                 const getReq = store.get(Number(localId));
 
                 getReq.onsuccess = () => {
-                    const record = getReq.result;
+                    const record = normalizeExpenseRecord(getReq.result);
                     if (record) {
-                        Object.assign(record, updateData);
-                        const putReq = store.put(record);
-                        putReq.onsuccess = () => resolve(record);
+                        const merged = Object.assign({}, record, updateData);
+                        if (merged.server_id == null && merged.id != null) merged.server_id = merged.id;
+                        if (merged.id == null && merged.server_id != null) merged.id = merged.server_id;
+                        const putReq = store.put(merged);
+                        putReq.onsuccess = () => resolve(merged);
                         putReq.onerror = (e) => reject(e.target.error);
                     } else {
                         resolve(null);
@@ -1427,7 +1569,7 @@
             });
         }
 
-        function recalculateTotalFromUI(deltaAmount = 0) {
+        async function recalculateTotalFromUI() {
             let salesVal = 0;
             const salesEl = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
             if (salesEl) {
@@ -1435,11 +1577,16 @@
             }
 
             let expSum = 0;
-            if (deltaAmount !== 0) {
-                const expEl = document.getElementById('top-expenses') || document.getElementById('cfo-total-expenses');
-                let current = parseFloat(expEl ? expEl.innerText.replace(/[^0-9.-]+/g, '') : 0) || 0;
-                expSum = Math.max(0, current + deltaAmount);
-            } else {
+            try {
+                const expenses = await getExpensesLocal();
+                expSum = (expenses || []).reduce((total, item) => {
+                    if (item && !item.pending_delete) {
+                        total += parseFloat(item.amount || 0);
+                    }
+                    return total;
+                }, 0);
+            } catch (err) {
+                console.warn('Could not read expense total from IndexedDB:', err);
                 document.querySelectorAll('.expense-amount-val').forEach(el => {
                     const val = parseFloat(el.textContent.replace(/[^0-9.-]+/g, '')) || 0;
                     expSum += val;
@@ -1454,39 +1601,36 @@
         // -------------------------------------------------------------
         async function deleteExpense(local_id, server_id) {
             const isOnline = navigator.onLine;
+            const db = await openDB();
 
-            // 1. Instantly update/remove in IndexedDB
-            if (local_id) {
-                const db = await openDB();
-                if (!server_id) {
-                    // Local record never synced to server -> delete completely from IndexedDB
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).delete(Number(local_id));
-                } else if (!isOnline) {
-                    // Server item deleted while offline -> flag pending_delete: true
-                    await updateExpenseInIndexedDB(local_id, { pending_delete: true });
-                } else {
-                    // Online -> remove from IndexedDB
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).delete(Number(local_id));
+            const localMatches = await new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).getAll();
+                req.onsuccess = () => {
+                    const all = req.result || [];
+                    const matches = all.filter(item => {
+                        return (local_id && Number(item.local_id) === Number(local_id)) ||
+                               (server_id && String(item.server_id ?? item.id) === String(server_id));
+                    });
+                    resolve(matches);
+                };
+                req.onerror = (e) => reject(e.target.error);
+            });
+
+            if (localMatches.length) {
+                for (const record of localMatches) {
+                    await new Promise((resolve, reject) => {
+                        const tx = db.transaction(STORE_NAME, 'readwrite');
+                        const req = tx.objectStore(STORE_NAME).delete(record.local_id);
+                        req.onsuccess = () => resolve();
+                        req.onerror = (e) => reject(e.target.error);
+                    });
                 }
             }
 
-            // 2. Instantly update UI (remove DOM card)
-            const selector = local_id ? `[data-local-id="${local_id}"]` : `[data-server-id="${server_id}"]`;
-            const itemElement = document.querySelector(selector);
-            if (itemElement) {
-                itemElement.remove();
-                recalculateTotalFromUI();
-            }
+            await renderExpenseListFromIndexedDB();
+            await recalculateTotalFromUI();
 
-            // Check if transaction list is empty
-            const listContainer = document.getElementById('transaction-list');
-            if (listContainer && listContainer.querySelectorAll('.expense-card').length === 0) {
-                listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>`;
-            }
-
-            // 3. Send DELETE request to Python API if online & server_id exists
             if (isOnline && server_id) {
                 try {
                     const response = await authenticatedFetch(`/api/expenses/${server_id}`, {
@@ -1495,13 +1639,14 @@
                     const result = await response.json();
                     if (response.ok && result.status === 'success') {
                         console.log(`Server expense #${server_id} deleted successfully.`);
+                        await renderExpenseListFromIndexedDB();
                     } else {
                         console.warn(`Server deletion failed for #${server_id}:`, result.message);
                     }
                 } catch (err) {
                     console.warn(`Network error deleting #${server_id}. Flagged for sync.`, err);
                     if (local_id) {
-                        await updateExpenseInIndexedDB(local_id, { pending_delete: true });
+                        await updateExpenseInIndexedDB(local_id, { pending_delete: true, synced: false });
                     }
                 }
             }
@@ -1512,17 +1657,21 @@
         // -------------------------------------------------------------
         async function editExpense(local_id, server_id, updatedData) {
             const isOnline = navigator.onLine;
+            const amount = Number(updatedData.amount);
+            const category = String(updatedData.category || '').trim();
+            const description = String(updatedData.description || '').trim();
 
-            const amount = parseFloat(updatedData.amount);
-            const category = String(updatedData.category).trim();
-            const description = String(updatedData.description).trim();
+            if (!Number.isFinite(amount) || amount <= 0 || !category || !description) {
+                alert('Please enter a valid amount, category, and description before saving.');
+                return;
+            }
 
             const updateObj = {
                 amount: amount,
                 category: category,
                 description: description,
-                pending_edit: !isOnline || !server_id,
-                synced: isOnline && !!server_id
+                pending_edit: Boolean(!isOnline || !server_id),
+                synced: Boolean(isOnline && !!server_id)
             };
 
             // 1. Update in IndexedDB instantly
@@ -1542,7 +1691,18 @@
 
                 const catElem = itemElement.querySelector('.expense-category-val');
                 if (catElem) {
-                    catElem.childNodes[0].textContent = category + ' ';
+                    const textNode = catElem.querySelector('.category-name');
+                    if (textNode) {
+                        textNode.textContent = category;
+                    } else {
+                        catElem.innerHTML = `<span class="category-name">${category}</span>`;
+                    }
+                    const badge = catElem.querySelector('.sync-badge');
+                    if (!updateObj.synced && !badge) {
+                        catElem.insertAdjacentHTML('beforeend', `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>`);
+                    } else if (updateObj.synced && badge) {
+                        badge.remove();
+                    }
                 }
 
                 const descElem = itemElement.querySelector('.expense-desc-val');
@@ -1553,18 +1713,9 @@
 
                 const amtElem = itemElement.querySelector('.expense-amount-val');
                 if (amtElem) amtElem.textContent = `₦${formattedAmount}`;
-
-                let badge = itemElement.querySelector('.sync-badge');
-                if (!updateObj.synced) {
-                    if (!badge && catElem) {
-                        catElem.insertAdjacentHTML('beforeend', `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>`);
-                    }
-                } else if (badge) {
-                    badge.remove();
-                }
             }
 
-            recalculateTotalFromUI();
+            await recalculateTotalFromUI();
 
             // 3. Send PUT request to Python API if online & server_id exists
             if (isOnline && server_id) {
@@ -1580,7 +1731,10 @@
                         if (local_id) {
                             await updateExpenseInIndexedDB(local_id, {
                                 pending_edit: false,
-                                synced: true
+                                synced: true,
+                                amount,
+                                category,
+                                description
                             });
                         }
                         console.log(`Server expense #${server_id} updated successfully via PUT.`);
@@ -1590,7 +1744,7 @@
                 } catch (err) {
                     console.warn(`Network error updating #${server_id}. Flagged for sync.`, err);
                     if (local_id) {
-                        await updateExpenseInIndexedDB(local_id, { pending_edit: true });
+                        await updateExpenseInIndexedDB(local_id, { pending_edit: true, synced: false });
                     }
                 }
             }
@@ -1617,21 +1771,23 @@
 
                 if (response.ok && result.status === 'success') {
                     const serverExpense = result.expense;
-                    
-                    // Mark as synced in IndexedDB
+                    const serverId = serverExpense.id;
+
+                    // Mark as synced in IndexedDB using the canonical server_id field
                     await updateExpenseInIndexedDB(expense.local_id, {
                         synced: true,
-                        id: serverExpense.id
+                        server_id: serverId,
+                        id: serverId
                     });
 
                     // Update UI element attributes & remove offline badge
                     const itemElement = document.querySelector(`[data-local-id="${expense.local_id}"]`);
                     if (itemElement) {
-                        itemElement.setAttribute('data-server-id', serverExpense.id);
+                        itemElement.setAttribute('data-server-id', serverId);
                         const syncBadge = itemElement.querySelector('.sync-badge');
                         if (syncBadge) syncBadge.remove();
                     }
-                    console.log(`Expense #${expense.local_id} synced successfully with server ID ${serverExpense.id}.`);
+                    console.log(`Expense #${expense.local_id} synced successfully with server ID ${serverId}.`);
                 }
             } catch (err) {
                 console.warn('Sync failed due to network error. Expense remains stored in IndexedDB.', err);
@@ -1641,26 +1797,22 @@
         // -------------------------------------------------------------
         // UI RENDERING HELPER
         // -------------------------------------------------------------
-        function renderTransactionItem(expense) {
-            const listContainer = document.getElementById('transaction-list');
-            if (!listContainer) return;
-
-            const emptyMsg = document.getElementById('no-expenses-msg');
-            if (emptyMsg) emptyMsg.remove();
-
-            const categoryInitial = (expense.category[0] || '').toUpperCase();
-            const formattedAmount = parseFloat(expense.amount).toLocaleString('en-US', {
+        function buildExpenseItemHTML(expense) {
+            const categoryInitial = ((expense.category || 'O')[0] || '').toUpperCase();
+            const formattedAmount = parseFloat(expense.amount || 0).toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
 
             const localIdAttr = expense.local_id ? `data-local-id="${expense.local_id}"` : '';
-            const serverIdAttr = expense.server_id || expense.id ? `data-server-id="${expense.server_id || expense.id}"` : '';
+            const serverId = expense.server_id || expense.id || '';
+            const serverIdAttr = serverId ? `data-server-id="${serverId}"` : '';
             const offlineBadge = !expense.synced ? `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
+            const categoryLabel = (expense.category || 'Other').toString();
 
-            const itemHTML = `
+            return `
             <div ${localIdAttr} ${serverIdAttr}
-                 data-category="${expense.category}"
+                 data-category="${categoryLabel}"
                  data-amount="${expense.amount}"
                  class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-50 transition">
                 <div class="flex items-center gap-3">
@@ -1669,9 +1821,9 @@
                     </div>
                     <div>
                         <p class="expense-category-val font-bold text-gray-800 text-sm capitalize">
-                            ${expense.category} ${offlineBadge}
+                            <span class="category-name">${categoryLabel}</span>${offlineBadge}
                         </p>
-                        <p class="expense-desc-val text-xs text-gray-500">${expense.description}</p>
+                        <p class="expense-desc-val text-xs text-gray-500">${expense.description || 'No description provided'}</p>
                     </div>
                 </div>
                 <div class="text-right">
@@ -1682,8 +1834,31 @@
                     </div>
                 </div>
             </div>`;
+        }
 
-            listContainer.insertAdjacentHTML('afterbegin', itemHTML);
+        function renderTransactionItem(expense) {
+            const listContainer = document.getElementById('transaction-list');
+            if (!listContainer) return;
+
+            const emptyMsg = document.getElementById('no-expenses-msg');
+            if (emptyMsg) emptyMsg.remove();
+            listContainer.insertAdjacentHTML('afterbegin', buildExpenseItemHTML(expense));
+        }
+
+        async function renderExpenseListFromIndexedDB() {
+            const listContainer = document.getElementById('transaction-list');
+            if (!listContainer) return;
+
+            try {
+                const expenses = await getExpensesLocal();
+                const visible = (expenses || []).filter(item => !item.pending_delete);
+                listContainer.innerHTML = visible.length
+                    ? visible.slice().reverse().map(buildExpenseItemHTML).join('')
+                    : '<p class="text-center text-gray-400 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>';
+                recalculateTotalFromUI();
+            } catch (err) {
+                console.warn('Could not render expense list from IndexedDB:', err);
+            }
         }
 
         // -------------------------------------------------------------
@@ -1720,9 +1895,7 @@
                         const localId = await saveExpenseToIndexedDB(localExpense);
                         localExpense.local_id = localId;
 
-                        renderTransactionItem(localExpense);
-                        recalculateTotalFromUI();
-
+                        await renderExpenseListFromIndexedDB();
                         addForm.reset();
 
                         if (navigator.onLine) {
@@ -1751,17 +1924,17 @@
                         }
                     } else if (event.target.classList.contains('btn-edit')) {
                         // Open edit modal with prefilled data
-                        const catElem = card.querySelector('.expense-category-val');
+                        const catElem = card.querySelector('.expense-category-val .category-name');
                         const descElem = card.querySelector('.expense-desc-val');
                         const amtElem = card.querySelector('.expense-amount-val');
 
-                        const currentCategory = catElem ? catElem.childNodes[0].textContent.trim() : '';
+                        const currentCategory = catElem ? catElem.textContent.trim() : '';
                         const currentDesc = descElem ? descElem.textContent.trim() : '';
                         const currentAmt = amtElem ? parseFloat(amtElem.textContent.replace(/[^0-9.-]+/g, '')) : 0;
 
                         document.getElementById('edit-local-id').value = localId || '';
                         document.getElementById('edit-server-id').value = serverId || '';
-                        document.getElementById('edit-amount').value = currentAmt;
+                        document.getElementById('edit-amount').value = Number.isFinite(currentAmt) ? currentAmt : '';
                         document.getElementById('edit-category').value = currentCategory;
                         document.getElementById('edit-description').value = currentDesc;
 
@@ -1785,16 +1958,25 @@
             }
 
             if (editForm) {
-                editForm.addEventListener('submit', (e) => {
+                editForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
 
                     const localId = document.getElementById('edit-local-id').value || null;
                     const serverId = document.getElementById('edit-server-id').value || null;
-                    const amount = parseFloat(document.getElementById('edit-amount').value.replace(/,/g, ''));
-                    const category = document.getElementById('edit-category').value;
-                    const description = document.getElementById('edit-description').value;
+                    const amountInput = document.getElementById('edit-amount');
+                    const categoryInput = document.getElementById('edit-category');
+                    const descriptionInput = document.getElementById('edit-description');
+                    const amount = Number((amountInput.value || '').replace(/,/g, ''));
+                    const category = String(categoryInput.value || '').trim();
+                    const description = String(descriptionInput.value || '').trim();
 
-                    editExpense(localId, serverId, { amount, category, description });
+                    if (!Number.isFinite(amount) || amount <= 0 || !category || !description) {
+                        alert('Please enter a valid amount, category, and description.');
+                        return;
+                    }
+
+                    await editExpense(localId, serverId, { amount, category, description });
+                    await renderExpenseListFromIndexedDB();
 
                     editModal.classList.add('hidden');
                     editModal.classList.remove('flex');
@@ -2692,6 +2874,7 @@
             // Initial calculations and renders
             renderIncomeListUI();
             calculateDashboard();
+            syncAndFixData();
             if (navigator.onLine) {
                 syncAllPendingData();
             }

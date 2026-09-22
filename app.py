@@ -1070,17 +1070,31 @@ def edit_expense(expense_id):
     if not user_id:
         return redirect("/login")
 
+    with get_db() as db:
+        item = db.execute("SELECT * FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id)).fetchone()
+
     if request.method == "GET":
-        with get_db() as db:
-            item = db.execute("SELECT * FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id)).fetchone()
         if item:
-            return render_template("edit.html", item=item)
+            return render_template("edit.html", item=item, index=expense_id)
         return redirect("/")
 
     if request.method == "POST":
-        amount = float(str(request.form.get("amount", "0")).replace(',', ''))
-        category = request.form["category"].strip()
-        description = request.form["description"].strip()
+        try:
+            amount = float(str(request.form.get("amount", "0")).replace(',', ''))
+        except (TypeError, ValueError):
+            flash("Expense amount must be a valid number.")
+            return render_template("edit.html", item=item, index=expense_id)
+
+        if not math.isfinite(amount) or amount <= 0:
+            flash("Expense amount must be greater than zero.")
+            return render_template("edit.html", item=item, index=expense_id)
+
+        category = str(request.form.get("category", "")).strip()
+        description = str(request.form.get("description", "")).strip()
+        if not category or not description:
+            flash("Category and description are required.")
+            return render_template("edit.html", item=item, index=expense_id)
+
         expenses_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
         with get_db() as db:
             db.execute(
@@ -1089,6 +1103,8 @@ def edit_expense(expense_id):
             )
             db.commit()
         return redirect("/dashboard")
+
+    return redirect("/dashboard")
 
 
 @app.route("/calculate", methods=["POST"])
