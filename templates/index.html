@@ -834,52 +834,6 @@
             }
         })();
 
-        // -------------------------------------------------------------
-        // STEP 1: FAIL-SAFE LOCALSTORAGE STORE & FORWARD ENGINE
-        // -------------------------------------------------------------
-        function saveSaleOffline(saleData) {
-            let unsyncedSales = JSON.parse(localStorage.getItem('unsynced_sales')) || [];
-            unsyncedSales.push(saleData);
-            localStorage.setItem('unsynced_sales', JSON.stringify(unsyncedSales));
-            console.log("Sale saved locally in localStorage notebook!");
-        }
-
-        // -------------------------------------------------------------
-        // STEP 2 & 5: AUTO-SYNC ENGINE FOR UNACCEPTED OFFLINE SALES
-        // -------------------------------------------------------------
-        async function syncOfflineSales() {
-            let unsyncedSales = JSON.parse(localStorage.getItem('unsynced_sales')) || [];
-            if (unsyncedSales.length === 0) return;
-
-            console.log(`Attempting to sync ${unsyncedSales.length} offline sales...`);
-
-            try {
-                let response = await fetch('/api/sync-sales', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sales: unsyncedSales })
-                });
-
-                if (response.ok) {
-                    localStorage.removeItem('unsynced_sales');
-                    console.log("Offline sales successfully synced to database.");
-                    if (typeof showToast === 'function') {
-                        showToast("All offline sales have been successfully backed up to database!", "success");
-                    }
-                }
-            } catch (error) {
-                console.log("Still offline, will try syncing later.");
-            }
-        }
-
-        // Fire auto-sync on load & when network connection is restored
-        window.addEventListener('load', function() {
-            if (navigator.onLine) {
-                syncOfflineSales();
-            }
-        });
-        window.addEventListener('online', syncOfflineSales);
-
         function handleLogout() {
             localStorage.clear();
             sessionStorage.clear();
@@ -1168,15 +1122,12 @@
                         saleRecord.server_id = serverItem.id;
                         saleRecord.synced = true;
                         store.put(saleRecord);
-                    } else {
-                        saveSaleOffline(saleRecord);
                     }
                 } catch (err) {
-                    console.warn('Network error logging sale. Saved offline in localStorage & IndexedDB.', err);
-                    saveSaleOffline(saleRecord);
+                    console.warn("Network error logging sale. Sale remains queued in IndexedDB.", err);
                 }
             } else {
-                saveSaleOffline(saleRecord);
+                console.log("Offline sale queued in IndexedDB.");
             }
             return saleRecord;
         }

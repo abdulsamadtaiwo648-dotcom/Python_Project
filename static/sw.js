@@ -1,9 +1,10 @@
-const CACHE_NAME = 'solobiz-offline-v2';
+const CACHE_NAME = 'solobiz-offline-v3';
 
 // Only cache public, user-independent assets. Authenticated HTML pages must
 // never be cached because one user's dashboard could otherwise be shown after
 // logout or to another user on the same device.
 const PRECACHE_ASSETS = [
+  '/dashboard',
   '/static/logo.svg',
   '/static/manifest.json',
   '/static/favicon.png',
@@ -31,10 +32,9 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Never intercept API calls or navigation requests. Navigation responses can
-  // contain private, session-specific dashboard data.
+  // Never intercept API calls or non-GET requests.
   if (request.method !== 'GET' || url.origin !== self.location.origin ||
-      url.pathname.startsWith('/api/') || request.mode === 'navigate') {
+      url.pathname.startsWith('/api/')) {
     return;
   }
 
@@ -46,6 +46,11 @@ self.addEventListener('fetch', (event) => {
         const responseCopy = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy));
         return networkResponse;
+      }).catch(() => {
+        if (request.mode === 'navigate') {
+          return caches.match('/dashboard');
+        }
+        return Response.error();
       });
     })
   );
