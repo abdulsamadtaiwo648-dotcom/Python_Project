@@ -1,4 +1,4 @@
-const CACHE_NAME = 'solobiz-offline-v3';
+const CACHE_NAME = 'solobiz-offline-{{ version }}';
 
 // Only cache public, user-independent assets. Authenticated HTML pages must
 // never be cached because one user's dashboard could otherwise be shown after

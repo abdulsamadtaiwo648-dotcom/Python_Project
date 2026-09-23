@@ -1566,20 +1566,24 @@ def api_income():
     if request.method == "GET":
         with get_db() as db:
             rows = db.execute("SELECT * FROM income WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall()
-            income_list = [
-                {
-                    "id": dict(row)["id"],
-                    "user_id": dict(row)["user_id"],
-                    "description": dict(row).get("description", ""),
-                    "total_value": float(dict(row).get("total_value", 0)),
-                    "amount_paid": float(dict(row).get("amount_paid", 0)),
-                    "customer_name": dict(row).get("customer_name") or "Walk-in Customer",
-                    "payment_mode": dict(row).get("payment_mode") or "Cash",
-                    "date": dict(row).get("date"),
-                    "receipt_id": dict(row).get("receipt_id") or f"REC-{dict(row)['id']}"
-                }
-                for row in rows
-            ]
+            income_list = []
+            for row in rows:
+                item = dict(row)
+                total_value = float(item.get("total_value", 0))
+                amount_paid = float(item.get("amount_paid", 0))
+                balance_owed = max(total_value - amount_paid, 0)
+                income_list.append({
+                    "id": item["id"],
+                    "user_id": item["user_id"],
+                    "description": item.get("description", ""),
+                    "total_value": total_value,
+                    "amount_paid": amount_paid,
+                    "balance_owed": balance_owed,
+                    "customer_name": item.get("customer_name") or "Walk-in Customer",
+                    "payment_mode": item.get("payment_mode") or "Cash",
+                    "date": item.get("date"),
+                    "receipt_id": item.get("receipt_id") or f"REC-{item['id']}"
+                })
         return jsonify({"status": "success", "income": income_list}), 200
 
     elif request.method == "POST":
@@ -1627,6 +1631,48 @@ def api_income():
             "receipt_id": receipt_id,
             "income": saved_item
         }), 201
+
+
+@app.route('/update_payment/<int:receipt_id>', methods=['POST'])
+def update_payment(receipt_id):
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    data = request.form.to_dict() if request.form else {}
+    if not data and request.is_json:
+        data = request.get_json(silent=True) or {}
+
+    payment_amount_raw = (data.get('payment_amount') or data.get('amount_paid') or '').strip()
+    try:
+        payment_amount = float(payment_amount_raw)
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "Please enter a valid payment amount."}), 400
+
+    if payment_amount <= 0:
+        return jsonify({"status": "error", "message": "Payment must be greater than zero."}), 400
+
+    with get_db() as db:
+        row = db.execute("SELECT * FROM income WHERE id = ? AND user_id = ?", (receipt_id, user_id)).fetchone()
+        if not row:
+            return jsonify({"status": "error", "message": "Receipt not found."}), 404
+
+        item = dict(row)
+        total_value = float(item.get("total_value", 0))
+        current_paid = float(item.get("amount_paid", 0))
+        updated_paid = min(total_value, current_paid + payment_amount)
+        db.execute(
+            "UPDATE income SET amount_paid = ? WHERE id = ? AND user_id = ?",
+            (updated_paid, receipt_id, user_id)
+        )
+        db.commit()
+
+    return jsonify({
+        "status": "success",
+        "message": "Payment added successfully.",
+        "updated_amount_paid": updated_paid,
+        "balance_owed": max(total_value - updated_paid, 0)
+    }), 200
 
 
 # ==========================================
