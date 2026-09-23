@@ -41,6 +41,7 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
 app.permanent_session_lifetime = timedelta(days=30)
+APP_VERSION = str(int(time.time()))
 
 # Session / Cookie hardening
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -823,7 +824,11 @@ def root():
 
 @app.route('/sw.js')
 def service_worker():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    sw_script = render_template('sw.js', version=APP_VERSION)
+    response = make_response(sw_script)
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 
 @app.route("/sitemap.xml")
