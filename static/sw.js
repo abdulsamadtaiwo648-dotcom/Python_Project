@@ -32,12 +32,30 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Never intercept API calls or non-GET requests.
+  // Do not cache authenticated API calls or unsafe requests.
   if (request.method !== 'GET' || url.origin !== self.location.origin ||
       url.pathname.startsWith('/api/')) {
     return;
   }
 
+  // Navigation requests should be network-first so the app remains functional offline,
+  // but they can fall back to a cached shell when the browser is truly offline.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+    );
+    return;
+  }
+
+  // Static assets can be cached for offline access without hiding the app.
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
@@ -46,12 +64,7 @@ self.addEventListener('fetch', (event) => {
         const responseCopy = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy));
         return networkResponse;
-      }).catch(() => {
-        if (request.mode === 'navigate') {
-          return caches.match('/dashboard');
-        }
-        return Response.error();
-      });
+      }).catch(() => Response.error());
     })
   );
 });
