@@ -1607,11 +1607,8 @@ def api_income():
 
         payment_mode = str(data.get("payment_mode", "Cash")).strip()
 
-        if not description or not math.isfinite(total_value) or total_value < 0:
+        if not description or total_value < 0:
             return jsonify({"status": "error", "message": "Description and a valid total value are required"}), 400
-        if not math.isfinite(amount_paid) or amount_paid < 0:
-            return jsonify({"status": "error", "message": "Amount paid must be zero or greater"}), 400
-        amount_paid = min(amount_paid, total_value)
 
         with get_db() as db:
             cursor = db.execute(
@@ -1711,10 +1708,8 @@ def sync_sales():
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
 
             try:
-                if (not math.isfinite(total_value) or total_value <= 0 or
-                    not math.isfinite(amount_paid) or amount_paid < 0 or not description):
+                if not math.isfinite(total_value) or total_value <= 0 or not description:
                     continue
-                amount_paid = min(amount_paid, total_value)
             except (TypeError, ValueError):
                 continue
 

@@ -130,8 +130,11 @@
                 <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-1.5">
                     Hi, <span id="user-greeting-name">{{ username }}</span> <span class="inline-block animate-bounce">👋</span>
                 </h2>
-                <p class="text-[11px] text-gray-500 font-medium mt-0.5">Track collected sales, expenses, and outstanding balances.</p>
+                <p class="text-[11px] text-gray-500 font-medium mt-0.5">Here is your business overview today</p>
             </div>
+            <button id="btn-global-overview" type="button" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
+                Overview
+            </button>
         </div>
 
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
@@ -1084,10 +1087,7 @@
             const saleRecord = {
                 description: String(incomeData.description || '').trim(),
                 total_value: parseFloat(incomeData.total_value || 0),
-                amount_paid: Math.min(
-                    parseFloat(incomeData.total_value || 0),
-                    Math.max(parseFloat(incomeData.amount_paid || 0), 0)
-                ),
+                amount_paid: parseFloat(incomeData.amount_paid || 0),
                 customer_name: customer_name,
                 receipt_id: receipt_id,
                 payment_mode: incomeData.payment_mode || 'Cash',
@@ -1118,8 +1118,6 @@
                         const tx = db.transaction(INCOME_STORE, 'readwrite');
                         const store = tx.objectStore(INCOME_STORE);
                         const serverItem = resData.income;
-                        saleRecord.total_value = parseFloat(serverItem.total_value || saleRecord.total_value);
-                        saleRecord.amount_paid = parseFloat(serverItem.amount_paid || 0);
                         saleRecord.server_id = serverItem.id;
                         saleRecord.synced = true;
                         store.put(saleRecord);
@@ -1185,27 +1183,7 @@
 
                     let addedAny = false;
                     for (const item of result.income) {
-                        const existing = localIncome.find(localItem => localItem.server_id === item.id);
-                        if (existing) {
-                            const record = {
-                                ...existing,
-                                total_value: parseFloat(item.total_value || item.amount || 0),
-                                amount_paid: parseFloat(item.amount_paid || item.amount || 0),
-                                customer_name: item.customer_name || 'Walk-in Customer',
-                                payment_mode: item.payment_mode || 'Cash',
-                                receipt_id: item.receipt_id || ('REC-' + item.id),
-                                date: item.date,
-                                synced: true,
-                                server_id: item.id
-                            };
-                            await new Promise((resolve, reject) => {
-                                const tx = db.transaction(INCOME_STORE, 'readwrite');
-                                const req = tx.objectStore(INCOME_STORE).put(record);
-                                req.onsuccess = () => resolve();
-                                req.onerror = (e) => reject(e.target.error);
-                            });
-                            addedAny = true;
-                        } else if (!existingServerIds.has(item.id)) {
+                        if (!existingServerIds.has(item.id)) {
                             const record = {
                                 description: item.description || '',
                                 total_value: parseFloat(item.total_value || item.amount || 0),
@@ -2459,6 +2437,70 @@
                 };
             }
 
+            async function settleDebtForIncome(incomeId) {
+                const db = await openIndexedDB();
+                const tx = db.transaction(INCOME_STORE, 'readonly');
+                const req = tx.objectStore(INCOME_STORE).get(Number(incomeId));
+                const income = await new Promise((resolve, reject) => {
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = (e) => reject(e.target.error);
+                });
+
+                if (!income) {
+                    alert('This sale record could not be found.');
+                    return;
+                }
+
+                const amountToPay = prompt('How much are they paying now?');
+                if (amountToPay === null) return;
+
+                const amount = Number.parseFloat(String(amountToPay).replace(/,/g, ''));
+                if (!Number.isFinite(amount) || amount <= 0) {
+                    alert('Please enter a valid payment amount greater than zero.');
+                    return;
+                }
+
+                const totalValue = parseFloat(income.total_value || income.amount || 0);
+                const currentPaid = parseFloat(income.amount_paid || income.amount || 0);
+                const updatedPaid = Math.min(totalValue, currentPaid + amount);
+
+                if (income.server_id) {
+                    try {
+                        const payload = new URLSearchParams({ payment_amount: String(amount) });
+                        const response = await authenticatedFetch(`/update_payment/${income.server_id}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                            body: payload.toString()
+                        });
+                        const result = await response.json();
+                        if (!response.ok || result.status !== 'success') {
+                            throw new Error(result.message || 'Payment update failed');
+                        }
+                    } catch (err) {
+                        console.error('Could not update payment on server', err);
+                        alert('Payment could not be synced online. Try again when you are online.');
+                        return;
+                    }
+                }
+
+                const writeTx = db.transaction(INCOME_STORE, 'readwrite');
+                const writeStore = writeTx.objectStore(INCOME_STORE);
+                const existing = await new Promise((resolve, reject) => {
+                    const getReq = writeStore.get(Number(incomeId));
+                    getReq.onsuccess = () => resolve(getReq.result || null);
+                    getReq.onerror = (e) => reject(e.target.error);
+                });
+
+                if (existing) {
+                    existing.amount_paid = updatedPaid;
+                    existing.synced = false;
+                    writeStore.put(existing);
+                }
+
+                await renderIncomeListUI();
+                alert(`Payment recorded. New balance: ₦${Math.max(totalValue - updatedPaid, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+            }
+
             window.settleDebtForIncome = async function(incomeId) {
                 const db = await openIndexedDB();
                 const tx = db.transaction(INCOME_STORE, 'readonly');
@@ -2515,7 +2557,7 @@
 
                 if (existing) {
                     existing.amount_paid = updatedPaid;
-                    existing.synced = Boolean(income.server_id);
+                    existing.synced = false;
                     writeStore.put(existing);
                 }
 
@@ -2580,7 +2622,7 @@
                     listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
                 } else {
                     listContainer.innerHTML = incomeItems.map(item => {
-                        totalIncome += parseFloat(item.amount_paid ?? item.amount ?? 0);
+                        totalIncome += parseFloat(item.total_value || item.amount || 0);
                         return renderIncomeItemHTML(item);
                     }).reverse().join('');
                 }
@@ -2766,6 +2808,15 @@
             const salesMainView = document.getElementById('sales-main-view');
             const analyticsView = document.getElementById('analytics-view');
             
+            // Handle the top header "Overview" button
+            document.getElementById('btn-global-overview')?.addEventListener('click', () => {
+                // Switch to the Analytics Tab directly
+                if (typeof switchTab === 'function') switchTab('analytics');
+                
+                // Scroll to top to see it clearly
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
             document.getElementById('btn-hide-analytics')?.addEventListener('click', () => {
                 if(salesMainView && analyticsView) {
                     analyticsView.classList.add('hidden');
