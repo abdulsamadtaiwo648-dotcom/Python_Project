@@ -1087,8 +1087,8 @@
 
             const saleRecord = {
                 description: String(incomeData.description || '').trim(),
-                total_value: parseFloat(incomeData.total_value || 0),
-                amount_paid: parseFloat(incomeData.amount_paid || 0),
+                total_value: parseFloat(incomeData.total_value ?? incomeData.amount ?? 0),
+                amount_paid: parseFloat(incomeData.amount_paid ?? incomeData.amount ?? 0),
                 customer_name: customer_name,
                 receipt_id: receipt_id,
                 payment_mode: incomeData.payment_mode || 'Cash',
@@ -1187,8 +1187,8 @@
                         if (!existingServerIds.has(item.id)) {
                             const record = {
                                 description: item.description || '',
-                                total_value: parseFloat(item.total_value || item.amount || 0),
-                                amount_paid: parseFloat(item.amount_paid || item.amount || 0),
+                                total_value: parseFloat(item.total_value ?? item.amount ?? 0),
+                                amount_paid: parseFloat(item.amount_paid ?? item.amount ?? 0),
                                 customer_name: item.customer_name || 'Walk-in Customer',
                                 payment_mode: item.payment_mode || 'Cash',
                                 receipt_id: item.receipt_id || ('REC-' + item.id),
@@ -2479,8 +2479,8 @@
                     return;
                 }
 
-                const totalValue = parseFloat(income.total_value || income.amount || 0);
-                const currentPaid = parseFloat(income.amount_paid || income.amount || 0);
+                const totalValue = parseFloat(income.total_value ?? income.amount ?? 0);
+                const currentPaid = parseFloat(income.amount_paid ?? income.amount ?? 0);
                 const updatedPaid = Math.min(totalValue, currentPaid + amount);
 
                 if (income.server_id) {
@@ -2577,7 +2577,9 @@
                     listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
                 } else {
                     listContainer.innerHTML = incomeItems.map(item => {
-                        totalIncome += parseFloat(item.total_value || item.amount || 0);
+                        if (!item.pending_delete) {
+                            totalIncome += parseFloat(item.amount_paid ?? item.amount ?? 0);
+                        }
                         return renderIncomeItemHTML(item);
                     }).reverse().join('');
                 }
@@ -2834,12 +2836,14 @@
                     if (!item.date) return;
                     
                     const key = getPeriodKey(item.date);
-                    if (!groups[key]) groups[key] = { revenue: 0, items: [] };
+                    if (!groups[key]) groups[key] = { salesVolume: 0, items: [] };
                     
-                    const tVal = parseFloat(item.total_value || item.amount || 0); // fallback for old records
-                    const amtPaid = parseFloat(item.amount_paid || item.amount || 0);
+                    if (item.pending_delete) return;
+
+                    const tVal = parseFloat(item.total_value ?? item.amount ?? 0); // fallback for old records
+                    const amtPaid = parseFloat(item.amount_paid ?? item.amount ?? 0);
                     
-                    groups[key].revenue += tVal;
+                    groups[key].salesVolume += tVal;
                     groups[key].items.push(item);
                     
                     totalValue += tVal;
@@ -2923,7 +2927,7 @@
                                 <span class="font-bold text-gray-800 text-sm">${key}</span>
                                 <span class="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">${g.items.length} tx</span>
                             </div>
-                            <span class="font-bold text-indigo-600">₦${g.revenue.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                            <span class="font-bold text-indigo-600">₦${g.salesVolume.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                         </summary>
                         <div class="px-4 pb-4 pt-1 space-y-2 bg-white">
                             ${g.items.map(item => {
@@ -3035,7 +3039,7 @@
                     req.onsuccess = () => {
                         const totalSales = (req.result || [])
                             .filter(i => !i.pending_delete)
-                            .reduce((sum, i) => sum + parseFloat(i.total_value ?? i.amount ?? 0), 0);
+                            .reduce((sum, i) => sum + parseFloat(i.amount_paid ?? i.amount ?? 0), 0);
 
                         const netProfit = totalSales - filteredExpenseTotal;
                         const fmt = v => '\u20a6' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

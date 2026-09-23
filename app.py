@@ -895,7 +895,10 @@ def dashboard():
                 print(f"Dashboard expenses list note: {e}", flush=True)
 
             try:
-                row = db.execute("SELECT SUM(total_value) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+                row = db.execute(
+                    "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
+                    (user_id,)
+                ).fetchone()
                 if row and row["total"] is not None:
                     total_sales = float(row["total"])
             except Exception as e:
@@ -1153,7 +1156,10 @@ def calculate():
     total_sales = 0.0
     try:
         with get_db() as db:
-            row = db.execute("SELECT SUM(total_value) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            row = db.execute(
+                "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
+                (user_id,)
+            ).fetchone()
             if row and row["total"] is not None:
                 total_sales = float(row["total"])
     except Exception:
@@ -1215,7 +1221,10 @@ def search():
             user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
             if user and user["email"]:
                 username = user["email"].split("@")[0].capitalize()
-            row = db.execute("SELECT SUM(total_value) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+            row = db.execute(
+                "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
+                (user_id,)
+            ).fetchone()
             if row and row["total"] is not None:
                 total_sales = float(row["total"])
     except Exception:
@@ -1580,8 +1589,8 @@ def api_income():
             income_list = []
             for row in rows:
                 item = dict(row)
-                total_value = float(item.get("total_value", 0))
-                amount_paid = float(item.get("amount_paid", 0))
+                total_value = float(item.get("total_value") if item.get("total_value") is not None else item.get("amount", 0))
+                amount_paid = float(item.get("amount_paid") if item.get("amount_paid") is not None else item.get("amount", 0))
                 balance_owed = max(total_value - amount_paid, 0)
                 income_list.append({
                     "id": item["id"],
@@ -1676,8 +1685,8 @@ def update_payment(receipt_id):
             return jsonify({"status": "error", "message": "Receipt not found."}), 404
 
         item = dict(row)
-        total_value = float(item.get("total_value", 0))
-        current_paid = float(item.get("amount_paid", 0))
+        total_value = float(item.get("total_value") if item.get("total_value") is not None else item.get("amount", 0))
+        current_paid = float(item.get("amount_paid") if item.get("amount_paid") is not None else item.get("amount", 0))
         updated_paid = min(total_value, current_paid + payment_amount)
         db.execute(
             "UPDATE income SET amount_paid = ? WHERE id = ? AND user_id = ?",

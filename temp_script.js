@@ -1065,7 +1065,7 @@
                     });
                     const totalSales = incomeItems
                         .filter(item => !item.pending_delete)
-                        .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+                        .reduce((sum, item) => sum + parseFloat(item.amount_paid ?? item.amount ?? 0), 0);
 
                     // --- Total Expenses (filtered by category and/or max amount) ---
                     const expTx = db.transaction(STORE_NAME, 'readonly');
@@ -1504,7 +1504,9 @@
                     listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
                 } else {
                     listContainer.innerHTML = incomeItems.map(item => {
-                        totalIncome += parseFloat(item.amount || 0);
+                        if (!item.pending_delete) {
+                            totalIncome += parseFloat(item.amount_paid ?? item.amount ?? 0);
+                        }
                         return renderIncomeItemHTML(item);
                     }).reverse().join('');
                 }
@@ -2100,7 +2102,7 @@
                     req.onsuccess = () => {
                         const totalSales = (req.result || [])
                             .filter(i => !i.pending_delete)
-                            .reduce((sum, i) => sum + parseFloat(i.amount || 0), 0);
+                            .reduce((sum, i) => sum + parseFloat(i.amount_paid ?? i.amount ?? 0), 0);
 
                         const netProfit = totalSales - filteredExpenseTotal;
                         const fmt = v => '\u20a6' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
