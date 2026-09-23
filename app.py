@@ -1064,7 +1064,9 @@ def delete_expense(expense_id):
     if not user_id:
         return redirect("/login")
     with get_db() as db:
-        db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
+        cursor = db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
+        if cursor.rowcount == 0:
+            return redirect("/dashboard")
         db.commit()
     return redirect("/dashboard")
 
@@ -1118,9 +1120,9 @@ def calculate():
     if not user_id:
         return redirect("/login")
 
-    calc_term = request.form["calc_term"].strip()
+    calc_term = request.form.get("calc_term", "").strip()
     calc_term_lower = calc_term.lower()
-    calc_type = request.form["calc_type"]
+    calc_type = request.form.get("calc_type", "")
     items = []
 
     with get_db() as db:
@@ -1146,7 +1148,7 @@ def calculate():
 
     calc_result = sum(float(row["amount"] or 0) for row in items)
     total_expenses = sum(float(item["amount"] or 0) for item in expenses)
-    username = user["email"].split("@")[0].capitalize() if user and user.get("email") else "Entrepreneur"
+    username = user["email"].split("@")[0].capitalize() if user and user["email"] else "Entrepreneur"
 
     total_sales = 0.0
     try:
@@ -1176,9 +1178,9 @@ def search():
     if not user_id:
         return redirect("/login")
 
-    raw_search = request.form["search_term"].strip()
+    raw_search = request.form.get("search_term", "").strip()
     search_term = raw_search.lower()
-    search_type = request.form["search_type"]
+    search_type = request.form.get("search_type", "")
     search_results = []
     display_term = raw_search
 
@@ -1388,9 +1390,6 @@ def api_business_profile():
         if not expected_otp or provided_otp != str(expected_otp):
             return jsonify({"status": "error", "message": "Invalid or expired verification code."}), 400
 
-        # Clear the OTP from session after successful validation
-        session.pop('profile_verification_code', None)
-
         company_name = str(data.get("company_name", "")).strip()
         business_phone = str(data.get("business_phone", "")).strip()
         business_address = str(data.get("business_address", "")).strip()
@@ -1401,6 +1400,9 @@ def api_business_profile():
 
         if not company_name:
             return jsonify({"status": "error", "message": "Company name is required"}), 400
+
+        # Consume the one-time code only after all required input is valid.
+        session.pop('profile_verification_code', None)
 
         store_slug = slugify(company_name)
 
@@ -1481,9 +1483,12 @@ def api_inventory_presets():
             price = float(str(data.get("price", "0")).replace(",", ""))
         except (TypeError, ValueError):
             return jsonify({"status": "error", "message": "Invalid price"}), 400
-        stock = int(data.get("stock", 0))
+        try:
+            stock = int(data.get("stock", 0))
+        except (TypeError, ValueError):
+            return jsonify({"status": "error", "message": "Stock must be a whole number."}), 400
 
-        if not item_name or price <= 0:
+        if not item_name or not math.isfinite(price) or price <= 0 or stock < 0:
             return jsonify({"status": "error", "message": "Item name and a positive price are required."}), 400
 
         with get_db() as db:
@@ -1522,7 +1527,13 @@ def api_inventory_preset_detail(preset_id):
                 price = float(str(data.get("price", dict(existing).get("price", 0))).replace(",", ""))
             except (TypeError, ValueError):
                 return jsonify({"status": "error", "message": "Invalid price"}), 400
-            stock = int(data.get("stock", dict(existing).get("stock", 0)))
+            try:
+                stock = int(data.get("stock", dict(existing).get("stock", 0)))
+            except (TypeError, ValueError):
+                return jsonify({"status": "error", "message": "Stock must be a whole number."}), 400
+
+            if not item_name or not math.isfinite(price) or price <= 0 or stock < 0:
+                return jsonify({"status": "error", "message": "Item name and a positive price are required."}), 400
 
             db.execute(
                 "UPDATE inventory_presets SET item_name = ?, price = ?, stock = ? WHERE id = ? AND user_id = ?",
@@ -1602,9 +1613,16 @@ def api_income():
         except (TypeError, ValueError):
             return jsonify({"status": "error", "message": "Invalid amount format"}), 400
 
-        payment_mode = str(data.get("payment_mode", "Cash")).strip()
+        payment_mode = str(data.get("payment_mode", "Cash")).strip() or "Cash"
 
-        if not description or total_value < 0:
+        if (
+            not description
+            or not math.isfinite(total_value)
+            or not math.isfinite(amount_paid)
+            or total_value <= 0
+            or amount_paid < 0
+            or amount_paid > total_value
+        ):
             return jsonify({"status": "error", "message": "Description and a valid total value are required"}), 400
 
         with get_db() as db:
@@ -1643,13 +1661,13 @@ def update_payment(receipt_id):
     if not data and request.is_json:
         data = request.get_json(silent=True) or {}
 
-    payment_amount_raw = (data.get('payment_amount') or data.get('amount_paid') or '').strip()
+    payment_amount_raw = str(data.get('payment_amount') or data.get('amount_paid') or '').strip()
     try:
         payment_amount = float(payment_amount_raw)
     except (TypeError, ValueError):
         return jsonify({"status": "error", "message": "Please enter a valid payment amount."}), 400
 
-    if payment_amount <= 0:
+    if not math.isfinite(payment_amount) or payment_amount <= 0:
         return jsonify({"status": "error", "message": "Payment must be greater than zero."}), 400
 
     with get_db() as db:
@@ -1697,15 +1715,25 @@ def sync_sales():
                 continue
             
             description = str(sale.get("description") or sale.get("item_sold") or sale.get("item") or "").strip()
-            total_value = float(sale.get("total_value", sale.get("amount", 0)))
-            amount_paid = float(sale.get("amount_paid", sale.get("amount", 0)))
+            try:
+                total_value = float(str(sale.get("total_value", sale.get("amount", 0))).replace(",", ""))
+                amount_paid = float(str(sale.get("amount_paid", sale.get("amount", 0))).replace(",", ""))
+            except (TypeError, ValueError):
+                continue
             payment_mode = str(sale.get("payment_mode", "Cash")).strip()
             customer_name = str(sale.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
             sale_date = sale.get("date") or datetime.now().strftime("%Y-%m-%d %I:%M %p")
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
 
             try:
-                if not math.isfinite(total_value) or total_value <= 0 or not description:
+                if (
+                    not math.isfinite(total_value)
+                    or not math.isfinite(amount_paid)
+                    or total_value <= 0
+                    or amount_paid < 0
+                    or amount_paid > total_value
+                    or not description
+                ):
                     continue
             except (TypeError, ValueError):
                 continue

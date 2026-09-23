@@ -2020,9 +2020,28 @@
                         getIncomeReq.onsuccess = () => res(getIncomeReq.result || []);
                         getIncomeReq.onerror = () => res([]);
                     });
-                    const totalSales = incomeItems
+                    // --- Total Sales & Cash (always unfiltered — income has no category) ---
+
+                    // 1. CASH COLLECTED (The physical money actually paid by customers)
+                    const cashCollected = incomeItems
+                        .filter(item => !item.pending_delete)
+                        .reduce((sum, item) => sum + parseFloat(item.amount_paid ?? item.amount ?? 0), 0);
+
+                    // 2. TOTAL OWED (The remaining balance customers owe you)
+                    const totalOwed = incomeItems
+                        .filter(item => !item.pending_delete)
+                        .reduce((sum, item) => {
+                            const itemTotal = parseFloat(item.total_value ?? item.amount ?? 0);
+                            const itemPaid = parseFloat(item.amount_paid ?? item.amount ?? 0);
+                            return sum + (itemTotal - itemPaid);
+                        }, 0);
+
+                    // 3. SALES VOLUME (The total value of the inventory that left the store)
+                    const totalSalesVolume = incomeItems
                         .filter(item => !item.pending_delete)
                         .reduce((sum, item) => sum + parseFloat(item.total_value ?? item.amount ?? 0), 0);
+
+                    const totalSales = cashCollected;
 
                     // --- Total Expenses (filtered by category and/or max amount) ---
                     const expTx = db.transaction(STORE_NAME, 'readonly');
@@ -2031,7 +2050,6 @@
                         getExpReq.onsuccess = () => res(getExpReq.result || []);
                         getExpReq.onerror = () => res([]);
                     });
-
                     const expItems = allExpItems.filter(item => {
                         if (item.pending_delete) return false;
                         if (categoryFilter && item.category !== categoryFilter) return false;
@@ -2371,7 +2389,7 @@
                             if (navigator.canShare({ files: [pdfFile] })) {
                                 await navigator.share({
                                     title: `Receipt - ${customerName}`,
-                                    text: `Receipt ${receiptId} from ${companyName} - ${fmt(finalTotal)}`,
+                                    text: `Receipt ${receiptId} from ${companyName} - ${fmt(grandTotal)}`,
                                     files: [pdfFile]
                                 });
                                 return; // Shared successfully
