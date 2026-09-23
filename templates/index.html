@@ -367,7 +367,6 @@
                     <p class="text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
                     <h2 class="big-total-value text-white" id="total-income-amount">₦0.00</h2>
                     <p class="text-xs text-emerald-100/90 mt-2 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span> Auto-saved locally &amp; synced to cloud</p>
-                    <button type="button" id="btn-show-analytics" class="mt-4 bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold py-1.5 px-4 rounded-full transition border border-white/30 tracking-wider">OVERVIEW</button>
                 </div>
 
             <!-- Quick-Tap Inventory Presets -->
@@ -2022,7 +2021,7 @@
                     });
                     const totalSales = incomeItems
                         .filter(item => !item.pending_delete)
-                        .reduce((sum, item) => sum + parseFloat(item.total_value ?? item.amount ?? 0), 0);
+                        .reduce((sum, item) => sum + parseFloat(item.amount_paid ?? item.amount ?? item.total_value ?? 0), 0);
 
                     // --- Total Expenses (filtered by category and/or max amount) ---
                     const expTx = db.transaction(STORE_NAME, 'readonly');
@@ -2502,6 +2501,70 @@
                 alert(`Payment recorded. New balance: ₦${Math.max(totalValue - updatedPaid, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
             }
 
+            window.settleDebtForIncome = async function(incomeId) {
+                const db = await openIndexedDB();
+                const tx = db.transaction(INCOME_STORE, 'readonly');
+                const req = tx.objectStore(INCOME_STORE).get(Number(incomeId));
+                const income = await new Promise((resolve, reject) => {
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = (e) => reject(e.target.error);
+                });
+
+                if (!income) {
+                    alert('This sale record could not be found.');
+                    return;
+                }
+
+                const amountToPay = prompt('How much are they paying now?');
+                if (amountToPay === null) return;
+
+                const amount = Number.parseFloat(String(amountToPay).replace(/,/g, ''));
+                if (!Number.isFinite(amount) || amount <= 0) {
+                    alert('Please enter a valid payment amount greater than zero.');
+                    return;
+                }
+
+                const totalValue = parseFloat(income.total_value || income.amount || 0);
+                const currentPaid = parseFloat(income.amount_paid || income.amount || 0);
+                const updatedPaid = Math.min(totalValue, currentPaid + amount);
+
+                if (income.server_id) {
+                    try {
+                        const payload = new URLSearchParams({ payment_amount: String(amount) });
+                        const response = await authenticatedFetch(`/update_payment/${income.server_id}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                            body: payload.toString()
+                        });
+                        const result = await response.json();
+                        if (!response.ok || result.status !== 'success') {
+                            throw new Error(result.message || 'Payment update failed');
+                        }
+                    } catch (err) {
+                        console.error('Could not update payment on server', err);
+                        alert('Payment could not be synced online. Try again when you are online.');
+                        return;
+                    }
+                }
+
+                const writeTx = db.transaction(INCOME_STORE, 'readwrite');
+                const writeStore = writeTx.objectStore(INCOME_STORE);
+                const existing = await new Promise((resolve, reject) => {
+                    const getReq = writeStore.get(Number(incomeId));
+                    getReq.onsuccess = () => resolve(getReq.result || null);
+                    getReq.onerror = (e) => reject(e.target.error);
+                });
+
+                if (existing) {
+                    existing.amount_paid = updatedPaid;
+                    existing.synced = false;
+                    writeStore.put(existing);
+                }
+
+                await renderIncomeListUI();
+                alert(`Payment recorded. New balance: ₦${Math.max(totalValue - updatedPaid, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+            };
+
             function renderIncomeItemHTML(income) {
                 const offlineBadge = !income.synced ? `<span class="text-[9px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
                 const paymentState = getReceiptPaymentState(income);
@@ -2745,14 +2808,6 @@
             const salesMainView = document.getElementById('sales-main-view');
             const analyticsView = document.getElementById('analytics-view');
             
-            document.getElementById('btn-show-analytics')?.addEventListener('click', () => {
-                if(salesMainView && analyticsView) {
-                    salesMainView.classList.add('hidden');
-                    analyticsView.classList.remove('hidden');
-                    renderAnalytics('daily'); // default
-                }
-            });
-
             // Handle the top header "Overview" button
             document.getElementById('btn-global-overview')?.addEventListener('click', () => {
                 // Switch to the Analytics Tab directly
@@ -2821,10 +2876,10 @@
                     const tVal = parseFloat(item.total_value || item.amount || 0); // fallback for old records
                     const amtPaid = parseFloat(item.amount_paid || item.amount || 0);
                     
-                    groups[key].revenue += tVal;
+                    groups[key].revenue += amtPaid;
                     groups[key].items.push(item);
                     
-                    totalValue += tVal;
+                    totalValue += amtPaid;
                     cashCollected += amtPaid;
                     outstandingBalance += Math.max(0, tVal - amtPaid);
                 });
