@@ -895,7 +895,7 @@ def dashboard():
                 print(f"Dashboard expenses list note: {e}", flush=True)
 
             try:
-                row = db.execute("SELECT COALESCE(SUM(amount_paid), 0) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+                row = db.execute("SELECT SUM(total_value) AS total FROM income WHERE user_id = ?", (user_id,)).fetchone()
                 if row and row["total"] is not None:
                     total_sales = float(row["total"])
             except Exception as e:
@@ -922,7 +922,7 @@ def dashboard():
     except Exception as e:
         print(f"Dashboard profile query note: {e}", flush=True)
 
-    response = make_response(render_template(
+    return render_template(
         "index.html",
         expenses=expenses,
         total=total_expenses,
@@ -931,10 +931,7 @@ def dashboard():
         net_profit=net_profit,
         username=username,
         profile=profile
-    ))
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    return response
+    )
 
 
 # ==========================================
