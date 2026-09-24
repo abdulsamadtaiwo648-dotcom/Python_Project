@@ -130,31 +130,42 @@
                 min-height: 100vh;
                 background: #f1f5f9;
             }
+            header > div {
+                max-width: 1440px;
+                padding-left: 28px;
+                padding-right: 28px;
+            }
             .desktop-dashboard-shell {
                 display: grid;
-                grid-template-columns: 236px minmax(0, 1fr);
-                gap: 28px;
+                grid-template-columns: 260px minmax(0, 1fr);
+                gap: 32px;
                 align-items: start;
+                width: calc(100% - 48px);
+                max-width: 1440px;
+                padding-left: 0;
+                padding-right: 0;
+                margin-top: 28px;
             }
             .desktop-sidebar {
                 position: sticky;
-                top: 88px;
+                top: 104px;
                 grid-column: 1;
                 grid-row: 2 / span 5;
-                padding: 12px;
+                padding: 14px;
                 background: #ffffff;
                 border: 1px solid #e2e8f0;
-                border-radius: 24px;
+                border-radius: 22px;
                 box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
             }
             .desktop-sidebar .tab-btn {
                 width: 100%;
                 justify-content: flex-start;
                 min-width: 0;
-                padding: 13px 14px;
-                margin-bottom: 5px;
+                padding: 15px 16px;
+                margin-bottom: 7px;
                 border-radius: 14px;
-                gap: 10px;
+                gap: 12px;
+                font-size: 0.875rem;
             }
             .desktop-sidebar .tab-btn:last-child {
                 margin-bottom: 0;
@@ -169,13 +180,27 @@
             }
             .desktop-greeting {
                 grid-row: 2;
-                margin-bottom: 18px;
-                padding: 22px 24px;
+                margin-bottom: 22px;
+                padding: 24px 28px;
                 border-radius: 24px;
+            }
+            .desktop-greeting h2 {
+                font-size: 1.25rem;
+            }
+            .desktop-greeting p {
+                font-size: 0.8rem;
             }
             #cfo-dashboard {
                 grid-row: 4;
                 margin-bottom: 24px;
+            }
+            #cfo-dashboard #top-sales,
+            #cfo-dashboard #top-expenses,
+            #cfo-dashboard #top-profit {
+                font-size: 1.35rem;
+            }
+            #cfo-dashboard p {
+                font-size: 0.7rem;
             }
             #cfo-dashboard > div:first-child {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -197,7 +222,7 @@
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 align-items: start;
-                gap: 20px;
+                gap: 24px;
             }
             #tab-expenses-content:not(.hidden) > *,
             #tab-income-content:not(.hidden) > * {
@@ -214,7 +239,7 @@
             #tab-income-content:not(.hidden) > #sales-main-view {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 20px;
+                gap: 24px;
             }
             #sales-main-view > div:first-child {
                 grid-column: 1 / -1;
@@ -226,6 +251,28 @@
             #tab-analytics-content,
             #tab-profile-content {
                 max-width: 100%;
+            }
+            .desktop-content .bg-white.rounded-2xl,
+            .desktop-content .bg-white.rounded-3xl {
+                border-radius: 20px;
+            }
+            .desktop-content h2 {
+                letter-spacing: -0.02em;
+            }
+            .desktop-content input,
+            .desktop-content select,
+            .desktop-content .custom-select-button {
+                min-height: 46px;
+            }
+            #digital-business-card {
+                padding: 30px;
+            }
+            #profile-view-mode,
+            #profile-edit-mode {
+                max-width: 920px;
+            }
+            #tab-profile-content > .bg-white {
+                padding: 28px;
             }
         }
     </style>
