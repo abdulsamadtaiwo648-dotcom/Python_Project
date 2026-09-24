@@ -789,6 +789,48 @@
         </div>
     </div>
 
+    <!-- Settle Debt Modal -->
+    <div id="settle-debt-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
+            <div class="flex items-start justify-between gap-4 mb-5">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.2em] font-black text-amber-600">Accounts Receivable</p>
+                    <h3 class="text-xl font-black text-slate-900 mt-1">Settle customer debt</h3>
+                    <p id="settle-debt-description" class="text-xs text-slate-500 mt-1 truncate"></p>
+                </div>
+                <button type="button" id="close-settle-debt-modal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-lg leading-none" aria-label="Close">×</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-5">
+                <div class="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Outstanding</p>
+                    <p id="settle-debt-balance" class="text-lg font-black text-amber-700 mt-1">₦0.00</p>
+                </div>
+                <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-3">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-emerald-600">After payment</p>
+                    <p id="settle-debt-after" class="text-lg font-black text-emerald-700 mt-1">₦0.00</p>
+                </div>
+            </div>
+
+            <form id="settle-debt-form" class="space-y-4">
+                <div>
+                    <label for="settle-debt-amount" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Payment received</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-slate-400">₦</span>
+                        <input id="settle-debt-amount" type="text" inputmode="decimal" autocomplete="off" required
+                               class="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-3 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                               placeholder="0.00">
+                    </div>
+                    <p id="settle-debt-error" class="hidden text-xs text-red-600 font-semibold mt-2"></p>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" id="cancel-settle-debt" class="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">Cancel</button>
+                    <button type="submit" id="confirm-settle-debt" class="flex-1 py-3 rounded-2xl bg-amber-600 text-white text-xs font-black hover:bg-amber-700 shadow-md">Record payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ============================================================ -->
     <!-- PROFILE OTP VERIFICATION MODAL                               -->
     <!-- ============================================================ -->
@@ -2500,7 +2542,20 @@
                 };
             }
 
-            async function settleDebtForIncome(incomeId) {
+            let settleTargetIncomeId = null;
+            let settleTargetBalance = 0;
+
+            function closeSettleDebtModal() {
+                const modal = document.getElementById('settle-debt-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+                settleTargetIncomeId = null;
+                settleTargetBalance = 0;
+            }
+
+            async function openSettleDebtModal(incomeId) {
                 const db = await openIndexedDB();
                 const tx = db.transaction(INCOME_STORE, 'readonly');
                 const req = tx.objectStore(INCOME_STORE).get(Number(incomeId));
@@ -2514,17 +2569,60 @@
                     return;
                 }
 
-                const amountToPay = prompt('How much are they paying now?');
-                if (amountToPay === null) return;
-
-                const amount = Number.parseFloat(String(amountToPay).replace(/,/g, ''));
-                if (!Number.isFinite(amount) || amount <= 0) {
-                    alert('Please enter a valid payment amount greater than zero.');
+                const totalValue = parseFloat(income.total_value ?? income.amount ?? 0);
+                const currentPaid = parseFloat(income.amount_paid ?? income.amount ?? 0);
+                const balance = Math.max(totalValue - currentPaid, 0);
+                if (balance <= 0) {
+                    await renderIncomeListUI();
                     return;
+                }
+
+                settleTargetIncomeId = Number(incomeId);
+                settleTargetBalance = balance;
+                const descriptionEl = document.getElementById('settle-debt-description');
+                const balanceEl = document.getElementById('settle-debt-balance');
+                const afterEl = document.getElementById('settle-debt-after');
+                const amountEl = document.getElementById('settle-debt-amount');
+                const errorEl = document.getElementById('settle-debt-error');
+                const modal = document.getElementById('settle-debt-modal');
+
+                if (descriptionEl) descriptionEl.textContent = `${income.description || 'Sale'} · ${income.customer_name || 'Walk-in Customer'}`;
+                if (balanceEl) balanceEl.textContent = `₦${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                if (afterEl) afterEl.textContent = `₦${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                if (amountEl) {
+                    amountEl.value = '';
+                    amountEl.max = String(balance);
+                    amountEl.focus();
+                }
+                if (errorEl) errorEl.classList.add('hidden');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+            }
+
+            async function settleDebtForIncome(incomeId, paymentAmount) {
+                const db = await openIndexedDB();
+                const tx = db.transaction(INCOME_STORE, 'readonly');
+                const req = tx.objectStore(INCOME_STORE).get(Number(incomeId));
+                const income = await new Promise((resolve, reject) => {
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = (e) => reject(e.target.error);
+                });
+
+                if (!income) {
+                    throw new Error('This sale record could not be found.');
                 }
 
                 const totalValue = parseFloat(income.total_value ?? income.amount ?? 0);
                 const currentPaid = parseFloat(income.amount_paid ?? income.amount ?? 0);
+                const balance = Math.max(totalValue - currentPaid, 0);
+                const amount = Number.parseFloat(String(paymentAmount).replace(/,/g, ''));
+
+                if (!Number.isFinite(amount) || amount <= 0 || amount > balance) {
+                    throw new Error(`Enter an amount between ₦0.01 and ₦${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`);
+                }
+
                 let updatedPaid = Math.min(totalValue, currentPaid + amount);
                 let paymentSynced = false;
 
@@ -2570,7 +2668,8 @@
                 }
 
                 await renderIncomeListUI();
-                alert(`Payment recorded. New balance: ₦${Math.max(totalValue - updatedPaid, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+                closeSettleDebtModal();
+                return Math.max(totalValue - updatedPaid, 0);
             }
 
             function renderIncomeItemHTML(income) {
@@ -2590,7 +2689,7 @@
                     ? `<p class="text-[10px] text-red-600 font-medium">Balance Owed: ₦${formattedBalance}</p>`
                     : '';
 
-                const settleButton = balanceOwed > 0 ? `<button type="button" onclick="settleDebtForIncome(${income.local_id ?? income.id ?? 0})" class="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
+                const settleButton = balanceOwed > 0 ? `<button type="button" data-settle-income-id="${income.local_id ?? income.id ?? ''}" class="btn-settle-debt inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
                     <span>💵</span> Settle Debt
                 </button>` : '';
 
@@ -2643,6 +2742,70 @@
 
                 calculateDashboard();
             }
+
+            const incomeList = document.getElementById('income-list');
+            const settleDebtForm = document.getElementById('settle-debt-form');
+            const settleDebtAmount = document.getElementById('settle-debt-amount');
+            const settleDebtAfter = document.getElementById('settle-debt-after');
+            const settleDebtError = document.getElementById('settle-debt-error');
+
+            incomeList?.addEventListener('click', (event) => {
+                const button = event.target.closest('.btn-settle-debt');
+                if (!button) return;
+                const incomeId = button.dataset.settleIncomeId;
+                if (incomeId) openSettleDebtModal(incomeId);
+            });
+
+            function hideSettleDebtError() {
+                if (settleDebtError) {
+                    settleDebtError.textContent = '';
+                    settleDebtError.classList.add('hidden');
+                }
+            }
+
+            settleDebtAmount?.addEventListener('input', () => {
+                hideSettleDebtError();
+                const amount = Number.parseFloat(String(settleDebtAmount.value).replace(/,/g, ''));
+                const remaining = Number.isFinite(amount)
+                    ? Math.max(settleTargetBalance - amount, 0)
+                    : settleTargetBalance;
+                if (settleDebtAfter) {
+                    settleDebtAfter.textContent = `₦${remaining.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+            });
+
+            document.getElementById('close-settle-debt-modal')?.addEventListener('click', closeSettleDebtModal);
+            document.getElementById('cancel-settle-debt')?.addEventListener('click', closeSettleDebtModal);
+            document.getElementById('settle-debt-modal')?.addEventListener('click', (event) => {
+                if (event.target.id === 'settle-debt-modal') closeSettleDebtModal();
+            });
+
+            settleDebtForm?.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                hideSettleDebtError();
+                if (settleTargetIncomeId === null) return;
+
+                const submitButton = document.getElementById('confirm-settle-debt');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Saving...';
+                }
+
+                try {
+                    const newBalance = await settleDebtForIncome(settleTargetIncomeId, settleDebtAmount?.value || '');
+                    alert(`Payment recorded. New balance: ₦${newBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+                } catch (error) {
+                    if (settleDebtError) {
+                        settleDebtError.textContent = error.message || 'Could not record payment.';
+                        settleDebtError.classList.remove('hidden');
+                    }
+                } finally {
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Record payment';
+                    }
+                }
+            });
 
             const addIncomeForm = document.getElementById('add-income-form');
             if (addIncomeForm) {
