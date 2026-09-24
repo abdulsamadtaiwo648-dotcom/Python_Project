@@ -367,7 +367,6 @@
                     <p class="text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
                     <h2 class="big-total-value text-white" id="total-income-amount">₦0.00</h2>
                     <p class="text-xs text-emerald-100/90 mt-2 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span> Auto-saved locally &amp; synced to cloud</p>
-                    <button type="button" id="btn-show-analytics" class="mt-4 bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold py-1.5 px-4 rounded-full transition border border-white/30 tracking-wider">OVERVIEW</button>
                 </div>
 
             <!-- Quick-Tap Inventory Presets -->
@@ -1178,14 +1177,35 @@
                 if (result.status === 'success' && Array.isArray(result.income)) {
                     const db = await openIndexedDB();
                     const localIncome = await getIncomeLocal();
-                    const existingServerIds = new Set(
-                        localIncome.map(i => i.server_id).filter(Boolean)
+                    const localByServerId = new Map(
+                        localIncome
+                            .filter(item => item.server_id != null)
+                            .map(item => [String(item.server_id), item])
                     );
 
-                    let addedAny = false;
+                    let changedAny = false;
                     for (const item of result.income) {
-                        if (!existingServerIds.has(item.id)) {
-                            const record = {
+                        const record = localByServerId.get(String(item.id));
+                        if (record) {
+                            if (record.synced !== false) {
+                                record.description = item.description || '';
+                                record.total_value = parseFloat(item.total_value ?? item.amount ?? 0);
+                                record.amount_paid = parseFloat(item.amount_paid ?? item.amount ?? 0);
+                                record.customer_name = item.customer_name || 'Walk-in Customer';
+                                record.payment_mode = item.payment_mode || 'Cash';
+                                record.receipt_id = item.receipt_id || ('REC-' + item.id);
+                                record.date = item.date;
+                                record.synced = true;
+                                await new Promise((resolve, reject) => {
+                                    const updateTx = db.transaction(INCOME_STORE, 'readwrite');
+                                    const req = updateTx.objectStore(INCOME_STORE).put(record);
+                                    req.onsuccess = () => resolve();
+                                    req.onerror = (e) => reject(e.target.error);
+                                });
+                                changedAny = true;
+                            }
+                        } else {
+                            const newRecord = {
                                 description: item.description || '',
                                 total_value: parseFloat(item.total_value ?? item.amount ?? 0),
                                 amount_paid: parseFloat(item.amount_paid ?? item.amount ?? 0),
@@ -1198,14 +1218,14 @@
                             };
                             await new Promise((resolve, reject) => {
                                 const tx = db.transaction(INCOME_STORE, 'readwrite');
-                                const req = tx.objectStore(INCOME_STORE).add(record);
+                                const req = tx.objectStore(INCOME_STORE).add(newRecord);
                                 req.onsuccess = () => resolve();
                                 req.onerror = (e) => reject(e.target.error);
                             });
-                            addedAny = true;
+                            changedAny = true;
                         }
                     }
-                    if (addedAny && typeof renderIncomeListUI === 'function') {
+                    if (changedAny && typeof renderIncomeListUI === 'function') {
                         await renderIncomeListUI();
                     }
                 }
@@ -1409,6 +1429,30 @@
 
                     for (const item of unsyncedIncome) {
                         try {
+                            if (item.server_id && Number(item.pending_payment_amount) > 0) {
+                                const paymentResponse = await authenticatedFetch(`/update_payment/${item.server_id}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                                    body: new URLSearchParams({
+                                        payment_amount: String(item.pending_payment_amount)
+                                    }).toString()
+                                });
+                                const paymentData = await paymentResponse.json();
+                                if (!paymentResponse.ok || paymentData.status !== 'success') {
+                                    throw new Error(paymentData.message || 'Payment sync failed');
+                                }
+                                item.amount_paid = Number.parseFloat(paymentData.updated_amount_paid);
+                                item.pending_payment_amount = 0;
+                                item.synced = true;
+                                const paymentTx = db.transaction(INCOME_STORE, 'readwrite');
+                                paymentTx.objectStore(INCOME_STORE).put(item);
+                                continue;
+                            }
+
+                            if (item.server_id) {
+                                continue;
+                            }
+
                             const res = await authenticatedFetch('/api/income', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -2481,7 +2525,8 @@
 
                 const totalValue = parseFloat(income.total_value ?? income.amount ?? 0);
                 const currentPaid = parseFloat(income.amount_paid ?? income.amount ?? 0);
-                const updatedPaid = Math.min(totalValue, currentPaid + amount);
+                let updatedPaid = Math.min(totalValue, currentPaid + amount);
+                let paymentSynced = false;
 
                 if (income.server_id) {
                     try {
@@ -2495,6 +2540,8 @@
                         if (!response.ok || result.status !== 'success') {
                             throw new Error(result.message || 'Payment update failed');
                         }
+                        updatedPaid = Number.parseFloat(result.updated_amount_paid);
+                        paymentSynced = true;
                     } catch (err) {
                         console.error('Could not update payment on server', err);
                         alert('Payment could not be synced online. Try again when you are online.');
@@ -2512,7 +2559,13 @@
 
                 if (existing) {
                     existing.amount_paid = updatedPaid;
-                    existing.synced = false;
+                    if (paymentSynced) {
+                        existing.pending_payment_amount = 0;
+                        existing.synced = true;
+                    } else {
+                        existing.pending_payment_amount = income.server_id ? amount : 0;
+                        existing.synced = false;
+                    }
                     writeStore.put(existing);
                 }
 
@@ -2765,14 +2818,6 @@
             const salesMainView = document.getElementById('sales-main-view');
             const analyticsView = document.getElementById('analytics-view');
             
-            document.getElementById('btn-show-analytics')?.addEventListener('click', () => {
-                if(salesMainView && analyticsView) {
-                    salesMainView.classList.add('hidden');
-                    analyticsView.classList.remove('hidden');
-                    renderAnalytics('daily'); // default
-                }
-            });
-
             // Handle the top header "Overview" button
             document.getElementById('btn-global-overview')?.addEventListener('click', () => {
                 // Switch to the Analytics Tab directly
@@ -2833,12 +2878,11 @@
 
                 // Process Income
                 incomeItems.forEach(item => {
+                    if (item.pending_delete) return;
                     if (!item.date) return;
                     
                     const key = getPeriodKey(item.date);
                     if (!groups[key]) groups[key] = { salesVolume: 0, items: [] };
-                    
-                    if (item.pending_delete) return;
 
                     const tVal = parseFloat(item.total_value ?? item.amount ?? 0); // fallback for old records
                     const amtPaid = parseFloat(item.amount_paid ?? item.amount ?? 0);
