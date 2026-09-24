@@ -114,6 +114,23 @@
             .desktop-sidebar {
                 position: static;
             }
+            #dashboard-navigation {
+                display: flex;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                overflow-x: auto;
+                gap: 4px;
+                padding: 4px;
+            }
+            #dashboard-navigation .tab-btn {
+                flex: 0 0 auto;
+                width: auto;
+                min-width: 76px;
+                white-space: nowrap;
+            }
+            #dashboard-navigation .tab-btn span {
+                white-space: nowrap;
+            }
             #tab-expenses-content:not(.hidden),
             #tab-income-content:not(.hidden) {
                 display: block;
