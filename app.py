@@ -42,9 +42,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
 app.permanent_session_lifetime = timedelta(days=30)
 
+
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20260924.3")
+APP_VERSION = os.environ.get("APP_VERSION", "20260924.6")
 
 # Session / Cookie hardening
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -333,6 +334,40 @@ def init_db():
             except Exception:
                 pass
             db.commit()
+
+    # Repair legacy duplicate storefront slugs so one public URL cannot expose
+    # another user's business profile.
+    try:
+        with get_db() as db:
+            rows = db.execute(
+                "SELECT id, user_id, store_slug FROM business_profiles "
+                "WHERE store_slug IS NOT NULL ORDER BY id ASC"
+            ).fetchall()
+            seen_slugs = set()
+            for row in rows:
+                item = dict(row)
+                slug = str(item.get("store_slug") or "").strip()
+                slug_key = slug.lower()
+                if not slug or slug_key not in seen_slugs:
+                    if slug:
+                        seen_slugs.add(slug_key)
+                    continue
+
+                base_slug = slug
+                owner_suffix = re.sub(r"[^a-z0-9]", "", str(item.get("user_id", "")).lower())[-8:] or "vendor"
+                candidate = f"{base_slug}-{owner_suffix}"
+                counter = 2
+                while candidate.lower() in seen_slugs:
+                    candidate = f"{base_slug}-{owner_suffix}-{counter}"
+                    counter += 1
+                db.execute(
+                    "UPDATE business_profiles SET store_slug = ? WHERE id = ?",
+                    (candidate, item["id"])
+                )
+                seen_slugs.add(candidate.lower())
+            db.commit()
+    except Exception as repair_error:
+        print(f"Storefront slug repair note: {repair_error}", flush=True)
 
 
 init_db()
@@ -680,13 +715,20 @@ def register_api_resend():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if get_current_user_id():
+        return redirect("/dashboard")
+
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "").strip()
 
         if not email or not password:
             flash("Please enter both email and password.", "danger")
-            return render_template("login.html")
+            response = make_response(render_template("login.html"))
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+            return response
 
         try:
             with get_db() as db:
@@ -1260,6 +1302,40 @@ def slugify(text):
     return text.strip('-') or "store"
 
 
+def get_unique_store_slug(company_name, user_id, current_slug=None):
+    """Return a public storefront slug that cannot point at another user."""
+    base_slug = slugify(company_name)
+    if current_slug:
+        with get_db() as db:
+            current_owner = db.execute(
+                "SELECT user_id FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)",
+                (current_slug,)
+            ).fetchone()
+        if current_owner and str(current_owner["user_id"]) == str(user_id):
+            return current_slug
+
+    with get_db() as db:
+        existing = db.execute(
+            "SELECT user_id FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)",
+            (base_slug,)
+        ).fetchone()
+
+    if not existing or str(existing["user_id"]) == str(user_id):
+        return base_slug
+
+    owner_suffix = re.sub(r"[^a-z0-9]", "", str(user_id).lower())[-8:] or "vendor"
+    candidate = f"{base_slug}-{owner_suffix}"
+    with get_db() as db:
+        collision = db.execute(
+            "SELECT user_id FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)",
+            (candidate,)
+        ).fetchone()
+    if not collision or str(collision["user_id"]) == str(user_id):
+        return candidate
+
+    return f"{candidate}-{uuid.uuid4().hex[:6]}"
+
+
 # ==========================================
 # PUBLIC DIGITAL STOREFRONT
 # ==========================================
@@ -1416,8 +1492,6 @@ def api_business_profile():
         # Consume the one-time code only after all required input is valid.
         session.pop('profile_verification_code', None)
 
-        store_slug = slugify(company_name)
-
         logo_url = None
         if "logo" in request.files:
             file = request.files["logo"]
@@ -1434,6 +1508,12 @@ def api_business_profile():
             existing = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
             existing_dict = dict(existing) if existing else {}
             current_logo = logo_url if logo_url is not None else (existing_dict.get("logo_url") or "")
+            current_slug = (
+                existing_dict.get("store_slug") or ""
+                if existing_dict and slugify(existing_dict.get("company_name", "")) == slugify(company_name)
+                else ""
+            )
+            store_slug = get_unique_store_slug(company_name, user_id, current_slug=current_slug)
 
             if existing:
                 db.execute(

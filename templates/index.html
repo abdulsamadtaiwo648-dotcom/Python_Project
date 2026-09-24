@@ -78,13 +78,23 @@
             background: #e2e8f0;
             margin: 10px 0;
         }
+        .custom-select-menu {
+            max-height: 16rem;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .custom-select-option[aria-selected="true"] {
+            background: #eef2ff;
+            color: #3730a3;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 pb-16">
     
     <!-- App Header -->
     <header class="bg-gray-900 text-white p-3.5 sm:p-4 shadow-md sticky top-0 z-40">
-        <div class="max-w-md mx-auto flex justify-between items-center">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
             
             <!-- Left: App Logo, Name & Pocket CFO Tag -->
             <div class="flex items-center gap-2">
@@ -106,7 +116,7 @@
         </div>
     </header>
 
-    <main class="max-w-md mx-auto mt-3.5 sm:mt-4 px-3.5 sm:px-4 w-full">
+    <main class="max-w-6xl mx-auto mt-3.5 sm:mt-4 px-3.5 sm:px-6 lg:px-8 w-full">
 
         <!-- PWA Mobile Install App Banner -->
         <div id="pwa-install-banner" class="hidden mb-4 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-md flex items-center justify-between gap-3">
@@ -144,7 +154,7 @@
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
         <div id="cfo-dashboard" class="transition-all duration-300">
         <!-- Top row: Sales + Expenses side by side -->
-        <div class="grid grid-cols-2 gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
 
             <!-- Total Sales Card -->
             <div class="bg-emerald-50 border border-emerald-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
@@ -166,7 +176,7 @@
         </div>
 
         <!-- Bottom row: Net Profit — full width so it has maximum space -->
-        <div class="mb-5">
+        <div class="mb-5 lg:col-span-2">
             {% set np = net_profit or 0.0 %}
             <div class="{% if np >= 0 %}bg-indigo-50 border-indigo-200{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 min-w-0 overflow-hidden">
                 <div class="flex items-center gap-2 flex-shrink-0 min-w-0" style="max-width:55%">
@@ -198,18 +208,6 @@
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg> Profile
             </button>
         </nav>
-        <div class="flex items-center justify-between -mt-3 mb-5 px-1">
-            <button type="button" id="prev-tab" class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wide text-gray-500 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
-                <svg class="w-3.5 h-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-                <span>Back</span>
-            </button>
-            <span id="tab-position-label" class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Expenses · 1 of 4</span>
-            <button type="button" id="next-tab" class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wide text-gray-500 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
-                <span>Next</span>
-                <svg class="w-3.5 h-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
-        </div>
-
         <!-- ========================================================= -->
         <!-- TAB 1: EXPENSES CONTENT                                    -->
         <!-- ========================================================= -->
@@ -605,9 +603,9 @@
                                     {{ profile.company_name if profile and profile.company_name else 'Your Business' }}
                                     <svg class="w-4 h-4 text-indigo-600 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                                 </h2>
-                                <p class="text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 mt-0.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Verified Vendor Profile
+                                <p id="profile-verification-status" class="text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full {% if profile and profile.company_name %}bg-emerald-500 animate-pulse{% else %}bg-amber-500{% endif %}"></span>
+                                    {% if profile and profile.company_name %}Verified Vendor Profile{% else %}Profile required for receipts{% endif %}
                                 </p>
                             </div>
                         </div>
@@ -862,6 +860,24 @@
                     <button type="submit" id="confirm-settle-debt" class="flex-1 py-3 rounded-2xl bg-amber-600 text-white text-xs font-black hover:bg-amber-700 shadow-md">Record payment</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Receipt Profile Requirement Modal -->
+    <div id="receipt-profile-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h3"/>
+                </svg>
+            </div>
+            <p class="text-[10px] uppercase tracking-[0.2em] font-black text-indigo-600">Receipt setup required</p>
+            <h3 class="text-xl font-black text-slate-900 mt-1">Add your business profile first</h3>
+            <p class="text-sm text-slate-500 mt-2 leading-relaxed">Your receipt needs a business name so customers can verify who it came from. Add your profile, then generate the receipt again.</p>
+            <div class="flex gap-3 mt-6">
+                <button type="button" id="close-receipt-profile-modal" class="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">Not now</button>
+                <button type="button" id="open-receipt-profile" class="flex-1 py-3 rounded-2xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 shadow-md">Set up profile</button>
+            </div>
         </div>
     </div>
 
@@ -2020,6 +2036,73 @@
         // EVENT LISTENERS & MODAL HANDLERS
         // -------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
+            function enhanceSelect(select) {
+                if (!select || select.dataset.customized === 'true') return;
+                select.dataset.customized = 'true';
+
+                const wrapper = select.parentElement;
+                if (!wrapper) return;
+                wrapper.classList.add('custom-select-wrapper', 'relative');
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'custom-select-button w-full rounded-xl border border-gray-200 bg-white py-3 px-3 text-left text-sm font-semibold text-gray-700 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+                button.setAttribute('aria-haspopup', 'listbox');
+                button.setAttribute('aria-expanded', 'false');
+
+                const menu = document.createElement('div');
+                menu.className = 'custom-select-menu hidden absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl border border-gray-200 bg-white p-1 shadow-xl';
+                menu.setAttribute('role', 'listbox');
+
+                const syncButton = () => {
+                    const option = select.options[select.selectedIndex];
+                    button.textContent = option ? option.textContent : 'Select an option';
+                };
+
+                Array.from(select.options).forEach((option) => {
+                    if (option.disabled) return;
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'custom-select-option block w-full rounded-xl px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50';
+                    item.textContent = option.textContent;
+                    item.setAttribute('role', 'option');
+                    item.dataset.value = option.value;
+                    item.addEventListener('click', () => {
+                        select.value = option.value;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                        menu.querySelectorAll('.custom-select-option').forEach((entry) => entry.setAttribute('aria-selected', String(entry.dataset.value === select.value)));
+                        menu.classList.add('hidden');
+                        button.setAttribute('aria-expanded', 'false');
+                        syncButton();
+                    });
+                    menu.appendChild(item);
+                });
+
+                select.classList.add('sr-only');
+                wrapper.insertBefore(button, select);
+                wrapper.appendChild(menu);
+                select.addEventListener('change', syncButton);
+                button.addEventListener('click', () => {
+                    const isOpen = !menu.classList.contains('hidden');
+                    document.querySelectorAll('.custom-select-menu').forEach((entry) => entry.classList.add('hidden'));
+                    document.querySelectorAll('.custom-select-button').forEach((entry) => entry.setAttribute('aria-expanded', 'false'));
+                    menu.classList.toggle('hidden', isOpen);
+                    button.setAttribute('aria-expanded', String(!isOpen));
+                    menu.querySelectorAll('.custom-select-option').forEach((entry) => entry.setAttribute('aria-selected', String(entry.dataset.value === select.value)));
+                });
+                syncButton();
+            }
+
+            ['expense-category', 'filter-category', 'sale-payment-mode', 'edit-category'].forEach((id) => {
+                enhanceSelect(document.getElementById(id));
+            });
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.custom-select-wrapper')) {
+                    document.querySelectorAll('.custom-select-menu').forEach((menu) => menu.classList.add('hidden'));
+                    document.querySelectorAll('.custom-select-button').forEach((button) => button.setAttribute('aria-expanded', 'false'));
+                }
+            });
+
             const addForm = document.getElementById('expense-form');
 
             // Add Expense Form Handler
@@ -2150,34 +2233,7 @@
             const contentIncome = document.getElementById('tab-income-content');
             const contentAnalytics = document.getElementById('tab-analytics-content');
             const contentProfile = document.getElementById('tab-profile-content');
-            const tabOrder = ['expenses', 'income', 'analytics', 'profile'];
-            const tabLabels = {
-                expenses: 'Expenses',
-                income: 'Sales',
-                analytics: 'Analytics',
-                profile: 'Profile'
-            };
-            let activeTab = 'expenses';
-            let touchStartX = null;
-            let touchStartY = null;
-            const previousTabButton = document.getElementById('prev-tab');
-            const nextTabButton = document.getElementById('next-tab');
-            const tabPositionLabel = document.getElementById('tab-position-label');
-            const dashboardMain = document.querySelector('main');
-
-            function updateTabPager() {
-                const index = tabOrder.indexOf(activeTab);
-                if (previousTabButton) previousTabButton.disabled = index <= 0;
-                if (nextTabButton) nextTabButton.disabled = index >= tabOrder.length - 1;
-                if (tabPositionLabel) {
-                    tabPositionLabel.textContent = `${tabLabels[activeTab]} · ${index + 1} of ${tabOrder.length}`;
-                }
-            }
-
             function switchTab(target) {
-                if (!tabOrder.includes(target)) return;
-                activeTab = target;
-                updateTabPager();
                 const cfoDashboard = document.getElementById('cfo-dashboard');
                 if (cfoDashboard) {
                     if (target === 'analytics' || target === 'profile') {
@@ -2231,34 +2287,6 @@
             if (btnIncome) btnIncome.addEventListener('click', () => switchTab('income'));
             if (btnAnalytics) btnAnalytics.addEventListener('click', () => switchTab('analytics'));
             if (btnProfile) btnProfile.addEventListener('click', () => switchTab('profile'));
-            previousTabButton?.addEventListener('click', () => {
-                const index = tabOrder.indexOf(activeTab);
-                if (index > 0) switchTab(tabOrder[index - 1]);
-            });
-            nextTabButton?.addEventListener('click', () => {
-                const index = tabOrder.indexOf(activeTab);
-                if (index < tabOrder.length - 1) switchTab(tabOrder[index + 1]);
-            });
-            dashboardMain?.addEventListener('touchstart', (event) => {
-                const touch = event.changedTouches[0];
-                touchStartX = touch.clientX;
-                touchStartY = touch.clientY;
-            }, { passive: true });
-            dashboardMain?.addEventListener('touchend', (event) => {
-                if (touchStartX === null || touchStartY === null) return;
-                const touch = event.changedTouches[0];
-                const deltaX = touch.clientX - touchStartX;
-                const deltaY = touch.clientY - touchStartY;
-                touchStartX = null;
-                touchStartY = null;
-                if (Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
-                const index = tabOrder.indexOf(activeTab);
-                const targetIndex = deltaX < 0 ? index + 1 : index - 1;
-                if (targetIndex >= 0 && targetIndex < tabOrder.length) {
-                    switchTab(tabOrder[targetIndex]);
-                }
-            }, { passive: true });
-            updateTabPager();
 
             // -------------------------------------------------------------
             // CFO DASHBOARD METRICS CALCULATION
@@ -2356,16 +2384,36 @@
             // -------------------------------------------------------------
             // STEP 3: PDF RECEIPT GENERATOR (jsPDF)
             // -------------------------------------------------------------
+            function showReceiptProfileRequired() {
+                const modal = document.getElementById('receipt-profile-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+            }
+
+            function closeReceiptProfileRequired() {
+                const modal = document.getElementById('receipt-profile-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            }
+
+            async function getReceiptProfile() {
+                const profile = await loadBusinessProfile();
+                if (!profile || !String(profile.company_name || '').trim()) {
+                    showReceiptProfileRequired();
+                    return null;
+                }
+                return profile;
+            }
+
             window.generatePDFReceipt = async function(saleLocalId) {
                 try {
                     const db = await openIndexedDB();
-
-                    const profileRecord = await new Promise((resolve) => {
-                        const tx = db.transaction(PROFILE_STORE, 'readonly');
-                        const req = tx.objectStore(PROFILE_STORE).get('current');
-                        req.onsuccess = () => resolve(req.result || null);
-                        req.onerror = () => resolve(null);
-                    });
+                    const profileRecord = await getReceiptProfile();
+                    if (!profileRecord) return;
 
                     const saleRecord = await new Promise((resolve) => {
                         const tx = db.transaction(INCOME_STORE, 'readonly');
@@ -2384,7 +2432,7 @@
                     if (receiptItems.length === 0) receiptItems = [saleRecord];
 
                     // ── Data ──────────────────────────────────────────────────
-                    const companyName     = (profileRecord?.company_name  || 'SoloBiz Vendor').toUpperCase();
+                    const companyName     = String(profileRecord.company_name).trim().toUpperCase();
                     const bizPhone        = profileRecord?.business_phone  || '';
                     const bizAddress      = profileRecord?.business_address || '';
                     const whatsappNumber  = profileRecord?.whatsapp_number || '';
@@ -3629,6 +3677,12 @@
 
             async function populateProfileFormUI() {
                 const profile = await loadBusinessProfile();
+                const verificationStatus = document.getElementById('profile-verification-status');
+                if (verificationStatus) {
+                    verificationStatus.innerHTML = profile && String(profile.company_name || '').trim()
+                        ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Verified Vendor Profile'
+                        : '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Profile required for receipts';
+                }
 
                 // Form Inputs
                 const compEl = document.getElementById('profile-company-name');
@@ -3820,6 +3874,17 @@
 
             // Pre-fill profile form on load
             populateProfileFormUI();
+
+            const receiptProfileModal = document.getElementById('receipt-profile-modal');
+            document.getElementById('close-receipt-profile-modal')?.addEventListener('click', closeReceiptProfileRequired);
+            receiptProfileModal?.addEventListener('click', (event) => {
+                if (event.target === receiptProfileModal) closeReceiptProfileRequired();
+            });
+            document.getElementById('open-receipt-profile')?.addEventListener('click', () => {
+                closeReceiptProfileRequired();
+                switchTab('profile');
+                toggleProfileMode('edit');
+            });
         });
     </script>
 
