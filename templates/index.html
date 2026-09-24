@@ -88,13 +88,153 @@
             color: #3730a3;
             font-weight: 700;
         }
+        @media (max-width: 1023px) {
+            html,
+            body {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+            .desktop-dashboard-shell {
+                display: block;
+                width: 100%;
+                max-width: 100%;
+            }
+            .desktop-sidebar,
+            .desktop-content,
+            .desktop-greeting,
+            #cfo-dashboard,
+            #network-status-banner,
+            .tab-content {
+                grid-column: auto;
+                grid-row: auto;
+                min-width: 0;
+                width: 100%;
+            }
+            .desktop-sidebar {
+                position: static;
+            }
+            .desktop-content.tab-content {
+                display: block;
+            }
+            #tab-expenses-content:not(.hidden),
+            #tab-income-content:not(.hidden) {
+                display: block;
+            }
+            #tab-income-content:not(.hidden) > #sales-main-view {
+                display: block;
+            }
+        }
+        @media (min-width: 1024px) {
+            body {
+                min-height: 100vh;
+                background: #f1f5f9;
+            }
+            .desktop-dashboard-shell {
+                display: grid;
+                grid-template-columns: 236px minmax(0, 1fr);
+                gap: 28px;
+                align-items: start;
+            }
+            .desktop-sidebar {
+                position: sticky;
+                top: 88px;
+                grid-column: 1;
+                grid-row: 2 / span 5;
+                padding: 12px;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 24px;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            }
+            .desktop-sidebar .tab-btn {
+                width: 100%;
+                justify-content: flex-start;
+                min-width: 0;
+                padding: 13px 14px;
+                margin-bottom: 5px;
+                border-radius: 14px;
+                gap: 10px;
+            }
+            .desktop-sidebar .tab-btn:last-child {
+                margin-bottom: 0;
+            }
+            .desktop-content {
+                grid-column: 2;
+                min-width: 0;
+            }
+            #pwa-install-banner {
+                grid-column: 1 / -1;
+                grid-row: 1;
+            }
+            .desktop-greeting {
+                grid-row: 2;
+                margin-bottom: 18px;
+                padding: 22px 24px;
+                border-radius: 24px;
+            }
+            #cfo-dashboard {
+                grid-row: 4;
+                margin-bottom: 24px;
+            }
+            #cfo-dashboard > div:first-child {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            #cfo-dashboard > div:last-child {
+                margin-bottom: 0;
+            }
+            .desktop-content > .tab-content {
+                min-width: 0;
+            }
+            #network-status-banner {
+                grid-row: 3;
+            }
+            .desktop-content.tab-content {
+                grid-row: 5;
+            }
+            #tab-expenses-content:not(.hidden),
+            #tab-income-content:not(.hidden) {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                align-items: start;
+                gap: 20px;
+            }
+            #tab-expenses-content:not(.hidden) > *,
+            #tab-income-content:not(.hidden) > * {
+                min-width: 0;
+            }
+            #tab-expenses-content:not(.hidden) > #search-report-results,
+            #tab-expenses-content:not(.hidden) > #transaction-list {
+                grid-column: 1 / -1;
+            }
+            #tab-income-content:not(.hidden) > #sales-main-view,
+            #tab-income-content:not(.hidden) > #income-list {
+                grid-column: 1 / -1;
+            }
+            #tab-income-content:not(.hidden) > #sales-main-view {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 20px;
+            }
+            #sales-main-view > div:first-child {
+                grid-column: 1 / -1;
+            }
+            #sales-main-view > div:nth-child(2),
+            #sales-main-view > div:nth-child(3) {
+                min-width: 0;
+            }
+            #tab-analytics-content,
+            #tab-profile-content {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 pb-16">
     
     <!-- App Header -->
     <header class="bg-gray-900 text-white p-3.5 sm:p-4 shadow-md sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
             
             <!-- Left: App Logo, Name & Pocket CFO Tag -->
             <div class="flex items-center gap-2">
@@ -116,7 +256,7 @@
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto mt-3.5 sm:mt-4 px-3.5 sm:px-6 lg:px-8 w-full">
+    <main class="desktop-dashboard-shell max-w-7xl mx-auto mt-3.5 sm:mt-4 px-3.5 sm:px-6 lg:px-8 w-full">
 
         <!-- PWA Mobile Install App Banner -->
         <div id="pwa-install-banner" class="hidden mb-4 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-md flex items-center justify-between gap-3">
@@ -135,7 +275,7 @@
         </div>
 
         <!-- Mobile User Greeting Banner at the Top of Main Body -->
-        <div class="mb-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+        <div id="desktop-greeting" class="desktop-greeting mb-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between desktop-content">
             <div>
                 <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-1.5">
                     Hi, <span id="user-greeting-name">{{ username }}</span> <svg class="w-4 h-4 text-amber-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -146,13 +286,13 @@
                 Overview
             </button>
         </div>
-        <div id="network-status-banner" class="hidden mb-4 rounded-2xl border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+        <div id="network-status-banner" class="desktop-content hidden mb-4 rounded-2xl border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
             <span id="network-status-text"></span>
             <button type="button" id="retry-sync-button" class="hidden rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide">Retry sync</button>
         </div>
 
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
-        <div id="cfo-dashboard" class="transition-all duration-300">
+        <div id="cfo-dashboard" class="desktop-content transition-all duration-300">
         <!-- Top row: Sales + Expenses side by side -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
 
@@ -194,7 +334,7 @@
         </div> <!-- End cfo-dashboard -->
 
         <!-- Mobile-First Tab Navigation Bar -->
-        <nav class="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100 mb-6 gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <nav id="dashboard-navigation" class="desktop-sidebar flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100 mb-6 gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <button id="btn-tab-expenses" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> <span class="hidden sm:inline">Expenses</span><span class="inline sm:hidden">Exp</span>
             </button>
@@ -211,7 +351,7 @@
         <!-- ========================================================= -->
         <!-- TAB 1: EXPENSES CONTENT                                    -->
         <!-- ========================================================= -->
-        <section id="tab-expenses-content" class="tab-content space-y-6">
+        <section id="tab-expenses-content" class="desktop-content tab-content space-y-6">
             
             <!-- Total Spent Card — always shows the global grand total, never overwritten by search -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center overflow-hidden">
@@ -383,7 +523,7 @@
         <!-- ========================================================= -->
         <!-- TAB 2: SALES / INCOME CONTENT                             -->
         <!-- ========================================================= -->
-        <section id="tab-income-content" class="tab-content hidden space-y-6">
+        <section id="tab-income-content" class="desktop-content tab-content hidden space-y-6">
             
             <div id="sales-main-view" class="space-y-6">
                 <!-- Sales Summary Card -->
@@ -495,7 +635,7 @@
         <!-- ========================================================= -->
         <!-- TAB 4: ANALYTICS CONTENT                                  -->
         <!-- ========================================================= -->
-        <section id="tab-analytics-content" class="tab-content hidden space-y-6">
+        <section id="tab-analytics-content" class="desktop-content tab-content hidden space-y-6">
             <!-- Analytics View -->
             <div id="analytics-view" class="space-y-6">
                 <div class="flex items-center gap-3">
@@ -560,7 +700,7 @@
         <!-- ========================================================= -->
         <!-- TAB 3: BUSINESS PROFILE CONTENT                           -->
         <!-- ========================================================= -->
-        <section id="tab-profile-content" class="tab-content hidden space-y-6">
+        <section id="tab-profile-content" class="desktop-content tab-content hidden space-y-6">
             
             <!-- Brand Setup Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
