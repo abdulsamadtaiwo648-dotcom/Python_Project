@@ -14,7 +14,18 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.all(PRECACHE_ASSETS.map(async (asset) => {
+        try {
+          const response = await fetch(asset, { cache: 'no-store' });
+          if (response.ok) {
+            await cache.put(asset, response);
+          }
+        } catch (error) {
+          console.warn('[PWA] Could not precache', asset, error);
+        }
+      }));
+    })
   );
 });
 

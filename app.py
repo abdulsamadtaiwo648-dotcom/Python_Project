@@ -41,7 +41,9 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
 app.permanent_session_lifetime = timedelta(days=30)
-APP_VERSION = str(int(time.time()))
+# Bump this when the offline shell or service worker changes. The value is
+# injected into /sw.js so browsers create a fresh cache during deployment.
+APP_VERSION = os.environ.get("APP_VERSION", "20260924.2")
 
 # Session / Cookie hardening
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"

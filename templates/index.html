@@ -136,6 +136,10 @@
                 Overview
             </button>
         </div>
+        <div id="network-status-banner" class="hidden mb-4 rounded-2xl border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+            <span id="network-status-text"></span>
+            <button type="button" id="retry-sync-button" class="hidden rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide">Retry sync</button>
+        </div>
 
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
         <div id="cfo-dashboard" class="transition-all duration-300">
@@ -221,7 +225,32 @@
                             class="currency-input w-full border border-gray-200 rounded-lg py-3 pr-3 pl-8 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     </div>
 
-                    <select name="category" required class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
+now                     <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-[10px] uppercase font-black tracking-wider text-gray-500">Expense category</label>
+                            <span id="expense-category-label" class="text-[10px] font-bold text-indigo-600">Choose one</span>
+                        </div>
+                        <div id="expense-category-picker" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <button type="button" data-category-value="Inventory & Materials" class="category-choice group rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                                <span class="block text-lg mb-1">📦</span><span class="block text-[11px] font-black text-gray-700">Inventory</span><span class="block text-[9px] text-gray-400">Materials & stock</span>
+                            </button>
+                            <button type="button" data-category-value="Delivery & Logistics" class="category-choice group rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                                <span class="block text-lg mb-1">🚚</span><span class="block text-[11px] font-black text-gray-700">Delivery</span><span class="block text-[9px] text-gray-400">Logistics & transport</span>
+                            </button>
+                            <button type="button" data-category-value="Fuel & Electricity" class="category-choice group rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                                <span class="block text-lg mb-1">⚡</span><span class="block text-[11px] font-black text-gray-700">Utilities</span><span class="block text-[9px] text-gray-400">Fuel & electricity</span>
+                            </button>
+                            <button type="button" data-category-value="Data & Airtime" class="category-choice group rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                                <span class="block text-lg mb-1">📱</span><span class="block text-[11px] font-black text-gray-700">Connectivity</span><span class="block text-[9px] text-gray-400">Data & airtime</span>
+                            </button>
+                            <button type="button" data-category-value="Owner's Draw (Personal)" class="category-choice group rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                                <span class="block text-lg mb-1">👤</span><span class="block text-[11px] font-black text-gray-700">Owner draw</span><span class="block text-[9px] text-gray-400">Personal use</span>
+                            </button>
+                            <button type="button" data-category-value="Others" class="category-choice group rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                                <span class="block text-lg mb-1">•••</span><span class="block text-[11px] font-black text-gray-700">Other</span><span class="block text-[9px] text-gray-400">Miscellaneous</span>
+                            </button>
+                        </div>
+                        <select name="category" required class="sr-only" aria-label="Expense category">
                         <option value="" disabled selected>Select a Category...</option>
                         <option value="Inventory & Materials">Inventory & Materials</option>
                         <option value="Delivery & Logistics">Delivery & Logistics</option>
@@ -229,7 +258,8 @@
                         <option value="Others">Others</option>
                         <option value="Data & Airtime">Data & Airtime</option>
                         <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
-                    </select>
+                        </select>
+                    </div>
 
                     <input type="text" name="description" placeholder="What did you pay for?" required 
                         class="w-full border border-gray-200 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
@@ -249,7 +279,9 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Category</label>
-                        <select id="filter-category" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <div class="relative">
+                            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500">⌕</span>
+                            <select id="filter-category" class="w-full appearance-none border border-gray-200 rounded-2xl p-3 pl-8 pr-9 text-sm font-semibold text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
                             <option value="">All Categories</option>
                             <option value="Inventory &amp; Materials">Inventory &amp; Materials</option>
                             <option value="Delivery &amp; Logistics">Delivery &amp; Logistics</option>
@@ -257,7 +289,9 @@
                             <option value="Data &amp; Airtime">Data &amp; Airtime</option>
                             <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                             <option value="Others">Others</option>
-                        </select>
+                            </select>
+                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">⌄</span>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Exact Amount (₦)</label>
@@ -437,8 +471,22 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Payment Method</label>
-                        <select id="sale-payment-mode" class="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-[10px] uppercase font-black text-gray-500 tracking-wider">Payment method</label>
+                            <span class="text-[10px] text-gray-400">How did you receive it?</span>
+                        </div>
+                        <div id="payment-mode-picker" class="grid grid-cols-3 gap-2">
+                            <button type="button" data-payment-value="Cash" class="payment-choice rounded-2xl border border-emerald-300 bg-emerald-50 px-2 py-3 text-center transition hover:bg-emerald-100">
+                                <span class="block text-lg">💵</span><span class="block text-[10px] font-black text-emerald-700 mt-1">Cash</span>
+                            </button>
+                            <button type="button" data-payment-value="Transfer" class="payment-choice rounded-2xl border border-gray-200 bg-gray-50 px-2 py-3 text-center transition hover:border-emerald-300 hover:bg-emerald-50">
+                                <span class="block text-lg">🏦</span><span class="block text-[10px] font-black text-gray-700 mt-1">Transfer</span>
+                            </button>
+                            <button type="button" data-payment-value="POS" class="payment-choice rounded-2xl border border-gray-200 bg-gray-50 px-2 py-3 text-center transition hover:border-emerald-300 hover:bg-emerald-50">
+                                <span class="block text-lg">💳</span><span class="block text-[10px] font-black text-gray-700 mt-1">POS</span>
+                            </button>
+                        </div>
+                        <select id="sale-payment-mode" class="sr-only" aria-label="Payment method">
                             <option value="Cash">💵 Cash</option>
                             <option value="Transfer">🏦 Transfer</option>
                             <option value="POS">💳 POS</option>
@@ -821,6 +869,10 @@
                                class="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-3 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
                                placeholder="0.00">
                     </div>
+                    <div class="flex gap-2 mt-2">
+                        <button type="button" data-settle-quick="half" class="settle-quick-btn flex-1 rounded-xl border border-slate-200 bg-slate-50 py-2 text-[10px] font-black text-slate-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700">Pay half</button>
+                        <button type="button" data-settle-quick="full" class="settle-quick-btn flex-1 rounded-xl border border-amber-200 bg-amber-50 py-2 text-[10px] font-black text-amber-700 hover:bg-amber-100">Pay full balance</button>
+                    </div>
                     <p id="settle-debt-error" class="hidden text-xs text-red-600 font-semibold mt-2"></p>
                 </div>
                 <div class="flex gap-3">
@@ -883,6 +935,56 @@
 
         async function authenticatedFetch(url, options = {}) {
             return fetch(url, options);
+        }
+
+        let syncInProgress = false;
+        let syncQueued = false;
+
+        function updateNetworkStatus(online, message) {
+            const banner = document.getElementById('network-status-banner');
+            const text = document.getElementById('network-status-text');
+            const retry = document.getElementById('retry-sync-button');
+            if (!banner || !text) return;
+            banner.classList.remove('hidden', 'bg-amber-50', 'border-amber-200', 'text-amber-800', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+            if (online) {
+                banner.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+                text.textContent = message || 'Back online. Syncing your saved changes...';
+                retry?.classList.add('hidden');
+            } else {
+                banner.classList.add('bg-amber-50', 'border-amber-200', 'text-amber-800');
+                text.textContent = message || 'You are offline. Changes will be saved on this device and synced automatically.';
+                retry?.classList.remove('hidden', 'bg-emerald-600', 'text-white');
+                retry?.classList.add('bg-amber-600', 'text-white');
+            }
+        }
+
+        async function runPendingSync() {
+            if (syncInProgress) {
+                syncQueued = true;
+                return;
+            }
+            if (!navigator.onLine) {
+                updateNetworkStatus(false);
+                return;
+            }
+            syncInProgress = true;
+            updateNetworkStatus(true);
+            try {
+                await syncAllPendingData();
+                await syncExpensesFromServer();
+                await syncIncomeFromServer();
+                updateNetworkStatus(true, 'All saved changes are synced.');
+                window.setTimeout(() => document.getElementById('network-status-banner')?.classList.add('hidden'), 2500);
+            } catch (error) {
+                console.warn('Pending sync failed:', error);
+                updateNetworkStatus(false, 'Some changes are still waiting to sync. We will retry automatically.');
+            } finally {
+                syncInProgress = false;
+                if (syncQueued) {
+                    syncQueued = false;
+                    runPendingSync();
+                }
+            }
         }
 
         function calculateTotal(expensesArray) {
@@ -1261,7 +1363,12 @@
                             await new Promise((resolve, reject) => {
                                 const tx = db.transaction(INCOME_STORE, 'readwrite');
                                 const req = tx.objectStore(INCOME_STORE).add(newRecord);
-                                req.onsuccess = () => resolve();
+                                req.onsuccess = () => {
+                                    newRecord.local_id = req.result;
+                                    const updateReq = tx.objectStore(INCOME_STORE).put(newRecord);
+                                    updateReq.onsuccess = () => resolve();
+                                    updateReq.onerror = (e) => reject(e.target.error);
+                                };
                                 req.onerror = (e) => reject(e.target.error);
                             });
                             changedAny = true;
@@ -1408,7 +1515,9 @@
             try {
                 const expTx = db.transaction(STORE_NAME, 'readonly');
                 const getExpensesReq = expTx.objectStore(STORE_NAME).getAll();
-                getExpensesReq.onsuccess = async () => {
+                await new Promise((resolve, reject) => {
+                    getExpensesReq.onsuccess = async () => {
+                        try {
                     const allExpenses = getExpensesReq.result || [];
                     const unsyncedExpenses = allExpenses.filter(item => !item.synced || item.pending_delete || item.pending_edit);
 
@@ -1456,7 +1565,13 @@
                             } catch (e) {}
                         }
                     }
-                };
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    getExpensesReq.onerror = (event) => reject(event.target.error);
+                });
             } catch (err) {
                 console.warn('Error syncing pending expenses:', err);
             }
@@ -1465,7 +1580,9 @@
             try {
                 const incTx = db.transaction(INCOME_STORE, 'readonly');
                 const getIncomeReq = incTx.objectStore(INCOME_STORE).getAll();
-                getIncomeReq.onsuccess = async () => {
+                await new Promise((resolve, reject) => {
+                    getIncomeReq.onsuccess = async () => {
+                        try {
                     const allIncome = getIncomeReq.result || [];
                     const unsyncedIncome = allIncome.filter(item => !item.synced);
 
@@ -1519,7 +1636,13 @@
                             console.warn(`Failed background sync for income #${item.local_id}:`, e);
                         }
                     }
-                };
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    getIncomeReq.onerror = (event) => reject(event.target.error);
+                });
             } catch (err) {
                 console.warn('Error syncing pending income:', err);
             }
@@ -1562,8 +1685,9 @@
             }
         }
 
-        // Attach online reconnection listener
-        window.addEventListener('online', syncAllPendingData);
+        // Attach online/offline listeners so queued changes sync after reconnection.
+        window.addEventListener('online', runPendingSync);
+        window.addEventListener('offline', () => updateNetworkStatus(false));
 
         async function saveExpenseToIndexedDB(expenseData) {
             const db = await openDB();
@@ -1654,7 +1778,7 @@
                 req.onerror = (e) => reject(e.target.error);
             });
 
-            if (localMatches.length) {
+            if (localMatches.length && (!isOnline || !server_id)) {
                 for (const record of localMatches) {
                     await new Promise((resolve, reject) => {
                         const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -1662,6 +1786,10 @@
                         req.onsuccess = () => resolve();
                         req.onerror = (e) => reject(e.target.error);
                     });
+                }
+            } else if (localMatches.length && isOnline && server_id) {
+                for (const record of localMatches) {
+                    await updateExpenseInIndexedDB(record.local_id, { pending_delete: true, synced: false });
                 }
             }
 
@@ -1676,14 +1804,22 @@
                     const result = await response.json();
                     if (response.ok && result.status === 'success') {
                         console.log(`Server expense #${server_id} deleted successfully.`);
+                        for (const record of localMatches) {
+                            await new Promise((resolve, reject) => {
+                                const tx = db.transaction(STORE_NAME, 'readwrite');
+                                const req = tx.objectStore(STORE_NAME).delete(record.local_id);
+                                req.onsuccess = () => resolve();
+                                req.onerror = (e) => reject(e.target.error);
+                            });
+                        }
                         await renderExpenseListFromIndexedDB();
                     } else {
                         console.warn(`Server deletion failed for #${server_id}:`, result.message);
                     }
                 } catch (err) {
                     console.warn(`Network error deleting #${server_id}. Flagged for sync.`, err);
-                    if (local_id) {
-                        await updateExpenseInIndexedDB(local_id, { pending_delete: true, synced: false });
+                    for (const record of localMatches) {
+                        await updateExpenseInIndexedDB(record.local_id, { pending_delete: true, synced: false });
                     }
                 }
             }
@@ -1904,6 +2040,40 @@
         document.addEventListener('DOMContentLoaded', () => {
             const addForm = document.getElementById('expense-form');
 
+            const categoryInput = addForm?.querySelector('[name="category"]');
+            const categoryLabel = document.getElementById('expense-category-label');
+            document.querySelectorAll('.category-choice').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (!categoryInput) return;
+                    categoryInput.value = button.dataset.categoryValue || '';
+                    categoryLabel.textContent = categoryInput.value;
+                    document.querySelectorAll('.category-choice').forEach(choice => {
+                        const selected = choice === button;
+                        choice.classList.toggle('border-indigo-500', selected);
+                        choice.classList.toggle('bg-indigo-50', selected);
+                        choice.classList.toggle('ring-2', selected);
+                        choice.classList.toggle('ring-indigo-100', selected);
+                        choice.classList.toggle('border-gray-200', !selected);
+                    });
+                });
+            });
+
+            const paymentModeInput = document.getElementById('sale-payment-mode');
+            document.querySelectorAll('.payment-choice').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (!paymentModeInput) return;
+                    paymentModeInput.value = button.dataset.paymentValue || 'Cash';
+                    document.querySelectorAll('.payment-choice').forEach(choice => {
+                        const selected = choice === button;
+                        choice.classList.toggle('border-emerald-500', selected);
+                        choice.classList.toggle('bg-emerald-50', selected);
+                        choice.classList.toggle('ring-2', selected);
+                        choice.classList.toggle('ring-emerald-100', selected);
+                        choice.classList.toggle('border-gray-200', !selected);
+                    });
+                });
+            });
+
             // Add Expense Form Handler
             if (addForm) {
                 addForm.addEventListener('submit', async (event) => {
@@ -1934,6 +2104,11 @@
 
                         await renderExpenseListFromIndexedDB();
                         addForm.reset();
+                        if (categoryLabel) categoryLabel.textContent = 'Choose one';
+                        document.querySelectorAll('.category-choice').forEach(choice => {
+                            choice.classList.remove('border-indigo-500', 'bg-indigo-50', 'ring-2', 'ring-indigo-100');
+                            choice.classList.add('border-gray-200');
+                        });
 
                         if (navigator.onLine) {
                             syncExpenseToServer(localExpense);
@@ -2555,14 +2730,31 @@
                 settleTargetBalance = 0;
             }
 
-            async function openSettleDebtModal(incomeId) {
+            async function findLocalIncomeRecord(incomeId) {
                 const db = await openIndexedDB();
-                const tx = db.transaction(INCOME_STORE, 'readonly');
-                const req = tx.objectStore(INCOME_STORE).get(Number(incomeId));
-                const income = await new Promise((resolve, reject) => {
-                    req.onsuccess = () => resolve(req.result || null);
-                    req.onerror = (e) => reject(e.target.error);
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(INCOME_STORE, 'readonly');
+                    const store = tx.objectStore(INCOME_STORE);
+                    const request = store.get(Number(incomeId));
+                    request.onsuccess = () => {
+                        if (request.result) {
+                            resolve(request.result);
+                            return;
+                        }
+                        const allRequest = store.getAll();
+                        allRequest.onsuccess = () => resolve((allRequest.result || []).find(item =>
+                            String(item.local_id) === String(incomeId) ||
+                            String(item.server_id) === String(incomeId) ||
+                            String(item.id) === String(incomeId)
+                        ) || null);
+                        allRequest.onerror = (event) => reject(event.target.error);
+                    };
+                    request.onerror = (event) => reject(event.target.error);
                 });
+            }
+
+            async function openSettleDebtModal(incomeId) {
+                const income = await findLocalIncomeRecord(incomeId);
 
                 if (!income) {
                     alert('This sale record could not be found.');
@@ -2577,7 +2769,7 @@
                     return;
                 }
 
-                settleTargetIncomeId = Number(incomeId);
+                settleTargetIncomeId = income.local_id ?? Number(incomeId);
                 settleTargetBalance = balance;
                 const descriptionEl = document.getElementById('settle-debt-description');
                 const balanceEl = document.getElementById('settle-debt-balance');
@@ -2603,12 +2795,7 @@
 
             async function settleDebtForIncome(incomeId, paymentAmount) {
                 const db = await openIndexedDB();
-                const tx = db.transaction(INCOME_STORE, 'readonly');
-                const req = tx.objectStore(INCOME_STORE).get(Number(incomeId));
-                const income = await new Promise((resolve, reject) => {
-                    req.onsuccess = () => resolve(req.result || null);
-                    req.onerror = (e) => reject(e.target.error);
-                });
+                const income = await findLocalIncomeRecord(incomeId);
 
                 if (!income) {
                     throw new Error('This sale record could not be found.');
@@ -2642,18 +2829,14 @@
                         paymentSynced = true;
                     } catch (err) {
                         console.error('Could not update payment on server', err);
-                        alert('Payment could not be synced online. Try again when you are online.');
-                        return;
+                        if (navigator.onLine) {
+                            throw err;
+                        }
+                        paymentSynced = false;
                     }
                 }
 
-                const writeTx = db.transaction(INCOME_STORE, 'readwrite');
-                const writeStore = writeTx.objectStore(INCOME_STORE);
-                const existing = await new Promise((resolve, reject) => {
-                    const getReq = writeStore.get(Number(incomeId));
-                    getReq.onsuccess = () => resolve(getReq.result || null);
-                    getReq.onerror = (e) => reject(e.target.error);
-                });
+                const existing = await findLocalIncomeRecord(incomeId);
 
                 if (existing) {
                     existing.amount_paid = updatedPaid;
@@ -2664,7 +2847,13 @@
                         existing.pending_payment_amount = income.server_id ? amount : 0;
                         existing.synced = false;
                     }
-                    writeStore.put(existing);
+                    const writeTx = db.transaction(INCOME_STORE, 'readwrite');
+                    const writeStore = writeTx.objectStore(INCOME_STORE);
+                    await new Promise((resolve, reject) => {
+                        const putReq = writeStore.put(existing);
+                        putReq.onsuccess = () => resolve();
+                        putReq.onerror = (e) => reject(e.target.error);
+                    });
                 }
 
                 await renderIncomeListUI();
@@ -2689,7 +2878,7 @@
                     ? `<p class="text-[10px] text-red-600 font-medium">Balance Owed: ₦${formattedBalance}</p>`
                     : '';
 
-                const settleButton = balanceOwed > 0 ? `<button type="button" data-settle-income-id="${income.local_id ?? income.id ?? ''}" class="btn-settle-debt inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
+                const settleButton = balanceOwed > 0 ? `<button type="button" data-settle-income-id="${income.local_id ?? income.server_id ?? income.id ?? ''}" class="btn-settle-debt inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
                     <span>💵</span> Settle Debt
                 </button>` : '';
 
@@ -2772,6 +2961,17 @@
                 if (settleDebtAfter) {
                     settleDebtAfter.textContent = `₦${remaining.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 }
+            });
+
+            document.querySelectorAll('.settle-quick-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (!settleDebtAmount || settleTargetBalance <= 0) return;
+                    const amount = button.dataset.settleQuick === 'half'
+                        ? settleTargetBalance / 2
+                        : settleTargetBalance;
+                    settleDebtAmount.value = amount.toFixed(2);
+                    settleDebtAmount.dispatchEvent(new Event('input', { bubbles: true }));
+                });
             });
 
             document.getElementById('close-settle-debt-modal')?.addEventListener('click', closeSettleDebtModal);
@@ -3164,10 +3364,14 @@
             calculateDashboard();
             syncAndFixData();
             if (navigator.onLine) {
-                syncAllPendingData();
+                runPendingSync();
+            } else {
+                updateNetworkStatus(false);
             }
             syncIncomeFromServer();
             syncExpensesFromServer();
+
+            document.getElementById('retry-sync-button')?.addEventListener('click', runPendingSync);
 
             // -------------------------------------------------------------
             // TRANSACTION FILTER — DOM-based, category & amount only
@@ -3662,9 +3866,21 @@
     (function() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then((reg) => console.log('[PWA] Service Worker Active with scope:', reg.scope))
+                navigator.serviceWorker.register('/sw.js', {
+                    scope: '/',
+                    updateViaCache: 'none'
+                })
+                    .then(async (reg) => {
+                        await reg.update();
+                        console.log('[PWA] Service Worker Active with scope:', reg.scope);
+                    })
                     .catch(err => console.error('[PWA] Service Worker Registration Failed:', err));
+            });
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!window.__solobizServiceWorkerReloaded) {
+                    window.__solobizServiceWorkerReloaded = true;
+                    window.location.reload();
+                }
             });
         }
 
