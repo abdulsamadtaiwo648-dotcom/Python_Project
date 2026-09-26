@@ -128,6 +128,7 @@
 
   <script>
     // ─── Modern Password Reset & Resend OTP Modal Controller ──────────────────
+<<<<<<< HEAD
     const CSRF_TOKEN = {{ csrf_token | tojson }};
 
     function csrfFetch(url, options = {}) {
@@ -135,6 +136,8 @@
       return fetch(url, options);
     }
 
+=======
+>>>>>>> parent of c31c267 (feat: update PWA caching and enhance UI/SEO)
     const resetModal = document.getElementById("reset-modal");
     const resetAlert = document.getElementById("reset-alert");
     const step1Form  = document.getElementById("reset-step1-form");
