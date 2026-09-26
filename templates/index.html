@@ -1112,6 +1112,9 @@
         const INCOME_STORE = 'income';
         const PROFILE_STORE = 'business_profile';
 
+        // CSRF token injected server-side — sent with every mutating fetch
+        const CSRF_TOKEN = {{ csrf_token | tojson }};
+
         // -------------------------------------------------------------
         // STEP 1 & 3: OFFLINE BOUNCER & FAIL-SAFE TICKET
         // -------------------------------------------------------------
@@ -1133,6 +1136,16 @@
         }
 
         async function authenticatedFetch(url, options = {}) {
+            const method = (options.method || 'GET').toUpperCase();
+            if (method !== 'GET' && method !== 'HEAD') {
+                options.headers = options.headers || {};
+                // Merge CSRF into existing headers without overwriting Content-Type
+                if (options.headers instanceof Headers) {
+                    options.headers.set('X-CSRFToken', CSRF_TOKEN);
+                } else {
+                    options.headers['X-CSRFToken'] = CSRF_TOKEN;
+                }
+            }
             return fetch(url, options);
         }
 

@@ -128,6 +128,13 @@
 
   <script>
     // ─── Modern Password Reset & Resend OTP Modal Controller ──────────────────
+    const CSRF_TOKEN = {{ csrf_token | tojson }};
+
+    function csrfFetch(url, options = {}) {
+      options.headers = Object.assign({ 'X-CSRFToken': CSRF_TOKEN }, options.headers || {});
+      return fetch(url, options);
+    }
+
     const resetModal = document.getElementById("reset-modal");
     const resetAlert = document.getElementById("reset-alert");
     const step1Form  = document.getElementById("reset-step1-form");
@@ -174,7 +181,7 @@
       resendBtn.innerText = "Sending…";
 
       try {
-        const res = await fetch("/api/forgot-password/resend", {
+        const res = await csrfFetch("/api/forgot-password/resend", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email })

@@ -1,20 +1,24 @@
+import hmac
+import html
 import logging
 import math
 import os
-import random
 import re
+import secrets
 import smtplib
 import sqlite3
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from flask import (Flask, Response, jsonify, make_response, redirect,
                    render_template, request, send_from_directory, session,
                    flash)
+from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 try:
     import psycopg2
@@ -39,18 +43,37 @@ except ImportError:
 # FLASK APP CONFIG
 # ==========================================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "solobiz_production_secret_key_12345_super_safe")
-app.permanent_session_lifetime = timedelta(days=30)
 
+_secret_key = os.environ.get("SECRET_KEY")
+_is_hosted = bool(os.environ.get("DATABASE_URL") or os.environ.get("RENDER"))
+if not _secret_key:
+    if _is_hosted:
+        raise RuntimeError("SECRET_KEY environment variable is required in production.")
+    _secret_key = secrets.token_hex(32)
+    logging.warning("SECRET_KEY is not set; using an ephemeral key. Sessions reset on restart.")
+app.secret_key = _secret_key
+app.permanent_session_lifetime = timedelta(days=30)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20260924.7")
+APP_VERSION = os.environ.get("APP_VERSION", "20260925.1")
 
 # Session / Cookie hardening
+_secure_cookie = os.environ.get("SESSION_COOKIE_SECURE")
+if _secure_cookie is None:
+    app.config["SESSION_COOKIE_SECURE"] = _is_hosted
+else:
+    app.config["SESSION_COOKIE_SECURE"] = _secure_cookie.strip().lower() in ("1", "true", "yes")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SECURE"] = os.environ.get("DATABASE_URL") is not None  # True on Render (HTTPS)
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
+
+PASSWORD_PATTERN = re.compile(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$")
+BRAND_COLOR_PATTERN = re.compile(r"^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
+OTP_TTL_MINUTES = 15
+OTP_RESEND_SECONDS = 30
+OTP_MAX_ATTEMPTS = 5
+ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
 # ==========================================
@@ -147,11 +170,200 @@ def get_db():
         return DBWrapper(conn, is_postgres=False)
 
 
+def utcnow():
+    return datetime.now(timezone.utc)
+
+
+def is_valid_password(password):
+    return bool(PASSWORD_PATTERN.match(password or ""))
+
+
+def is_unique_violation(exc):
+    if isinstance(exc, sqlite3.IntegrityError):
+        return True
+    message = str(exc).lower()
+    return "unique" in message or "duplicate" in message or "already exists" in message
+
+
+def ensure_csrf_token():
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["csrf_token"] = token
+    return token
+
+
+def csrf_token_valid():
+    expected = session.get("csrf_token") or ""
+    sent = (
+        request.headers.get("X-CSRFToken")
+        or request.form.get("csrf_token")
+        or ""
+    )
+    if request.is_json:
+        try:
+            payload = request.get_json(silent=True) or {}
+            if isinstance(payload, dict) and payload.get("csrf_token"):
+                sent = payload.get("csrf_token")
+        except Exception:
+            pass
+    return bool(expected) and hmac.compare_digest(str(sent), str(expected))
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": ensure_csrf_token()}
+
+
+@app.before_request
+def enforce_csrf():
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        ensure_csrf_token()
+        return None
+    if not csrf_token_valid():
+        if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
+            return jsonify({"status": "error", "message": "Invalid request token. Refresh the page and try again."}), 400
+        flash("Your session expired. Please try again.", "danger")
+        return redirect(request.path if request.path in ("/login", "/register") else "/login")
+    return None
+
+
 def get_current_user_id():
     """Retrieve string-based user_id from active Flask session cookie."""
     if "user_id" in session and session["user_id"]:
         return str(session["user_id"])
     return None
+
+
+def get_user_profile(user_id):
+    try:
+        with get_db() as db:
+            row = db.execute(
+                "SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)
+            ).fetchone()
+            return dict(row) if row else None
+    except Exception as exc:
+        logging.error("Profile lookup failed: %s", exc, exc_info=True)
+        return None
+
+
+def sanitize_brand_color(value):
+    color = str(value or "").strip()
+    if BRAND_COLOR_PATTERN.match(color):
+        return color.upper() if len(color) == 7 else color
+    return "#4F46E5"
+
+
+def sanitize_logo_url(value):
+    url = str(value or "").strip()
+    if not url:
+        return ""
+    if url.startswith("/static/uploads/logos/") and ".." not in url:
+        return url
+    if url.startswith("https://") and " " not in url:
+        return url
+    return ""
+
+
+def save_uploaded_logo(file_storage, user_id):
+    filename = secure_filename(file_storage.filename or "")
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_LOGO_EXTENSIONS:
+        return None, "Logo must be a PNG, JPG, WEBP, or GIF image."
+    file_storage.stream.seek(0, os.SEEK_END)
+    size = file_storage.stream.tell()
+    file_storage.stream.seek(0)
+    if size > app.config["MAX_CONTENT_LENGTH"]:
+        return None, "Logo must be smaller than 2MB."
+    folder = os.path.join(app.root_path, "static", "uploads", "logos")
+    os.makedirs(folder, exist_ok=True)
+    stored_name = f"logo_{secure_filename(user_id)}_{int(time.time())}{ext}"
+    file_storage.save(os.path.join(folder, stored_name))
+    return f"/static/uploads/logos/{stored_name}", None
+
+
+def parse_otp_datetime(value):
+    if not value:
+        return utcnow()
+    try:
+        parsed = datetime.fromisoformat(str(value))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except ValueError:
+        return utcnow()
+
+
+def upsert_otp(email, purpose, payload=None):
+    code = f"{secrets.randbelow(1000000):06d}"
+    now = utcnow()
+    with get_db() as db:
+        existing = db.execute(
+            "SELECT last_sent FROM otp_codes WHERE email = ? AND purpose = ?",
+            (email, purpose)
+        ).fetchone()
+        if existing:
+            elapsed = (now - parse_otp_datetime(existing["last_sent"])).total_seconds()
+            if elapsed < OTP_RESEND_SECONDS:
+                remaining = int(OTP_RESEND_SECONDS - elapsed)
+                return None, remaining
+        db.execute(
+            "DELETE FROM otp_codes WHERE email = ? AND purpose = ?",
+            (email, purpose)
+        )
+        db.execute(
+            """INSERT INTO otp_codes (email, purpose, code_hash, payload, attempts, expires, last_sent)
+               VALUES (?, ?, ?, ?, 0, ?, ?)""",
+            (
+                email,
+                purpose,
+                generate_password_hash(code),
+                payload,
+                (now + timedelta(minutes=OTP_TTL_MINUTES)).isoformat(),
+                now.isoformat(),
+            )
+        )
+        db.commit()
+    return code, 0
+
+
+def verify_otp(email, purpose, code, consume=True):
+    with get_db() as db:
+        record = db.execute(
+            "SELECT * FROM otp_codes WHERE email = ? AND purpose = ?",
+            (email, purpose)
+        ).fetchone()
+        if not record:
+            return None, "No pending verification found. Please request a new PIN."
+        item = dict(record)
+        if utcnow() > parse_otp_datetime(item.get("expires")):
+            db.execute("DELETE FROM otp_codes WHERE email = ? AND purpose = ?", (email, purpose))
+            db.commit()
+            return None, "Verification PIN expired. Please request a new one."
+        attempts = int(item.get("attempts") or 0)
+        if attempts >= OTP_MAX_ATTEMPTS:
+            db.execute("DELETE FROM otp_codes WHERE email = ? AND purpose = ?", (email, purpose))
+            db.commit()
+            return None, "Too many incorrect attempts. Please request a new PIN."
+        if not check_password_hash(item.get("code_hash") or "", str(code or "").strip()):
+            db.execute(
+                "UPDATE otp_codes SET attempts = ? WHERE email = ? AND purpose = ?",
+                (attempts + 1, email, purpose)
+            )
+            db.commit()
+            return None, "Incorrect verification PIN. Please try again."
+        if consume:
+            db.execute("DELETE FROM otp_codes WHERE email = ? AND purpose = ?", (email, purpose))
+            db.commit()
+        return item, None
+
+
+def otp_delivery_message(email, is_live, code):
+    if is_live:
+        return f"We sent a 6-digit PIN to {email}. Check your inbox or spam folder."
+    if os.environ.get("ALLOW_DEV_OTP") == "1":
+        return f"Dev mode — verification PIN: {code}"
+    return "Email delivery is not configured. Set RESEND_API_KEY or SMTP credentials, or ALLOW_DEV_OTP=1 for local testing."
 
 
 def init_db():
@@ -231,7 +443,18 @@ def init_db():
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_policy TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS brand_color TEXT DEFAULT '#4F46E5'",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url TEXT",
-            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_slug TEXT"
+                "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_slug TEXT",
+            """CREATE TABLE IF NOT EXISTS otp_codes (
+                email TEXT NOT NULL,
+                purpose TEXT NOT NULL,
+                code_hash TEXT NOT NULL,
+                payload TEXT,
+                attempts INTEGER DEFAULT 0,
+                expires TEXT NOT NULL,
+                last_sent TEXT NOT NULL,
+                PRIMARY KEY (email, purpose)
+            )""",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_business_profiles_store_slug ON business_profiles (store_slug)"
         ]
         for alter_cmd in migrations:
             try:
@@ -323,7 +546,6 @@ def init_db():
                 ("brand_color", "TEXT DEFAULT '#4F46E5'"),
                 ("logo_url", "TEXT"),
                 ("store_slug", "TEXT"),
-                ("receipt_id", "TEXT"),
             ]:
                 try:
                     db.execute(f"ALTER TABLE business_profiles ADD COLUMN {col_name} {col_type}")
@@ -331,6 +553,25 @@ def init_db():
                     pass
             try:
                 db.execute("ALTER TABLE income ADD COLUMN receipt_id TEXT")
+            except Exception:
+                pass
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS otp_codes (
+                    email TEXT NOT NULL,
+                    purpose TEXT NOT NULL,
+                    code_hash TEXT NOT NULL,
+                    payload TEXT,
+                    attempts INTEGER DEFAULT 0,
+                    expires TEXT NOT NULL,
+                    last_sent TEXT NOT NULL,
+                    PRIMARY KEY (email, purpose)
+                )
+            """)
+            try:
+                db.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_business_profiles_store_slug "
+                    "ON business_profiles (store_slug)"
+                )
             except Exception:
                 pass
             db.commit()
@@ -376,32 +617,29 @@ init_db()
 # ==========================================
 # OTP & EMAIL SERVICES (RESEND API + SMTP)
 # ==========================================
-# In-memory stores for pending OTP codes (keyed by email)
-RESET_CODES = {}
-REGISTRATION_CODES = {}
-
-
 def _build_otp_html(subject_type: str, otp_code: str) -> str:
     """Build the HTML body for OTP emails."""
+    safe_code = html.escape(otp_code)
+    safe_type = html.escape(subject_type)
     return f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#0f172a;margin:0;padding:40px 20px;color:#f8fafc;">
-  <div style="max-width:480px;margin:0 auto;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.3);">
-    <div style="font-size:24px;font-weight:800;color:#6366f1;margin-bottom:8px;letter-spacing:-0.5px;">SoloBiz</div>
-    <div style="font-size:20px;font-weight:700;color:#ffffff;margin-bottom:12px;">{subject_type}</div>
-    <p style="font-size:14px;color:#94a3b8;line-height:1.6;margin-bottom:24px;">
-      Use the 6-digit verification PIN below to verify your email address. This code expires in 15 minutes.
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#f8fafc;margin:0;padding:40px 20px;color:#0f172a;">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#4F46E5;margin-bottom:8px;letter-spacing:-0.4px;">SoloBiz</div>
+    <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:12px;">{safe_type}</div>
+    <p style="font-size:14px;color:#64748b;line-height:1.6;margin-bottom:24px;">
+      Use the 6-digit verification PIN below to continue. This code expires in 15 minutes.
     </p>
-    <div style="background:#0f172a;border:2px dashed #6366f1;border-radius:12px;padding:18px;font-size:32px;font-weight:900;letter-spacing:8px;color:#818cf8;margin:20px 0;font-family:monospace;">{otp_code}</div>
-    <p style="font-size:13px;color:#64748b;margin-top:20px;">If you didn't request this code, please ignore this email.</p>
-    <div style="font-size:12px;color:#475569;margin-top:24px;border-top:1px solid #334155;padding-top:16px;">&copy; SoloBiz &mdash; Smart Finance for Independent Vendors</div>
+    <div style="background:#f8fafc;border:1px solid #c7d2fe;border-radius:12px;padding:18px;font-size:32px;font-weight:800;letter-spacing:8px;color:#4338ca;margin:20px 0;font-family:ui-monospace,monospace;">{safe_code}</div>
+    <p style="font-size:13px;color:#94a3b8;margin-top:20px;">If you didn't request this code, you can ignore this email.</p>
   </div>
 </body>
 </html>"""
+
 
 
 def send_otp_email(to_email: str, otp_code: str, subject_type: str = "Email Verification"):
@@ -428,13 +666,10 @@ def send_otp_email(to_email: str, otp_code: str, subject_type: str = "Email Veri
     from_email = (os.environ.get("RESEND_FROM_EMAIL")
                   or "SoloBiz <noreply@solobiz.dev>")
 
-    subject = f"Your SoloBiz {subject_type} Code: {otp_code}"
+    subject = f"Your SoloBiz {subject_type} code"
     html_content = _build_otp_html(subject_type, otp_code)
-
-    # Always log to server console (visible in Render logs)
-    print(f"\n==========================================", flush=True)
-    print(f"🔑 [{subject_type.upper()}] PIN for {to_email}: {otp_code}", flush=True)
-    print(f"==========================================\n", flush=True)
+    if os.environ.get("ALLOW_DEV_OTP") == "1":
+        print(f"[DEV OTP] {subject_type} for {to_email}: {otp_code}", flush=True)
 
     # 1. Try Resend API
     if api_key:
@@ -488,9 +723,30 @@ def send_otp_email(to_email: str, otp_code: str, subject_type: str = "Email Veri
             logging.error(f"SMTP failed for {to_email}: {e}", exc_info=True)
             print(f"❌ SMTP failed: {e}", flush=True)
 
-    # 3. Dev/test fallback — PIN is printed in server logs
-    print(f"ℹ️  No live email configured — dev mode. PIN shown above.", flush=True)
-    return True, f"Dev PIN: {otp_code}", False
+    if os.environ.get("ALLOW_DEV_OTP") == "1":
+        return True, f"Dev mode — verification PIN: {otp_code}", False
+    return False, "Email delivery is not configured.", False
+
+
+def complete_login(user_id):
+    csrf = session.get("csrf_token") or secrets.token_urlsafe(32)
+    session.clear()
+    session.permanent = True
+    session["csrf_token"] = csrf
+    session["user_id"] = str(user_id)
+
+
+def send_and_store_otp(email, purpose, payload=None, subject_type="Email Verification"):
+    code, wait_seconds = upsert_otp(email, purpose, payload=payload)
+    if wait_seconds:
+        return False, f"Please wait {wait_seconds}s before requesting a new PIN.", 429, False
+    ok, message, is_live = send_otp_email(email, code, subject_type=subject_type)
+    if not ok and os.environ.get("ALLOW_DEV_OTP") != "1":
+        with get_db() as db:
+            db.execute("DELETE FROM otp_codes WHERE email = ? AND purpose = ?", (email, purpose))
+            db.commit()
+        return False, message, 503, False
+    return True, otp_delivery_message(email, is_live, code), 200, is_live
 
 
 # ==========================================
@@ -503,54 +759,39 @@ def register():
         password = request.form.get("password", "").strip()
         otp_code = request.form.get("otp_code", "").strip()
 
-        # ── Step 2: Verify OTP and create account ──
         if otp_code:
             if not email:
                 flash("Email is required for OTP verification.", "danger")
                 return render_template("register.html")
-
-            record = REGISTRATION_CODES.get(email)
-            if not record:
-                flash("No pending registration found. Please start over.", "danger")
-                return render_template("register.html")
-
-            if record["code"] != otp_code:
-                flash("Incorrect verification PIN. Please try again.", "danger")
+            record, error = verify_otp(email, "register", otp_code, consume=False)
+            if error:
+                flash(error, "danger")
                 return render_template("register.html", step="otp", pending_email=email)
-
-            if datetime.now() > record["expires"]:
-                REGISTRATION_CODES.pop(email, None)
-                flash("Verification PIN expired. Please request a new one.", "danger")
-                return render_template("register.html")
-
             new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
             try:
                 with get_db() as db:
                     db.execute(
                         "INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
-                        (new_user_id, email, record["password_hash"])
+                        (new_user_id, email, record.get("payload"))
                     )
                     db.commit()
-                REGISTRATION_CODES.pop(email, None)
-                session.permanent = True
-                session["user_id"] = new_user_id
+                verify_otp(email, "register", otp_code, consume=True)
+                complete_login(new_user_id)
                 flash("Email verified! Welcome to SoloBiz!", "success")
                 return redirect("/dashboard")
-            except sqlite3.IntegrityError:
-                flash("Email already registered. Please log in.", "danger")
-                return render_template("register.html")
             except Exception as e:
                 logging.error(f"Account creation failed after OTP verify: {e}", exc_info=True)
+                if is_unique_violation(e):
+                    flash("Email already registered. Please log in.", "danger")
+                    return render_template("register.html")
                 flash("Account creation failed. Please try again.", "danger")
                 return render_template("register.html", step="otp", pending_email=email)
 
-        # ── Step 1: Validate and send OTP ──
         if not email or not password:
             flash("Please fill in all required fields.", "danger")
             return render_template("register.html")
-
-        if len(password) < 6:
-            flash("Password must be at least 6 characters long.", "danger")
+        if not is_valid_password(password):
+            flash("Password must be at least 8 characters and include a letter and a number.", "danger")
             return render_template("register.html")
 
         try:
@@ -563,21 +804,16 @@ def register():
                     return render_template("register.html", error="Email already registered. Please log in.")
         except Exception as e:
             logging.error(f"User check error during registration: {e}", exc_info=True)
+            flash("Could not start registration. Please try again.", "danger")
+            return render_template("register.html")
 
-        code = str(random.randint(100000, 999999))
-        REGISTRATION_CODES[email] = {
-            "code": code,
-            "password_hash": generate_password_hash(password),
-            "expires": datetime.now() + timedelta(minutes=15),
-            "last_sent": datetime.now()
-        }
-
-        _, _, is_live = send_otp_email(email, code, subject_type="Email Verification")
-        if is_live:
-            flash(f"We sent a 6-digit PIN to {email}. Please check your inbox or spam folder.", "success")
-        else:
-            flash(f"Dev mode — verification PIN: {code}", "success")
-        return render_template("register.html", step="otp", pending_email=email, dev_code=code if not is_live else None)
+        ok, message, status, is_live = send_and_store_otp(
+            email, "register", generate_password_hash(password), "Email Verification"
+        )
+        flash(message, "success" if ok else "danger")
+        if not ok:
+            return render_template("register.html"), status if status != 429 else 200
+        return render_template("register.html", step="otp", pending_email=email)
 
     return render_template("register.html")
 
@@ -591,44 +827,19 @@ def register_api_request():
 
         if not email or not password:
             return jsonify({"status": "error", "message": "Email and password are required."}), 400
-        if not re.match(r'^(?=.*[a-zA-Z])(?=.*\d).{8,}$', password):
+        if not is_valid_password(password):
             return jsonify({"status": "error", "message": "Password must be at least 8 characters long and contain both letters and numbers."}), 400
 
         with get_db() as db:
             if db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
                 return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
 
-        # Rate-limit resend requests (30 seconds)
-        existing = REGISTRATION_CODES.get(email)
-        if existing and "last_sent" in existing:
-            elapsed = (datetime.now() - existing["last_sent"]).total_seconds()
-            if elapsed < 30:
-                remaining = int(30 - elapsed)
-                return jsonify({"status": "error", "message": f"Please wait {remaining}s before requesting a new PIN."}), 429
-
-        code = str(random.randint(100000, 999999))
-        REGISTRATION_CODES[email] = {
-            "code": code,
-            "password_hash": generate_password_hash(password),
-            "expires": datetime.now() + timedelta(minutes=15),
-            "last_sent": datetime.now()
-        }
-
-        _, _, is_live = send_otp_email(email, code, subject_type="Email Verification")
-
-        if is_live:
-            return jsonify({
-                "status": "ok",
-                "message": f"Verification PIN sent to {email}! Please check your inbox or spam folder.",
-                "code": None
-            })
-        else:
-            return jsonify({
-                "status": "ok",
-                "message": f"Dev mode — verification PIN: {code}",
-                "code": code
-            })
-
+        ok, message, status, _ = send_and_store_otp(
+            email, "register", generate_password_hash(password), "Email Verification"
+        )
+        if not ok:
+            return jsonify({"status": "error", "message": message}), status
+        return jsonify({"status": "ok", "message": message, "code": None})
     except Exception as e:
         logging.error(f"register_api_request error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to send verification PIN. Please try again."}), 500
@@ -644,35 +855,23 @@ def register_api_verify():
         if not email or not code:
             return jsonify({"status": "error", "message": "Email and verification PIN are required."}), 400
 
-        record = REGISTRATION_CODES.get(email)
-        if not record:
-            return jsonify({"status": "error", "message": "No pending registration found for this email."}), 400
-        if record["code"] != code:
-            return jsonify({"status": "error", "message": "Incorrect verification PIN. Please try again."}), 400
-        if datetime.now() > record["expires"]:
-            REGISTRATION_CODES.pop(email, None)
-            return jsonify({"status": "error", "message": "Verification PIN expired. Please request a new one."}), 400
+        record, error = verify_otp(email, "register", code, consume=False)
+        if error:
+            return jsonify({"status": "error", "message": error}), 400
 
         new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
         with get_db() as db:
             db.execute(
                 "INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
-                (new_user_id, email, record["password_hash"])
+                (new_user_id, email, record.get("payload"))
             )
             db.commit()
-
-        REGISTRATION_CODES.pop(email, None)
-        session.permanent = True
-        session["user_id"] = new_user_id
-        flash("Email verified! Welcome to SoloBiz!", "success")
+        verify_otp(email, "register", code, consume=True)
+        complete_login(new_user_id)
         return jsonify({"status": "ok", "message": "Account created successfully!", "redirect": "/dashboard"})
-
-    except sqlite3.IntegrityError:
-        return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
     except Exception as e:
         logging.error(f"register_api_verify error: {e}", exc_info=True)
-        err = str(e).lower()
-        if "unique" in err or "duplicate" in err or "already exists" in err:
+        if is_unique_violation(e):
             return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
         return jsonify({"status": "error", "message": "Failed to verify account. Please try again."}), 500
 
@@ -682,32 +881,23 @@ def register_api_resend():
     try:
         data = request.get_json(force=True) or {}
         email = (data.get("email") or "").strip().lower()
-
         if not email:
             return jsonify({"status": "error", "message": "Email address is required."}), 400
 
-        record = REGISTRATION_CODES.get(email)
-        if not record:
+        with get_db() as db:
+            existing = db.execute(
+                "SELECT payload FROM otp_codes WHERE email = ? AND purpose = ?",
+                (email, "register")
+            ).fetchone()
+        if not existing:
             return jsonify({"status": "error", "message": "No pending registration found for this email."}), 400
 
-        if "last_sent" in record:
-            elapsed = (datetime.now() - record["last_sent"]).total_seconds()
-            if elapsed < 30:
-                remaining = int(30 - elapsed)
-                return jsonify({"status": "error", "message": f"Please wait {remaining}s before requesting a new PIN."}), 429
-
-        code = str(random.randint(100000, 999999))
-        record["code"] = code
-        record["expires"] = datetime.now() + timedelta(minutes=15)
-        record["last_sent"] = datetime.now()
-
-        _, _, is_live = send_otp_email(email, code, subject_type="Email Verification")
-
-        if is_live:
-            return jsonify({"status": "ok", "message": "New verification PIN sent to your email!", "code": None})
-        else:
-            return jsonify({"status": "ok", "message": f"Dev mode — new PIN: {code}", "code": code})
-
+        ok, message, status, _ = send_and_store_otp(
+            email, "register", existing["payload"], "Email Verification"
+        )
+        if not ok:
+            return jsonify({"status": "error", "message": message}), status
+        return jsonify({"status": "ok", "message": message, "code": None})
     except Exception as e:
         logging.error(f"register_api_resend error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to resend PIN. Please try again."}), 500
@@ -726,8 +916,6 @@ def login():
             flash("Please enter both email and password.", "danger")
             response = make_response(render_template("login.html"))
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
             return response
 
         try:
@@ -736,8 +924,7 @@ def login():
                 if not user or not user["password"] or not check_password_hash(user["password"], password):
                     flash("Invalid email or password. Please try again.", "danger")
                     return render_template("login.html")
-                session.permanent = True
-                session["user_id"] = str(user["id"])
+                complete_login(user["id"])
                 return redirect("/dashboard")
         except Exception as e:
             logging.error(f"Login error for '{email}': {e}", exc_info=True)
@@ -758,6 +945,9 @@ def logout():
 # ==========================================
 # FORGOT PASSWORD ROUTES
 # ==========================================
+GENERIC_RESET_MESSAGE = "If an account exists for that email, we sent a verification PIN."
+
+
 @app.route("/api/forgot-password/request", methods=["POST"])
 def forgot_password_request():
     try:
@@ -768,19 +958,11 @@ def forgot_password_request():
 
         with get_db() as db:
             user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-            if not user:
-                return jsonify({"status": "error", "message": "No account found with this email. Please register first."}), 404
-
-        code = str(random.randint(100000, 999999))
-        RESET_CODES[email] = {"code": code, "expires": datetime.now() + timedelta(minutes=15), "last_sent": datetime.now()}
-
-        _, _, is_live = send_otp_email(email, code, subject_type="Password Reset")
-
-        if is_live:
-            return jsonify({"status": "ok", "message": "Verification PIN sent to your email!", "code": None})
-        else:
-            return jsonify({"status": "ok", "message": f"Dev mode — PIN: {code}", "code": code})
-
+        if user:
+            ok, message, status, _ = send_and_store_otp(email, "reset", None, "Password Reset")
+            if not ok:
+                return jsonify({"status": "error", "message": message}), status
+        return jsonify({"status": "ok", "message": GENERIC_RESET_MESSAGE, "code": None})
     except Exception as e:
         logging.error(f"forgot_password_request error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to generate PIN. Please try again."}), 500
@@ -793,28 +975,13 @@ def forgot_password_resend():
         email = (data.get("email") or "").strip().lower()
         if not email:
             return jsonify({"status": "error", "message": "Please enter a valid email address."}), 400
-
         with get_db() as db:
-            if not db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
-                return jsonify({"status": "error", "message": "No account found with this email."}), 404
-
-        existing = RESET_CODES.get(email)
-        if existing and "last_sent" in existing:
-            elapsed = (datetime.now() - existing["last_sent"]).total_seconds()
-            if elapsed < 30:
-                remaining = int(30 - elapsed)
-                return jsonify({"status": "error", "message": f"Please wait {remaining}s before requesting a new PIN."}), 429
-
-        code = str(random.randint(100000, 999999))
-        RESET_CODES[email] = {"code": code, "expires": datetime.now() + timedelta(minutes=15), "last_sent": datetime.now()}
-
-        _, _, is_live = send_otp_email(email, code, subject_type="Password Reset")
-
-        if is_live:
-            return jsonify({"status": "ok", "message": "New verification PIN sent to your email!", "code": None})
-        else:
-            return jsonify({"status": "ok", "message": f"Dev mode — new PIN: {code}", "code": code})
-
+            user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+        if user:
+            ok, message, status, _ = send_and_store_otp(email, "reset", None, "Password Reset")
+            if not ok:
+                return jsonify({"status": "error", "message": message}), status
+        return jsonify({"status": "ok", "message": GENERIC_RESET_MESSAGE, "code": None})
     except Exception as e:
         logging.error(f"forgot_password_resend error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to resend PIN. Please try again."}), 500
@@ -830,34 +997,25 @@ def forgot_password_reset():
 
         if not email or not code or not new_password:
             return jsonify({"status": "error", "message": "Email, verification PIN, and new password are required."}), 400
-        if len(new_password) < 6:
-            return jsonify({"status": "error", "message": "New password must be at least 6 characters long."}), 400
+        if not is_valid_password(new_password):
+            return jsonify({"status": "error", "message": "New password must be at least 8 characters and include a letter and a number."}), 400
 
-        record = RESET_CODES.get(email)
-        if not record or record["code"] != code or datetime.now() > record["expires"]:
-            return jsonify({"status": "error", "message": "Invalid or expired verification PIN. Please request a new one."}), 400
+        record, error = verify_otp(email, "reset", code, consume=True)
+        if error:
+            return jsonify({"status": "error", "message": error}), 400
 
         hashed = generate_password_hash(new_password)
         with get_db() as db:
             db.execute("UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)", (hashed, email))
             db.commit()
-
-        RESET_CODES.pop(email, None)
-
-        with get_db() as db:
             user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
             if user:
-                session.clear()
-                session.permanent = True
-                session["user_id"] = str(user["id"])
+                complete_login(user["id"])
 
         return jsonify({"status": "ok", "message": "Password updated successfully!", "redirect": "/dashboard"})
-
     except Exception as e:
         logging.error(f"forgot_password_reset error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": "Failed to update password. Please try again."}), 500
-
-
 # ==========================================
 # STATIC & SEO ROUTES
 # ==========================================
@@ -1112,9 +1270,12 @@ def delete_expense(expense_id):
     if not user_id:
         return redirect("/login")
     with get_db() as db:
-        cursor = db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
-        if cursor.rowcount == 0:
+        existing = db.execute(
+            "SELECT id FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id)
+        ).fetchone()
+        if not existing:
             return redirect("/dashboard")
+        db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
         db.commit()
     return redirect("/dashboard")
 
@@ -1413,21 +1574,18 @@ def request_profile_otp():
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    
+
     with get_db() as db:
         user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
-        
+
     if not user:
         return jsonify({"status": "error", "message": "User not found"}), 404
-        
+
     email = user["email"]
-    otp_code = str(random.randint(100000, 999999))
-    session['profile_verification_code'] = otp_code
-    
-    send_otp_email(email, otp_code, subject_type="Profile Update Verification")
-    print(f"[DEBUG] Profile OTP Generated for {email}: {otp_code}")
-    
-    return jsonify({"status": "success", "message": "Verification code sent"})
+    ok, message, status, _ = send_and_store_otp(email, "profile", None, "Profile Update Verification")
+    if not ok:
+        return jsonify({"status": "error", "message": message}), status
+    return jsonify({"status": "success", "message": message})
 
 
 @app.route("/api/business_profile", methods=["GET", "POST"])
@@ -1471,12 +1629,16 @@ def api_business_profile():
     elif request.method == "POST":
         data = request.form if request.form else (request.get_json(silent=True) or {})
 
-        # OTP Validation
+        # OTP Validation — verify against the hashed code stored in otp_codes table
         provided_otp = str(data.get("otp", "")).strip()
-        expected_otp = session.get('profile_verification_code')
+        with get_db() as db:
+            user_row = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not user_row:
+            return jsonify({"status": "error", "message": "User not found"}), 404
 
-        if not expected_otp or provided_otp != str(expected_otp):
-            return jsonify({"status": "error", "message": "Invalid or expired verification code."}), 400
+        _record, otp_error = verify_otp(user_row["email"], "profile", provided_otp, consume=True)
+        if otp_error:
+            return jsonify({"status": "error", "message": otp_error}), 400
 
         company_name = str(data.get("company_name", "")).strip()
         business_phone = str(data.get("business_phone", "")).strip()
@@ -1484,25 +1646,21 @@ def api_business_profile():
         instagram_handle = str(data.get("instagram_handle", "")).strip()
         whatsapp_number = str(data.get("whatsapp_number", "")).strip()
         store_policy = str(data.get("store_policy", "")).strip()
-        brand_color = str(data.get("brand_color", "#4F46E5")).strip() or "#4F46E5"
+        brand_color = sanitize_brand_color(data.get("brand_color", "#4F46E5"))
 
         if not company_name:
             return jsonify({"status": "error", "message": "Company name is required"}), 400
-
-        # Consume the one-time code only after all required input is valid.
-        session.pop('profile_verification_code', None)
 
         logo_url = None
         if "logo" in request.files:
             file = request.files["logo"]
             if file and file.filename:
-                os.makedirs(os.path.join(app.root_path, "static", "uploads", "logos"), exist_ok=True)
-                filename = f"logo_{user_id}_{int(datetime.now().timestamp())}.png"
-                file_path = os.path.join(app.root_path, "static", "uploads", "logos", filename)
-                file.save(file_path)
-                logo_url = f"/static/uploads/logos/{filename}"
+                saved_url, logo_err = save_uploaded_logo(file, user_id)
+                if logo_err:
+                    return jsonify({"status": "error", "message": logo_err}), 400
+                logo_url = saved_url
         elif data.get("logo_url"):
-            logo_url = str(data.get("logo_url")).strip()
+            logo_url = sanitize_logo_url(data.get("logo_url"))
 
         with get_db() as db:
             existing = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
