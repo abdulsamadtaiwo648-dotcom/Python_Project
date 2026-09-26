@@ -35,6 +35,7 @@
 
     <!-- ① Manual Email + Password Form -->
     <form id="manual-login-form" action="/login" method="POST" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div>
         <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
         <input type="email" id="login-email" name="email" required placeholder="name@example.com"
@@ -128,7 +129,6 @@
 
   <script>
     // ─── Modern Password Reset & Resend OTP Modal Controller ──────────────────
-<<<<<<< HEAD
     const CSRF_TOKEN = {{ csrf_token | tojson }};
 
     function csrfFetch(url, options = {}) {
@@ -136,8 +136,6 @@
       return fetch(url, options);
     }
 
-=======
->>>>>>> parent of c31c267 (feat: update PWA caching and enhance UI/SEO)
     const resetModal = document.getElementById("reset-modal");
     const resetAlert = document.getElementById("reset-alert");
     const step1Form  = document.getElementById("reset-step1-form");

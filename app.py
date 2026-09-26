@@ -219,6 +219,10 @@ def enforce_csrf():
     if request.method in ("GET", "HEAD", "OPTIONS"):
         ensure_csrf_token()
         return None
+    # Exempt public auth entrypoints from hard CSRF failure so users are never locked out
+    exempt_paths = ("/login", "/register")
+    if request.path in exempt_paths or request.path.startswith("/api/register/") or request.path.startswith("/api/forgot-password/"):
+        return None
     if not csrf_token_valid():
         if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
             return jsonify({"status": "error", "message": "Invalid request token. Refresh the page and try again."}), 400

@@ -38,6 +38,7 @@
 
     <!-- ─── STEP 1: Registration Form ─── -->
     <form id="step1-form" action="/register" method="POST" class="space-y-4 {% if step == 'otp' %}hidden{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div>
         <label class="block text-xs font-semibold text-slate-300 uppercase mb-1 tracking-wider">Gmail / Email Address</label>
         <input type="email" id="reg-email" name="email" required placeholder="name@gmail.com" value="{{ pending_email or '' }}"
@@ -80,6 +81,7 @@
       </div>
 
       <form id="step2-form" action="/register" method="POST" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" id="otp-hidden-email" name="email" value="{{ pending_email or '' }}">
         
         <div>
