@@ -4140,6 +4140,21 @@
     <!-- ============================================================ -->
     <script>
     (function() {
+        // Self-healing: Proactively purge stale/broken Service Worker caches from client devices
+        if ('caches' in window) {
+            caches.keys().then((keys) => {
+                keys.forEach(async (key) => {
+                    if (key !== 'solobiz-offline-20260926.2') {
+                        console.log('[PWA] Client purging outdated cache store:', key);
+                        await caches.delete(key);
+                    } else {
+                        const c = await caches.open(key);
+                        await c.delete('/dashboard');
+                    }
+                });
+            }).catch(e => console.warn('[PWA] Cache cleanup note:', e));
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js', {
