@@ -732,6 +732,7 @@
                         <span class="text-sm font-semibold text-slate-600">Cart total</span>
                         <strong id="sale-cart-total" class="text-lg font-black text-slate-900">₦0.00</strong>
                     </div>
+
                 </div>
 
                 <!-- Manage Presets Panel (hidden by default) -->
@@ -773,13 +774,18 @@
                             class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
                     </div>
                     <div>
-                        <input type="text" id="income-description" class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Description for a non-inventory sale (optional when cart has items)">
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Sale items</label>
+                            <button type="button" id="add-manual-sale-item" class="text-xs font-bold text-emerald-700 hover:text-emerald-800">+ Add a new item</button>
+                        </div>
+                        <div id="manual-sale-items" class="space-y-2"></div>
+                        <p class="text-[10px] text-slate-500 mt-2">Add each product, its unit price, and quantity. Inventory items selected above are included too.</p>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div class="relative">
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Total Value</label>
                             <span class="absolute left-2.5 bottom-2.5 text-slate-500 font-bold text-sm">₦</span>
-                            <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
+                            <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" readonly required>
                         </div>
                         <div class="relative">
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Amount Paid</label>
@@ -2114,6 +2120,7 @@
                                         items: checkoutLines.map(line => ({
                                             checkout_line_id: line.checkout_line_id,
                                             inventory_item_id: line.inventory_item_id,
+                                            item_name: line.inventory_item_id == null ? line.description : null,
                                             unit_price: line.unit_price,
                                             quantity: line.quantity || 1
                                         }))
@@ -3627,17 +3634,20 @@
                     if (incomeSubmitInProgress) return;
 
                     const customer_name = document.getElementById('income-customer-name')?.value.trim() || 'Walk-in Customer';
-                    const description = document.getElementById('income-description')?.value.trim();
-                    const cartTotal = saleCart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-                    const total_value = saleCart.length
-                        ? cartTotal
-                        : parseFloat((document.getElementById('income-total-value')?.value || '').replace(/,/g, ''));
+                    const manualRows = getManualSaleItems();
+                    const hasPartialManualRow = manualRows.some(row => !row.name || !Number.isFinite(row.unit_price) || row.unit_price <= 0 || !Number.isInteger(row.quantity) || row.quantity < 1 || row.quantity > 10000);
+                    const saleItems = [...saleCart, ...manualRows.map((item, index) => ({
+                        ...item,
+                        cart_id: `manual-${index}-${item.name}`,
+                        preset_id: null
+                    }))];
+                    const total_value = saleItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
                     const amount_paid = parseFloat((document.getElementById('income-amount-paid')?.value || '').replace(/,/g, ''));
                     const payment_mode = document.getElementById('sale-payment-mode')?.value || 'Cash';
 
-                    if ((!saleCart.length && !description) || !Number.isFinite(total_value) || total_value <= 0 ||
+                    if (!saleItems.length || hasPartialManualRow || !Number.isFinite(total_value) || total_value <= 0 ||
                         !Number.isFinite(amount_paid) || amount_paid < 0 || amount_paid > total_value) {
-                        alert('Enter a description, a valid sale total, and an amount paid from zero up to the total.');
+                        alert('Add complete sale items with a valid name, unit price, and quantity. Amount paid must be from zero up to the sale total.');
                         return;
                     }
 
@@ -3648,12 +3658,13 @@
                         submitButton.textContent = 'Saving sale...';
                     }
 
-                    if (saleCart.length) {
+                    if (saleItems.length) {
                         const checkoutId = (window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`);
                         const receiptId = `REC-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-                        const checkoutLines = saleCart.map(item => ({
-                            checkout_line_id: window.crypto?.randomUUID?.() || `${checkoutId}-${item.preset_id}`,
-                            inventory_item_id: item.preset_id,
+                        const checkoutLines = saleItems.map(item => ({
+                            checkout_line_id: window.crypto?.randomUUID?.() || `${checkoutId}-${item.cart_id}`,
+                            inventory_item_id: item.preset_id ?? null,
+                            ...(item.preset_id == null ? { item_name: item.name } : {}),
                             unit_price: item.unit_price,
                             quantity: item.quantity
                         }));
@@ -3689,13 +3700,13 @@
                             const store = storeTx.objectStore(INCOME_STORE);
                             let remainingPaid = amount_paid;
                             checkoutLines.forEach((line, index) => {
-                                const product = inventoryPresets.find(item => item.id === line.inventory_item_id);
+                                const product = line.inventory_item_id == null ? null : inventoryPresets.find(item => item.id === line.inventory_item_id);
                                 const saved = checkoutResult?.items?.find(item => item.checkout_line_id === line.checkout_line_id);
-                                const lineTotal = Number(saved?.total_value ?? (product.price * line.quantity));
+                                const lineTotal = Number(saved?.total_value ?? (line.unit_price * line.quantity));
                                 const linePaid = Number(saved?.amount_paid ?? Math.min(remainingPaid, lineTotal));
                                 remainingPaid = Math.max(0, remainingPaid - linePaid);
                                 const record = {
-                                    description: saved?.description || product.item_name,
+                                    description: saved?.description || product?.item_name || line.item_name,
                                     total_value: lineTotal,
                                     amount_paid: linePaid,
                                     customer_name,
@@ -3724,7 +3735,7 @@
                                     if (Object.hasOwn(checkoutResult.stock, String(product.id))) product.stock = checkoutResult.stock[String(product.id)];
                                 });
                             } else {
-                                saleCart.forEach(cartItem => {
+                                saleItems.forEach(cartItem => {
                                     const product = inventoryPresets.find(item => item.id === cartItem.preset_id);
                                     if (product?.track_stock) product.stock = Math.max(0, product.stock - cartItem.quantity);
                                 });
@@ -3734,6 +3745,7 @@
                             renderManageList();
                             saleCart = [];
                             addIncomeForm.reset();
+                            resetManualSaleItems();
                             const paidField = document.getElementById('income-amount-paid');
                             if (paidField) delete paidField.dataset.touched;
                             renderSaleCart();
@@ -3749,12 +3761,6 @@
                             }
                             return;
                         }
-                    } else {
-                        await logSale({ customer_name, description, total_value, amount_paid, payment_mode });
-                        addIncomeForm.reset();
-                        const manualPaidField = document.getElementById('income-amount-paid');
-                        if (manualPaidField) delete manualPaidField.dataset.touched;
-                        renderIncomeListUI();
                     }
 
                     calculateDashboard();
@@ -3771,6 +3777,45 @@
             // =========================================================
             let inventoryPresets = [];
             let saleCart = [];
+            const manualSaleItems = document.getElementById('manual-sale-items');
+            function getManualSaleItems() {
+                if (!manualSaleItems) return [];
+                return [...manualSaleItems.querySelectorAll('[data-manual-sale-row]')]
+                    .map(row => ({
+                        name: row.querySelector('[data-manual-name]').value.trim(),
+                        unit_price: Number(row.querySelector('[data-manual-price]').value),
+                        quantity: Number(row.querySelector('[data-manual-quantity]').value),
+                        started: Boolean(row.querySelector('[data-manual-name]').value || row.querySelector('[data-manual-price]').value || row.querySelector('[data-manual-quantity]').value)
+                    }))
+                    .filter(item => item.started)
+                    .map(({ started, ...item }) => item);
+            }
+            function addManualSaleItemRow() {
+                if (!manualSaleItems || manualSaleItems.children.length + saleCart.length >= 50) {
+                    alert('A receipt can contain up to 50 different line items.');
+                    return;
+                }
+                const row = document.createElement('div');
+                row.dataset.manualSaleRow = 'true';
+                row.className = 'grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_8rem_6rem_auto] gap-2 items-end rounded-xl border border-slate-200 p-2';
+                row.innerHTML = '<label class="col-span-2 sm:col-span-1 text-[10px] uppercase font-bold tracking-wide text-slate-500">Product name<input data-manual-name type="text" maxlength="120" placeholder="e.g. Custom gift wrap" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500">Unit price (₦)<input data-manual-price type="number" min="0.01" step="0.01" placeholder="0.00" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500">Quantity<input data-manual-quantity type="number" min="1" max="10000" step="1" value="1" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><button type="button" data-remove-manual-item class="col-span-2 sm:col-span-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">Remove</button>';
+                manualSaleItems.append(row);
+            }
+            function resetManualSaleItems() {
+                if (!manualSaleItems) return;
+                manualSaleItems.replaceChildren();
+                addManualSaleItemRow();
+                renderSaleCart();
+            }
+            document.getElementById('add-manual-sale-item')?.addEventListener('click', addManualSaleItemRow);
+            manualSaleItems?.addEventListener('input', renderSaleCart);
+            manualSaleItems?.addEventListener('click', event => {
+                if (!event.target.closest('[data-remove-manual-item]')) return;
+                event.target.closest('[data-manual-sale-row]')?.remove();
+                if (!manualSaleItems.children.length) addManualSaleItemRow();
+                renderSaleCart();
+            });
+            addManualSaleItemRow();
             const presetsGrid = document.getElementById('presets-grid');
             const noPresetsMsg = document.getElementById('no-presets-msg');
             const managePanel = document.getElementById('manage-presets-panel');
@@ -3787,8 +3832,11 @@
                 const cartCount = document.getElementById('sale-cart-count');
                 const cartTotal = document.getElementById('sale-cart-total');
                 if (!cartList) return;
-                const units = saleCart.reduce((sum, item) => sum + item.quantity, 0);
-                const total = saleCart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+                const manualItems = getManualSaleItems();
+                const manualUnits = manualItems.reduce((sum, item) => sum + (Number.isInteger(item.quantity) && item.quantity > 0 ? item.quantity : 0), 0);
+                const units = saleCart.reduce((sum, item) => sum + item.quantity, 0) + manualUnits;
+                const manualTotal = manualItems.reduce((sum, item) => sum + (Number.isFinite(item.unit_price) && Number.isInteger(item.quantity) ? item.unit_price * item.quantity : 0), 0);
+                const total = saleCart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0) + manualTotal;
                 if (cartCount) cartCount.textContent = `${units} ${units === 1 ? 'item' : 'items'}`;
                 if (cartTotal) cartTotal.textContent = `₦${total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -3819,7 +3867,7 @@
                         button.type = 'button';
                         button.className = 'w-8 h-8 rounded-lg border border-slate-200 bg-white font-bold text-slate-700';
                         button.dataset.cartAction = action;
-                        button.dataset.presetId = String(item.preset_id);
+                        button.dataset.cartId = item.cart_id;
                         button.setAttribute('aria-label', `${action === 'increase' ? 'Increase' : 'Decrease'} ${item.name} quantity`);
                         button.textContent = label;
                         controls.append(button);
@@ -3832,27 +3880,20 @@
                     remove.type = 'button';
                     remove.className = 'text-xs text-rose-600 font-semibold px-1';
                     remove.dataset.cartAction = 'remove';
-                    remove.dataset.presetId = String(item.preset_id);
+                    remove.dataset.cartId = item.cart_id;
                     remove.textContent = 'Remove';
                     controls.append(remove);
                     row.append(info, controls);
                     cartList.append(row);
                 });
 
-                const descriptionInput = document.getElementById('income-description');
                 const totalInput = document.getElementById('income-total-value');
-                if (descriptionInput) {
-                    descriptionInput.required = saleCart.length === 0;
-                    descriptionInput.disabled = saleCart.length > 0;
-                    descriptionInput.placeholder = saleCart.length ? 'Cart items will be listed on the receipt' : 'Description for a non-inventory sale';
-                }
                 if (totalInput) {
-                    totalInput.readOnly = saleCart.length > 0;
-                    totalInput.value = saleCart.length ? total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
-                    totalInput.classList.toggle('bg-slate-50', saleCart.length > 0);
+                    totalInput.value = total > 0 ? total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+                    totalInput.classList.add('bg-slate-50');
                 }
                 const paidInput = document.getElementById('income-amount-paid');
-                if (paidInput && saleCart.length && !paidInput.dataset.touched) {
+                if (paidInput && total > 0 && !paidInput.dataset.touched) {
                     paidInput.value = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
             }
@@ -3860,16 +3901,16 @@
             document.getElementById('sale-cart-items')?.addEventListener('click', event => {
                 const button = event.target.closest('[data-cart-action]');
                 if (!button) return;
-                const presetId = Number(button.dataset.presetId);
-                const item = saleCart.find(line => line.preset_id === presetId);
+                const cartId = button.dataset.cartId;
+                const item = saleCart.find(line => line.cart_id === cartId);
                 if (!item) return;
                 if (button.dataset.cartAction === 'remove') {
-                    saleCart = saleCart.filter(line => line.preset_id !== presetId);
+                    saleCart = saleCart.filter(line => line.cart_id !== cartId);
                 } else if (button.dataset.cartAction === 'decrease') {
                     item.quantity -= 1;
-                    if (item.quantity <= 0) saleCart = saleCart.filter(line => line.preset_id !== presetId);
+                    if (item.quantity <= 0) saleCart = saleCart.filter(line => line.cart_id !== cartId);
                 } else if (button.dataset.cartAction === 'increase') {
-                    const preset = inventoryPresets.find(product => product.id === presetId);
+                    const preset = item.preset_id == null ? null : inventoryPresets.find(product => product.id === item.preset_id);
                     if (preset?.track_stock && item.quantity >= preset.stock) {
                         alert(`Only ${preset.stock} ${preset.item_name} available.`);
                         return;
@@ -4040,7 +4081,7 @@
                     return;
                 }
                 if (line) line.quantity += 1;
-                else saleCart.push({ preset_id: presetId, name: preset.item_name, unit_price: Number(preset.price), quantity: 1 });
+                else saleCart.push({ cart_id: `inventory-${presetId}`, preset_id: presetId, name: preset.item_name, unit_price: Number(preset.price), quantity: 1 });
                 renderSaleCart();
             });
 

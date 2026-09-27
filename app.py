@@ -1984,13 +1984,23 @@ def api_checkout():
     for index, raw in enumerate(raw_items):
         if not isinstance(raw, dict):
             return jsonify({"status": "error", "message": "Each cart item must be valid."}), 400
+        raw_preset_id = raw.get("inventory_item_id")
         try:
-            preset_id = int(raw.get("inventory_item_id"))
-            quantity = int(raw.get("quantity"))
+            preset_id_value = float(raw_preset_id) if raw_preset_id not in (None, "") else None
+            quantity_value = float(raw.get("quantity"))
         except (TypeError, ValueError):
             return jsonify({"status": "error", "message": "Each item needs a valid product and whole-number quantity."}), 400
-        if preset_id <= 0 or quantity <= 0 or quantity > 10000:
+        if preset_id_value is not None and (not math.isfinite(preset_id_value) or not preset_id_value.is_integer()):
+            return jsonify({"status": "error", "message": "Inventory product IDs must be whole numbers."}), 400
+        preset_id = int(preset_id_value) if preset_id_value is not None else None
+        if not math.isfinite(quantity_value) or not quantity_value.is_integer():
+            return jsonify({"status": "error", "message": "Item quantities must be whole numbers."}), 400
+        quantity = int(quantity_value)
+        if (preset_id is not None and preset_id <= 0) or quantity <= 0 or quantity > 10000:
             return jsonify({"status": "error", "message": "Product quantity must be between 1 and 10,000."}), 400
+        item_name = str(raw.get("item_name") or raw.get("description") or "").strip()
+        if preset_id is None and (not item_name or len(item_name) > 120):
+            return jsonify({"status": "error", "message": "A custom cart item needs a name no longer than 120 characters."}), 400
         line_id = str(raw.get("checkout_line_id") or f"line-{index + 1}").strip()
         if not line_id or len(line_id) > 120 or line_id in line_ids:
             return jsonify({"status": "error", "message": "Sale line identifiers must be unique and no longer than 120 characters."}), 400
@@ -2002,7 +2012,9 @@ def api_checkout():
             return jsonify({"status": "error", "message": "Product price is invalid."}), 400
         if requested_price is not None and (not math.isfinite(requested_price) or requested_price <= 0):
             return jsonify({"status": "error", "message": "Product price must be greater than zero."}), 400
-        parsed_items.append({"preset_id": preset_id, "quantity": quantity, "line_id": line_id, "requested_price": requested_price})
+        if preset_id is None and requested_price is None:
+            return jsonify({"status": "error", "message": "A custom cart item needs a unit price."}), 400
+        parsed_items.append({"preset_id": preset_id, "quantity": quantity, "line_id": line_id, "requested_price": requested_price, "item_name": item_name})
 
     sale_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
     receipt_id = str(data.get("receipt_id") or f"REC-{checkout_id[:12].upper()}").strip()
@@ -2030,6 +2042,9 @@ def api_checkout():
 
             lines = []
             for item in parsed_items:
+                if item["preset_id"] is None:
+                    lines.append({**item, "name": item["item_name"], "unit_price": item["requested_price"], "track_stock": False})
+                    continue
                 row = db.execute(
                     "SELECT id, item_name, price, stock, track_stock FROM inventory_presets WHERE id = ? AND user_id = ?",
                     (item["preset_id"], user_id)
@@ -2086,7 +2101,7 @@ def api_checkout():
     except ValueError as error:
         return jsonify({"status": "error", "message": str(error)}), 409
 
-    return jsonify({"status": "success", "message": "Sale recorded and inventory updated.", "receipt_id": receipt_id, "items": saved_items, "stock": updated_stock}), 201
+    return jsonify({"status": "success", "message": "Sale recorded successfully.", "receipt_id": receipt_id, "items": saved_items, "stock": updated_stock}), 201
 
 
 @app.route('/update_payment/<int:receipt_id>', methods=['POST'])
