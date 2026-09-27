@@ -97,6 +97,23 @@
             color: #3730a3;
             font-weight: 700;
         }
+        .custom-select-wrapper > svg { display: none; }
+        .custom-select-wrapper > .custom-select-button {
+            position: relative;
+            padding-left: 0.75rem;
+            padding-right: 2.25rem;
+        }
+        .custom-select-wrapper > .custom-select-button::after {
+            content: '';
+            position: absolute;
+            right: 0.9rem;
+            top: 50%;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-right: 2px solid #64748b;
+            border-bottom: 2px solid #64748b;
+            transform: translateY(-70%) rotate(45deg);
+        }
 
         /* ── Scrollbar ── */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -481,6 +498,39 @@
                 {% endif %}
             </div>
 
+            <!-- Monthly category budgets are stored locally for offline use. -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6" aria-labelledby="budget-heading">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+                    <div>
+                        <h3 id="budget-heading" class="font-bold text-slate-800">Monthly budgets</h3>
+                        <p class="text-xs text-slate-500 mt-1">Set a limit for a category and track spending as you log expenses.</p>
+                    </div>
+                    <label class="text-xs font-semibold text-slate-500">Month
+                        <input id="budget-month" type="month" class="block mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </label>
+                </div>
+                <form id="budget-form" class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end mb-5">
+                    <label class="text-xs font-semibold text-slate-600">Category
+                        <select id="budget-category" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="" disabled selected>Select a category</option>
+                            <option value="Inventory & Materials">Inventory &amp; Materials</option>
+                            <option value="Delivery & Logistics">Delivery &amp; Logistics</option>
+                            <option value="Fuel & Electricity">Fuel &amp; Electricity</option>
+                            <option value="Data & Airtime">Data &amp; Airtime</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </label>
+                    <label class="text-xs font-semibold text-slate-600">Monthly limit (₦)
+                        <input id="budget-amount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="e.g. 50000" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </label>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg px-5 py-2.5 text-sm transition">Save budget</button>
+                </form>
+                <div id="budget-insight" class="hidden mb-4 rounded-xl px-4 py-3 text-sm" aria-live="polite"></div>
+                <div id="budget-progress-list" class="space-y-3" aria-live="polite">
+                    <p class="text-sm text-slate-500">Loading budgets…</p>
+                </div>
+            </section>
+
             <!-- Add Expense Form -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                 <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -657,36 +707,54 @@
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
                         <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        Quick Tap
+                        Inventory
                     </h3>
                     <button type="button" id="btn-manage-presets" class="text-[10px] bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 px-2.5 py-1 rounded-lg font-bold transition">⚙ Manage</button>
                 </div>
 
                 <!-- Preset Grid (quick-tap buttons) -->
-                <div id="presets-grid" class="grid grid-cols-3 gap-2 mb-0">
+                <div id="presets-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-0">
                     <p id="no-presets-msg" class="col-span-3 text-center text-slate-500 text-xs py-4">No presets yet. Tap ⚙ Manage to add your top items.</p>
+                </div>
+
+                <div class="mt-4 border-t border-slate-100 pt-4">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800">Current sale</h4>
+                            <p class="text-xs text-slate-500">Add products above, then save once for one receipt.</p>
+                        </div>
+                        <span id="sale-cart-count" class="text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full px-2.5 py-1">0 items</span>
+                    </div>
+                    <div id="sale-cart-items" class="space-y-2">
+                        <p class="text-xs text-slate-400 py-2">Your sale is empty.</p>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-100 mt-3 pt-3">
+                        <span class="text-sm font-semibold text-slate-600">Cart total</span>
+                        <strong id="sale-cart-total" class="text-lg font-black text-slate-900">₦0.00</strong>
+                    </div>
                 </div>
 
                 <!-- Manage Presets Panel (hidden by default) -->
                 <div id="manage-presets-panel" class="hidden mt-4 pt-4 border-t border-slate-200">
-                    <form id="add-preset-form" class="flex gap-2 items-end mb-3">
-                        <div class="flex-1">
+                    <form id="add-preset-form" class="grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_7rem_5rem_auto] gap-2 items-end mb-2">
+                        <div class="col-span-2 sm:col-span-1">
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Item Name</label>
                             <input type="text" id="preset-item-name" required placeholder="e.g. DLNZ Hoodie"
                                    class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
-                        <div class="w-24">
+                        <div>
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Price (₦)</label>
                             <input type="text" inputmode="numeric" id="preset-price" required placeholder="5,000"
                                    class="currency-input w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
-                        <div class="w-16">
+                        <div>
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Stock</label>
                             <input type="number" id="preset-stock" min="0" value="0" placeholder="0"
                                    class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm whitespace-nowrap">+ Add</button>
+                        <button type="submit" class="col-span-2 sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm whitespace-nowrap">+ Add</button>
                     </form>
+                    <p class="text-[10px] text-slate-500 mb-3">Enter starting stock to track quantities. A product created with 0 stock is not stock-tracked.</p>
                     <div id="presets-manage-list" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
                 </div>
             </div>
@@ -705,7 +773,7 @@
                             class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
                     </div>
                     <div>
-                        <input type="text" id="income-description" class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Title / Description (e.g. Kitchen Tiling)" required>
+                        <input type="text" id="income-description" class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Description for a non-inventory sale (optional when cart has items)">
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div class="relative">
@@ -1183,10 +1251,11 @@
     <script>
         const CURRENT_USER_ID = {{ session.get('user_id', '0') | tojson }};
         const DB_NAME = 'SoloBizDB_user_' + CURRENT_USER_ID;
-        const DB_VERSION = 4;
+        const DB_VERSION = 5;
         const STORE_NAME = 'expenses';
         const INCOME_STORE = 'income';
         const PROFILE_STORE = 'business_profile';
+        const BUDGET_STORE = 'category_budgets';
 
         // CSRF token injected server-side — sent with every mutating fetch
         const CSRF_TOKEN = {{ csrf_token | tojson }};
@@ -1389,6 +1458,9 @@
                     }
                     if (!db.objectStoreNames.contains(PROFILE_STORE)) {
                         db.createObjectStore(PROFILE_STORE, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(BUDGET_STORE)) {
+                        db.createObjectStore(BUDGET_STORE, { keyPath: 'id' });
                     }
                 };
 
@@ -1602,6 +1674,143 @@
             });
         }
 
+        function currentBudgetMonth() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function formatBudgetCurrency(value) {
+            return `₦${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        async function getMonthlyBudgets(month) {
+            const db = await openIndexedDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(BUDGET_STORE, 'readonly');
+                const req = tx.objectStore(BUDGET_STORE).getAll();
+                req.onsuccess = () => resolve((req.result || []).filter(item => item.month === month));
+                req.onerror = event => reject(event.target.error);
+            });
+        }
+
+        async function renderCategoryBudgets() {
+            const list = document.getElementById('budget-progress-list');
+            const monthInput = document.getElementById('budget-month');
+            if (!list || !monthInput) return;
+
+            const month = monthInput.value || currentBudgetMonth();
+            const [budgets, expenses] = await Promise.all([getMonthlyBudgets(month), getExpensesLocal()]);
+            const [year, monthNumber] = month.split('-').map(Number);
+            const monthStart = new Date(year, monthNumber - 1, 1);
+            const nextMonth = new Date(year, monthNumber, 1);
+            const spendByCategory = new Map();
+
+            expenses.forEach(expense => {
+                if (expense.pending_delete || expense.category === "Owner's Draw (Personal)") return;
+                const date = new Date(expense.date);
+                if (!Number.isFinite(date.getTime()) || date < monthStart || date >= nextMonth) return;
+                spendByCategory.set(expense.category, (spendByCategory.get(expense.category) || 0) + Number(expense.amount || 0));
+            });
+
+            list.replaceChildren();
+            const insight = document.getElementById('budget-insight');
+            if (!budgets.length) {
+                list.innerHTML = '<p class="text-sm text-slate-500 rounded-xl bg-slate-50 p-4">No budgets for this month yet. Choose a category and set a limit above.</p>';
+                insight?.classList.add('hidden');
+                return;
+            }
+
+            const progress = budgets.map(budget => {
+                const spent = spendByCategory.get(budget.category) || 0;
+                const limit = Number(budget.amount) || 0;
+                return { ...budget, spent, limit, percent: limit > 0 ? spent / limit * 100 : 0 };
+            }).sort((a, b) => b.percent - a.percent);
+
+            progress.forEach(item => {
+                const over = item.spent > item.limit;
+                const near = !over && item.percent >= 80;
+                const remaining = Math.max(0, item.limit - item.spent);
+                const article = document.createElement('article');
+                article.className = `rounded-xl border p-4 ${over ? 'border-rose-200 bg-rose-50' : near ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`;
+
+                const top = document.createElement('div');
+                top.className = 'flex flex-wrap items-start justify-between gap-2';
+                const category = document.createElement('h4');
+                category.className = 'font-bold text-slate-800 text-sm';
+                category.textContent = item.category;
+                const numbers = document.createElement('p');
+                numbers.className = `text-xs font-semibold ${over ? 'text-rose-700' : near ? 'text-amber-700' : 'text-slate-500'}`;
+                numbers.textContent = `${formatBudgetCurrency(item.spent)} of ${formatBudgetCurrency(item.limit)}`;
+                top.append(category, numbers);
+
+                const track = document.createElement('div');
+                track.className = 'h-2.5 rounded-full bg-white/80 overflow-hidden mt-3';
+                track.setAttribute('role', 'progressbar');
+                track.setAttribute('aria-label', `${item.category} budget used`);
+                track.setAttribute('aria-valuemin', '0');
+                track.setAttribute('aria-valuemax', '100');
+                track.setAttribute('aria-valuenow', String(Math.min(100, Math.round(item.percent))));
+                const fill = document.createElement('div');
+                fill.className = `h-full rounded-full transition-all ${over ? 'bg-rose-500' : near ? 'bg-amber-500' : 'bg-indigo-600'}`;
+                fill.style.width = `${Math.min(100, item.percent)}%`;
+                track.append(fill);
+
+                const status = document.createElement('p');
+                status.className = `text-xs mt-2 ${over ? 'text-rose-700 font-bold' : near ? 'text-amber-700 font-semibold' : 'text-slate-500'}`;
+                status.textContent = over
+                    ? `Over budget by ${formatBudgetCurrency(item.spent - item.limit)}`
+                    : `${formatBudgetCurrency(remaining)} remaining · ${Math.round(item.percent)}% used`;
+                article.append(top, track, status);
+                list.append(article);
+            });
+
+            const highest = progress[0];
+            if (insight) {
+                const over = highest.spent > highest.limit;
+                const near = highest.percent >= 80;
+                insight.className = `mb-4 rounded-xl px-4 py-3 text-sm ${over ? 'bg-rose-50 text-rose-800 border border-rose-200' : near ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-800 border border-indigo-100'}`;
+                insight.textContent = over
+                    ? `${highest.category} is over its monthly limit by ${formatBudgetCurrency(highest.spent - highest.limit)}.`
+                    : near
+                        ? `${highest.category} has used ${Math.round(highest.percent)}% of its monthly limit.`
+                        : `You're within budget across your tracked categories. ${highest.category} is closest to its limit at ${Math.round(highest.percent)}%.`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const monthInput = document.getElementById('budget-month');
+            const budgetForm = document.getElementById('budget-form');
+            if (!monthInput || !budgetForm) return;
+
+            monthInput.value = currentBudgetMonth();
+            monthInput.addEventListener('change', renderCategoryBudgets);
+            budgetForm.addEventListener('submit', async event => {
+                event.preventDefault();
+                const category = document.getElementById('budget-category').value;
+                const amount = Number(document.getElementById('budget-amount').value);
+                if (!category || !Number.isFinite(amount) || amount <= 0) return;
+
+                try {
+                    const month = monthInput.value || currentBudgetMonth();
+                    const db = await openIndexedDB();
+                    await new Promise((resolve, reject) => {
+                        const tx = db.transaction(BUDGET_STORE, 'readwrite');
+                        tx.objectStore(BUDGET_STORE).put({ id: `${month}|${category}`, month, category, amount, updated_at: new Date().toISOString() });
+                        tx.oncomplete = resolve;
+                        tx.onerror = () => reject(tx.error);
+                    });
+                    document.getElementById('budget-amount').value = '';
+                    document.getElementById('budget-category').value = '';
+                    await renderCategoryBudgets();
+                } catch (error) {
+                    console.error('Could not save category budget:', error);
+                    alert('Could not save this budget on this device.');
+                }
+            });
+
+            renderCategoryBudgets().catch(error => console.warn('Could not load category budgets:', error));
+        });
+
         async function syncIncomeFromServer() {
             if (!navigator.onLine) return;
             try {
@@ -1629,6 +1838,11 @@
                                 record.payment_mode = item.payment_mode || 'Cash';
                                 record.receipt_id = item.receipt_id || ('REC-' + item.id);
                                 record.date = item.date;
+                                record.checkout_id = item.checkout_id || record.checkout_id;
+                                record.checkout_line_id = item.checkout_line_id || record.checkout_line_id;
+                                record.inventory_item_id = item.inventory_item_id ?? record.inventory_item_id;
+                                record.quantity = Number(item.quantity || record.quantity || 1);
+                                record.unit_price = Number(item.unit_price || record.unit_price || 0);
                                 record.synced = true;
                                 await new Promise((resolve, reject) => {
                                     const updateTx = db.transaction(INCOME_STORE, 'readwrite');
@@ -1647,6 +1861,11 @@
                                 payment_mode: item.payment_mode || 'Cash',
                                 receipt_id: item.receipt_id || ('REC-' + item.id),
                                 date: item.date,
+                                checkout_id: item.checkout_id || null,
+                                checkout_line_id: item.checkout_line_id || null,
+                                inventory_item_id: item.inventory_item_id ?? null,
+                                quantity: Number(item.quantity || 1),
+                                unit_price: Number(item.unit_price || 0),
                                 synced: true,
                                 server_id: item.id
                             };
@@ -1868,16 +2087,62 @@
 
             // 2. Sync pending Income / Sales
             try {
-                const incTx = db.transaction(INCOME_STORE, 'readonly');
+                    const incTx = db.transaction(INCOME_STORE, 'readonly');
                 const getIncomeReq = incTx.objectStore(INCOME_STORE).getAll();
                 await new Promise((resolve, reject) => {
                     getIncomeReq.onsuccess = async () => {
                         try {
                     const allIncome = getIncomeReq.result || [];
                     const unsyncedIncome = allIncome.filter(item => !item.synced);
+                    const processedCheckoutIds = new Set();
 
                     for (const item of unsyncedIncome) {
                         try {
+                            if (item.checkout_id && !item.server_id) {
+                                if (processedCheckoutIds.has(item.checkout_id)) continue;
+                                processedCheckoutIds.add(item.checkout_id);
+                                const checkoutLines = unsyncedIncome.filter(line => line.checkout_id === item.checkout_id);
+                                const checkoutResponse = await authenticatedFetch('/api/checkout', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        checkout_id: item.checkout_id,
+                                        receipt_id: item.receipt_id,
+                                        customer_name: item.customer_name || 'Walk-in Customer',
+                                        amount_paid: checkoutLines.reduce((sum, line) => sum + Number(line.amount_paid || 0), 0),
+                                        payment_mode: item.payment_mode || 'Cash',
+                                        items: checkoutLines.map(line => ({
+                                            checkout_line_id: line.checkout_line_id,
+                                            inventory_item_id: line.inventory_item_id,
+                                            unit_price: line.unit_price,
+                                            quantity: line.quantity || 1
+                                        }))
+                                    })
+                                });
+                                const checkoutData = await checkoutResponse.json();
+                                if (!checkoutResponse.ok || checkoutData.status !== 'success') {
+                                    throw new Error(checkoutData.message || 'Inventory checkout sync failed');
+                                }
+                                const returnedLines = new Map((checkoutData.items || []).map(line => [line.checkout_line_id, line]));
+                                const updateTx = db.transaction(INCOME_STORE, 'readwrite');
+                                const updateStore = updateTx.objectStore(INCOME_STORE);
+                                checkoutLines.forEach(line => {
+                                    const serverLine = returnedLines.get(line.checkout_line_id);
+                                    if (!serverLine) return;
+                                    line.server_id = serverLine.id;
+                                    line.synced = true;
+                                    line.total_value = Number(serverLine.total_value ?? line.total_value);
+                                    line.amount_paid = Number(serverLine.amount_paid ?? line.amount_paid);
+                                    line.unit_price = Number(serverLine.unit_price ?? line.unit_price);
+                                    updateStore.put(line);
+                                });
+                                await new Promise((done, fail) => {
+                                    updateTx.oncomplete = done;
+                                    updateTx.onerror = () => fail(updateTx.error);
+                                });
+                                continue;
+                            }
+
                             if (item.server_id && Number(item.pending_payment_amount) > 0) {
                                 const paymentResponse = await authenticatedFetch(`/update_payment/${item.server_id}`, {
                                     method: 'POST',
@@ -2319,6 +2584,7 @@
                     ? visible.slice().reverse().map(buildExpenseItemHTML).join('')
                     : '<p class="text-center text-slate-500 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>';
                 recalculateTotalFromUI();
+                await renderCategoryBudgets();
             } catch (err) {
                 console.warn('Could not render expense list from IndexedDB:', err);
             }
@@ -2747,7 +3013,7 @@
                     
                     const grandTotal      = receiptItems.reduce((s,i) => s + parseFloat(i.total_value ?? i.amount ?? 0), 0);
                     const finalPaid       = receiptItems.reduce((s,i) => s + parseFloat(i.amount_paid ?? i.amount ?? 0), 0);
-                    const paymentState    = getReceiptPaymentState(receiptItems[0] || saleRecord);
+                    const paymentState    = getReceiptPaymentState({ total_value: grandTotal, amount_paid: finalPaid });
                     const paymentMode     = saleRecord.payment_mode || 'Cash';
                     const hasAdjustments  = false; // Removed in Universal Ledger
                     const fmt             = (n) => 'NGN ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -2885,7 +3151,8 @@
                             doc.rect(4, y, 72, 7.5, 'F');
                         }
                         doc.setTextColor(30, 41, 59);
-                        const title = item.description || item.item_sold || 'Goods / Services';
+                        const itemTitle = item.description || item.item_sold || 'Goods / Services';
+                        const title = Number(item.quantity) > 1 ? `${item.quantity} x ${itemTitle}` : itemTitle;
                         const amt   = parseFloat(item.total_value ?? item.amount ?? 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
                         const splitTitle = doc.splitTextToSize(title, 38)[0];
                         doc.text(splitTitle, metaLeft, y + 5);
@@ -3211,7 +3478,8 @@
                 const totalValue = paymentState.totalValue;
                 const amountPaid = paymentState.amountPaid;
                 const balanceOwed = paymentState.balanceOwed;
-                const desc = income.description || income.item_sold || 'Income';
+                const itemDescription = income.description || income.item_sold || 'Income';
+                const desc = Number(income.quantity) > 1 ? `${income.quantity} x ${itemDescription}` : itemDescription;
 
                 const formattedTotal = totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const formattedPaid = amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -3351,33 +3619,150 @@
                 }
             });
 
+            let incomeSubmitInProgress = false;
             const addIncomeForm = document.getElementById('add-income-form');
             if (addIncomeForm) {
                 addIncomeForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    
+                    if (incomeSubmitInProgress) return;
+
                     const customer_name = document.getElementById('income-customer-name')?.value.trim() || 'Walk-in Customer';
                     const description = document.getElementById('income-description')?.value.trim();
-                    const total_value = parseFloat((document.getElementById('income-total-value')?.value || '').replace(/,/g, ''));
+                    const cartTotal = saleCart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+                    const total_value = saleCart.length
+                        ? cartTotal
+                        : parseFloat((document.getElementById('income-total-value')?.value || '').replace(/,/g, ''));
                     const amount_paid = parseFloat((document.getElementById('income-amount-paid')?.value || '').replace(/,/g, ''));
                     const payment_mode = document.getElementById('sale-payment-mode')?.value || 'Cash';
 
-                    if (!description || isNaN(total_value) || isNaN(amount_paid)) {
-                        alert("Please fill in the description, total value, and amount paid correctly.");
+                    if ((!saleCart.length && !description) || !Number.isFinite(total_value) || total_value <= 0 ||
+                        !Number.isFinite(amount_paid) || amount_paid < 0 || amount_paid > total_value) {
+                        alert('Enter a description, a valid sale total, and an amount paid from zero up to the total.');
                         return;
                     }
 
-                    await logSale({ 
-                        customer_name, 
-                        description, 
-                        total_value, 
-                        amount_paid, 
-                        payment_mode 
-                    });
+                    incomeSubmitInProgress = true;
+                    const submitButton = addIncomeForm.querySelector('button[type="submit"]');
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.textContent = 'Saving sale...';
+                    }
 
-                    addIncomeForm.reset();
-                    renderIncomeListUI();
+                    if (saleCart.length) {
+                        const checkoutId = (window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+                        const receiptId = `REC-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+                        const checkoutLines = saleCart.map(item => ({
+                            checkout_line_id: window.crypto?.randomUUID?.() || `${checkoutId}-${item.preset_id}`,
+                            inventory_item_id: item.preset_id,
+                            unit_price: item.unit_price,
+                            quantity: item.quantity
+                        }));
+                        const payload = { checkout_id: checkoutId, receipt_id: receiptId, customer_name, amount_paid, payment_mode, items: checkoutLines };
+                        let checkoutResult = null;
+
+                        if (navigator.onLine) {
+                            try {
+                                const response = await authenticatedFetch('/api/checkout', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                });
+                                const result = await response.json();
+                                if (!response.ok || result.status !== 'success') {
+                                    alert(result.message || 'Could not complete this sale. Check inventory and try again.');
+                                    incomeSubmitInProgress = false;
+                                    if (submitButton) {
+                                        submitButton.disabled = false;
+                                        submitButton.textContent = 'Save Transaction';
+                                    }
+                                    return;
+                                }
+                                checkoutResult = result;
+                            } catch (error) {
+                                console.warn('Checkout could not reach the server; saving it to the offline queue.', error);
+                            }
+                        }
+
+                        try {
+                            const db = await openIndexedDB();
+                            const storeTx = db.transaction(INCOME_STORE, 'readwrite');
+                            const store = storeTx.objectStore(INCOME_STORE);
+                            let remainingPaid = amount_paid;
+                            checkoutLines.forEach((line, index) => {
+                                const product = inventoryPresets.find(item => item.id === line.inventory_item_id);
+                                const saved = checkoutResult?.items?.find(item => item.checkout_line_id === line.checkout_line_id);
+                                const lineTotal = Number(saved?.total_value ?? (product.price * line.quantity));
+                                const linePaid = Number(saved?.amount_paid ?? Math.min(remainingPaid, lineTotal));
+                                remainingPaid = Math.max(0, remainingPaid - linePaid);
+                                const record = {
+                                    description: saved?.description || product.item_name,
+                                    total_value: lineTotal,
+                                    amount_paid: linePaid,
+                                    customer_name,
+                                    receipt_id: checkoutResult?.receipt_id || receiptId,
+                                    checkout_id: checkoutId,
+                                    checkout_line_id: line.checkout_line_id,
+                                    inventory_item_id: line.inventory_item_id,
+                                    quantity: line.quantity,
+                                    unit_price: lineTotal / line.quantity,
+                                    payment_mode,
+                                    date: saved?.date || new Date().toISOString(),
+                                    synced: Boolean(checkoutResult),
+                                    server_id: saved?.id || null
+                                };
+                                const request = store.add(record);
+                                request.onsuccess = () => { record.local_id = request.result; };
+                            });
+                            await new Promise((resolve, reject) => {
+                                storeTx.oncomplete = resolve;
+                                storeTx.onerror = () => reject(storeTx.error);
+                                storeTx.onabort = () => reject(storeTx.error || new Error('Could not save the sale locally.'));
+                            });
+
+                            if (checkoutResult?.stock) {
+                                inventoryPresets.forEach(product => {
+                                    if (Object.hasOwn(checkoutResult.stock, String(product.id))) product.stock = checkoutResult.stock[String(product.id)];
+                                });
+                            } else {
+                                saleCart.forEach(cartItem => {
+                                    const product = inventoryPresets.find(item => item.id === cartItem.preset_id);
+                                    if (product?.track_stock) product.stock = Math.max(0, product.stock - cartItem.quantity);
+                                });
+                            }
+                            saveInventoryCache();
+                            renderPresetsGrid();
+                            renderManageList();
+                            saleCart = [];
+                            addIncomeForm.reset();
+                            const paidField = document.getElementById('income-amount-paid');
+                            if (paidField) delete paidField.dataset.touched;
+                            renderSaleCart();
+                            await renderIncomeListUI();
+                            if (!checkoutResult) alert('Sale saved on this device. It will sync when you reconnect.');
+                        } catch (error) {
+                            console.error('Could not save checkout:', error);
+                            alert('The sale could not be saved. Please try again.');
+                            incomeSubmitInProgress = false;
+                            if (submitButton) {
+                                submitButton.disabled = false;
+                                submitButton.textContent = 'Save Transaction';
+                            }
+                            return;
+                        }
+                    } else {
+                        await logSale({ customer_name, description, total_value, amount_paid, payment_mode });
+                        addIncomeForm.reset();
+                        const manualPaidField = document.getElementById('income-amount-paid');
+                        if (manualPaidField) delete manualPaidField.dataset.touched;
+                        renderIncomeListUI();
+                    }
+
                     calculateDashboard();
+                    incomeSubmitInProgress = false;
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Save Transaction';
+                    }
                 });
             }
 
@@ -3385,10 +3770,117 @@
             // QUICK-TAP INVENTORY PRESETS
             // =========================================================
             let inventoryPresets = [];
+            let saleCart = [];
             const presetsGrid = document.getElementById('presets-grid');
             const noPresetsMsg = document.getElementById('no-presets-msg');
             const managePanel = document.getElementById('manage-presets-panel');
             const manageList = document.getElementById('presets-manage-list');
+            const inventoryCacheKey = `solobiz_inventory_presets_${CURRENT_USER_ID}`;
+
+            function saveInventoryCache() {
+                try { localStorage.setItem(inventoryCacheKey, JSON.stringify(inventoryPresets)); }
+                catch (error) { console.warn('Could not cache inventory for offline use:', error); }
+            }
+
+            function renderSaleCart() {
+                const cartList = document.getElementById('sale-cart-items');
+                const cartCount = document.getElementById('sale-cart-count');
+                const cartTotal = document.getElementById('sale-cart-total');
+                if (!cartList) return;
+                const units = saleCart.reduce((sum, item) => sum + item.quantity, 0);
+                const total = saleCart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+                if (cartCount) cartCount.textContent = `${units} ${units === 1 ? 'item' : 'items'}`;
+                if (cartTotal) cartTotal.textContent = `₦${total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                cartList.replaceChildren();
+                if (!saleCart.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'text-xs text-slate-400 py-2';
+                    empty.textContent = 'Your sale is empty.';
+                    cartList.append(empty);
+                }
+                saleCart.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5';
+                    const info = document.createElement('div');
+                    info.className = 'min-w-0 flex-1';
+                    const name = document.createElement('p');
+                    name.className = 'font-semibold text-sm text-slate-800 truncate';
+                    name.textContent = item.name;
+                    const subtotal = document.createElement('p');
+                    subtotal.className = 'text-xs text-slate-500';
+                    subtotal.textContent = `₦${item.unit_price.toLocaleString('en-NG')} each · ₦${(item.unit_price * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    info.append(name, subtotal);
+
+                    const controls = document.createElement('div');
+                    controls.className = 'flex items-center gap-1.5';
+                    [['decrease', '−'], ['increase', '+']].forEach(([action, label]) => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'w-8 h-8 rounded-lg border border-slate-200 bg-white font-bold text-slate-700';
+                        button.dataset.cartAction = action;
+                        button.dataset.presetId = String(item.preset_id);
+                        button.setAttribute('aria-label', `${action === 'increase' ? 'Increase' : 'Decrease'} ${item.name} quantity`);
+                        button.textContent = label;
+                        controls.append(button);
+                    });
+                    const quantity = document.createElement('span');
+                    quantity.className = 'w-7 text-center text-sm font-bold text-slate-800';
+                    quantity.textContent = String(item.quantity);
+                    controls.insertBefore(quantity, controls.lastChild);
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'text-xs text-rose-600 font-semibold px-1';
+                    remove.dataset.cartAction = 'remove';
+                    remove.dataset.presetId = String(item.preset_id);
+                    remove.textContent = 'Remove';
+                    controls.append(remove);
+                    row.append(info, controls);
+                    cartList.append(row);
+                });
+
+                const descriptionInput = document.getElementById('income-description');
+                const totalInput = document.getElementById('income-total-value');
+                if (descriptionInput) {
+                    descriptionInput.required = saleCart.length === 0;
+                    descriptionInput.disabled = saleCart.length > 0;
+                    descriptionInput.placeholder = saleCart.length ? 'Cart items will be listed on the receipt' : 'Description for a non-inventory sale';
+                }
+                if (totalInput) {
+                    totalInput.readOnly = saleCart.length > 0;
+                    totalInput.value = saleCart.length ? total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+                    totalInput.classList.toggle('bg-slate-50', saleCart.length > 0);
+                }
+                const paidInput = document.getElementById('income-amount-paid');
+                if (paidInput && saleCart.length && !paidInput.dataset.touched) {
+                    paidInput.value = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            }
+
+            document.getElementById('sale-cart-items')?.addEventListener('click', event => {
+                const button = event.target.closest('[data-cart-action]');
+                if (!button) return;
+                const presetId = Number(button.dataset.presetId);
+                const item = saleCart.find(line => line.preset_id === presetId);
+                if (!item) return;
+                if (button.dataset.cartAction === 'remove') {
+                    saleCart = saleCart.filter(line => line.preset_id !== presetId);
+                } else if (button.dataset.cartAction === 'decrease') {
+                    item.quantity -= 1;
+                    if (item.quantity <= 0) saleCart = saleCart.filter(line => line.preset_id !== presetId);
+                } else if (button.dataset.cartAction === 'increase') {
+                    const preset = inventoryPresets.find(product => product.id === presetId);
+                    if (preset?.track_stock && item.quantity >= preset.stock) {
+                        alert(`Only ${preset.stock} ${preset.item_name} available.`);
+                        return;
+                    }
+                    item.quantity += 1;
+                }
+                renderSaleCart();
+            });
+            document.getElementById('income-amount-paid')?.addEventListener('input', event => {
+                event.currentTarget.dataset.touched = 'true';
+            });
 
             // Toggle manage panel
             document.getElementById('btn-manage-presets')?.addEventListener('click', () => {
@@ -3399,9 +3891,9 @@
             function renderPresetsGrid() {
                 if (!presetsGrid) return;
                 const buttons = inventoryPresets.map(p => {
-                    const isLow = p.stock > 0 && p.stock <= 3;
-                    const isOut = p.stock === 0 && inventoryPresets.some(x => x.stock > 0); // only flag if stock tracking is used
-                    const stockBadge = p.stock > 0
+                    const isLow = Boolean(p.track_stock) && p.stock <= 3;
+                    const isOut = Boolean(p.track_stock) && p.stock <= 0;
+                    const stockBadge = p.track_stock
                         ? `<span class="text-[9px] ${isLow ? 'text-amber-400 font-bold' : 'text-slate-500'}">${isLow ? '⚠ ' : ''}${p.stock} left</span>`
                         : '';
                     const outClass = isOut ? 'opacity-40 pointer-events-none' : '';
@@ -3427,7 +3919,8 @@
                     <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-xs" data-manage-id="${p.id}">
                         <span class="flex-1 font-semibold text-slate-800 truncate">${p.item_name}</span>
                         <span class="text-emerald-600 font-bold whitespace-nowrap">₦${p.price.toLocaleString()}</span>
-                        <span class="text-slate-500 whitespace-nowrap w-12 text-center">${p.stock} pcs</span>
+                        <span class="text-slate-500 whitespace-nowrap w-12 text-center">${p.track_stock ? `${p.stock} pcs` : 'untracked'}</span>
+                        <button type="button" class="btn-edit-preset text-indigo-600 hover:text-indigo-800 font-bold transition" data-id="${p.id}">Edit</button>
                         <button type="button" class="btn-delete-preset text-red-400 hover:text-red-600 font-bold transition" data-id="${p.id}">✕</button>
                     </div>
                 `).join('');
@@ -3440,10 +3933,17 @@
                     const data = await res.json();
                     if (data.status === 'success') {
                         inventoryPresets = data.presets;
+                        saveInventoryCache();
                         renderPresetsGrid();
                         renderManageList();
                     }
-                } catch (e) { console.warn('Presets load failed:', e); }
+                } catch (e) {
+                    console.warn('Presets load failed; loading cached inventory if available:', e);
+                    try { inventoryPresets = JSON.parse(localStorage.getItem(inventoryCacheKey) || '[]'); }
+                    catch (_) { inventoryPresets = []; }
+                    renderPresetsGrid();
+                    renderManageList();
+                }
             }
 
             // Add preset form
@@ -3463,6 +3963,7 @@
                     const data = await res.json();
                     if (data.status === 'success') {
                         inventoryPresets.push(data.preset);
+                        saveInventoryCache();
                         renderPresetsGrid();
                         renderManageList();
                         e.target.reset();
@@ -3474,50 +3975,78 @@
 
             // Delete preset
             manageList?.addEventListener('click', async (e) => {
+                const editBtn = e.target.closest('.btn-edit-preset');
+                if (editBtn) {
+                    const id = Number(editBtn.dataset.id);
+                    const preset = inventoryPresets.find(item => item.id === id);
+                    if (!preset) return;
+                    const item_name = window.prompt('Product name', preset.item_name);
+                    if (item_name === null) return;
+                    const priceText = window.prompt('Unit price', String(preset.price));
+                    if (priceText === null) return;
+                    const stockText = window.prompt('Units in stock', String(preset.stock));
+                    if (stockText === null) return;
+                    const price = Number(priceText.replace(/,/g, ''));
+                    const stock = Number(stockText);
+                    if (!item_name.trim() || !Number.isFinite(price) || price <= 0 || !Number.isInteger(stock) || stock < 0) {
+                        alert('Enter a product name, a positive price, and a whole number of units in stock.');
+                        return;
+                    }
+                    try {
+                        const response = await authenticatedFetch(`/api/inventory-presets/${id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ item_name: item_name.trim(), price, stock })
+                        });
+                        const result = await response.json();
+                        if (!response.ok || result.status !== 'success') throw new Error(result.message || 'Could not update product.');
+                        inventoryPresets = inventoryPresets.map(item => item.id === id ? result.preset : item);
+                        saleCart = saleCart.map(item => item.preset_id === id
+                            ? { ...item, name: result.preset.item_name, unit_price: Number(result.preset.price) }
+                            : item);
+                        saveInventoryCache();
+                        renderPresetsGrid();
+                        renderManageList();
+                        renderSaleCart();
+                    } catch (error) {
+                        alert(error.message || 'Could not update product.');
+                    }
+                    return;
+                }
                 const deleteBtn = e.target.closest('.btn-delete-preset');
                 if (!deleteBtn) return;
                 const id = parseInt(deleteBtn.dataset.id, 10);
                 try {
                     await authenticatedFetch(`/api/inventory-presets/${id}`, { method: 'DELETE' });
                     inventoryPresets = inventoryPresets.filter(p => p.id !== id);
+                    saleCart = saleCart.filter(line => line.preset_id !== id);
+                    saveInventoryCache();
                     renderPresetsGrid();
                     renderManageList();
+                    renderSaleCart();
                 } catch (err) { console.error('Delete preset error:', err); }
             });
 
-            // Quick-Tap: add item to sale form
-            presetsGrid?.addEventListener('click', async (e) => {
+            // Add items to the cart; stock changes only after checkout succeeds.
+            presetsGrid?.addEventListener('click', (e) => {
                 const btn = e.target.closest('.preset-tap-btn');
                 if (!btn) return;
                 const presetId = parseInt(btn.dataset.presetId, 10);
-                const name = btn.dataset.name;
-                const price = btn.dataset.price;
-
-                // Fill the transaction form
-                const descInput = document.getElementById('income-description');
-                const valInput = document.getElementById('income-total-value');
-                const paidInput = document.getElementById('income-amount-paid');
-                
-                if (descInput) descInput.value = name;
-                if (valInput) valInput.value = parseInt(price, 10).toLocaleString('en-US');
-                if (paidInput) paidInput.value = parseInt(price, 10).toLocaleString('en-US');
-
-
-                // Decrement stock in background
-                const preset = inventoryPresets.find(p => p.id === presetId);
-                if (preset && preset.stock > 0) {
-                    try {
-                        const res = await authenticatedFetch(`/api/inventory-presets/${presetId}/decrement`, { method: 'POST' });
-                        const data = await res.json();
-                        preset.stock = data.stock;
-                        renderPresetsGrid();
-                        renderManageList();
-                    } catch (err) { console.warn('Stock decrement failed:', err); }
+                const preset = inventoryPresets.find(product => product.id === presetId);
+                if (!preset) return;
+                const line = saleCart.find(item => item.preset_id === presetId);
+                if (preset.track_stock && (line?.quantity || 0) >= preset.stock) {
+                    alert(`Only ${preset.stock} ${preset.item_name} available.`);
+                    return;
                 }
+                if (line) line.quantity += 1;
+                else saleCart.push({ preset_id: presetId, name: preset.item_name, unit_price: Number(preset.price), quantity: 1 });
+                renderSaleCart();
             });
 
             // Load presets on init
             loadPresets();
+            window.addEventListener('online', loadPresets);
 
             // =========================================================
             // SALES ANALYTICS ENGINE
