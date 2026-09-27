@@ -324,6 +324,18 @@
             #profile-view-mode,
             #profile-edit-mode { max-width: 860px; }
         }
+        /* Keep the app bar visible while the dashboard content scrolls. */
+        :root { --app-header-height: 60px; scroll-padding-top: var(--app-header-height); }
+        @media (min-width: 640px) {
+            :root { --app-header-height: 64px; }
+        }
+        body > header {
+            position: fixed !important;
+            inset: 0 0 auto;
+            width: 100%;
+            z-index: 1000;
+        }
+        main.desktop-dashboard-shell { padding-top: var(--app-header-height); }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
@@ -358,19 +370,19 @@
             <div class="px-1 pt-1 pb-3 hidden lg:block">
                 <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Menu</p>
             </div>
-            <a id="btn-tab-expenses" href="/dashboard/expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'expenses' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-expenses" data-dashboard-tab="expenses" href="/dashboard/expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'expenses' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                 <span>Expenses</span>
             </a>
-            <a id="btn-tab-income" href="/dashboard/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-emerald-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-income" data-dashboard-tab="income" href="/dashboard/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-emerald-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                 <span>Sales</span>
             </a>
-            <a id="btn-tab-analytics" href="/dashboard/analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'analytics' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-analytics" data-dashboard-tab="analytics" href="/dashboard/analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'analytics' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                 <span>Analytics</span>
             </a>
-            <a id="btn-tab-profile" href="/dashboard/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-profile" data-dashboard-tab="profile" href="/dashboard/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
                 <span>Profile</span>
             </a>
@@ -403,7 +415,7 @@
                 </h2>
                 <p class="text-[11px] text-slate-500 font-medium mt-0.5">Here is your business overview today</p>
             </div>
-            <a id="btn-global-overview" href="/dashboard/analytics" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
+            <a id="btn-global-overview" data-dashboard-tab="analytics" href="/dashboard/analytics" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
                 Overview
             </a>
         </div>
@@ -778,6 +790,23 @@
                         <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Liquid Profit</p>
                         <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-liquid-profit">₦0.00</p>
                     </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800">Cash Flow Trend</h3>
+                            <p class="text-xs text-slate-500">Money collected compared with operating expenses</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-[10px] font-semibold text-slate-500">
+                            <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-600"></span> Sales</span>
+                            <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Expenses</span>
+                        </div>
+                    </div>
+                    <canvas id="analytics-trend-chart" class="block w-full h-64" role="img" aria-label="Bar chart comparing sales collected and expenses over time">
+                        Cash flow chart: sales collected compared with expenses.
+                    </canvas>
+                    <p id="analytics-trend-summary" class="sr-only" aria-live="polite"></p>
                 </div>
 
                 <!-- Outstanding Alert (Only shows if money is owed) -->
@@ -1178,6 +1207,7 @@
         })();
 
         function handleLogout() {
+            navigator.serviceWorker?.controller?.postMessage({ type: 'CLEAR_PRIVATE_OFFLINE_SHELL' });
             localStorage.clear();
             sessionStorage.clear();
             window.location.href = "/logout";
@@ -2484,8 +2514,79 @@
             }
 
             // -------------------------------------------------------------
-            // TAB SWITCHING LOGIC
+            // Dashboard routing: change sections without reloading the shared shell.
             // -------------------------------------------------------------
+            const dashboardPaths = {
+                expenses: '/dashboard/expenses',
+                income: '/dashboard/sales',
+                analytics: '/dashboard/analytics',
+                profile: '/dashboard/profile'
+            };
+            const dashboardViews = {
+                expenses: document.getElementById('tab-expenses-content'),
+                income: document.getElementById('tab-income-content'),
+                analytics: document.getElementById('tab-analytics-content'),
+                profile: document.getElementById('tab-profile-content')
+            };
+            const dashboardColors = {
+                expenses: 'bg-indigo-600',
+                income: 'bg-emerald-600',
+                analytics: 'bg-blue-600',
+                profile: 'bg-indigo-600'
+            };
+            function dashboardTabFromLocation() {
+                const section = window.location.pathname.split('/').filter(Boolean).pop();
+                if (section === 'sales') return 'income';
+                return dashboardPaths[section] ? section : 'expenses';
+            }
+            function switchDashboardPage(tab, addHistory = true, refreshContent = true) {
+                if (!dashboardPaths[tab]) return;
+
+                Object.entries(dashboardViews).forEach(([name, view]) => {
+                    view?.classList.toggle('hidden', name !== tab);
+                });
+                document.getElementById('cfo-dashboard')?.classList.toggle('hidden', tab === 'analytics' || tab === 'profile');
+
+                document.querySelectorAll('[data-dashboard-tab]').forEach(link => {
+                    const active = link.dataset.dashboardTab === tab;
+                    if (active) link.setAttribute('aria-current', 'page');
+                    else link.removeAttribute('aria-current');
+
+                    if (link.classList.contains('tab-btn')) {
+                        link.classList.remove('bg-indigo-600', 'bg-emerald-600', 'bg-blue-600', 'text-white', 'shadow-sm');
+                        link.classList.add('text-slate-500', 'hover:text-slate-800', 'hover:bg-slate-100');
+                        if (active) {
+                            link.classList.remove('text-slate-500', 'hover:text-slate-800', 'hover:bg-slate-100');
+                            link.classList.add(dashboardColors[tab], 'text-white', 'shadow-sm');
+                        }
+                    } else if (link.classList.contains('mobile-nav-btn')) {
+                        link.classList.toggle('text-indigo-600', active);
+                        link.classList.toggle('text-slate-400', !active);
+                    }
+                });
+
+                if (addHistory && window.location.pathname !== dashboardPaths[tab]) {
+                    window.history.pushState({ dashboardTab: tab }, '', dashboardPaths[tab]);
+                }
+                if (refreshContent) {
+                    if (tab === 'income') renderIncomeListUI();
+                    if (tab === 'analytics') renderAnalytics('daily');
+                    if (tab === 'profile') populateProfileFormUI();
+                }
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }
+            document.querySelectorAll('a[data-dashboard-tab]').forEach(link => {
+                link.addEventListener('click', event => {
+                    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    event.preventDefault();
+                    switchDashboardPage(link.dataset.dashboardTab);
+                });
+            });
+            window.addEventListener('popstate', () => switchDashboardPage(dashboardTabFromLocation(), false));
+            if (dashboardTabFromLocation() !== ACTIVE_DASHBOARD_TAB) {
+                switchDashboardPage(dashboardTabFromLocation(), false, false);
+            }
+
             // -------------------------------------------------------------
             // CFO DASHBOARD METRICS CALCULATION
             // Accepts optional { categoryFilter, amountMax } to show filtered totals.
@@ -3446,6 +3547,79 @@
                 });
             });
 
+            let latestAnalyticsChartData = [];
+            function drawAnalyticsTrend(buckets) {
+                const canvas = document.getElementById('analytics-trend-chart');
+                if (!canvas) return;
+                const width = Math.floor(canvas.getBoundingClientRect().width);
+                const height = 256;
+                if (width < 20) return;
+
+                const scale = Math.min(window.devicePixelRatio || 1, 2);
+                canvas.width = Math.floor(width * scale);
+                canvas.height = Math.floor(height * scale);
+                const context = canvas.getContext('2d');
+                if (!context) return;
+                context.setTransform(scale, 0, 0, scale, 0, 0);
+                context.clearRect(0, 0, width, height);
+
+                const summary = document.getElementById('analytics-trend-summary');
+                const data = buckets.slice(-7);
+                if (!data.length) {
+                    context.fillStyle = '#64748b';
+                    context.font = '13px sans-serif';
+                    context.textAlign = 'center';
+                    context.fillText('No sales or expense data for this period yet.', width / 2, height / 2);
+                    if (summary) summary.textContent = 'No sales or expense data for this period yet.';
+                    return;
+                }
+
+                const pad = { top: 12, right: 12, bottom: 36, left: 48 };
+                const plotWidth = width - pad.left - pad.right;
+                const plotHeight = height - pad.top - pad.bottom;
+                const maxValue = Math.max(1, ...data.flatMap(item => [item.sales, item.expenses]));
+                const compactMoney = value => '₦' + new Intl.NumberFormat('en-NG', {
+                    notation: 'compact', maximumFractionDigits: 1
+                }).format(value);
+
+                context.font = '10px sans-serif';
+                context.textAlign = 'right';
+                context.textBaseline = 'middle';
+                for (let step = 0; step <= 4; step++) {
+                    const y = pad.top + plotHeight - (plotHeight * step / 4);
+                    context.strokeStyle = '#e2e8f0';
+                    context.lineWidth = 1;
+                    context.beginPath();
+                    context.moveTo(pad.left, y);
+                    context.lineTo(width - pad.right, y);
+                    context.stroke();
+                    context.fillStyle = '#64748b';
+                    context.fillText(compactMoney(maxValue * step / 4), pad.left - 7, y);
+                }
+
+                const slotWidth = plotWidth / data.length;
+                const barWidth = Math.min(22, slotWidth * 0.28);
+                data.forEach((item, index) => {
+                    const center = pad.left + slotWidth * (index + 0.5);
+                    const salesHeight = Math.max(0, item.sales / maxValue * plotHeight);
+                    const expenseHeight = Math.max(0, item.expenses / maxValue * plotHeight);
+                    context.fillStyle = '#4f46e5';
+                    context.fillRect(center - barWidth - 2, pad.top + plotHeight - salesHeight, barWidth, salesHeight);
+                    context.fillStyle = '#f43f5e';
+                    context.fillRect(center + 2, pad.top + plotHeight - expenseHeight, barWidth, expenseHeight);
+                    context.fillStyle = '#64748b';
+                    context.font = '10px sans-serif';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'top';
+                    context.fillText(item.label, center, pad.top + plotHeight + 9, slotWidth - 2);
+                });
+
+                if (summary) {
+                    summary.textContent = data.map(item => `${item.label}: sales ${compactMoney(item.sales)}, expenses ${compactMoney(item.expenses)}`).join('. ');
+                }
+            }
+            window.addEventListener('resize', () => drawAnalyticsTrend(latestAnalyticsChartData));
+
             async function renderAnalytics(period) {
                 const incomeItems = await getIncomeLocal();
                 const expenseItems = await getExpensesLocal();
@@ -3462,6 +3636,36 @@
                     if (period === 'monthly') return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
                     if (period === 'yearly') return d.getFullYear().toString();
                     return 'Unknown';
+                };
+
+                const chartBuckets = new Map();
+                const addChartValue = (dateValue, series, amount) => {
+                    const date = new Date(dateValue);
+                    if (!Number.isFinite(date.getTime())) return;
+                    const bucketDate = new Date(date);
+                    if (period === 'daily') bucketDate.setHours(0, 0, 0, 0);
+                    else if (period === 'weekly') bucketDate.setDate(bucketDate.getDate() - bucketDate.getDay());
+                    else if (period === 'monthly') bucketDate.setDate(1);
+                    else if (period === 'yearly') { bucketDate.setMonth(0, 1); }
+                    bucketDate.setHours(0, 0, 0, 0);
+                    const bucketKey = bucketDate.toISOString().slice(0, 10);
+                    if (!chartBuckets.has(bucketKey)) {
+                        const labelOptions = period === 'yearly'
+                            ? { year: 'numeric' }
+                            : period === 'monthly'
+                                ? { month: 'short', year: '2-digit' }
+                                : { month: 'short', day: 'numeric' };
+                        chartBuckets.set(bucketKey, {
+                            label: period === 'weekly'
+                                ? `Wk ${bucketDate.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })}`
+                                : bucketDate.toLocaleDateString('en-NG', labelOptions),
+                            sortDate: bucketDate.getTime(),
+                            sales: 0,
+                            expenses: 0
+                        });
+                    }
+                    const bucket = chartBuckets.get(bucketKey);
+                    bucket[series] += Number.isFinite(amount) ? amount : 0;
                 };
 
                 // Group data for the expandable list
@@ -3486,6 +3690,7 @@
                     
                     groups[key].salesVolume += tVal;
                     groups[key].items.push(item);
+                    addChartValue(item.date, 'sales', amtPaid);
                     
                     totalValue += tVal;
                     cashCollected += amtPaid;
@@ -3503,8 +3708,12 @@
                         // Personal draw: ignore from P&L
                     } else {
                         totalExpenses += amount;
+                        addChartValue(item.date, 'expenses', amount);
                     }
                 });
+
+                latestAnalyticsChartData = Array.from(chartBuckets.values()).sort((a, b) => a.sortDate - b.sortDate);
+                drawAnalyticsTrend(latestAnalyticsChartData);
 
                 // Calculate Margins
                 const liquidProfit = cashCollected - totalExpenses;
@@ -3593,7 +3802,7 @@
                 }).join('');
             }
 
-            if (ACTIVE_DASHBOARD_TAB === 'analytics') {
+            if (dashboardTabFromLocation() === 'analytics') {
                 renderAnalytics('daily');
             }
 
@@ -4075,7 +4284,8 @@
             });
             document.getElementById('open-receipt-profile')?.addEventListener('click', () => {
                 closeReceiptProfileRequired();
-                window.location.assign('/dashboard/profile');
+                switchDashboardPage('profile');
+                toggleProfileMode('edit');
             });
         });
     </script>
@@ -4119,22 +4329,21 @@
     <script>
     (function() {
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', {
-                    scope: '/',
-                    updateViaCache: 'none'
-                })
-                    .then(async (reg) => {
-                        await reg.update();
-                        console.log('[PWA] Service Worker Active with scope:', reg.scope);
-                    })
-                    .catch(err => console.error('[PWA] Service Worker Registration Failed:', err));
-            });
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!window.__solobizServiceWorkerReloaded) {
-                    window.__solobizServiceWorkerReloaded = true;
-                    window.location.reload();
+            navigator.serviceWorker.register('/sw.js', {
+                scope: '/',
+                updateViaCache: 'none'
+            }).then(reg => {
+                reg.update().catch(err => console.warn('[PWA] Update check skipped:', err));
+                return navigator.serviceWorker.ready;
+            }).then(reg => {
+                if (navigator.onLine && reg.active) {
+                    reg.active.postMessage({ type: 'CACHE_DASHBOARD_SHELL', url: window.location.href });
                 }
+                console.log('[PWA] Service Worker Active with scope:', reg.scope);
+            }).catch(err => console.error('[PWA] Service Worker Registration Failed:', err));
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('[PWA] Offline support is ready.');
             });
         }
 
@@ -4174,19 +4383,19 @@
 
 <!-- Mobile Bottom Nav Bar -->
 <nav id="mobile-bottom-nav" aria-label="Dashboard pages" class="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-center bg-white/98 backdrop-blur-2xl border-t border-slate-100 shadow-[0_-2px_24px_rgba(0,0,0,0.07)]" style="padding-bottom: env(safe-area-inset-bottom);">
-  <a href="/dashboard/expenses" data-mobile-tab="expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'expenses' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/dashboard/expenses" data-dashboard-tab="expenses" data-mobile-tab="expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'expenses' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
     <span class="text-[10px] font-bold">Expenses</span>
   </a>
-  <a href="/dashboard/sales" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'income' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/dashboard/sales" data-dashboard-tab="income" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'income' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
     <span class="text-[10px] font-bold">Sales</span>
   </a>
-  <a href="/dashboard/analytics" data-mobile-tab="analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'analytics' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/dashboard/analytics" data-dashboard-tab="analytics" data-mobile-tab="analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'analytics' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
     <span class="text-[10px] font-bold">Analytics</span>
   </a>
-  <a href="/dashboard/profile" data-mobile-tab="profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'profile' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/dashboard/profile" data-dashboard-tab="profile" data-mobile-tab="profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'profile' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
     <span class="text-[10px] font-bold">Profile</span>
   </a>

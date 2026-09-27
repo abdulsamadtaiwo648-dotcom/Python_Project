@@ -55,7 +55,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20260926.2")
+APP_VERSION = os.environ.get("APP_VERSION", "20260927.1")
 
 # Session / Cookie hardening
 _secure_cookie = os.environ.get("SESSION_COOKIE_SECURE")
