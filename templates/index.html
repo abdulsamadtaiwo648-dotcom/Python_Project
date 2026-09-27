@@ -23,13 +23,13 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: #f1f5f9;
+            background: #f8fafc;
             color: #1e293b;
         }
 
         /* ── Stat Cards: fluid number sizing ── */
         .stat-value {
-            font-size: clamp(0.55rem, 3.2vw, 1.1rem);
+            font-size: clamp(0.75rem, 3.8vw, 1.15rem);
             font-weight: 800;
             line-height: 1.2;
             overflow: hidden;
@@ -39,12 +39,12 @@
             max-width: 100%;
         }
         @media (min-width: 640px) {
-            .stat-value { font-size: 1.2rem; white-space: nowrap; }
+            .stat-value { font-size: 1.25rem; white-space: nowrap; }
         }
 
         /* ── Big central total display ── */
         .big-total-value {
-            font-size: clamp(1.25rem, 7vw, 2.5rem);
+            font-size: clamp(1.5rem, 8vw, 2.75rem);
             font-weight: 800;
             line-height: 1.1;
             overflow: hidden;
@@ -54,32 +54,32 @@
             width: 100%;
         }
         @media (min-width: 640px) {
-            .big-total-value { font-size: 2.5rem; }
+            .big-total-value { font-size: 2.75rem; }
         }
 
         /* ── Business Card ── */
         .biz-card {
             background: #ffffff;
-            border-radius: 16px;
+            border-radius: 20px;
             position: relative;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
         }
         .biz-card::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0;
-            height: 5px;
+            height: 4px;
             background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
-            border-radius: 16px 16px 0 0;
+            border-radius: 20px 20px 0 0;
         }
         .biz-card-divider {
             border: none;
             height: 1px;
-            background: #e2e8f0;
-            margin: 10px 0;
+            background: #f1f5f9;
+            margin: 12px 0;
         }
 
         /* ── Custom Select ── */
@@ -89,8 +89,8 @@
             scrollbar-width: thin;
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border-radius: 14px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
         }
         .custom-select-option[aria-selected="true"] {
             background: #eef2ff;
@@ -98,10 +98,10 @@
             font-weight: 700;
         }
 
-        /* ── Scrollbar light ── */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
 
         /* ═══════════════════════════════════════════
@@ -112,12 +112,14 @@
                 width: 100%;
                 max-width: 100%;
                 overflow-x: hidden;
-                padding-bottom: 70px;
+                padding-bottom: 72px;
             }
             .desktop-dashboard-shell {
                 display: block;
                 width: 100%;
                 max-width: 100%;
+                padding: 0 14px;
+                box-sizing: border-box;
             }
             /* Old horizontal tab nav hidden on mobile — bottom bar handles it */
             #dashboard-navigation {
@@ -129,6 +131,13 @@
             }
             #tab-income-content:not(.hidden) > #sales-main-view {
                 display: block;
+            }
+            .desktop-content {
+                padding: 14px 0 20px;
+            }
+            .desktop-greeting {
+                margin-top: 14px;
+                margin-bottom: 12px;
             }
         }
 
@@ -170,20 +179,30 @@
             /* ── Left Sidebar ── */
             .desktop-sidebar {
                 position: sticky;
-                top: 62px; /* sits just under the header */
+                top: 62px;
                 height: calc(100vh - 62px);
-                width: 240px;
+                width: 248px;
                 flex-shrink: 0;
-                padding: 20px 12px;
+                padding: 24px 14px 20px;
                 background: #ffffff;
                 border-right: 1px solid #e2e8f0;
                 overflow-y: auto;
                 display: flex;
                 flex-direction: column;
-                gap: 4px;
-                /* Reset any grid placement */
+                gap: 3px;
                 grid-column: unset;
                 grid-row: unset;
+            }
+
+            /* Sidebar label */
+            .desktop-sidebar > div:first-child p {
+                font-size: 0.65rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: #94a3b8;
+                padding: 0 2px;
+                margin-bottom: 4px;
             }
 
             /* Sidebar nav buttons */
@@ -192,8 +211,8 @@
                 display: flex;
                 align-items: center;
                 justify-content: flex-start;
-                gap: 12px;
-                padding: 12px 16px;
+                gap: 11px;
+                padding: 11px 14px;
                 border-radius: 12px;
                 font-size: 0.875rem;
                 font-weight: 600;
@@ -204,37 +223,49 @@
                 transition: background 0.15s, color 0.15s;
                 text-align: left;
                 white-space: nowrap;
+                text-decoration: none;
             }
             .desktop-sidebar .tab-btn:hover {
                 background: #f1f5f9;
                 color: #1e293b;
             }
-            /* Active state */
+            /* Active Expenses/Profile — indigo */
             .desktop-sidebar .tab-btn.bg-indigo-600 {
-                background: #4f46e5 !important;
-                color: #ffffff !important;
-                box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+                background: #eef2ff !important;
+                color: #4338ca !important;
+                font-weight: 700;
+                box-shadow: none;
             }
             .desktop-sidebar .tab-btn.bg-indigo-600 svg {
-                color: #ffffff !important;
+                color: #4338ca !important;
+            }
+            /* Active Sales — emerald */
+            .desktop-sidebar .tab-btn.bg-emerald-600 {
+                background: #ecfdf5 !important;
+                color: #047857 !important;
+                font-weight: 700;
+            }
+            .desktop-sidebar .tab-btn.bg-emerald-600 svg {
+                color: #059669 !important;
+            }
+            /* Active Analytics — blue */
+            .desktop-sidebar .tab-btn.bg-blue-600 {
+                background: #eff6ff !important;
+                color: #1d4ed8 !important;
+                font-weight: 700;
+            }
+            .desktop-sidebar .tab-btn.bg-blue-600 svg {
+                color: #2563eb !important;
             }
 
             /* ── Right content area ── */
             .desktop-content {
                 flex: 1;
                 min-width: 0;
-                padding: 28px 32px;
+                padding: 32px 36px;
                 overflow-y: auto;
-                /* Reset any grid placement */
                 grid-column: unset;
                 grid-row: unset;
-            }
-
-            /* PWA banner spans full width — place it above the shell */
-            #pwa-install-banner {
-                width: 100%;
-                margin: 0;
-                border-radius: 0;
             }
 
             /* Greeting card in content area */
@@ -244,14 +275,14 @@
                 border-radius: 16px;
             }
             .desktop-greeting h2 { font-size: 1.2rem; }
-            .desktop-greeting p { font-size: 0.8rem; }
+            .desktop-greeting p { font-size: 0.82rem; }
 
             /* CFO stat cards */
             #cfo-dashboard { margin-bottom: 24px; }
             #cfo-dashboard #top-sales,
             #cfo-dashboard #top-expenses,
-            #cfo-dashboard #top-profit { font-size: 1.35rem; }
-            #cfo-dashboard p { font-size: 0.7rem; }
+            #cfo-dashboard #top-profit { font-size: 1.4rem; }
+            #cfo-dashboard p { font-size: 0.72rem; }
             #cfo-dashboard > div:first-child {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -287,16 +318,15 @@
 
             .desktop-content input,
             .desktop-content select,
-            .desktop-content .custom-select-button { min-height: 46px; }
+            .desktop-content .custom-select-button { min-height: 44px; }
 
-            #digital-business-card { padding: 30px; }
+            #digital-business-card { padding: 32px; }
             #profile-view-mode,
             #profile-edit-mode { max-width: 860px; }
-            #tab-profile-content > .bg-white { padding: 28px; }
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
+<body class="bg-gray-50 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
     
     <!-- App Header -->
     <header class="bg-[#0f172a] text-white p-3.5 sm:p-4 shadow-lg sticky top-0 z-40">
@@ -325,25 +355,25 @@
     <main class="desktop-dashboard-shell w-full">
 <!-- Sidebar Navigation -->
         <aside id="dashboard-navigation" class="desktop-sidebar">
-            <div class="px-3 py-2 mb-2 hidden lg:block">
+            <div class="px-1 pt-1 pb-3 hidden lg:block">
                 <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Menu</p>
             </div>
-            <button id="btn-tab-expenses" type="button" class="tab-btn bg-indigo-600 text-white shadow-sm">
+            <a id="btn-tab-expenses" href="/dashboard/expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'expenses' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                 <span>Expenses</span>
-            </button>
-            <button id="btn-tab-income" type="button" class="tab-btn text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+            </a>
+            <a id="btn-tab-income" href="/dashboard/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-emerald-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                 <span>Sales</span>
-            </button>
-            <button id="btn-tab-analytics" type="button" class="tab-btn text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+            </a>
+            <a id="btn-tab-analytics" href="/dashboard/analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'analytics' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                 <span>Analytics</span>
-            </button>
-            <button id="btn-tab-profile" type="button" class="tab-btn text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+            </a>
+            <a id="btn-tab-profile" href="/dashboard/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
                 <span>Profile</span>
-            </button>
+            </a>
         </aside>
 
         <!-- Main Content Area -->
@@ -366,29 +396,29 @@
         </div>
 
         <!-- Mobile User Greeting Banner at the Top of Main Body -->
-        <div id="desktop-greeting" class="desktop-greeting mb-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+        <div id="desktop-greeting" class="desktop-greeting mb-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center justify-between">
             <div>
                 <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
                     Hi, <span id="user-greeting-name">{{ username }}</span> <svg class="w-4 h-4 text-amber-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </h2>
                 <p class="text-[11px] text-slate-500 font-medium mt-0.5">Here is your business overview today</p>
             </div>
-            <button id="btn-global-overview" type="button" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
+            <a id="btn-global-overview" href="/dashboard/analytics" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
                 Overview
-            </button>
+            </a>
         </div>
-        <div id="network-status-banner" class="hidden mb-4 rounded-2xl border bg-white px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+        <div id="network-status-banner" class="hidden mb-4 rounded-xl border bg-white px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
             <span id="network-status-text"></span>
             <button type="button" id="retry-sync-button" class="hidden rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide">Retry sync</button>
         </div>
 
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
-        <div id="cfo-dashboard" class="transition-all duration-300">
+        <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab in ['analytics', 'profile'] %}hidden{% endif %}">
         <!-- Top row: Sales + Expenses side by side -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
 
             <!-- Total Sales Card -->
-            <div class="bg-emerald-50 border border-emerald-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
+            <div class="bg-emerald-50 border border-emerald-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
                 <div class="flex items-center gap-1.5">
                     <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Total Sales</p>
@@ -397,7 +427,7 @@
             </div>
 
             <!-- Total Expenses Card -->
-            <div class="bg-rose-50 border border-rose-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
+            <div class="bg-rose-50 border border-rose-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
                 <div class="flex items-center gap-1.5">
                     <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
@@ -428,7 +458,7 @@
         <!-- ========================================================= -->
         <!-- TAB 1: EXPENSES CONTENT                                    -->
         <!-- ========================================================= -->
-        <section id="tab-expenses-content" class="tab-content space-y-6">
+        <section id="tab-expenses-content" class="tab-content space-y-6 {% if active_tab != 'expenses' %}hidden{% endif %}">
             
             <!-- Total Spent Card — always shows the global grand total, never overwritten by search -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 text-center overflow-hidden">
@@ -507,7 +537,7 @@
                     </div>
                 </div>
                 <!-- Live filter result summary -->
-                <div id="filter-result-banner" class="hidden mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between">
+                <div id="filter-result-banner" class="hidden mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between gap-3">
                     <div>
                         <p class="text-[10px] uppercase font-bold text-indigo-600 tracking-wider" id="filter-result-label">Filtered Total</p>
                         <p class="text-lg font-extrabold text-indigo-800" id="filter-result-total">₦0.00</p>
@@ -600,7 +630,7 @@
         <!-- ========================================================= -->
         <!-- TAB 2: SALES / INCOME CONTENT                             -->
         <!-- ========================================================= -->
-        <section id="tab-income-content" class="tab-content hidden space-y-6">
+        <section id="tab-income-content" class="tab-content space-y-6 {% if active_tab != 'income' %}hidden{% endif %}">
             
             <div id="sales-main-view" class="space-y-6">
                 <!-- Sales Summary Card -->
@@ -712,7 +742,7 @@
         <!-- ========================================================= -->
         <!-- TAB 4: ANALYTICS CONTENT                                  -->
         <!-- ========================================================= -->
-        <section id="tab-analytics-content" class="tab-content hidden space-y-6">
+        <section id="tab-analytics-content" class="tab-content space-y-6 {% if active_tab != 'analytics' %}hidden{% endif %}">
             <!-- Analytics View -->
             <div id="analytics-view" class="space-y-6">
                 <div class="flex items-center gap-3">
@@ -777,7 +807,7 @@
         <!-- ========================================================= -->
         <!-- TAB 3: BUSINESS PROFILE CONTENT                           -->
         <!-- ========================================================= -->
-        <section id="tab-profile-content" class="tab-content hidden space-y-6">
+        <section id="tab-profile-content" class="tab-content space-y-6 {% if active_tab != 'profile' %}hidden{% endif %}">
             
             <!-- Brand Setup Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
@@ -1131,6 +1161,7 @@
 
         // CSRF token injected server-side — sent with every mutating fetch
         const CSRF_TOKEN = {{ csrf_token | tojson }};
+        const ACTIVE_DASHBOARD_TAB = {{ active_tab | tojson }};
 
         // -------------------------------------------------------------
         // STEP 1 & 3: OFFLINE BOUNCER & FAIL-SAFE TICKET
@@ -2455,70 +2486,6 @@
             // -------------------------------------------------------------
             // TAB SWITCHING LOGIC
             // -------------------------------------------------------------
-            const btnExpenses = document.getElementById('btn-tab-expenses');
-            const btnIncome = document.getElementById('btn-tab-income');
-            const btnAnalytics = document.getElementById('btn-tab-analytics');
-            const btnProfile = document.getElementById('btn-tab-profile');
-
-            const contentExpenses = document.getElementById('tab-expenses-content');
-            const contentIncome = document.getElementById('tab-income-content');
-            const contentAnalytics = document.getElementById('tab-analytics-content');
-            const contentProfile = document.getElementById('tab-profile-content');
-            function switchTab(target) {
-                const cfoDashboard = document.getElementById('cfo-dashboard');
-                if (cfoDashboard) {
-                    if (target === 'analytics' || target === 'profile') {
-                        cfoDashboard.classList.add('hidden');
-                    } else {
-                        cfoDashboard.classList.remove('hidden');
-                    }
-                }
-                
-                [contentExpenses, contentIncome, contentAnalytics, contentProfile].forEach(el => el && el.classList.add('hidden'));
-                
-                // Reset all tabs to inactive state
-                [btnExpenses, btnIncome, btnAnalytics, btnProfile].forEach(btn => {
-                    if (btn) {
-                        btn.classList.remove('bg-indigo-600', 'bg-emerald-600', 'bg-blue-600', 'text-white', 'shadow-sm');
-                        btn.classList.add('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
-                    }
-                });
-
-                if (target === 'expenses' && contentExpenses) {
-                    contentExpenses.classList.remove('hidden');
-                    if (btnExpenses) {
-                        btnExpenses.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
-                        btnExpenses.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
-                    }
-                } else if (target === 'income' && contentIncome) {
-                    contentIncome.classList.remove('hidden');
-                    if (btnIncome) {
-                        btnIncome.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
-                        btnIncome.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
-                    }
-                    renderIncomeListUI();
-                } else if (target === 'analytics' && contentAnalytics) {
-                    contentAnalytics.classList.remove('hidden');
-                    if (btnAnalytics) {
-                        btnAnalytics.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
-                        btnAnalytics.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
-                    }
-                    if (typeof renderAnalytics === 'function') renderAnalytics('daily');
-                } else if (target === 'profile' && contentProfile) {
-                    contentProfile.classList.remove('hidden');
-                    if (btnProfile) {
-                        btnProfile.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
-                        btnProfile.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
-                    }
-                    populateProfileFormUI();
-                }
-            }
-
-            if (btnExpenses) btnExpenses.addEventListener('click', () => switchTab('expenses'));
-            if (btnIncome) btnIncome.addEventListener('click', () => switchTab('income'));
-            if (btnAnalytics) btnAnalytics.addEventListener('click', () => switchTab('analytics'));
-            if (btnProfile) btnProfile.addEventListener('click', () => switchTab('profile'));
-
             // -------------------------------------------------------------
             // CFO DASHBOARD METRICS CALCULATION
             // Accepts optional { categoryFilter, amountMax } to show filtered totals.
@@ -3457,15 +3424,6 @@
             const salesMainView = document.getElementById('sales-main-view');
             const analyticsView = document.getElementById('analytics-view');
             
-            // Handle the top header "Overview" button
-            document.getElementById('btn-global-overview')?.addEventListener('click', () => {
-                // Switch to the Analytics Tab directly
-                if (typeof switchTab === 'function') switchTab('analytics');
-                
-                // Scroll to top to see it clearly
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-
             document.getElementById('btn-hide-analytics')?.addEventListener('click', () => {
                 if(salesMainView && analyticsView) {
                     analyticsView.classList.add('hidden');
@@ -3633,6 +3591,10 @@
                     </details>
                     `;
                 }).join('');
+            }
+
+            if (ACTIVE_DASHBOARD_TAB === 'analytics') {
+                renderAnalytics('daily');
             }
 
             // Initial calculations and renders
@@ -4113,8 +4075,7 @@
             });
             document.getElementById('open-receipt-profile')?.addEventListener('click', () => {
                 closeReceiptProfileRequired();
-                switchTab('profile');
-                toggleProfileMode('edit');
+                window.location.assign('/dashboard/profile');
             });
         });
     </script>
@@ -4212,59 +4173,24 @@
 
 
 <!-- Mobile Bottom Nav Bar -->
-<nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-center bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]" style="padding-bottom: env(safe-area-inset-bottom);">
-  <button data-mobile-tab="expenses" class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 text-indigo-400">
+<nav id="mobile-bottom-nav" aria-label="Dashboard pages" class="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-center bg-white/98 backdrop-blur-2xl border-t border-slate-100 shadow-[0_-2px_24px_rgba(0,0,0,0.07)]" style="padding-bottom: env(safe-area-inset-bottom);">
+  <a href="/dashboard/expenses" data-mobile-tab="expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'expenses' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
     <span class="text-[10px] font-bold">Expenses</span>
-  </button>
-  <button data-mobile-tab="income" class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 text-gray-500">
+  </a>
+  <a href="/dashboard/sales" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'income' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
     <span class="text-[10px] font-bold">Sales</span>
-  </button>
-  <button data-mobile-tab="analytics" class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 text-gray-500">
+  </a>
+  <a href="/dashboard/analytics" data-mobile-tab="analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'analytics' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
     <span class="text-[10px] font-bold">Analytics</span>
-  </button>
-  <button data-mobile-tab="profile" class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 text-gray-500">
+  </a>
+  <a href="/dashboard/profile" data-mobile-tab="profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'profile' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
     <span class="text-[10px] font-bold">Profile</span>
-  </button>
+  </a>
 </nav>
-
-<script>
-// Mobile bottom nav tab switching
-(function() {
-  const mobileBtns = document.querySelectorAll('#mobile-bottom-nav .mobile-nav-btn');
-  mobileBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const tab = this.dataset.mobileTab;
-      const desktopBtn = document.getElementById('btn-tab-' + tab);
-      if (desktopBtn) desktopBtn.click();
-      mobileBtns.forEach(b => {
-        b.classList.remove('text-indigo-400');
-        b.classList.add('text-gray-500');
-      });
-      this.classList.remove('text-gray-500');
-      this.classList.add('text-indigo-400');
-    });
-  });
-  ['expenses','income','analytics','profile'].forEach(tab => {
-    const btn = document.getElementById('btn-tab-' + tab);
-    if (btn) btn.addEventListener('click', function() {
-      mobileBtns.forEach(b => {
-        const t = b.dataset.mobileTab;
-        if (t === tab) {
-          b.classList.add('text-indigo-400');
-          b.classList.remove('text-gray-500');
-        } else {
-          b.classList.remove('text-indigo-400');
-          b.classList.add('text-gray-500');
-        }
-      });
-    });
-  });
-})();
-</script>
 </body>
 
 </html>

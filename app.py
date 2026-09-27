@@ -1074,10 +1074,23 @@ def favicon():
 # DASHBOARD ROUTE
 # ==========================================
 @app.route("/dashboard")
-def dashboard():
+def dashboard_home():
+    """Keep old dashboard links working while using a page-specific URL."""
+    if not get_current_user_id():
+        return redirect("/login")
+    return redirect("/dashboard/expenses")
+
+
+@app.route("/dashboard/<section>")
+def dashboard(section):
     user_id = get_current_user_id()
     if not user_id:
         return redirect("/login")
+
+    if section not in {"expenses", "sales", "analytics", "profile"}:
+        return render_template("404.html"), 404
+
+    active_tab = "income" if section == "sales" else section
 
     expenses = []
     total_sales = 0.0
@@ -1139,7 +1152,8 @@ def dashboard():
         total_expenses=total_expenses,
         net_profit=net_profit,
         username=username,
-        profile=profile
+        profile=profile,
+        active_tab=active_tab
     )
 
 
