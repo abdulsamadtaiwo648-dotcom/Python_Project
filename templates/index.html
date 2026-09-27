@@ -21,10 +21,10 @@
     <!-- Pulls in modern, clean Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-          font-family: 'Inter', sans-serif; 
-          background: #000000;
-          color: #f1f5f9;
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
         }
 
         /* ── Stat Cards: fluid number sizing ── */
@@ -39,9 +39,10 @@
             max-width: 100%;
         }
         @media (min-width: 640px) {
-            .stat-value { font-size: 1.2rem; }
+            .stat-value { font-size: 1.2rem; white-space: nowrap; }
         }
 
+        /* ── Big central total display ── */
         .big-total-value {
             font-size: clamp(1.25rem, 7vw, 2.5rem);
             font-weight: 800;
@@ -56,86 +57,69 @@
             .big-total-value { font-size: 2.5rem; }
         }
 
-        /* Business card */
+        /* ── Business Card ── */
         .biz-card {
-            background: #0f172a;
+            background: #ffffff;
             border-radius: 16px;
             position: relative;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
-            border: 1px solid #1e293b;
-            box-shadow: 0 10px 40px rgba(99,102,241,0.15), 0 2px 8px rgba(0,0,0,0.4);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
         }
         .biz-card::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 5px;
-            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 60%, #c084fc 100%);
+            background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
             border-radius: 16px 16px 0 0;
         }
         .biz-card-divider {
             border: none;
             height: 1px;
-            background: #1e293b;
+            background: #e2e8f0;
             margin: 10px 0;
         }
+
+        /* ── Custom Select ── */
         .custom-select-menu {
             max-height: 16rem;
             overflow-y: auto;
             scrollbar-width: thin;
-            background: #1e293b;
-            border: 1px solid #374151;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
         }
         .custom-select-option[aria-selected="true"] {
-            background: #1e1b4b;
-            color: #a5b4fc;
+            background: #eef2ff;
+            color: #3730a3;
             font-weight: 700;
         }
 
-        /* Dark inputs */
-        input, select, textarea {
-            background-color: #1a1a2e !important;
-            color: #e2e8f0 !important;
-            border-color: #374151 !important;
-        }
-        input::placeholder, textarea::placeholder {
-            color: #6b7280 !important;
-        }
-        select option {
-            background: #1e293b;
-            color: #e2e8f0;
-        }
+        /* ── Scrollbar light ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
 
-        /* Mobile: hide old nav, show bottom bar */
+        /* ═══════════════════════════════════════════
+           MOBILE (< 1024px): Bottom Tab Bar
+        ═══════════════════════════════════════════ */
         @media (max-width: 1023px) {
             html, body {
                 width: 100%;
                 max-width: 100%;
                 overflow-x: hidden;
-                padding-bottom: 64px;
+                padding-bottom: 70px;
             }
             .desktop-dashboard-shell {
                 display: block;
                 width: 100%;
                 max-width: 100%;
             }
-            .desktop-sidebar,
-            .desktop-content,
-            .desktop-greeting,
-            #cfo-dashboard,
-            #network-status-banner,
-            .tab-content {
-                grid-column: auto;
-                grid-row: auto;
-                min-width: 0;
-                width: 100%;
-            }
-            .desktop-sidebar {
-                position: static;
-            }
-            /* Hide old horizontal tab nav on mobile */
+            /* Old horizontal tab nav hidden on mobile — bottom bar handles it */
             #dashboard-navigation {
                 display: none !important;
             }
@@ -148,105 +132,134 @@
             }
         }
 
-        /* Desktop layout */
+        /* ═══════════════════════════════════════════
+           DESKTOP (≥ 1024px): Left Sidebar + Content
+           Uses a simple flex layout — NO overlapping
+        ═══════════════════════════════════════════ */
         @media (min-width: 1024px) {
             body {
                 min-height: 100vh;
-                background: #000000;
+                background: #f1f5f9;
             }
+
+            /* Hide mobile bottom nav on desktop */
             #mobile-bottom-nav {
                 display: none !important;
             }
+
+            /* Header inner constraint */
             header > div {
                 max-width: 1440px;
                 padding-left: 28px;
                 padding-right: 28px;
             }
+
+            /* ── Main shell: sidebar left + scrollable content right ── */
             .desktop-dashboard-shell {
-                display: grid;
-                grid-template-columns: 260px minmax(0, 1fr);
-                gap: 32px;
-                align-items: start;
-                width: calc(100% - 48px);
+                display: flex;
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 0;
+                width: 100%;
                 max-width: 1440px;
-                padding-left: 0;
-                padding-right: 0;
-                margin-top: 28px;
+                margin: 0 auto;
+                padding: 0;
+                min-height: calc(100vh - 62px);
             }
+
+            /* ── Left Sidebar ── */
             .desktop-sidebar {
                 position: sticky;
-                top: 80px;
-                grid-column: 1;
-                grid-row: 2 / span 5;
-                padding: 14px;
-                background: #0f172a;
-                border: 1px solid #1e293b;
-                border-radius: 22px;
-                box-shadow: 0 8px 40px rgba(99,102,241,0.1);
+                top: 62px; /* sits just under the header */
+                height: calc(100vh - 62px);
+                width: 240px;
+                flex-shrink: 0;
+                padding: 20px 12px;
+                background: #ffffff;
+                border-right: 1px solid #e2e8f0;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                /* Reset any grid placement */
+                grid-column: unset;
+                grid-row: unset;
             }
+
+            /* Sidebar nav buttons */
             .desktop-sidebar .tab-btn {
                 width: 100%;
+                display: flex;
+                align-items: center;
                 justify-content: flex-start;
-                min-width: 0;
-                padding: 14px 16px;
-                margin-bottom: 6px;
-                border-radius: 14px;
                 gap: 12px;
+                padding: 12px 16px;
+                border-radius: 12px;
                 font-size: 0.875rem;
-                color: #9ca3af;
+                font-weight: 600;
+                color: #64748b;
                 background: transparent;
                 border: none;
-                transition: all 0.2s;
+                cursor: pointer;
+                transition: background 0.15s, color 0.15s;
+                text-align: left;
+                white-space: nowrap;
             }
             .desktop-sidebar .tab-btn:hover {
-                background: #1e293b;
-                color: #e2e8f0;
+                background: #f1f5f9;
+                color: #1e293b;
             }
+            /* Active state */
             .desktop-sidebar .tab-btn.bg-indigo-600 {
-                background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
-                color: white !important;
-                box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+                background: #4f46e5 !important;
+                color: #ffffff !important;
+                box-shadow: 0 4px 12px rgba(79,70,229,0.3);
             }
-            .desktop-sidebar .tab-btn:last-child {
-                margin-bottom: 0;
+            .desktop-sidebar .tab-btn.bg-indigo-600 svg {
+                color: #ffffff !important;
             }
+
+            /* ── Right content area ── */
             .desktop-content {
-                grid-column: 2;
+                flex: 1;
                 min-width: 0;
+                padding: 28px 32px;
+                overflow-y: auto;
+                /* Reset any grid placement */
+                grid-column: unset;
+                grid-row: unset;
             }
+
+            /* PWA banner spans full width — place it above the shell */
             #pwa-install-banner {
-                grid-column: 1 / -1;
-                grid-row: 1;
+                width: 100%;
+                margin: 0;
+                border-radius: 0;
             }
+
+            /* Greeting card in content area */
             .desktop-greeting {
-                grid-row: 2;
-                margin-bottom: 22px;
-                padding: 24px 28px;
-                border-radius: 24px;
+                margin-bottom: 20px;
+                padding: 20px 24px;
+                border-radius: 16px;
             }
-            .desktop-greeting h2 {
-                font-size: 1.25rem;
-            }
-            .desktop-greeting p {
-                font-size: 0.8rem;
-            }
-            #cfo-dashboard {
-                grid-row: 4;
-                margin-bottom: 24px;
-            }
+            .desktop-greeting h2 { font-size: 1.2rem; }
+            .desktop-greeting p { font-size: 0.8rem; }
+
+            /* CFO stat cards */
+            #cfo-dashboard { margin-bottom: 24px; }
             #cfo-dashboard #top-sales,
             #cfo-dashboard #top-expenses,
-            #cfo-dashboard #top-profit {
-                font-size: 1.35rem;
-            }
+            #cfo-dashboard #top-profit { font-size: 1.35rem; }
             #cfo-dashboard p { font-size: 0.7rem; }
             #cfo-dashboard > div:first-child {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
-            #cfo-dashboard > div:last-child { margin-bottom: 0; }
-            .desktop-content > .tab-content { min-width: 0; }
-            #network-status-banner { grid-row: 3; }
-            .desktop-content.tab-content { grid-row: 5; }
+
+            /* Network status */
+            #network-status-banner { margin-bottom: 16px; }
+
+            /* Tab sections — 2-col grid inside the content panel */
             #tab-expenses-content:not(.hidden),
             #tab-income-content:not(.hidden) {
                 display: grid;
@@ -268,62 +281,73 @@
             #sales-main-view > div:first-child { grid-column: 1 / -1; }
             #sales-main-view > div:nth-child(2),
             #sales-main-view > div:nth-child(3) { min-width: 0; }
+
             #tab-analytics-content,
             #tab-profile-content { max-width: 100%; }
+
             .desktop-content input,
             .desktop-content select,
             .desktop-content .custom-select-button { min-height: 46px; }
+
             #digital-business-card { padding: 30px; }
             #profile-view-mode,
-            #profile-edit-mode { max-width: 920px; }
-            #tab-profile-content > .bg-gray-900 {
-                padding: 28px;
-            }
+            #profile-edit-mode { max-width: 860px; }
+            #tab-profile-content > .bg-white { padding: 28px; }
         }
-
-        /* Glow animations */
-        @keyframes glow-pulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.3); }
-            50% { box-shadow: 0 0 35px rgba(99,102,241,0.6); }
-        }
-        .card-glow {
-            animation: glow-pulse 3s ease-in-out infinite;
-        }
-
-        /* Scrollbar dark */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
     </style>
 </head>
-<body class="bg-black text-gray-100" style="padding-bottom: env(safe-area-inset-bottom)">
+<body class="bg-slate-100 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
     
     <!-- App Header -->
-    <header class="bg-black border-b border-indigo-900/30 text-white p-3.5 sm:p-4 shadow-2xl sticky top-0 z-40" style="backdrop-filter: blur(20px);">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            
-            <!-- Left: App Logo, Name & Pocket CFO Tag -->
-            <div class="flex items-center gap-2">
-                <div id="app-header-logo-wrap" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg shadow-sm overflow-hidden flex-shrink-0 bg-indigo-600 flex items-center justify-center">
-                    <img id="app-header-logo" src="/static/logo.svg" alt="SoloBiz Logo" class="w-full h-full object-cover rounded-lg">
+    <header class="bg-[#0f172a] text-white p-3.5 sm:p-4 shadow-lg sticky top-0 z-40">
+        <div class="max-w-screen-2xl mx-auto flex justify-between items-center px-4">
+            <!-- Left: Logo + Name + Tag -->
+            <div class="flex items-center gap-2.5">
+                <div id="app-header-logo-wrap" class="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-indigo-600 flex items-center justify-center shadow-md">
+                    <img id="app-header-logo" src="/static/logo.svg" alt="SoloBiz Logo" class="w-full h-full object-cover rounded-xl">
                 </div>
-                <h1 id="app-header-biz-name" class="font-bold text-base sm:text-lg tracking-wide text-indigo-400">SoloBiz</h1>
-                <span class="text-[9px] font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800 px-1.5 py-0.5 rounded-full">Pocket CFO</span>
+                <h1 id="app-header-biz-name" class="font-extrabold text-base sm:text-lg tracking-wide text-white">SoloBiz</h1>
+                <span class="text-[9px] font-bold uppercase bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full hidden sm:inline">Pocket CFO</span>
             </div>
-            
-            <!-- Right: Logout Button -->
-            <div>
-                <button onclick="handleLogout()" type="button" class="text-xs font-bold text-red-400 hover:text-red-300 transition uppercase tracking-wide bg-red-950/40 border border-red-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer">
+            <!-- Right: Status + Logout -->
+            <div class="flex items-center gap-2">
+                <span class="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live Cloud
+                </span>
+                <button onclick="handleLogout()" type="button" class="text-xs font-bold text-slate-700 hover:text-white transition tracking-wide bg-white/5 border border-white/10 hover:bg-white/10 px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                     <span>Logout</span>
                 </button>
             </div>
-            
         </div>
     </header>
 
-    <main class="desktop-dashboard-shell max-w-7xl mx-auto mt-3.5 sm:mt-4 px-3.5 sm:px-6 lg:px-8 w-full">
+    <main class="desktop-dashboard-shell w-full">
+<!-- Sidebar Navigation -->
+        <aside id="dashboard-navigation" class="desktop-sidebar">
+            <div class="px-3 py-2 mb-2 hidden lg:block">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Menu</p>
+            </div>
+            <button id="btn-tab-expenses" type="button" class="tab-btn bg-indigo-600 text-white shadow-sm">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <span>Expenses</span>
+            </button>
+            <button id="btn-tab-income" type="button" class="tab-btn text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                <span>Sales</span>
+            </button>
+            <button id="btn-tab-analytics" type="button" class="tab-btn text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                <span>Analytics</span>
+            </button>
+            <button id="btn-tab-profile" type="button" class="tab-btn text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
+                <span>Profile</span>
+            </button>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="desktop-content">
 
         <!-- PWA Mobile Install App Banner -->
         <div id="pwa-install-banner" class="hidden mb-4 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-md flex items-center justify-between gap-3">
@@ -336,30 +360,30 @@
                     <p class="text-[10px] text-indigo-200">Add to home screen for offline access!</p>
                 </div>
             </div>
-            <button id="btn-pwa-install" type="button" class="bg-gray-900 text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap flex items-center gap-1.5">
+            <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Install
             </button>
         </div>
 
         <!-- Mobile User Greeting Banner at the Top of Main Body -->
-        <div id="desktop-greeting" class="desktop-greeting mb-4 bg-gradient-to-r from-indigo-950 to-violet-950 rounded-2xl p-4 shadow-lg border border-indigo-800/50 flex items-center justify-between desktop-content">
+        <div id="desktop-greeting" class="desktop-greeting mb-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
             <div>
-                <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-1.5">
+                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
                     Hi, <span id="user-greeting-name">{{ username }}</span> <svg class="w-4 h-4 text-amber-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </h2>
-                <p class="text-[11px] text-gray-400 font-medium mt-0.5">Here is your business overview today</p>
+                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Here is your business overview today</p>
             </div>
             <button id="btn-global-overview" type="button" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
                 Overview
             </button>
         </div>
-        <div id="network-status-banner" class="desktop-content hidden mb-4 rounded-2xl border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+        <div id="network-status-banner" class="hidden mb-4 rounded-2xl border bg-white px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
             <span id="network-status-text"></span>
             <button type="button" id="retry-sync-button" class="hidden rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide">Retry sync</button>
         </div>
 
         <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
-        <div id="cfo-dashboard" class="desktop-content transition-all duration-300">
+        <div id="cfo-dashboard" class="transition-all duration-300">
         <!-- Top row: Sales + Expenses side by side -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
 
@@ -385,7 +409,7 @@
         <!-- Bottom row: Net Profit — full width so it has maximum space -->
         <div class="mb-5 lg:col-span-2">
             {% set np = net_profit or 0.0 %}
-            <div class="{% if np >= 0 %}bg-indigo-950/40 border-indigo-800/60{% else %}bg-amber-950/30 border-amber-800/50{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+            <div class="{% if np >= 0 %}bg-white border-indigo-100{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 min-w-0 overflow-hidden">
                 <div class="flex items-center gap-2 flex-shrink-0 min-w-0" style="max-width:55%">
                     <span class="flex-shrink-0 {% if np >= 0 %}text-indigo-500{% else %}text-amber-500{% endif %}">
                         {% if np >= 0 %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>{% else %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{% endif %}
@@ -395,57 +419,43 @@
                         <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Sales − Expenses</p>
                     </div>
                 </div>
-                <span class="stat-value {% if np >= 0 %}text-indigo-800{% else %}text-amber-300{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
+                <span class="stat-value {% if np >= 0 %}text-indigo-700{% else %}text-amber-600{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
             </div>
         </div>
         </div> <!-- End cfo-dashboard -->
 
-        <!-- Mobile-First Tab Navigation Bar -->
-        <nav id="dashboard-navigation" class="desktop-sidebar flex bg-gray-900 rounded-2xl p-1 shadow-sm border border-gray-800 mb-6 gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <button id="btn-tab-expenses" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> <span class="hidden sm:inline">Expenses</span><span class="inline sm:hidden">Exp</span>
-            </button>
-            <button id="btn-tab-income" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-900 hover:bg-gray-950 flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Sales
-            </button>
-            <button id="btn-tab-analytics" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-900 hover:bg-gray-950 flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Analytics
-            </button>
-            <button id="btn-tab-profile" type="button" class="tab-btn flex-1 py-2.5 px-1.5 sm:px-3 text-[10px] sm:text-xs font-bold rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-900 hover:bg-gray-950 flex items-center justify-center gap-1 sm:gap-1.5 shrink-0 min-w-[70px]">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg> Profile
-            </button>
-        </nav>
+        
         <!-- ========================================================= -->
         <!-- TAB 1: EXPENSES CONTENT                                    -->
         <!-- ========================================================= -->
-        <section id="tab-expenses-content" class="desktop-content tab-content space-y-6">
+        <section id="tab-expenses-content" class="tab-content space-y-6">
             
             <!-- Total Spent Card — always shows the global grand total, never overwritten by search -->
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 p-5 text-center overflow-hidden">
-                <p class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">Total Expenses</p>
-                <h2 class="big-total-value text-gray-900" id="main-dashboard-total" data-total="{{ total }}">₦{{ "{:,.2f}".format(total) }}</h2>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 text-center overflow-hidden">
+                <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Total Expenses</p>
+                <h2 class="big-total-value text-slate-900" id="main-dashboard-total" data-total="{{ total }}">₦{{ "{:,.2f}".format(total) }}</h2>
                 {% if searching %}
-                    <a href="/" class="inline-block mt-4 text-sm text-gray-300 bg-gray-800 hover:bg-gray-200 px-4 py-2 rounded-full font-semibold transition">← Clear Search</a>
+                    <a href="/" class="inline-block mt-4 text-sm text-slate-600 bg-slate-100 hover:bg-gray-200 px-4 py-2 rounded-full font-semibold transition">← Clear Search</a>
                 {% endif %}
             </div>
 
             <!-- Add Expense Form -->
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 p-5">
-                <h3 class="font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Log New Expense
                 </h3>
                 <form id="expense-form" method="POST" action="/add" class="space-y-3">
                     <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₦</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">₦</span>
                         <input type="text" inputmode="numeric" name="amount" placeholder="Amount (e.g. 5000)" required 
-                            class="currency-input w-full border border-gray-700 rounded-lg py-3 pr-3 pl-8 text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            class="currency-input w-full border border-slate-200 rounded-lg py-3 pr-3 pl-8 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     </div>
 
                     <div>
-                        <label for="expense-category" class="block text-[10px] uppercase font-black tracking-wider text-gray-400 mb-2">Expense category</label>
+                        <label for="expense-category" class="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-2">Expense category</label>
                         <div class="relative">
-                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M2 7h20"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C10 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C14 2 12 7 12 7Z"/></svg>
-                            <select id="expense-category" name="category" required class="w-full appearance-none border border-gray-700 rounded-xl bg-gray-900 py-3 pl-10 pr-10 text-sm font-semibold text-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition">
+                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M2 7h20"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C10 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C14 2 12 7 12 7Z"/></svg>
+                            <select id="expense-category" name="category" required class="w-full appearance-none border border-slate-200 rounded-xl bg-white py-3 pl-10 pr-10 text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition">
                                 <option value="" disabled selected>Select a category</option>
                                 <option value="Inventory & Materials">Inventory &amp; Materials</option>
                                 <option value="Delivery & Logistics">Delivery &amp; Logistics</option>
@@ -454,31 +464,31 @@
                                 <option value="Data & Airtime">Data &amp; Airtime</option>
                                 <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                             </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
                     </div>
 
                     <input type="text" name="description" placeholder="What did you pay for?" required 
-                        class="w-full border border-gray-700 rounded-lg p-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     
-                    <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold py-3 rounded-xl hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-900/50 transition shadow-md flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition shadow-sm flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Expense
                     </button>
                 </form>
             </div>
 
             <!-- Transaction Filter Bar -->
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 p-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-gray-100 text-sm flex items-center gap-2"><svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg> Filter Transactions</h3>
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg> Filter Transactions</h3>
                     <button type="button" id="btn-clear-filters" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Category</label>
+                        <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Category</label>
                         <div class="relative">
                             <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500">⌕</span>
-                            <select id="filter-category" class="w-full appearance-none border border-gray-700 rounded-2xl p-3 pl-8 pr-9 text-sm font-semibold text-gray-200 bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
+                            <select id="filter-category" class="w-full appearance-none border border-slate-200 rounded-2xl p-3 pl-8 pr-9 text-sm font-semibold text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
                             <option value="">All Categories</option>
                             <option value="Inventory &amp; Materials">Inventory &amp; Materials</option>
                             <option value="Delivery &amp; Logistics">Delivery &amp; Logistics</option>
@@ -487,19 +497,19 @@
                             <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                             <option value="Others">Others</option>
                             </select>
-                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">⌄</span>
+                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">⌄</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Exact Amount (₦)</label>
+                        <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Exact Amount (₦)</label>
                         <input type="number" id="filter-amount-exact" min="0" step="any" placeholder="e.g. 5000"
-                            class="w-full border border-gray-700 rounded-lg p-2.5 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            class="w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     </div>
                 </div>
                 <!-- Live filter result summary -->
                 <div id="filter-result-banner" class="hidden mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between">
                     <div>
-                        <p class="text-[10px] uppercase font-bold text-indigo-400 tracking-wider" id="filter-result-label">Filtered Total</p>
+                        <p class="text-[10px] uppercase font-bold text-indigo-600 tracking-wider" id="filter-result-label">Filtered Total</p>
                         <p class="text-lg font-extrabold text-indigo-800" id="filter-result-total">₦0.00</p>
                     </div>
                     <p class="text-xs text-indigo-400 font-medium" id="filter-match-count">0 results</p>
@@ -525,21 +535,21 @@
                 <!-- Itemised matched transactions -->
                 <ul class="space-y-2" id="search-report-list">
                     {% for item in search_results %}
-                        <li class="bg-gray-900 rounded-xl px-4 py-3 flex justify-between items-center shadow-sm border border-indigo-50">
+                        <li class="bg-white rounded-xl px-4 py-3 flex justify-between items-center shadow-sm border border-indigo-50">
                             <div>
-                                <p class="text-sm font-semibold text-gray-100">{{ item.category }}</p>
-                                <p class="text-xs text-gray-400">{{ item.date }}</p>
+                                <p class="text-sm font-semibold text-slate-800">{{ item.category }}</p>
+                                <p class="text-xs text-slate-500">{{ item.date }}</p>
                             </div>
-                            <span class="font-bold text-gray-900 text-sm">₦{{ "{:,.2f}".format(item.amount) }}</span>
+                            <span class="font-bold text-slate-900 text-sm">₦{{ "{:,.2f}".format(item.amount) }}</span>
                         </li>
                     {% else %}
-                        <li class="text-sm italic text-gray-400 py-2">No records match this calculation.</li>
+                        <li class="text-sm italic text-slate-500 py-2">No records match this calculation.</li>
                     {% endfor %}
                 </ul>
 
                 <!-- Isolated subtotal — completely separate from any dashboard ID -->
                 <div class="border-t border-indigo-200 pt-4 flex justify-between items-center">
-                    <p class="text-sm font-semibold text-gray-300">Calculated Total:</p>
+                    <p class="text-sm font-semibold text-slate-600">Calculated Total:</p>
                     <p class="text-2xl font-extrabold text-indigo-900" id="search-report-total">₦{{ "{:,.2f}".format(search_total) }}</p>
                 </div>
 
@@ -548,33 +558,33 @@
 
             <!-- Transaction List -->
             <div>
-                <h3 class="font-bold text-gray-100 mb-3 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 mb-3 flex items-center justify-between">
                     <span>Recent Transactions</span>
-                    <span class="text-xs text-gray-400 font-normal">Offline-First</span>
+                    <span class="text-xs text-slate-500 font-normal">Offline-First</span>
                 </h3>
-                <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 overflow-hidden" id="transaction-list">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="transaction-list">
                     {% if expenses|length == 0 %}
-                        <p class="text-center text-gray-400 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>
+                        <p class="text-center text-slate-500 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>
                     {% else %}
                         {% for item in expenses %}
                         <div data-server-id="{{ item.id }}"
                              data-category="{{ item.category }}"
                              data-amount="{{ item.amount }}"
-                             class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-950 transition">
+                             class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
                             <div class="flex items-center gap-3">
                                 <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
                                     {{ item.category[0]|upper }}
                                 </div>
                                 <div>
-                                    <p class="expense-category-val font-bold text-gray-100 text-sm capitalize">{{ item.category }}</p>
-                                    <p class="expense-desc-val text-xs text-gray-400">{{ item.description }}</p>
+                                    <p class="expense-category-val font-bold text-slate-800 text-sm capitalize">{{ item.category }}</p>
+                                    <p class="expense-desc-val text-xs text-slate-500">{{ item.description }}</p>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="expense-amount-val font-bold text-gray-900 text-sm mb-1">₦{{ "{:,.2f}".format(item.amount) }}</p>
+                                <p class="expense-amount-val font-bold text-slate-900 text-sm mb-1">₦{{ "{:,.2f}".format(item.amount) }}</p>
                                 <div class="flex gap-2 justify-end">
-                                    <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-400 bg-blue-950/50 px-2 py-1 rounded hover:bg-blue-900/50 border border-blue-800/50">Edit</button>
-                                    <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-400 bg-red-950/50 px-2 py-1 rounded hover:bg-red-900/50 border border-red-800/50">Del</button>
+                                    <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">Edit</button>
+                                    <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Del</button>
                                 </div>
                             </div>
                         </div>
@@ -582,7 +592,7 @@
                     {% endif %}
                 </div>
                 <!-- Empty state when filters yield no matches -->
-                <p class="hidden text-center text-gray-400 py-6 text-sm" id="filter-no-match">No transactions match your filter.</p>
+                <p class="hidden text-center text-slate-500 py-6 text-sm" id="filter-no-match">No transactions match your filter.</p>
             </div>
 
         </section>
@@ -590,7 +600,7 @@
         <!-- ========================================================= -->
         <!-- TAB 2: SALES / INCOME CONTENT                             -->
         <!-- ========================================================= -->
-        <section id="tab-income-content" class="desktop-content tab-content hidden space-y-6">
+        <section id="tab-income-content" class="tab-content hidden space-y-6">
             
             <div id="sales-main-view" class="space-y-6">
                 <!-- Sales Summary Card -->
@@ -601,37 +611,37 @@
                 </div>
 
             <!-- Quick-Tap Inventory Presets -->
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 p-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-gray-100 flex items-center gap-2 text-sm">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
                         <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         Quick Tap
                     </h3>
-                    <button type="button" id="btn-manage-presets" class="text-[10px] bg-gray-950 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 border border-gray-700 px-2.5 py-1 rounded-lg font-bold transition">⚙ Manage</button>
+                    <button type="button" id="btn-manage-presets" class="text-[10px] bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 px-2.5 py-1 rounded-lg font-bold transition">⚙ Manage</button>
                 </div>
 
                 <!-- Preset Grid (quick-tap buttons) -->
                 <div id="presets-grid" class="grid grid-cols-3 gap-2 mb-0">
-                    <p id="no-presets-msg" class="col-span-3 text-center text-gray-400 text-xs py-4">No presets yet. Tap ⚙ Manage to add your top items.</p>
+                    <p id="no-presets-msg" class="col-span-3 text-center text-slate-500 text-xs py-4">No presets yet. Tap ⚙ Manage to add your top items.</p>
                 </div>
 
                 <!-- Manage Presets Panel (hidden by default) -->
-                <div id="manage-presets-panel" class="hidden mt-4 pt-4 border-t border-gray-800">
+                <div id="manage-presets-panel" class="hidden mt-4 pt-4 border-t border-slate-200">
                     <form id="add-preset-form" class="flex gap-2 items-end mb-3">
                         <div class="flex-1">
-                            <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Item Name</label>
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Item Name</label>
                             <input type="text" id="preset-item-name" required placeholder="e.g. DLNZ Hoodie"
-                                   class="w-full border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                   class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div class="w-24">
-                            <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Price (₦)</label>
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Price (₦)</label>
                             <input type="text" inputmode="numeric" id="preset-price" required placeholder="5,000"
-                                   class="currency-input w-full border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                   class="currency-input w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div class="w-16">
-                            <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Stock</label>
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Stock</label>
                             <input type="number" id="preset-stock" min="0" value="0" placeholder="0"
-                                   class="w-full border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                   class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm whitespace-nowrap">+ Add</button>
                     </form>
@@ -640,9 +650,9 @@
             </div>
 
             <!-- Log Sale Form -->
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 p-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-gray-100 flex items-center gap-2">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
                         <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Log New Sale / Revenue
                     </h3>
                     <!-- Orphaned Add Item Button Removed -->
@@ -650,37 +660,37 @@
                 <form id="add-income-form" class="space-y-3">
                     <div>
                         <input type="text" id="income-customer-name" placeholder="Customer Name (Optional)" 
-                            class="w-full border border-gray-700 rounded-lg p-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                            class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
                     </div>
                     <div>
-                        <input type="text" id="income-description" class="w-full border border-gray-700 rounded-lg p-3 text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Title / Description (e.g. Kitchen Tiling)" required>
+                        <input type="text" id="income-description" class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Title / Description (e.g. Kitchen Tiling)" required>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div class="relative">
-                            <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Total Value</label>
-                            <span class="absolute left-2.5 bottom-2.5 text-gray-400 font-bold text-sm">₦</span>
-                            <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-gray-700 rounded-lg py-2.5 pr-2 pl-7 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Total Value</label>
+                            <span class="absolute left-2.5 bottom-2.5 text-slate-500 font-bold text-sm">₦</span>
+                            <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
                         </div>
                         <div class="relative">
-                            <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Amount Paid</label>
-                            <span class="absolute left-2.5 bottom-2.5 text-gray-400 font-bold text-sm">₦</span>
-                            <input type="text" inputmode="numeric" id="income-amount-paid" class="currency-input w-full border border-gray-700 rounded-lg py-2.5 pr-2 pl-7 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Amount Paid</label>
+                            <span class="absolute left-2.5 bottom-2.5 text-slate-500 font-bold text-sm">₦</span>
+                            <input type="text" inputmode="numeric" id="income-amount-paid" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
                         </div>
                     </div>
                     <div>
-                        <label for="sale-payment-mode" class="block text-[10px] uppercase font-black text-gray-400 tracking-wider mb-2">Payment method</label>
+                        <label for="sale-payment-mode" class="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-2">Payment method</label>
                         <div class="relative">
-                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                            <select id="sale-payment-mode" class="w-full appearance-none border border-gray-700 rounded-xl bg-gray-900 py-3 pl-10 pr-10 text-sm font-semibold text-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition" aria-label="Payment method">
+                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                            <select id="sale-payment-mode" class="w-full appearance-none border border-slate-200 rounded-xl bg-white py-3 pl-10 pr-10 text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition" aria-label="Payment method">
                                 <option value="Cash">Cash</option>
                                 <option value="Transfer">Transfer</option>
                                 <option value="POS">POS</option>
                             </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3 rounded-xl hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-900/50 transition shadow-md flex items-center justify-center gap-2 mt-4">
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition shadow-sm flex items-center justify-center gap-2 mt-4">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Transaction
                     </button>
                 </form>
@@ -688,12 +698,12 @@
 
             <!-- Income History List -->
             <div>
-                <h3 class="font-bold text-gray-100 mb-3 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 mb-3 flex items-center justify-between">
                     <span>Sales History</span>
                     <span class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Real-time Sync</span>
                 </h3>
-                <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 overflow-hidden" id="income-list">
-                    <p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="income-list">
+                    <p class="text-center text-slate-500 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>
                 </div>
             </div>
             </div> <!-- Close sales-main-view -->
@@ -702,41 +712,41 @@
         <!-- ========================================================= -->
         <!-- TAB 4: ANALYTICS CONTENT                                  -->
         <!-- ========================================================= -->
-        <section id="tab-analytics-content" class="desktop-content tab-content hidden space-y-6">
+        <section id="tab-analytics-content" class="tab-content hidden space-y-6">
             <!-- Analytics View -->
             <div id="analytics-view" class="space-y-6">
                 <div class="flex items-center gap-3">
-                    <h2 class="font-bold text-gray-100 text-lg">Sales Analytics</h2>
+                    <h2 class="font-bold text-slate-800 text-lg"class="font-bold text-slate-800 text-lg">Sales Analytics</h2>
                 </div>
 
                 <!-- Segmented Control Bar -->
-                <div class="bg-gray-800 p-1 rounded-xl flex gap-1 text-sm font-semibold">
-                    <button type="button" data-period="daily" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg bg-gray-900 shadow-sm text-gray-900">Daily</button>
-                    <button type="button" data-period="weekly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-400 hover:text-gray-200">Weekly</button>
-                    <button type="button" data-period="monthly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-400 hover:text-gray-200">Monthly</button>
-                    <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-gray-400 hover:text-gray-200">Yearly</button>
+                <div class="bg-slate-100 p-1 rounded-xl flex gap-1 text-sm font-semibold">
+                    <button type="button" data-period="daily" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg bg-white shadow-sm text-slate-900">Daily</button>
+                    <button type="button" data-period="weekly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Weekly</button>
+                    <button type="button" data-period="monthly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Monthly</button>
+                    <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Yearly</button>
                 </div>
 
                 <!-- Top Summary Dashboard -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Value & Cash -->
-                    <div class="bg-gray-900 p-4 rounded-xl border border-slate-700">
-                        <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">Total Value Booked</p>
-                        <p class="text-lg sm:text-xl font-bold text-slate-100" id="analytics-total-value">₦0.00</p>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Value Booked</p>
+                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-total-value">₦0.00</p>
                     </div>
-                    <div class="bg-gray-900 p-4 rounded-xl border border-slate-700">
-                        <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">Cash Collected</p>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Cash Collected</p>
                         <p class="text-lg sm:text-xl font-bold text-emerald-600" id="analytics-cash-collected">₦0.00</p>
                     </div>
 
                     <!-- Expenses & Profit -->
-                    <div class="bg-gray-900 p-4 rounded-xl border border-slate-700">
-                        <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">Total Expenses</p>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Expenses</p>
                         <p class="text-lg sm:text-xl font-bold text-rose-500" id="analytics-total-expenses">₦0.00</p>
                     </div>
-                    <div class="bg-gray-900 p-4 rounded-xl border border-slate-700 bg-slate-900">
-                        <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wide">Liquid Profit</p>
-                        <p class="text-lg sm:text-xl font-bold text-slate-100" id="analytics-liquid-profit">₦0.00</p>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 bg-slate-50">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Liquid Profit</p>
+                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-liquid-profit">₦0.00</p>
                     </div>
                 </div>
 
@@ -746,18 +756,18 @@
                         <p class="text-sm font-semibold text-amber-300">Outstanding Payments</p>
                         <p class="text-xs text-amber-400">Money still owed to you.</p>
                     </div>
-                    <p class="text-lg font-bold text-amber-300" id="analytics-outstanding-balance">₦0.00</p>
+                    <p class="text-lg font-bold text-amber-700" id="analytics-outstanding-balance">₦0.00</p>
                 </div>
 
                 <!-- Expandable Grouped List -->
                 <div>
-                    <h3 class="font-bold text-gray-100 mb-3 text-sm flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 mb-3 text-sm flex items-center justify-between">
                         <span>Detailed Breakdown</span>
-                        <span id="analytics-period-label" class="text-xs text-gray-400 bg-gray-950 px-2.5 py-1 rounded-full font-semibold border border-gray-800">Today</span>
+                        <span id="analytics-period-label" class="text-xs text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full font-semibold border border-slate-200">Today</span>
                     </h3>
                     <div class="space-y-3" id="analytics-grouped-list">
                         <!-- Populated via JS -->
-                        <p class="text-center text-gray-400 py-8 text-sm">No sales data available for this period.</p>
+                        <p class="text-center text-slate-500 py-8 text-sm">No sales data available for this period.</p>
                     </div>
                 </div>
             </div>
@@ -767,17 +777,17 @@
         <!-- ========================================================= -->
         <!-- TAB 3: BUSINESS PROFILE CONTENT                           -->
         <!-- ========================================================= -->
-        <section id="tab-profile-content" class="desktop-content tab-content hidden space-y-6">
+        <section id="tab-profile-content" class="tab-content hidden space-y-6">
             
             <!-- Brand Setup Card -->
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-gray-800 p-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
                     </div>
                     <div>
-                        <h3 class="font-bold text-gray-100">Business Brand Setup</h3>
-                        <p class="text-xs text-gray-400">Appears on your WhatsApp receipts</p>
+                        <h3 class="font-bold text-slate-800">Business Brand Setup</h3>
+                        <p class="text-xs text-slate-500">Appears on your WhatsApp receipts</p>
                     </div>
                 </div>
 
@@ -791,7 +801,7 @@
                     <!-- ══════════════════════════════════════════════════════ -->
                     <!-- HIGH-END BRANDED BUSINESS CARD                         -->
                     <!-- ══════════════════════════════════════════════════════ -->
-                    <div id="digital-business-card" class="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-3xl p-6 border border-indigo-800/40 shadow-2xl relative overflow-hidden flex flex-col justify-between space-y-4">
+                    <div id="digital-business-card" class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
 
                         <!-- Top Brand Color Accent Line -->
                         <div id="card-top-accent" class="absolute top-0 left-0 right-0 h-2" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }};"></div>
@@ -806,11 +816,11 @@
                                 {% endif %}
                             </div>
                             <div class="min-w-0 flex-1">
-                                <h2 id="card-company-name" class="text-lg sm:text-xl font-extrabold text-slate-100 tracking-tight truncate flex items-center gap-1.5">
+                                <h2 id="card-company-name" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate flex items-center gap-1.5">
                                     {{ profile.company_name if profile and profile.company_name else 'Your Business' }}
                                     <svg class="w-4 h-4 text-indigo-600 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                                 </h2>
-                                <p id="profile-verification-status" class="text-[11px] text-slate-400 font-semibold tracking-wide flex items-center gap-1 mt-0.5">
+                                <p id="profile-verification-status" class="text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 mt-0.5">
                                     <span class="w-1.5 h-1.5 rounded-full {% if profile and profile.company_name %}bg-emerald-500 animate-pulse{% else %}bg-amber-500{% endif %}"></span>
                                     {% if profile and profile.company_name %}Verified Vendor Profile{% else %}Profile required for receipts{% endif %}
                                 </p>
@@ -819,12 +829,12 @@
 
                         <!-- Contact Badges Grid -->
                         <div class="space-y-2 text-xs pt-1 border-t border-slate-100">
-                            <div class="flex items-center gap-2 text-slate-300 font-medium">
+                            <div class="flex items-center gap-2 text-slate-700 font-medium">
                                 <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                                 <span id="card-phone">{{ profile.business_phone if profile and profile.business_phone else 'Not set' }}</span>
                             </div>
 
-                            <div class="flex items-center gap-2 text-slate-300 font-medium">
+                            <div class="flex items-center gap-2 text-slate-700 font-medium">
                                 <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                 <span id="card-address" class="truncate">{{ profile.business_address if profile and profile.business_address else 'Not set' }}</span>
                             </div>
@@ -840,8 +850,8 @@
                         </div>
 
                         <!-- Store Policy Box (if set) -->
-                        <div id="card-policy-box" class="bg-slate-900 border border-slate-100 rounded-2xl p-3 text-[11px] text-slate-600 italic font-medium flex items-start gap-2 {% if not profile or not profile.store_policy %}hidden{% endif %}">
-                            <svg class="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div id="card-policy-box" class="bg-slate-50 border border-slate-100 rounded-2xl p-3 text-[11px] text-slate-600 italic font-medium flex items-start gap-2 {% if not profile or not profile.store_policy %}hidden{% endif %}">
+                            <svg class="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span id="card-policy-text">"{{ profile.store_policy if profile else '' }}"</span>
                         </div>
 
@@ -857,7 +867,7 @@
                                 <button onclick="copyStorefrontLink()" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
                                     <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="13" height="13" x="8" y="8" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg> Copy
                                 </button>
-                                <a id="card-store-visit-btn" href="/store/{{ profile.store_slug if profile and profile.store_slug else '' }}" target="_blank" class="bg-gray-900/10 hover:bg-gray-900/20 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+                                <a id="card-store-visit-btn" href="/store/{{ profile.store_slug if profile and profile.store_slug else '' }}" target="_blank" class="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
                                     <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg> Visit
                                 </a>
                             </div>
@@ -879,7 +889,7 @@
                             <span>Share</span>
                         </button>
 
-                        <button onclick="downloadBusinessCard()" type="button" class="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-3 px-3 rounded-2xl shadow-md transition-all text-xs border border-slate-700 cursor-pointer">
+                        <button onclick="downloadBusinessCard()" type="button" class="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-3 px-3 rounded-2xl shadow-md transition-all text-xs border border-slate-200 cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             <span>Download</span>
                         </button>
@@ -897,44 +907,44 @@
                         
                         <!-- Company Name -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-200 uppercase tracking-wider mb-1">Company / Brand Name *</label>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Company / Brand Name *</label>
                             <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Aisha Wears" required value="{{ profile.company_name if profile else '' }}"
-                                class="w-full border border-gray-700 rounded-xl p-3 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                         </div>
 
                         <!-- Phone & WhatsApp -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-gray-200 uppercase tracking-wider mb-1">Business Phone</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Business Phone</label>
                                 <input type="tel" name="business_phone" id="profile-business-phone" placeholder="+2348012345678" value="{{ profile.business_phone if profile else '' }}"
-                                    class="w-full border border-gray-700 rounded-xl p-3 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-200 uppercase tracking-wider mb-1">WhatsApp Chat</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">WhatsApp Chat</label>
                                 <input type="tel" name="whatsapp_number" id="profile-whatsapp-number" placeholder="+2348012345678" value="{{ profile.whatsapp_number if profile else '' }}"
-                                    class="w-full border border-gray-700 rounded-xl p-3 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                         </div>
 
                         <!-- Instagram & Address -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-gray-200 uppercase tracking-wider mb-1">Instagram Handle</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Instagram Handle</label>
                                 <input type="text" name="instagram_handle" id="profile-instagram-handle" placeholder="@aisha_wears" value="{{ profile.instagram_handle if profile else '' }}"
-                                    class="w-full border border-gray-700 rounded-xl p-3 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-200 uppercase tracking-wider mb-1">Business Address</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Business Address</label>
                                 <input type="text" name="business_address" id="profile-business-address" placeholder="12 Market St, Lagos" value="{{ profile.business_address if profile else '' }}"
-                                    class="w-full border border-gray-700 rounded-xl p-3 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                         </div>
 
                         <!-- Store Policy -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-200 uppercase tracking-wider mb-1">Store Terms / Policy (Receipts & Storefront)</label>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Store Terms / Policy (Receipts & Storefront)</label>
                             <textarea name="store_policy" id="profile-store-policy" rows="2" placeholder="e.g. No refunds after 24 hours. Thanks for choosing us!"
-                                class="w-full border border-gray-700 rounded-xl p-3 text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">{{ profile.store_policy if profile else '' }}</textarea>
+                                class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">{{ profile.store_policy if profile else '' }}</textarea>
                         </div>
 
                         <!-- Removed Brand Color Theme Preset Palette per user request -->
@@ -942,14 +952,14 @@
 
                         <!-- Business Logo File Upload -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-200 uppercase tracking-wider mb-1">Business Logo Image</label>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Business Logo Image</label>
                             <input type="file" name="logo" id="profile-logo-file" accept=".jpg, .jpeg, .png, image/jpeg, image/png"
                                 onchange="if(this.files[0].size > 2097152){ alert('Image is too large. Max size is 2MB.'); this.value=''; }"
-                                class="w-full text-xs text-gray-300 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                                class="w-full text-xs text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
                         </div>
 
                         <div class="flex gap-2 pt-2">
-                            <button type="button" id="btn-cancel-profile" class="flex-1 bg-gray-800 hover:bg-gray-200 text-gray-200 font-bold py-3.5 rounded-2xl transition text-xs cursor-pointer">
+                            <button type="button" id="btn-cancel-profile" class="flex-1 bg-slate-100 hover:bg-gray-200 text-slate-700 font-bold py-3.5 rounded-2xl transition text-xs cursor-pointer">
                                 Cancel
                             </button>
                             <button type="submit" id="btn-save-profile" class="flex-1 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-3.5 rounded-2xl transition shadow-md text-xs cursor-pointer">
@@ -961,47 +971,48 @@
             </div>
 
             <!-- Receipt Preview Card -->
-            <div class="bg-gray-900 text-white rounded-2xl p-5 shadow-lg space-y-3">
-                <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+            <div class="bg-white text-white rounded-2xl p-5 shadow-lg space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-3">
                     <span class="text-xs text-indigo-400 font-bold uppercase tracking-wider">Receipt Preview</span>
                     <span class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded">WhatsApp Ready</span>
                 </div>
 
                 <div class="space-y-1 text-center py-2">
                     <h4 class="font-bold text-lg text-white" id="preview-company-name">Your Company Name</h4>
-                    <p class="text-xs text-gray-400" id="preview-business-phone">+234 000 000 0000</p>
-                    <p class="text-xs text-gray-400" id="preview-business-address">Business Address Preview</p>
+                    <p class="text-xs text-slate-500" id="preview-business-phone">+234 000 000 0000</p>
+                    <p class="text-xs text-slate-500" id="preview-business-address">Business Address Preview</p>
                 </div>
 
-                <div class="border-t border-dashed border-gray-800 pt-3 text-xs text-gray-400 space-y-1">
+                <div class="border-t border-dashed border-slate-200 pt-3 text-xs text-slate-500 space-y-1">
                     <div class="flex justify-between">
                         <span>Sample Receipt</span>
                         <span class="text-emerald-400 font-semibold">PAID</span>
                     </div>
-                    <p class="text-[11px] text-gray-400">Thank you for your business!</p>
+                    <p class="text-[11px] text-slate-500">Thank you for your business!</p>
                 </div>
             </div>
 
         </section>
 
+            </div><!-- /desktop-content -->
     </main>
 
     <!-- Edit Modal Dialog -->
     <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-gray-900 rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 class="font-bold text-gray-100 mb-4 text-lg">Edit Expense</h3>
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 class="font-bold text-slate-800 mb-4 text-lg">Edit Expense</h3>
             <form id="edit-expense-form" class="space-y-3">
                 <input type="hidden" id="edit-local-id">
                 <input type="hidden" id="edit-server-id">
                 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1">Amount</label>
-                    <input type="number" step="any" id="edit-amount" required class="w-full border border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Amount</label>
+                    <input type="number" step="any" id="edit-amount" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1">Category</label>
-                    <select id="edit-category" required class="w-full border border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+                    <select id="edit-category" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="Inventory & Materials">Inventory & Materials</option>
                         <option value="Delivery & Logistics">Delivery & Logistics</option>
                         <option value="Fuel & Electricity">Fuel & Electricity</option>
@@ -1012,12 +1023,12 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1">Description</label>
-                    <input type="text" id="edit-description" required class="w-full border border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+                    <input type="text" id="edit-description" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <div class="flex gap-2 justify-end pt-3">
-                    <button type="button" id="close-edit-modal" class="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
+                    <button type="button" id="close-edit-modal" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow">Save Changes</button>
                 </div>
             </form>
@@ -1026,19 +1037,19 @@
 
     <!-- Settle Debt Modal -->
     <div id="settle-debt-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-gray-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
             <div class="flex items-start justify-between gap-4 mb-5">
                 <div>
                     <p class="text-[10px] uppercase tracking-[0.2em] font-black text-amber-400">Accounts Receivable</p>
-                    <h3 class="text-xl font-black text-slate-100 mt-1">Settle customer debt</h3>
-                    <p id="settle-debt-description" class="text-xs text-slate-400 mt-1 truncate"></p>
+                    <h3 class="text-xl font-black text-slate-900 mt-1">Settle customer debt</h3>
+                    <p id="settle-debt-description" class="text-xs text-slate-500 mt-1 truncate"></p>
                 </div>
-                <button type="button" id="close-settle-debt-modal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 text-lg leading-none" aria-label="Close">×</button>
+                <button type="button" id="close-settle-debt-modal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-lg leading-none" aria-label="Close">×</button>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-5">
-                <div class="rounded-2xl bg-slate-900 border border-slate-100 p-3">
-                    <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Outstanding</p>
+                <div class="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Outstanding</p>
                     <p id="settle-debt-balance" class="text-lg font-black text-amber-300 mt-1">₦0.00</p>
                 </div>
                 <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-3">
@@ -1049,21 +1060,21 @@
 
             <form id="settle-debt-form" class="space-y-4">
                 <div>
-                    <label for="settle-debt-amount" class="block text-[10px] uppercase tracking-wider font-black text-slate-400 mb-1.5">Payment received</label>
+                    <label for="settle-debt-amount" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Payment received</label>
                     <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-slate-400">₦</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-slate-500">₦</span>
                         <input id="settle-debt-amount" type="text" inputmode="decimal" autocomplete="off" required
-                               class="w-full rounded-2xl border border-slate-700 py-3 pl-8 pr-3 text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                               class="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-3 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
                                placeholder="0.00">
                     </div>
                     <div class="flex gap-2 mt-2">
-                        <button type="button" data-settle-quick="half" class="settle-quick-btn flex-1 rounded-xl border border-slate-700 bg-slate-900 py-2 text-[10px] font-black text-slate-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-300">Pay half</button>
+                        <button type="button" data-settle-quick="half" class="settle-quick-btn flex-1 rounded-xl border border-slate-200 bg-slate-50 py-2 text-[10px] font-black text-slate-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-300">Pay half</button>
                         <button type="button" data-settle-quick="full" class="settle-quick-btn flex-1 rounded-xl border border-amber-200 bg-amber-50 py-2 text-[10px] font-black text-amber-300 hover:bg-amber-100">Pay full balance</button>
                     </div>
                     <p id="settle-debt-error" class="hidden text-xs text-red-600 font-semibold mt-2"></p>
                 </div>
                 <div class="flex gap-3">
-                    <button type="button" id="cancel-settle-debt" class="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-300 text-xs font-black hover:bg-slate-200">Cancel</button>
+                    <button type="button" id="cancel-settle-debt" class="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">Cancel</button>
                     <button type="submit" id="confirm-settle-debt" class="flex-1 py-3 rounded-2xl bg-amber-600 text-white text-xs font-black hover:bg-amber-700 shadow-md">Record payment</button>
                 </div>
             </form>
@@ -1072,17 +1083,17 @@
 
     <!-- Receipt Profile Requirement Modal -->
     <div id="receipt-profile-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-gray-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
             <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h3"/>
                 </svg>
             </div>
             <p class="text-[10px] uppercase tracking-[0.2em] font-black text-indigo-600">Receipt setup required</p>
-            <h3 class="text-xl font-black text-slate-100 mt-1">Add your business profile first</h3>
-            <p class="text-sm text-slate-400 mt-2 leading-relaxed">Your receipt needs a business name so customers can verify who it came from. Add your profile, then generate the receipt again.</p>
+            <h3 class="text-xl font-black text-slate-900 mt-1">Add your business profile first</h3>
+            <p class="text-sm text-slate-500 mt-2 leading-relaxed">Your receipt needs a business name so customers can verify who it came from. Add your profile, then generate the receipt again.</p>
             <div class="flex gap-3 mt-6">
-                <button type="button" id="close-receipt-profile-modal" class="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-300 text-xs font-black hover:bg-slate-200">Not now</button>
+                <button type="button" id="close-receipt-profile-modal" class="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">Not now</button>
                 <button type="button" id="open-receipt-profile" class="flex-1 py-3 rounded-2xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 shadow-md">Set up profile</button>
             </div>
         </div>
@@ -1092,18 +1103,18 @@
     <!-- PROFILE OTP VERIFICATION MODAL                               -->
     <!-- ============================================================ -->
     <div id="profile-otp-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl p-6 relative">
-            <h3 class="text-lg font-black text-gray-900 mb-2">Verify Profile Update</h3>
-            <p class="text-xs text-gray-400 mb-6 font-medium">For security, we've sent a 6-digit code to your email. Enter it below to save your changes.</p>
+        <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 relative">
+            <h3 class="text-lg font-black text-slate-900 mb-2">Verify Profile Update</h3>
+            <p class="text-xs text-slate-500 mb-6 font-medium">For security, we've sent a 6-digit code to your email. Enter it below to save your changes.</p>
             
             <form id="profile-otp-form" class="space-y-4">
                 <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">6-Digit Code</label>
+                    <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">6-Digit Code</label>
                     <input type="text" id="profile-otp-input" inputmode="numeric" pattern="\d{6}" maxlength="6" required placeholder="123456"
-                           class="w-full border border-gray-700 rounded-xl p-3 text-center text-xl font-bold tracking-[0.2em] text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                           class="w-full border border-slate-200 rounded-xl p-3 text-center text-xl font-bold tracking-[0.2em] text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div class="flex gap-3 mt-6">
-                    <button type="button" onclick="document.getElementById('profile-otp-modal').classList.add('hidden')" class="flex-1 py-3 bg-gray-800 hover:bg-gray-200 text-gray-200 text-xs font-bold rounded-xl transition">Cancel</button>
+                    <button type="button" onclick="document.getElementById('profile-otp-modal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 hover:bg-gray-200 text-slate-700 text-xs font-bold rounded-xl transition">Cancel</button>
                     <button type="submit" id="btn-verify-otp" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md">Verify & Save</button>
                 </div>
             </form>
@@ -1710,7 +1721,7 @@
                     if (changedAny) {
                         await renderExpenseListFromIndexedDB();
                         if (typeof renderAnalytics === 'function') {
-                            const activeTab = document.querySelector('.analytics-tab-btn.bg-gray-900')?.dataset.period || 'daily';
+                            const activeTab = document.querySelector('.analytics-tab-btn.bg-white')?.dataset.period || 'daily';
                             renderAnalytics(activeTab);
                         }
                     }
@@ -2205,23 +2216,23 @@
             <div ${localIdAttr} ${serverIdAttr}
                  data-category="${categoryLabel}"
                  data-amount="${expense.amount}"
-                 class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-950 transition">
+                 class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
                 <div class="flex items-center gap-3">
                     <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
                         ${categoryInitial}
                     </div>
                     <div>
-                        <p class="expense-category-val font-bold text-gray-100 text-sm capitalize">
+                        <p class="expense-category-val font-bold text-slate-800 text-sm capitalize">
                             <span class="category-name">${categoryLabel}</span>${offlineBadge}
                         </p>
-                        <p class="expense-desc-val text-xs text-gray-400">${expense.description || 'No description provided'}</p>
+                        <p class="expense-desc-val text-xs text-slate-500">${expense.description || 'No description provided'}</p>
                     </div>
                 </div>
                 <div class="text-right">
-                    <p class="expense-amount-val font-bold text-gray-900 text-sm mb-1">₦${formattedAmount}</p>
+                    <p class="expense-amount-val font-bold text-slate-900 text-sm mb-1">₦${formattedAmount}</p>
                     <div class="flex gap-2 justify-end">
-                        <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-400 bg-blue-950/50 px-2 py-1 rounded hover:bg-blue-900/50 border border-blue-800/50">Edit</button>
-                        <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-400 bg-red-950/50 px-2 py-1 rounded hover:bg-red-900/50 border border-red-800/50">Del</button>
+                        <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">Edit</button>
+                        <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Del</button>
                     </div>
                 </div>
             </div>`;
@@ -2245,7 +2256,7 @@
                 const visible = (expenses || []).filter(item => !item.pending_delete);
                 listContainer.innerHTML = visible.length
                     ? visible.slice().reverse().map(buildExpenseItemHTML).join('')
-                    : '<p class="text-center text-gray-400 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>';
+                    : '<p class="text-center text-slate-500 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>';
                 recalculateTotalFromUI();
             } catch (err) {
                 console.warn('Could not render expense list from IndexedDB:', err);
@@ -2266,12 +2277,12 @@
 
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.className = 'custom-select-button w-full rounded-xl border border-gray-700 bg-gray-900 py-3 px-3 text-left text-sm font-semibold text-gray-200 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+                button.className = 'custom-select-button w-full rounded-xl border border-slate-200 bg-white py-3 px-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500';
                 button.setAttribute('aria-haspopup', 'listbox');
                 button.setAttribute('aria-expanded', 'false');
 
                 const menu = document.createElement('div');
-                menu.className = 'custom-select-menu hidden absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl border border-gray-700 bg-gray-900 p-1 shadow-xl';
+                menu.className = 'custom-select-menu hidden absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl border border-slate-200 bg-white p-1 shadow-xl';
                 menu.setAttribute('role', 'listbox');
 
                 const syncButton = () => {
@@ -2283,7 +2294,7 @@
                     if (option.disabled) return;
                     const item = document.createElement('button');
                     item.type = 'button';
-                    item.className = 'custom-select-option block w-full rounded-xl px-3 py-2.5 text-left text-sm text-gray-200 hover:bg-gray-950';
+                    item.className = 'custom-select-option block w-full rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50';
                     item.textContent = option.textContent;
                     item.setAttribute('role', 'option');
                     item.dataset.value = option.value;
@@ -2469,34 +2480,34 @@
                 [btnExpenses, btnIncome, btnAnalytics, btnProfile].forEach(btn => {
                     if (btn) {
                         btn.classList.remove('bg-indigo-600', 'bg-emerald-600', 'bg-blue-600', 'text-white', 'shadow-sm');
-                        btn.classList.add('text-gray-400', 'hover:text-gray-900', 'hover:bg-gray-950');
+                        btn.classList.add('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
                     }
                 });
 
                 if (target === 'expenses' && contentExpenses) {
                     contentExpenses.classList.remove('hidden');
                     if (btnExpenses) {
-                        btnExpenses.classList.remove('text-gray-400', 'hover:text-gray-900', 'hover:bg-gray-950');
+                        btnExpenses.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
                         btnExpenses.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
                     }
                 } else if (target === 'income' && contentIncome) {
                     contentIncome.classList.remove('hidden');
                     if (btnIncome) {
-                        btnIncome.classList.remove('text-gray-400', 'hover:text-gray-900', 'hover:bg-gray-950');
+                        btnIncome.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
                         btnIncome.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
                     }
                     renderIncomeListUI();
                 } else if (target === 'analytics' && contentAnalytics) {
                     contentAnalytics.classList.remove('hidden');
                     if (btnAnalytics) {
-                        btnAnalytics.classList.remove('text-gray-400', 'hover:text-gray-900', 'hover:bg-gray-950');
+                        btnAnalytics.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
                         btnAnalytics.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
                     }
                     if (typeof renderAnalytics === 'function') renderAnalytics('daily');
                 } else if (target === 'profile' && contentProfile) {
                     contentProfile.classList.remove('hidden');
                     if (btnProfile) {
-                        btnProfile.classList.remove('text-gray-400', 'hover:text-gray-900', 'hover:bg-gray-950');
+                        btnProfile.classList.remove('text-slate-500', 'hover:text-slate-900', 'hover:bg-slate-50');
                         btnProfile.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
                     }
                     populateProfileFormUI();
@@ -3138,7 +3149,7 @@
                 const formattedPaid = amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const formattedBalance = balanceOwed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 
-                const receiptTag = income.receipt_id ? `<span class="text-[10px] text-gray-400 font-mono ml-1.5">#${income.receipt_id}</span>` : '';
+                const receiptTag = income.receipt_id ? `<span class="text-[10px] text-slate-500 font-mono ml-1.5">#${income.receipt_id}</span>` : '';
                 const balanceHtml = balanceOwed > 0
                     ? `<p class="text-[10px] text-red-600 font-medium">Balance Owed: ₦${formattedBalance}</p>`
                     : '';
@@ -3148,20 +3159,20 @@
                 </button>` : '';
 
                 return `
-                <div data-income-local-id="${income.local_id || ''}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-950 transition">
+                <div data-income-local-id="${income.local_id || ''}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-lg"><svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 13h.01"/><path d="M2 10h18"/></svg></div>
                         <div>
-                            <p class="font-bold text-gray-100 text-sm capitalize flex items-center">
+                            <p class="font-bold text-slate-800 text-sm capitalize flex items-center">
                                 ${desc} ${offlineBadge}
                             </p>
-                            <p class="text-xs text-gray-400">Customer: ${income.customer_name || 'Walk-in'} ${receiptTag}</p>
+                            <p class="text-xs text-slate-500">Customer: ${income.customer_name || 'Walk-in'} ${receiptTag}</p>
                             <div class="mt-1"><span class="text-[10px] ${paymentState.badgeClass} px-2 py-0.5 rounded font-bold">${paymentState.status}</span></div>
                             ${balanceHtml}
                         </div>
                     </div>
                     <div class="text-right">
-                        <p class="font-bold text-emerald-600 text-sm mb-1">₦${formattedPaid} <span class="text-[10px] text-gray-400 font-normal block">of ₦${formattedTotal}</span></p>
+                        <p class="font-bold text-emerald-600 text-sm mb-1">₦${formattedPaid} <span class="text-[10px] text-slate-500 font-normal block">of ₦${formattedTotal}</span></p>
                         <div class="space-y-2">${settleButton}
                             <button type="button" onclick="generatePDFReceipt(${income.local_id})" class="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded transition border border-emerald-200 shadow-sm">
                                 <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg> Receipt
@@ -3180,7 +3191,7 @@
                 let totalIncome = 0;
 
                 if (incomeItems.length === 0) {
-                    listContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
+                    listContainer.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
                 } else {
                     listContainer.innerHTML = incomeItems.map(item => {
                         if (!item.pending_delete) {
@@ -3323,19 +3334,19 @@
                     const isLow = p.stock > 0 && p.stock <= 3;
                     const isOut = p.stock === 0 && inventoryPresets.some(x => x.stock > 0); // only flag if stock tracking is used
                     const stockBadge = p.stock > 0
-                        ? `<span class="text-[9px] ${isLow ? 'text-amber-400 font-bold' : 'text-gray-400'}">${isLow ? '⚠ ' : ''}${p.stock} left</span>`
+                        ? `<span class="text-[9px] ${isLow ? 'text-amber-400 font-bold' : 'text-slate-500'}">${isLow ? '⚠ ' : ''}${p.stock} left</span>`
                         : '';
                     const outClass = isOut ? 'opacity-40 pointer-events-none' : '';
                     return `<button type="button" data-preset-id="${p.id}" data-name="${p.item_name}" data-price="${p.price}"
-                        class="preset-tap-btn ${outClass} bg-gradient-to-br from-gray-50 to-white border border-gray-700 hover:border-emerald-400 hover:shadow-md rounded-xl p-2.5 text-center transition-all active:scale-95 cursor-pointer">
-                        <p class="text-xs font-bold text-gray-100 truncate">${p.item_name}</p>
+                        class="preset-tap-btn ${outClass} bg-gradient-to-br from-gray-50 to-white border border-slate-200 hover:border-emerald-400 hover:shadow-md rounded-xl p-2.5 text-center transition-all active:scale-95 cursor-pointer">
+                        <p class="text-xs font-bold text-slate-800 truncate">${p.item_name}</p>
                         <p class="text-[11px] font-bold text-emerald-600">₦${p.price.toLocaleString()}</p>
                         ${stockBadge}
                     </button>`;
                 }).join('');
 
                 if (inventoryPresets.length === 0) {
-                    presetsGrid.innerHTML = '<p id="no-presets-msg" class="col-span-3 text-center text-gray-400 text-xs py-4">No presets yet. Tap ⚙ Manage to add your top items.</p>';
+                    presetsGrid.innerHTML = '<p id="no-presets-msg" class="col-span-3 text-center text-slate-500 text-xs py-4">No presets yet. Tap ⚙ Manage to add your top items.</p>';
                 } else {
                     presetsGrid.innerHTML = buttons;
                 }
@@ -3345,10 +3356,10 @@
             function renderManageList() {
                 if (!manageList) return;
                 manageList.innerHTML = inventoryPresets.map(p => `
-                    <div class="flex items-center gap-2 bg-gray-950 rounded-lg px-3 py-2 text-xs" data-manage-id="${p.id}">
-                        <span class="flex-1 font-semibold text-gray-100 truncate">${p.item_name}</span>
+                    <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-xs" data-manage-id="${p.id}">
+                        <span class="flex-1 font-semibold text-slate-800 truncate">${p.item_name}</span>
                         <span class="text-emerald-600 font-bold whitespace-nowrap">₦${p.price.toLocaleString()}</span>
-                        <span class="text-gray-400 whitespace-nowrap w-12 text-center">${p.stock} pcs</span>
+                        <span class="text-slate-500 whitespace-nowrap w-12 text-center">${p.stock} pcs</span>
                         <button type="button" class="btn-delete-preset text-red-400 hover:text-red-600 font-bold transition" data-id="${p.id}">✕</button>
                     </div>
                 `).join('');
@@ -3468,11 +3479,11 @@
                     const period = e.target.dataset.period;
                     // Update active tab styles
                     analyticsTabs.forEach(t => {
-                        t.classList.remove('bg-gray-900', 'shadow-sm', 'text-gray-900');
-                        t.classList.add('text-gray-400');
+                        t.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                        t.classList.add('text-slate-500');
                     });
-                    e.target.classList.remove('text-gray-400');
-                    e.target.classList.add('bg-gray-900', 'shadow-sm', 'text-gray-900');
+                    e.target.classList.remove('text-slate-500');
+                    e.target.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
                     renderAnalytics(period);
                 });
             });
@@ -3557,11 +3568,11 @@
                 if (elProfit) {
                     elProfit.textContent = f(liquidProfit);
                     if (liquidProfit < 0) {
-                        elProfit.classList.replace('text-slate-100', 'text-rose-600');
+                        elProfit.classList.replace('text-slate-900', 'text-rose-600');
                         elProfit.classList.replace('text-emerald-600', 'text-rose-600');
                     } else {
                         elProfit.classList.replace('text-rose-600', 'text-emerald-600');
-                        elProfit.classList.replace('text-slate-100', 'text-emerald-600');
+                        elProfit.classList.replace('text-slate-900', 'text-emerald-600');
                     }
                 }
 
@@ -3582,7 +3593,7 @@
                 if(labelEl) labelEl.textContent = labels[period];
 
                 if (Object.keys(groups).length === 0) {
-                    listEl.innerHTML = '<p class="text-center text-gray-400 py-8 text-sm">No sales data available.</p>';
+                    listEl.innerHTML = '<p class="text-center text-slate-500 py-8 text-sm">No sales data available.</p>';
                     return;
                 }
 
@@ -3592,25 +3603,25 @@
                 listEl.innerHTML = sortedKeys.map(key => {
                     const g = groups[key];
                     return `
-                    <details class="bg-gray-950 rounded-xl border border-gray-800 overflow-hidden group">
+                    <details class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden group">
                         <summary class="p-4 flex items-center justify-between cursor-pointer list-none outline-none">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-                                <span class="font-bold text-gray-100 text-sm">${key}</span>
-                                <span class="text-[10px] bg-gray-200 text-gray-300 px-2 py-0.5 rounded-full font-bold">${g.items.length} tx</span>
+                                <svg class="w-4 h-4 text-slate-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                <span class="font-bold text-slate-800 text-sm">${key}</span>
+                                <span class="text-[10px] bg-gray-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">${g.items.length} tx</span>
                             </div>
                             <span class="font-bold text-indigo-600">₦${g.salesVolume.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                         </summary>
-                        <div class="px-4 pb-4 pt-1 space-y-2 bg-gray-900">
+                        <div class="px-4 pb-4 pt-1 space-y-2 bg-white">
                             ${g.items.map(item => {
                                 const finalPaid = parseFloat(item.amount_paid ?? item.total_value ?? item.amount ?? 0);
                                 const title = item.description || item.item_sold || 'Income';
-                                const receiptBadge = item.receipt_id ? `<span class="text-[9px] text-gray-400 font-mono ml-1">#${item.receipt_id}</span>` : '';
+                                const receiptBadge = item.receipt_id ? `<span class="text-[9px] text-slate-500 font-mono ml-1">#${item.receipt_id}</span>` : '';
                                 return `
                                 <div class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
                                     <div>
-                                        <p class="font-semibold text-gray-200">${title}</p>
-                                        <p class="text-[10px] text-gray-400">${item.customer_name || 'Walk-in'} ${receiptBadge}</p>
+                                        <p class="font-semibold text-slate-700">${title}</p>
+                                        <p class="text-[10px] text-slate-500">${item.customer_name || 'Walk-in'} ${receiptBadge}</p>
                                     </div>
                                     <div class="text-right">
                                         <p class="font-bold text-emerald-600">₦${finalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
@@ -4201,7 +4212,7 @@
 
 
 <!-- Mobile Bottom Nav Bar -->
-<nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-center bg-black/95 backdrop-blur-xl border-t border-gray-800" style="padding-bottom: env(safe-area-inset-bottom);">
+<nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-center bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]" style="padding-bottom: env(safe-area-inset-bottom);">
   <button data-mobile-tab="expenses" class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 text-indigo-400">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
     <span class="text-[10px] font-bold">Expenses</span>
