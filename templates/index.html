@@ -19,11 +19,11 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Pulls in modern, clean Inter font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+            background: #f8fafc;
             color: #1e293b;
         }
 
@@ -174,9 +174,9 @@
                 height: calc(100vh - 62px);
                 width: 240px;
                 flex-shrink: 0;
-                padding: 20px 12px;
+                padding: 24px 16px;
                 background: #ffffff;
-                border-right: 1px solid #e2e8f0;
+                border-right: 1px solid #f1f5f9;
                 overflow-y: auto;
                 display: flex;
                 flex-direction: column;
@@ -194,9 +194,9 @@
                 justify-content: flex-start;
                 gap: 12px;
                 padding: 12px 16px;
-                border-radius: 12px;
+                border-radius: 16px;
                 font-size: 0.875rem;
-                font-weight: 600;
+                font-weight: 700;
                 color: #64748b;
                 background: transparent;
                 border: none;
@@ -213,7 +213,7 @@
             .desktop-sidebar .tab-btn.bg-indigo-600 {
                 background: #4f46e5 !important;
                 color: #ffffff !important;
-                box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+                box-shadow: 0 6px 20px rgba(79,70,229,0.25);
             }
             .desktop-sidebar .tab-btn.bg-indigo-600 svg {
                 color: #ffffff !important;
@@ -365,63 +365,107 @@
             </button>
         </div>
 
-        <!-- Mobile User Greeting Banner at the Top of Main Body -->
-        <div id="desktop-greeting" class="desktop-greeting mb-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
-            <div>
-                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
-                    Hi, <span id="user-greeting-name">{{ username }}</span> <svg class="w-4 h-4 text-amber-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                </h2>
-                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Here is your business overview today</p>
+        <!-- User Greeting & CFO Status Banner -->
+        <div id="desktop-greeting" class="desktop-greeting mb-6 bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-black text-xl flex items-center justify-center shadow-md shadow-indigo-100 flex-shrink-0">
+                    {{ (username or 'M')[:1] | upper }}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+                            Hi, <span id="user-greeting-name">{{ username or 'Merchant' }}</span>
+                        </h2>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> CFO Active
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                        Real-time ledger &amp; financial overview
+                    </p>
+                </div>
             </div>
-            <button id="btn-global-overview" type="button" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
-                Overview
-            </button>
+            
+            <div class="flex items-center gap-2.5 self-end sm:self-center">
+                <button id="btn-reconcile-cash" type="button" onclick="showTab('income')" class="inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100/80 text-amber-800 border border-amber-200/80 px-4 py-2.5 rounded-2xl text-xs font-black transition-all shadow-sm active:scale-95 cursor-pointer">
+                    <span class="w-5 h-5 rounded-lg bg-amber-200/60 flex items-center justify-center text-amber-800 font-black text-xs">₦</span>
+                    <span>Reconcile Cash</span>
+                </button>
+            </div>
         </div>
         <div id="network-status-banner" class="hidden mb-4 rounded-2xl border bg-white px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
             <span id="network-status-text"></span>
             <button type="button" id="retry-sync-button" class="hidden rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide">Retry sync</button>
         </div>
 
-        <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
-        <div id="cfo-dashboard" class="transition-all duration-300">
-        <!-- Top row: Sales + Expenses side by side -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
-
-            <!-- Total Sales Card -->
-            <div class="bg-emerald-50 border border-emerald-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Total Sales</p>
-                </div>
-                <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
-            </div>
-
-            <!-- Total Expenses Card -->
-            <div class="bg-rose-50 border border-rose-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
-                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
-                </div>
-                <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
-            </div>
-        </div>
-
-        <!-- Bottom row: Net Profit — full width so it has maximum space -->
-        <div class="mb-5 lg:col-span-2">
-            {% set np = net_profit or 0.0 %}
-            <div class="{% if np >= 0 %}bg-white border-indigo-100{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 min-w-0 overflow-hidden">
-                <div class="flex items-center gap-2 flex-shrink-0 min-w-0" style="max-width:55%">
-                    <span class="flex-shrink-0 {% if np >= 0 %}text-indigo-500{% else %}text-amber-500{% endif %}">
-                        {% if np >= 0 %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>{% else %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{% endif %}
-                    </span>
-                    <div class="min-w-0">
-                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-400{% endif %} tracking-wider leading-none truncate">Net Profit</p>
-                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Sales − Expenses</p>
+        <!-- CFO Financial Overview Cards -->
+        <div id="cfo-dashboard" class="transition-all duration-300 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+                
+                <!-- 1. Total Inflow (Sales) -->
+                <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-1.5 text-emerald-600">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Total Inflow</span>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 rounded-full">Sales</span>
+                    </div>
+                    <div>
+                        <div class="stat-value text-slate-900 font-extrabold tracking-tight" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</div>
+                        <p class="text-[11px] text-slate-400 font-medium mt-1">Total sales cash received</p>
                     </div>
                 </div>
-                <span class="stat-value {% if np >= 0 %}text-indigo-700{% else %}text-amber-600{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
+
+                <!-- 2. Total Outflow (Expenses) -->
+                <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-1.5 text-rose-500">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Total Outflow</span>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200/60 px-2 py-0.5 rounded-full">Costs</span>
+                    </div>
+                    <div>
+                        <div class="stat-value text-slate-900 font-extrabold tracking-tight" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</div>
+                        <p class="text-[11px] text-slate-400 font-medium mt-1">Operating &amp; direct costs</p>
+                    </div>
+                </div>
+
+                <!-- 3. Net Margin -->
+                {% set np = net_profit or 0.0 %}
+                <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-1.5 {% if np >= 0 %}text-indigo-600{% else %}text-amber-500{% endif %}">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Net Margin</span>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-wider {% if np >= 0 %}bg-emerald-50 text-emerald-700 border border-emerald-200/60{% else %}bg-amber-50 text-amber-700 border border-amber-200/60{% endif %} px-2 py-0.5 rounded-full">
+                            {% if np >= 0 %}Healthy{% else %}Deficit{% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <div class="stat-value {% if np >= 0 %}text-indigo-600{% else %}text-amber-600{% endif %} font-extrabold tracking-tight" id="top-profit">₦{{ "{:,.2f}".format(np) }}</div>
+                        <p class="text-[11px] text-slate-400 font-medium mt-1">Net profit (Inflow − Outflow)</p>
+                    </div>
+                </div>
+
+                <!-- 4. Cash Drawer (Physical ledger estimate) -->
+                <div class="bg-white rounded-3xl p-4 sm:p-5 border border-amber-200/70 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-1.5 text-amber-600">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-amber-800">Cash Drawer</span>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200/80 px-2 py-0.5 rounded-full">Audit ↗</span>
+                    </div>
+                    <div>
+                        <div class="stat-value text-amber-900 font-extrabold tracking-tight">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</div>
+                        <p class="text-[11px] text-amber-700/70 font-medium mt-1">Expected physical cash drawer</p>
+                    </div>
+                </div>
+
             </div>
-        </div>
         </div> <!-- End cfo-dashboard -->
 
         
@@ -440,23 +484,39 @@
             </div>
 
             <!-- Add Expense Form -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Log New Expense
-                </h3>
-                <form id="expense-form" method="POST" action="/add" class="space-y-3">
-                    <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">₦</span>
-                        <input type="text" inputmode="numeric" name="amount" placeholder="Amount (e.g. 5000)" required 
-                            class="currency-input w-full border border-slate-200 rounded-lg py-3 pr-3 pl-8 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">+</span>
+                        <span>Log New Expense</span>
+                    </h3>
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">Outflow</span>
+                </div>
+                <form id="expense-form" method="POST" action="/add" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Amount Spent (₦)</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">₦</span>
+                            <input type="text" inputmode="numeric" id="expense-amount-input" name="amount" placeholder="0.00" required 
+                                class="currency-input w-full border border-slate-200/80 bg-slate-50/50 rounded-2xl py-3.5 pr-4 pl-9 text-base font-extrabold text-slate-900 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner">
+                        </div>
+                        <!-- Quick Amount Tap Chips -->
+                        <div class="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                            <button type="button" onclick="setExpenseAmount(500)" class="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95">+500</button>
+                            <button type="button" onclick="setExpenseAmount(1000)" class="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95">+1k</button>
+                            <button type="button" onclick="setExpenseAmount(2000)" class="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95">+2k</button>
+                            <button type="button" onclick="setExpenseAmount(5000)" class="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95">+5k</button>
+                            <button type="button" onclick="setExpenseAmount(10000)" class="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95">+10k</button>
+                            <button type="button" onclick="setExpenseAmount(20000)" class="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95">+20k</button>
+                        </div>
                     </div>
 
                     <div>
-                        <label for="expense-category" class="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-2">Expense category</label>
+                        <label for="expense-category" class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Expense category</label>
                         <div class="relative">
-                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M2 7h20"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C10 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C14 2 12 7 12 7Z"/></svg>
-                            <select id="expense-category" name="category" required class="w-full appearance-none border border-slate-200 rounded-xl bg-white py-3 pl-10 pr-10 text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition">
-                                <option value="" disabled selected>Select a category</option>
+                            <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M2 7h20"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C10 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C14 2 12 7 12 7Z"/></svg>
+                            <select id="expense-category" name="category" required class="w-full appearance-none border border-slate-200/80 rounded-2xl bg-slate-50/50 py-3.5 pl-10 pr-10 text-sm font-bold text-slate-700 shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+                                <option value="" disabled selected>Select a category...</option>
                                 <option value="Inventory & Materials">Inventory &amp; Materials</option>
                                 <option value="Delivery & Logistics">Delivery &amp; Logistics</option>
                                 <option value="Fuel & Electricity">Fuel &amp; Electricity</option>
@@ -464,31 +524,37 @@
                                 <option value="Data & Airtime">Data &amp; Airtime</option>
                                 <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                             </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            <svg class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
                     </div>
 
-                    <input type="text" name="description" placeholder="What did you pay for?" required 
-                        class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <div>
+                        <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Description / Note</label>
+                        <input type="text" name="description" placeholder="What was this payment for?" required 
+                            class="w-full border border-slate-200/80 bg-slate-50/50 rounded-2xl p-3.5 text-sm font-semibold text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner">
+                    </div>
                     
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition shadow-sm flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Expense
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-extrabold text-sm py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-98 transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2 cursor-pointer mt-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Expense
                     </button>
                 </form>
             </div>
 
             <!-- Transaction Filter Bar -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg> Filter Transactions</h3>
-                    <button type="button" id="btn-clear-filters" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-black text-xs">⌕</span>
+                        <span>Filter Transactions</span>
+                    </h3>
+                    <button type="button" id="btn-clear-filters" class="hidden text-xs font-bold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 cursor-pointer"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Category</label>
+                        <label class="block text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1.5">Category</label>
                         <div class="relative">
-                            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500">⌕</span>
-                            <select id="filter-category" class="w-full appearance-none border border-slate-200 rounded-2xl p-3 pl-8 pr-9 text-sm font-semibold text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
+                            <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">⌕</span>
+                            <select id="filter-category" class="w-full appearance-none border border-slate-200/80 rounded-2xl py-3 pl-9 pr-9 text-xs font-bold text-slate-700 bg-slate-50/50 shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition cursor-pointer">
                             <option value="">All Categories</option>
                             <option value="Inventory &amp; Materials">Inventory &amp; Materials</option>
                             <option value="Delivery &amp; Logistics">Delivery &amp; Logistics</option>
@@ -497,22 +563,22 @@
                             <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                             <option value="Others">Others</option>
                             </select>
-                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">⌄</span>
+                            <span class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">⌄</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Exact Amount (₦)</label>
+                        <label class="block text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1.5">Exact Amount (₦)</label>
                         <input type="number" id="filter-amount-exact" min="0" step="any" placeholder="e.g. 5000"
-                            class="w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            class="w-full border border-slate-200/80 bg-slate-50/50 rounded-2xl py-3 px-3.5 text-xs font-bold text-slate-700 shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                     </div>
                 </div>
                 <!-- Live filter result summary -->
-                <div id="filter-result-banner" class="hidden mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between">
+                <div id="filter-result-banner" class="hidden mt-3.5 p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex items-center justify-between">
                     <div>
-                        <p class="text-[10px] uppercase font-bold text-indigo-600 tracking-wider" id="filter-result-label">Filtered Total</p>
-                        <p class="text-lg font-extrabold text-indigo-800" id="filter-result-total">₦0.00</p>
+                        <p class="text-[10px] uppercase font-black text-indigo-600 tracking-wider" id="filter-result-label">Filtered Total</p>
+                        <p class="text-base font-extrabold text-indigo-900" id="filter-result-total">₦0.00</p>
                     </div>
-                    <p class="text-xs text-indigo-400 font-medium" id="filter-match-count">0 results</p>
+                    <p class="text-xs text-indigo-600/80 font-bold" id="filter-match-count">0 results</p>
                 </div>
             </div>
 
@@ -558,33 +624,33 @@
 
             <!-- Transaction List -->
             <div>
-                <h3 class="font-bold text-slate-800 mb-3 flex items-center justify-between">
+                <h3 class="font-extrabold text-slate-900 mb-3 flex items-center justify-between text-base">
                     <span>Recent Transactions</span>
-                    <span class="text-xs text-slate-500 font-normal">Offline-First</span>
+                    <span class="text-[11px] text-slate-500 font-semibold bg-slate-100 border border-slate-200/60 px-2.5 py-0.5 rounded-full">Offline-First</span>
                 </h3>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="transaction-list">
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden" id="transaction-list">
                     {% if expenses|length == 0 %}
-                        <p class="text-center text-slate-500 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>
+                        <p class="text-center text-slate-400 py-10 text-sm font-medium" id="no-expenses-msg">No expenses recorded yet.</p>
                     {% else %}
                         {% for item in expenses %}
                         <div data-server-id="{{ item.id }}"
                              data-category="{{ item.category }}"
                              data-amount="{{ item.amount }}"
-                             class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
-                            <div class="flex items-center gap-3">
-                                <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                             class="expense-card flex justify-between items-center p-4 sm:p-5 border-b border-slate-100/70 hover:bg-slate-50/70 transition">
+                            <div class="flex items-center gap-3.5">
+                                <div class="category-icon-val w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 font-black text-base shadow-sm">
                                     {{ item.category[0]|upper }}
                                 </div>
                                 <div>
-                                    <p class="expense-category-val font-bold text-slate-800 text-sm capitalize">{{ item.category }}</p>
-                                    <p class="expense-desc-val text-xs text-slate-500">{{ item.description }}</p>
+                                    <p class="expense-category-val font-bold text-slate-900 text-sm capitalize">{{ item.category }}</p>
+                                    <p class="expense-desc-val text-xs text-slate-400 font-medium">{{ item.description }}</p>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="expense-amount-val font-bold text-slate-900 text-sm mb-1">₦{{ "{:,.2f}".format(item.amount) }}</p>
-                                <div class="flex gap-2 justify-end">
-                                    <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">Edit</button>
-                                    <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Del</button>
+                                <p class="expense-amount-val font-black text-slate-900 text-sm mb-1.5">₦{{ "{:,.2f}".format(item.amount) }}</p>
+                                <div class="flex gap-1.5 justify-end">
+                                    <button type="button" class="btn-edit text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer">Edit</button>
+                                    <button type="button" class="btn-delete text-[10px] uppercase tracking-wider font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg transition cursor-pointer">Del</button>
                                 </div>
                             </div>
                         </div>
@@ -592,7 +658,7 @@
                     {% endif %}
                 </div>
                 <!-- Empty state when filters yield no matches -->
-                <p class="hidden text-center text-slate-500 py-6 text-sm" id="filter-no-match">No transactions match your filter.</p>
+                <p class="hidden text-center text-slate-400 py-8 text-sm font-medium" id="filter-no-match">No transactions match your filter.</p>
             </div>
 
         </section>
@@ -611,13 +677,13 @@
                 </div>
 
             <!-- Quick-Tap Inventory Presets -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                        <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        Quick Tap
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-extrabold text-slate-900 flex items-center gap-2 text-base">
+                        <span class="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black text-sm">⚡</span>
+                        <span>Quick Tap</span>
                     </h3>
-                    <button type="button" id="btn-manage-presets" class="text-[10px] bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 px-2.5 py-1 rounded-lg font-bold transition">⚙ Manage</button>
+                    <button type="button" id="btn-manage-presets" class="text-xs bg-slate-50 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200/80 px-3 py-1.5 rounded-xl font-bold transition cursor-pointer">⚙ Manage</button>
                 </div>
 
                 <!-- Preset Grid (quick-tap buttons) -->
@@ -650,48 +716,55 @@
             </div>
 
             <!-- Log Sale Form -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Log New Sale / Revenue
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">₦</span>
+                        <span>Log New Sale / Revenue</span>
                     </h3>
-                    <!-- Orphaned Add Item Button Removed -->
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2.5 py-1 rounded-full">Inflow</span>
                 </div>
-                <form id="add-income-form" class="space-y-3">
+                <form id="add-income-form" class="space-y-4">
                     <div>
-                        <input type="text" id="income-customer-name" placeholder="Customer Name (Optional)" 
-                            class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                        <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Customer Name (Optional)</label>
+                        <input type="text" id="income-customer-name" placeholder="e.g. John Doe, @buyer_handle" 
+                            class="w-full border border-slate-200/80 bg-slate-50/50 rounded-2xl p-3.5 text-sm font-semibold text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-inner">
                     </div>
                     <div>
-                        <input type="text" id="income-description" class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Title / Description (e.g. Kitchen Tiling)" required>
+                        <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Item or Service Description *</label>
+                        <input type="text" id="income-description" class="w-full border border-slate-200/80 bg-slate-50/50 rounded-2xl p-3.5 text-sm font-semibold text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-inner" placeholder="e.g. 2x DLNZ Hoodies, Kitchen Tiling" required>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="relative">
-                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Total Value</label>
-                            <span class="absolute left-2.5 bottom-2.5 text-slate-500 font-bold text-sm">₦</span>
-                            <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Total Value (₦)</label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">₦</span>
+                                <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-slate-200/80 bg-slate-50/50 rounded-2xl py-3 pr-3 pl-8 text-sm font-extrabold text-slate-900 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-inner" placeholder="0.00" required>
+                            </div>
                         </div>
-                        <div class="relative">
-                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Amount Paid</label>
-                            <span class="absolute left-2.5 bottom-2.5 text-slate-500 font-bold text-sm">₦</span>
-                            <input type="text" inputmode="numeric" id="income-amount-paid" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
+                        <div>
+                            <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Amount Paid (₦)</label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">₦</span>
+                                <input type="text" inputmode="numeric" id="income-amount-paid" class="currency-input w-full border border-slate-200/80 bg-slate-50/50 rounded-2xl py-3 pr-3 pl-8 text-sm font-extrabold text-slate-900 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-inner" placeholder="0.00" required>
+                            </div>
                         </div>
                     </div>
                     <div>
-                        <label for="sale-payment-mode" class="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-2">Payment method</label>
+                        <label for="sale-payment-mode" class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Payment method</label>
                         <div class="relative">
-                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                            <select id="sale-payment-mode" class="w-full appearance-none border border-slate-200 rounded-xl bg-white py-3 pl-10 pr-10 text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition" aria-label="Payment method">
-                                <option value="Cash">Cash</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="POS">POS</option>
+                            <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                            <select id="sale-payment-mode" class="w-full appearance-none border border-slate-200/80 rounded-2xl bg-slate-50/50 py-3.5 pl-10 pr-10 text-sm font-bold text-slate-700 shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition" aria-label="Payment method">
+                                <option value="Cash">Cash (Physical Drawer)</option>
+                                <option value="Transfer">Bank Transfer</option>
+                                <option value="POS">POS Terminal</option>
                             </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            <svg class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition shadow-sm flex items-center justify-center gap-2 mt-4">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Transaction
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-extrabold text-sm py-3.5 rounded-2xl hover:bg-emerald-700 active:scale-98 transition-all shadow-md shadow-emerald-100 flex items-center justify-center gap-2 cursor-pointer mt-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Sale &amp; Update Ledger
                     </button>
                 </form>
             </div>
@@ -720,43 +793,43 @@
                 </div>
 
                 <!-- Segmented Control Bar -->
-                <div class="bg-slate-100 p-1 rounded-xl flex gap-1 text-sm font-semibold">
-                    <button type="button" data-period="daily" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg bg-white shadow-sm text-slate-900">Daily</button>
-                    <button type="button" data-period="weekly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Weekly</button>
-                    <button type="button" data-period="monthly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Monthly</button>
-                    <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Yearly</button>
+                <div class="bg-slate-100 p-1.5 rounded-2xl flex gap-1 text-xs font-bold border border-slate-200/60 max-w-md">
+                    <button type="button" data-period="daily" class="analytics-tab-btn flex-1 py-2 text-center rounded-xl bg-white shadow-sm text-slate-900 transition-all cursor-pointer">Daily</button>
+                    <button type="button" data-period="weekly" class="analytics-tab-btn flex-1 py-2 text-center rounded-xl text-slate-500 hover:text-slate-800 transition-all cursor-pointer">Weekly</button>
+                    <button type="button" data-period="monthly" class="analytics-tab-btn flex-1 py-2 text-center rounded-xl text-slate-500 hover:text-slate-800 transition-all cursor-pointer">Monthly</button>
+                    <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-2 text-center rounded-xl text-slate-500 hover:text-slate-800 transition-all cursor-pointer">Yearly</button>
                 </div>
 
                 <!-- Top Summary Dashboard -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
                     <!-- Value & Cash -->
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Value Booked</p>
-                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-total-value">₦0.00</p>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Total Value Booked</p>
+                        <p class="text-xl font-extrabold text-slate-900 tracking-tight" id="analytics-total-value">₦0.00</p>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Cash Collected</p>
-                        <p class="text-lg sm:text-xl font-bold text-emerald-600" id="analytics-cash-collected">₦0.00</p>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Cash Collected</p>
+                        <p class="text-xl font-extrabold text-emerald-600 tracking-tight" id="analytics-cash-collected">₦0.00</p>
                     </div>
 
                     <!-- Expenses & Profit -->
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Expenses</p>
-                        <p class="text-lg sm:text-xl font-bold text-rose-500" id="analytics-total-expenses">₦0.00</p>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Total Expenses</p>
+                        <p class="text-xl font-extrabold text-rose-500 tracking-tight" id="analytics-total-expenses">₦0.00</p>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 bg-slate-50">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Liquid Profit</p>
-                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-liquid-profit">₦0.00</p>
+                    <div class="bg-white p-5 rounded-3xl border border-indigo-100 shadow-sm flex flex-col justify-between">
+                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-wider mb-1">Liquid Profit</p>
+                        <p class="text-xl font-extrabold text-indigo-600 tracking-tight" id="analytics-liquid-profit">₦0.00</p>
                     </div>
                 </div>
 
                 <!-- Outstanding Alert (Only shows if money is owed) -->
-                <div id="analytics-outstanding-alert" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-xl flex justify-between items-center">
+                <div id="analytics-outstanding-alert" class="hidden bg-amber-50/80 border border-amber-200/80 p-5 rounded-3xl flex justify-between items-center shadow-sm">
                     <div>
-                        <p class="text-sm font-semibold text-amber-300">Outstanding Payments</p>
-                        <p class="text-xs text-amber-400">Money still owed to you.</p>
+                        <p class="text-sm font-black text-amber-800">Outstanding Payments</p>
+                        <p class="text-xs text-amber-700/80 font-medium">Money still owed to you by customers.</p>
                     </div>
-                    <p class="text-lg font-bold text-amber-700" id="analytics-outstanding-balance">₦0.00</p>
+                    <p class="text-xl font-black text-amber-800" id="analytics-outstanding-balance">₦0.00</p>
                 </div>
 
                 <!-- Expandable Grouped List -->
@@ -780,18 +853,18 @@
         <section id="tab-profile-content" class="tab-content hidden space-y-6">
             
             <!-- Brand Setup Card -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                <div class="flex items-center gap-3.5 mb-5">
+                    <div class="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 shadow-sm flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800">Business Brand Setup</h3>
-                        <p class="text-xs text-slate-500">Appears on your WhatsApp receipts</p>
+                        <h3 class="font-extrabold text-slate-900 text-base">Business Brand Setup</h3>
+                        <p class="text-xs text-slate-400 font-medium">Appears on your WhatsApp receipts &amp; public digital storefront</p>
                     </div>
                 </div>
 
-                <div id="profile-status-msg" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <div id="profile-status-msg" class="hidden mb-4 p-3.5 rounded-2xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                     Business Profile saved successfully!
                 </div>
 
@@ -801,7 +874,7 @@
                     <!-- ══════════════════════════════════════════════════════ -->
                     <!-- HIGH-END BRANDED BUSINESS CARD                         -->
                     <!-- ══════════════════════════════════════════════════════ -->
-                    <div id="digital-business-card" class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
+                    <div id="digital-business-card" class="bg-white rounded-3xl p-6 border border-slate-100 shadow-md relative overflow-hidden flex flex-col justify-between space-y-4">
 
                         <!-- Top Brand Color Accent Line -->
                         <div id="card-top-accent" class="absolute top-0 left-0 right-0 h-2" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }};"></div>
@@ -4265,6 +4338,18 @@
   });
 })();
 </script>
+
+<script>
+function setExpenseAmount(addVal) {
+    const input = document.getElementById('expense-amount-input') || document.querySelector('#expense-form input[name="amount"]');
+    if (!input) return;
+    let current = parseFloat(input.value.replace(/[^0-9.]/g, '')) || 0;
+    let updated = current + addVal;
+    input.value = updated.toLocaleString('en-US');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+</script>
+
 </body>
 
 </html>
