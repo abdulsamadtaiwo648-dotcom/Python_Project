@@ -401,12 +401,12 @@
         .footer-links a:hover { color: var(--ink); }
         .footer-copy { font-size: 0.8rem; color: var(--light); }
 
-        /* ── RESPONSIVE: tablet ──────────────────────────────────────── */
+        /* â”€â”€ RESPONSIVE: tablet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         @media (max-width: 900px) {
             .features-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
-        /* ── RESPONSIVE: mobile ──────────────────────────────────────── */
+        /* â”€â”€ RESPONSIVE: mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         @media (max-width: 768px) {
 
             /* Nav */
@@ -476,7 +476,7 @@
             .footer-links { flex-wrap: wrap; gap: 12px 20px; }
         }
 
-        /* ── RESPONSIVE: very small (≤ 400px) ───────────────────────── */
+        /* â”€â”€ RESPONSIVE: very small (â‰¤ 400px) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         @media (max-width: 400px) {
             .mock-cards { grid-template-columns: repeat(3, 1fr); gap: 4px; }
             .mock-card { padding: 6px 4px; border-radius: 6px; }
@@ -487,6 +487,141 @@
             .trust-items { gap: 14px; }
         }
 
+
+        /* Premium, responsive product hero */
+        .hero-showcase {
+            width: min(1240px, calc(100% - 48px));
+            margin: 30px auto 68px;
+            padding: clamp(28px, 5vw, 68px);
+            display: grid;
+            grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr);
+            align-items: center;
+            gap: clamp(36px, 5vw, 72px);
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            border: 1px solid #1e3350;
+            border-radius: 30px;
+            color: #f8fafc;
+            background: radial-gradient(ellipse at 85% 12%, rgba(16,185,129,.20), transparent 34%), radial-gradient(ellipse at 4% 100%, rgba(79,70,229,.20), transparent 40%), #081426;
+            box-shadow: 0 28px 80px rgba(15,23,42,.17);
+        }
+        .hero-showcase::before { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; opacity:.2; background-image:linear-gradient(rgba(148,163,184,.10) 1px, transparent 1px),linear-gradient(90deg,rgba(148,163,184,.10) 1px,transparent 1px); background-size:42px 42px; mask-image:linear-gradient(90deg,black,transparent 82%); }
+        .hero { max-width:none; margin:0; padding:0; }
+        .hero-copy { max-width:500px; }
+        .hero-badge { margin:0 0 24px; padding:8px 12px; border:1px solid rgba(52,211,153,.24); border-radius:999px; color:#a7f3d0; background:rgba(16,185,129,.10); font-size:.68rem; letter-spacing:.11em; }
+        .badge-dot,.live-dot { width:7px; height:7px; border-radius:50%; display:inline-block; background:#34d399; box-shadow:0 0 12px rgba(52,211,153,.65); }
+        .hero h1 { max-width:580px; margin:0 0 20px; color:#f8fafc; font-size:clamp(2.7rem,5.4vw,4.45rem); letter-spacing:-.065em; line-height:1.02; }
+        .hero h1 em { background:linear-gradient(100deg,#6ee7b7 3%,#34d399 48%,#a5b4fc 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .hero > .hero-copy > p:not(.hero-note) { max-width:460px; margin:0 0 30px; color:#b6c4d6; font-size:1.02rem; line-height:1.75; }
+        .hero-cta { flex-wrap:wrap; gap:10px; }
+        .hero-cta .btn { min-height:48px; }
+        .hero .btn-blue { gap:12px; background:linear-gradient(135deg,#10b981,#059669); box-shadow:0 8px 24px rgba(16,185,129,.23); }
+        .hero .btn-blue:hover { background:linear-gradient(135deg,#059669,#047857); }
+        .hero .btn-ghost { color:#e2e8f0; background:rgba(255,255,255,.04); border-color:rgba(203,213,225,.22); }
+        .hero .btn-ghost:hover { background:rgba(255,255,255,.10); }
+        .hero-note { margin:22px 0 0; color:#9aabc0; font-size:.76rem; }
+        .hero-note > span:first-child { display:inline-grid; width:17px; height:17px; place-items:center; border-radius:50%; color:#6ee7b7; background:rgba(16,185,129,.14); font-weight:800; }
+        .note-divider { padding:0 3px; color:#50627b; }
+        .preview-wrap { width:100%; max-width:none; min-width:0; margin:0; padding:0; position:relative; }
+        .preview-frame { border:1px solid rgba(148,163,184,.22); border-radius:18px; background:#0d192a; box-shadow:0 28px 58px rgba(0,0,0,.40),0 0 0 7px rgba(148,163,184,.035); }
+        .browser-bar { min-height:42px; padding:9px 13px; border-color:rgba(148,163,184,.12); background:#101e31; }
+        .dot { width:8px; height:8px; background:#334155; }
+        .browser-dots .dot:first-child { background:#fb7185; }
+        .browser-dots .dot:nth-child(2) { background:#fbbf24; }
+        .browser-dots .dot:nth-child(3) { background:#34d399; }
+        .browser-url { max-width:260px; padding:4px 10px; border-color:rgba(148,163,184,.12); background:#0b1728; color:#91a3ba; font-size:.65rem; }
+        .url-lock { margin-right:5px; color:#34d399; }
+        .preview-menu { color:#71839c; letter-spacing:2px; font-size:.65rem; }
+        .app-mockup { padding:clamp(13px,2vw,22px); gap:14px; background:#0b1728; }
+        .mock-header { align-items:flex-start; }
+        .mock-overline { display:block; margin-bottom:4px; color:#71839c; font-size:.56rem; font-weight:700; letter-spacing:.1em; }
+        .mock-title { display:block; color:#f1f5f9; font-size:.93rem; }
+        .mock-pill { display:flex; align-items:center; gap:6px; color:#a7f3d0; background:rgba(16,185,129,.12); font-size:.62rem; }
+        .live-dot { width:6px; height:6px; }
+        .mock-cards { gap:8px; }
+        .mock-card { padding:12px; border-color:rgba(148,163,184,.12); border-radius:11px; background:#111f32; }
+        .mock-card-label { color:#8597ad; font-size:.58rem; }
+        .mock-card-val { color:#f8fafc; font-size:clamp(.77rem,1.5vw,1.08rem); }
+        .mock-card-val.green { color:#6ee7b7; }
+        .mock-card-val.red { color:#fda4af; }
+        .mock-card-val.blue { color:#a5b4fc; }
+        .mock-trend { margin-top:6px; color:#6ee7b7; font-size:.54rem; white-space:nowrap; }
+        .muted-trend { color:#8798ad; }
+        .mock-chart-card,.mock-recent { min-width:0; padding:14px; border:1px solid rgba(148,163,184,.12); border-radius:11px; background:#111f32; }
+        .mock-chart-heading,.recent-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .mock-chart-heading strong,.recent-head strong { display:block; color:#e2e8f0; font-size:.72rem; }
+        .mock-chart-heading > div > span { display:block; margin-top:2px; color:#7f91a8; font-size:.56rem; }
+        .chart-period { padding:4px 7px; border:1px solid rgba(148,163,184,.15); border-radius:6px; color:#a8b5c6; font-size:.55rem; white-space:nowrap; }
+        .chart-area { height:106px; margin-top:10px; position:relative; padding:0 0 17px 38px; }
+        .chart-area svg { width:100%; height:85px; overflow:visible; }
+        .chart-y-labels { position:absolute; inset:0 auto 16px 0; display:flex; flex-direction:column; justify-content:space-between; color:#60738c; font-size:.49rem; }
+        .chart-gridline { fill:none; stroke:rgba(148,163,184,.13); stroke-width:1; stroke-dasharray:3 5; }
+        .sales-line { fill:none; stroke:#34d399; stroke-width:3; vector-effect:non-scaling-stroke; }
+        .expense-line { fill:none; stroke:#818cf8; stroke-width:2; vector-effect:non-scaling-stroke; }
+        .chart-x-labels { position:absolute; right:0; bottom:0; left:38px; display:flex; justify-content:space-between; color:#60738c; font-size:.49rem; }
+        .recent-head { margin-bottom:6px; }
+        .recent-head a { color:#6ee7b7; font-size:.58rem; }
+        .mock-recent .mock-row { padding:8px 0; border-color:rgba(148,163,184,.10); color:#dbe4ef; }
+        .activity-icon { display:grid; width:25px; height:25px; flex:0 0 25px; place-items:center; border-radius:8px; font-size:.75rem; font-weight:800; }
+        .sale-icon { color:#6ee7b7; background:rgba(16,185,129,.13); }
+        .expense-icon { color:#c4b5fd; background:rgba(129,140,248,.14); }
+        .mock-recent .mock-row-label { color:#e2e8f0; font-size:.63rem; }
+        .mock-row-label small { display:block; margin-top:2px; color:#7789a1; font-size:.52rem; font-weight:400; }
+        .mock-recent .mock-row-amt { color:#6ee7b7; font-size:.62rem; }
+        .mock-recent .expense-amount { color:#c4b5fd; }
+        .preview-float { position:absolute; right:-18px; bottom:42px; display:flex; align-items:center; gap:9px; padding:10px 14px 10px 10px; border:1px solid rgba(148,163,184,.18); border-radius:12px; color:#e2e8f0; background:#14243a; box-shadow:0 14px 30px rgba(0,0,0,.30); }
+        .float-check { display:grid; width:29px; height:29px; place-items:center; border-radius:9px; color:#6ee7b7; background:rgba(16,185,129,.16); font-weight:800; }
+        .preview-float strong,.preview-float small { display:block; }
+        .preview-float strong { font-size:.66rem; }
+        .preview-float small { margin-top:2px; color:#93a4b9; font-size:.56rem; }
+        .social-proof { background:#fff; }
+        @media (max-width: 980px) {
+            .hero-showcase { grid-template-columns:1fr; gap:40px; width:min(760px,calc(100% - 40px)); padding:clamp(28px,6vw,52px); }
+            .hero-copy { max-width:620px; }
+            .hero h1 { max-width:620px; font-size:clamp(2.8rem,7vw,4.2rem); }
+            .preview-wrap { width:min(100%,680px); margin:0 auto; }
+            .preview-float { right:-10px; }
+        }
+        @media (max-width: 600px) {
+            .hero-showcase { width:calc(100% - 24px); margin:14px auto 42px; padding:28px 18px 22px; gap:30px; border-radius:22px; }
+            .hero { padding:0; }
+            .hero-badge { margin-bottom:18px; font-size:.58rem; }
+            .hero h1 { margin-bottom:15px; font-size:clamp(2.35rem,10vw,3.3rem); line-height:1.04; }
+            .hero > .hero-copy > p:not(.hero-note) { margin-bottom:22px; font-size:.92rem; line-height:1.65; }
+            .hero-cta { align-items:stretch; }
+            .hero-cta .btn { width:100%; }
+            .hero-note { margin-top:16px; font-size:.67rem; }
+            .preview-wrap { padding:0; margin:0; }
+            .preview-frame { border-radius:13px; box-shadow:0 18px 36px rgba(0,0,0,.34); }
+            .browser-bar { min-height:34px; padding:7px 9px; }
+            .browser-url { max-width:none; padding:3px 6px; font-size:.56rem; }
+            .preview-menu { display:none; }
+            .app-mockup { padding:10px 8px; gap:8px; }
+            .mock-cards { gap:5px; }
+            .mock-card { padding:8px 6px; }
+            .mock-card-label { font-size:.48rem; letter-spacing:0; }
+            .mock-card-val { font-size:clamp(.66rem,3.4vw,.82rem); }
+            .mock-trend { overflow:hidden; text-overflow:ellipsis; font-size:.45rem; }
+            .mock-title { font-size:.74rem; }
+            .mock-overline { font-size:.46rem; }
+            .mock-pill { padding:3px 6px; font-size:.51rem; }
+            .mock-chart-card,.mock-recent { padding:9px; }
+            .chart-area { height:91px; padding-left:31px; }
+            .chart-area svg { height:72px; }
+            .chart-x-labels { left:31px; }
+            .preview-float { right:-5px; bottom:22px; padding:7px 9px 7px 7px; }
+            .float-check { width:24px; height:24px; }
+            .preview-float strong { font-size:.58rem; }
+            .preview-float small { font-size:.49rem; }
+        }
+        @media (max-width: 380px) {
+            .hero-showcase { padding:25px 14px 19px; }
+            .hero h1 { font-size:2.2rem; }
+            .mock-row-right { gap:5px; }
+            .mock-recent .mock-row-amt { font-size:.56rem; }
+            .preview-float { position:relative; right:auto; bottom:auto; width:max-content; margin:-12px 0 0 auto; }
+        }
     </style>
 
     <!-- Force Google to use "SoloBiz" as the Site Name -->
@@ -519,86 +654,60 @@
         </div>
     </nav>
 
-    <!-- HERO -->
-    <section class="hero">
-        <div class="hero-badge">Built for Nigerian Independent Vendors</div>
-
-        <h1>Your business finances,<br><em>under control.</em></h1>
-
-        <p>Log sales, track daily expenses, and generate professional receipts — all from your phone. No spreadsheets. No confusion. Just clarity.</p>
-
-        <div class="hero-cta">
-            <a href="/register" class="btn btn-blue btn-lg">Start for free</a>
-            <a href="/login" class="btn btn-ghost btn-lg">Sign in</a>
+    <!-- HERO AND PRODUCT PREVIEW -->
+    <div class="hero-showcase">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="hero-badge"><span class="badge-dot"></span> SALES &bull; INVENTORY &bull; EXPENSES</div>
+          <h1>Know your numbers.<br><em>Grow your business.</em></h1>
+          <p>Keep sales, stock, and expenses in one simple place. Build one receipt for every customer order and see how your business is doing from your phone.</p>
+          <div class="hero-cta">
+            <a href="/register" class="btn btn-blue btn-lg">Create your free account <span aria-hidden="true">&#8594;</span></a>
+            <a href="#features" class="btn btn-ghost btn-lg">Explore features</a>
+          </div>
+          <p class="hero-note"><span aria-hidden="true">&#10003;</span> No credit card needed <span class="note-divider">&middot;</span> Made for phone and laptop</p>
         </div>
+      </section>
 
-        <p class="hero-note">No credit card required &nbsp;&middot;&nbsp; Works on any mobile browser</p>
-    </section>
-
-    <!-- APP PREVIEW -->
-    <div class="preview-wrap">
+      <div class="preview-wrap" aria-label="Preview of the SoloBiz dashboard">
         <div class="preview-frame">
-            <!-- Browser chrome -->
-            <div class="browser-bar">
-                <div class="browser-dots">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-                <div class="browser-url">solobiz.dev/dashboard</div>
+          <div class="browser-bar">
+            <div class="browser-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="browser-url"><span class="url-lock">&#128274;</span> solobiz.dev/dashboard</div>
+            <span class="preview-menu" aria-hidden="true">&#8226;&#8226;&#8226;</span>
+          </div>
+          <div class="app-mockup">
+            <div class="mock-header">
+              <div><span class="mock-overline">THIS WEEK AT A GLANCE</span><span class="mock-title">Business overview</span></div>
+              <span class="mock-pill"><span class="live-dot"></span> Live overview</span>
             </div>
-
-            <!-- Mini dashboard mockup -->
-            <div class="app-mockup">
-                <div class="mock-header">
-                    <span class="mock-title">Good morning, Abdulsamad &#128075;</span>
-                    <span class="mock-pill">Overview</span>
-                </div>
-
-                <div class="mock-cards">
-                    <div class="mock-card">
-                        <div class="mock-card-label">Total Sales</div>
-                        <div class="mock-card-val green">&#8358;84,500.00</div>
-                    </div>
-                    <div class="mock-card">
-                        <div class="mock-card-label">Expenses</div>
-                        <div class="mock-card-val red">&#8358;21,200.00</div>
-                    </div>
-                    <div class="mock-card">
-                        <div class="mock-card-label">Net Profit</div>
-                        <div class="mock-card-val blue">&#8358;63,300.00</div>
-                    </div>
-                </div>
-
-                <div class="mock-table">
-                    <div class="mock-row" style="background:#f8fafc;">
-                        <span style="font-size:0.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.6px;">Recent Transactions</span>
-                        <span class="mock-row-tag tag-green" style="flex-shrink:0;">This Week</span>
-                    </div>
-                    <div class="mock-row">
-                        <span class="mock-row-label">5x Eden Cap &mdash; Fatima</span>
-                        <div class="mock-row-right">
-                            <span class="mock-row-tag tag-green">Sale</span>
-                            <span class="mock-row-amt">&#8358;12,500</span>
-                        </div>
-                    </div>
-                    <div class="mock-row">
-                        <span class="mock-row-label">Stock Purchase &mdash; Balogun</span>
-                        <div class="mock-row-right">
-                            <span class="mock-row-tag tag-red">Expense</span>
-                            <span class="mock-row-amt">&#8358;8,000</span>
-                        </div>
-                    </div>
-                    <div class="mock-row">
-                        <span class="mock-row-label">DLNZ Hoodie x2 &mdash; Ahmed</span>
-                        <div class="mock-row-right">
-                            <span class="mock-row-tag tag-green">Sale</span>
-                            <span class="mock-row-amt">&#8358;15,000</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="mock-cards">
+              <div class="mock-card"><div class="mock-card-label">Total Sales</div><div class="mock-card-val green">&#8358;84,500</div><div class="mock-trend">&#8593; 12.8% this week</div></div>
+              <div class="mock-card"><div class="mock-card-label">Expenses</div><div class="mock-card-val red">&#8358;21,200</div><div class="mock-trend muted-trend">Across 8 transactions</div></div>
+              <div class="mock-card"><div class="mock-card-label">Net Profit</div><div class="mock-card-val blue">&#8358;63,300</div><div class="mock-trend">Your business is up</div></div>
             </div>
+            <div class="mock-chart-card">
+              <div class="mock-chart-heading"><div><strong>Cash flow</strong><span>Sales and expenses at a glance</span></div><span class="chart-period">This week</span></div>
+              <div class="chart-area" aria-hidden="true">
+                <div class="chart-y-labels"><span>&#8358;30k</span><span>&#8358;20k</span><span>&#8358;10k</span><span>&#8358;0</span></div>
+                <svg viewBox="0 0 520 130" preserveAspectRatio="none" role="img" aria-label="Weekly sales and expense line chart">
+                  <defs><linearGradient id="salesFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#34d399" stop-opacity=".28"/><stop offset="1" stop-color="#34d399" stop-opacity="0"/></linearGradient></defs>
+                  <path class="chart-gridline" d="M0 18H520M0 52H520M0 86H520M0 120H520"/>
+                  <path d="M0 86 C35 82 40 52 82 60 S130 82 166 54 S212 42 248 55 S297 25 332 37 S380 63 414 32 S468 42 520 12 L520 130 L0 130Z" fill="url(#salesFill)"/>
+                  <path d="M0 86 C35 82 40 52 82 60 S130 82 166 54 S212 42 248 55 S297 25 332 37 S380 63 414 32 S468 42 520 12" class="sales-line"/>
+                  <path d="M0 108 C44 112 52 94 92 100 S143 109 178 94 S222 101 260 91 S306 103 344 86 S392 101 426 82 S477 91 520 75" class="expense-line"/>
+                </svg>
+                <div class="chart-x-labels"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+              </div>
+            </div>
+            <div class="mock-recent"><div class="recent-head"><strong>Recent activity</strong><a href="/register">View all <span aria-hidden="true">&#8594;</span></a></div>
+              <div class="mock-row"><span class="activity-icon sale-icon">&#8599;</span><span class="mock-row-label">5x Eden Cap <small>Today &middot; Sale</small></span><span class="mock-row-amt">+&#8358;12,500</span></div>
+              <div class="mock-row"><span class="activity-icon expense-icon">&#8601;</span><span class="mock-row-label">Stock Purchase <small>Today &middot; Expense</small></span><span class="mock-row-amt expense-amount">&#8722;&#8358;8,000</span></div>
+            </div>
+          </div>
         </div>
+        <div class="preview-float"><span class="float-check">&#10003;</span><span><strong>Sale saved</strong><small>Receipt ready to share</small></span></div>
+      </div>
     </div>
 
     <!-- SOCIAL PROOF -->

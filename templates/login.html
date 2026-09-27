@@ -285,6 +285,12 @@
         btn.innerHTML = "<span>Update Password & Log In</span> ✨";
       }
     });
+
+    // Mobile swipe-back can restore this document from the back/forward cache
+    // without requesting /login again. Reload so Flask can check the session.
+    window.addEventListener("pageshow", function (event) {
+      if (event.persisted) window.location.reload();
+    });
   </script>
 
 </body>

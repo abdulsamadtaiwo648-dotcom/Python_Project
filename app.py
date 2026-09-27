@@ -969,6 +969,17 @@ def login():
     return render_template("login.html")
 
 
+@app.after_request
+def prevent_login_page_from_being_cached(response):
+    # Back/forward navigation must re-check the current session instead of
+    # restoring a stale login form from the browser cache after sign-in.
+    if request.path == "/login":
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 @app.route("/logout")
 def logout():
     session.clear()
