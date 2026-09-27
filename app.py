@@ -1118,10 +1118,10 @@ def favicon():
 # ==========================================
 @app.route("/dashboard")
 def dashboard_home():
-    """Keep old dashboard links working while using a page-specific URL."""
+    """Render the business overview dashboard."""
     if not get_current_user_id():
         return redirect("/login")
-    return redirect("/dashboard/expenses")
+    return dashboard("dashboard")
 
 
 @app.route("/dashboard/<section>")
@@ -1130,7 +1130,7 @@ def dashboard(section):
     if not user_id:
         return redirect("/login")
 
-    if section not in {"expenses", "sales", "analytics", "profile"}:
+    if section not in {"dashboard", "expenses", "sales", "analytics", "profile"}:
         return render_template("404.html"), 404
 
     active_tab = "income" if section == "sales" else section
@@ -1149,12 +1149,13 @@ def dashboard(section):
             except Exception as e:
                 print(f"Dashboard user query note: {e}", flush=True)
 
-            try:
-                expenses = db.execute(
-                    "SELECT * FROM expenses WHERE user_id = ? ORDER BY id DESC", (user_id,)
-                ).fetchall() or []
-            except Exception as e:
-                print(f"Dashboard expenses list note: {e}", flush=True)
+            if section == "expenses":
+                try:
+                    expenses = db.execute(
+                        "SELECT * FROM expenses WHERE user_id = ? ORDER BY id DESC", (user_id,)
+                    ).fetchall() or []
+                except Exception as e:
+                    print(f"Dashboard expenses list note: {e}", flush=True)
 
             try:
                 row = db.execute(
