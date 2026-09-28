@@ -55,7 +55,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20260927.2")
+APP_VERSION = os.environ.get("APP_VERSION", "20260928.1")
 
 # Session / Cookie hardening
 _secure_cookie = os.environ.get("SESSION_COOKIE_SECURE")
@@ -1134,6 +1134,11 @@ def sales_page():
     return render_dashboard_page("sales")
 
 
+@app.route("/inventory")
+def inventory_page():
+    return render_dashboard_page("inventory")
+
+
 @app.route("/analytics")
 def analytics_page():
     return render_dashboard_page("analytics")
@@ -1146,7 +1151,7 @@ def profile_page():
 
 @app.route("/dashboard/<section>")
 def legacy_dashboard_section(section):
-    if section not in {"expenses", "sales", "analytics", "profile"}:
+    if section not in {"expenses", "sales", "inventory", "analytics", "profile"}:
         return render_template("404.html"), 404
     return redirect(f"/{section}", code=302)
 
@@ -1156,7 +1161,7 @@ def render_dashboard_page(section):
     if not user_id:
         return redirect("/login")
 
-    if section not in {"dashboard", "expenses", "sales", "analytics", "profile"}:
+    if section not in {"dashboard", "expenses", "sales", "inventory", "analytics", "profile"}:
         return render_template("404.html"), 404
 
     active_tab = "income" if section == "sales" else section

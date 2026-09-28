@@ -1,7 +1,7 @@
 const CACHE_NAME = 'solobiz-offline-{{ version }}';
 const PRIVATE_CACHE_NAME = 'solobiz-private-{{ version }}';
 const OFFLINE_SHELL_KEY = new URL('/__solobiz_offline_dashboard__', self.location.origin).href;
-const AUTHENTICATED_PAGE_PATHS = new Set(['/dashboard', '/expenses', '/sales', '/analytics', '/profile']);
+const AUTHENTICATED_PAGE_PATHS = new Set(['/dashboard', '/expenses', '/inventory', '/sales', '/analytics', '/profile']);
 const isAuthenticatedPage = (pathname) => AUTHENTICATED_PAGE_PATHS.has(pathname) || pathname.startsWith('/dashboard/');
 
 // Public assets are shared. The dashboard shell is stored separately because
