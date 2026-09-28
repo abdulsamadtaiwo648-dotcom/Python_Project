@@ -3,7 +3,6 @@ import html
 import logging
 import math
 import os
-import random
 import re
 import secrets
 import smtplib
@@ -17,7 +16,6 @@ from email.mime.text import MIMEText
 from flask import (Flask, Response, jsonify, make_response, redirect,
                    render_template, request, send_from_directory, session,
                    flash)
-from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -236,18 +234,6 @@ def get_current_user_id():
     if "user_id" in session and session["user_id"]:
         return str(session["user_id"])
     return None
-
-
-def get_user_profile(user_id):
-    try:
-        with get_db() as db:
-            row = db.execute(
-                "SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)
-            ).fetchone()
-            return dict(row) if row else None
-    except Exception as exc:
-        logging.error("Profile lookup failed: %s", exc, exc_info=True)
-        return None
 
 
 def sanitize_brand_color(value):

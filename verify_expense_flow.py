@@ -1,31 +1,46 @@
-from app import app, init_db
+"""Manual expense-flow check using an isolated temporary SQLite database."""
+
 import os
+import tempfile
 
-if os.path.exists('solobiz.db'):
-    os.remove('solobiz.db')
 
-init_db()
-with app.test_client() as client:
-    with client.session_transaction() as sess:
-        sess['user_id'] = 'user-123'
+previous_directory = os.getcwd()
+database_url = os.environ.pop("DATABASE_URL", None)
 
-    add = client.post('/add', json={
-        'amount': 150.5,
-        'category': 'Fuel & Electricity',
-        'description': 'Generator fuel'
-    })
-    print('ADD', add.status_code, add.get_json())
-    expense_id = add.get_json()['expense']['id']
+try:
+    with tempfile.TemporaryDirectory(prefix="solobiz-expense-flow-") as temp_directory:
+        os.chdir(temp_directory)
 
-    upd = client.put(f'/api/expenses/{expense_id}', json={
-        'amount': 199.99,
-        'category': 'Others',
-        'description': 'Updated fuel'
-    })
-    print('PUT', upd.status_code, upd.get_json())
+        # Importing app initializes its database, so change directories first.
+        from app import app
 
-    delr = client.post(f'/delete/{expense_id}')
-    print('DELETE_WEB', delr.status_code, delr.location)
+        with app.test_client() as client:
+            csrf_token = "local-expense-flow-check"
+            with client.session_transaction() as session:
+                session["user_id"] = "user-123"
+                session["csrf_token"] = csrf_token
 
-    getr = client.get('/api/expenses')
-    print('GET_API', getr.status_code, getr.get_json())
+            add = client.post("/add", json={
+                "amount": 150.5,
+                "category": "Fuel & Electricity",
+                "description": "Generator fuel",
+            }, headers={"X-CSRFToken": csrf_token})
+            print("ADD", add.status_code, add.get_json())
+            expense_id = add.get_json()["expense"]["id"]
+
+            update = client.put(f"/api/expenses/{expense_id}", json={
+                "amount": 199.99,
+                "category": "Others",
+                "description": "Updated fuel",
+            }, headers={"X-CSRFToken": csrf_token})
+            print("PUT", update.status_code, update.get_json())
+
+            delete = client.post(f"/delete/{expense_id}", headers={"X-CSRFToken": csrf_token})
+            print("DELETE_WEB", delete.status_code, delete.location)
+
+            expenses = client.get("/api/expenses")
+            print("GET_API", expenses.status_code, expenses.get_json())
+finally:
+    os.chdir(previous_directory)
+    if database_url is not None:
+        os.environ["DATABASE_URL"] = database_url
