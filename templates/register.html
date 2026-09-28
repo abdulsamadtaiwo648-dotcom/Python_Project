@@ -8,7 +8,16 @@
   <script src="/static/tailwind.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    body { font-family: 'Inter', sans-serif; background:linear-gradient(140deg,#fbf9ff,#f2e9fc); color:#241a32; }
+    body > div.bg-slate-900 { background:#fff !important; border-color:#eee4f7 !important; box-shadow:0 20px 55px rgba(74,35,111,.12) !important; }
+    body > div.bg-slate-900 h1 { color:#241a32 !important; }
+    body > div.bg-slate-900 p { color:#766b81 !important; }
+    body > div.bg-slate-900 label { color:#574b63 !important; }
+    body > div.bg-slate-900 input { background:#fff !important; border-color:#e6d9f1 !important; color:#241a32 !important; }
+    body > div.bg-slate-900 input:focus { border-color:#8734df !important; }
+    body > div.bg-slate-900 .text-indigo-400 { color:#7025d4 !important; }
+    body > div.bg-slate-900 .bg-indigo-600 { background:#7025d4 !important; }
+    body > div.bg-slate-900 .bg-indigo-600:hover { background:#5f19bd !important; }
   </style>
 </head>
 <body class="bg-[#0f172a] text-white min-h-screen flex items-center justify-center p-4">
@@ -48,7 +57,7 @@
       <div>
         <label class="block text-xs font-semibold text-slate-300 uppercase mb-1 tracking-wider">Password</label>
         <div class="relative">
-          <input type="password" id="reg-password" name="password" required minlength="8" placeholder="Min 8 chars, 1 letter, 1 number"
+          <input type="password" id="reg-password" name="password" required minlength="8" placeholder="Min 8 chars"
                  class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition pr-10">
           <button type="button" id="toggle-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
