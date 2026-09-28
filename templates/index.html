@@ -353,6 +353,88 @@
             z-index: 1000;
         }
         main.desktop-dashboard-shell { padding-top: var(--app-header-height); }
+
+        /* Compact layout: preserve every control while reducing visual weight. */
+        .tab-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
+        #sales-main-view.space-y-6 > :not([hidden]) ~ :not([hidden]),
+        #analytics-view.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+            --tw-space-y-reverse: 0;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+        .desktop-greeting {
+            margin-bottom: 14px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            box-shadow: none;
+        }
+        .desktop-greeting h2 { font-size: 1rem; }
+        .desktop-greeting p { font-size: .75rem; }
+        #cfo-dashboard { margin-bottom: 14px; }
+        #cfo-dashboard > div:first-child { gap: 8px; margin-bottom: 8px; }
+        #cfo-dashboard > div:first-child > div,
+        #cfo-dashboard > div:nth-child(2) > div { padding: 11px 14px; border-radius: 14px; box-shadow: none; }
+        #cfo-dashboard #top-sales,
+        #cfo-dashboard #top-expenses,
+        #cfo-dashboard #top-profit { font-size: clamp(1rem, 2vw, 1.25rem); }
+        #tab-dashboard-content { max-width: 980px; }
+        #tab-dashboard-content > section,
+        #tab-expenses-content > .bg-white,
+        #tab-income-content > #sales-main-view > .bg-white,
+        #tab-income-content > .bg-white,
+        #tab-analytics-content .mock-chart-card,
+        #tab-analytics-content > #analytics-view > .bg-white,
+        #tab-profile-content > .bg-white {
+            padding: 16px;
+            border-radius: 15px;
+            box-shadow: 0 1px 2px rgba(15,23,42,.04);
+        }
+        #tab-expenses-content:not(.hidden),
+        #tab-income-content:not(.hidden) { column-gap: 14px; row-gap: 14px; }
+        #tab-income-content:not(.hidden) > #sales-main-view {
+            column-gap: 14px;
+            row-gap: 14px;
+        }
+        #tab-income-content #sales-main-view > div:first-child {
+            padding: 16px;
+            border-radius: 15px;
+        }
+        #tab-income-content #sales-main-view > div:first-child .big-total-value { font-size: clamp(1.65rem, 5vw, 2.2rem); }
+        #tab-analytics-content .analytics-tab-btn { padding-top: .55rem; padding-bottom: .55rem; }
+        #tab-analytics-content canvas { height: 220px; }
+        #tab-profile-content #digital-business-card { padding: 22px; border-radius: 20px; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+        #tab-expenses-content h3,
+        #tab-income-content h3,
+        #tab-analytics-content h2,
+        #tab-analytics-content h3,
+        #tab-profile-content h3 { letter-spacing: -.01em; }
+        @media (min-width: 1024px) {
+            .desktop-dashboard-shell { max-width: 1360px; }
+            .desktop-sidebar { width: 220px; padding: 20px 12px; }
+            .desktop-content { padding: 22px 26px; }
+            #tab-dashboard-content { max-width: 900px; }
+            #tab-dashboard-content > section { padding: 18px; }
+            #tab-expenses-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
+            #tab-income-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
+            #sales-main-view.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+                margin-top: 0;
+            }
+        }
+        @media (max-width: 1023px) {
+            .desktop-dashboard-shell { padding-right: 10px; padding-left: 10px; }
+            .desktop-content { padding: 10px 0 16px; }
+            .desktop-greeting { margin-top: 10px; margin-bottom: 10px; padding: 12px 14px; }
+            #cfo-dashboard { margin-bottom: 10px; }
+            #cfo-dashboard > div:first-child { gap: 7px; margin-bottom: 7px; }
+            #cfo-dashboard > div:first-child > div,
+            #cfo-dashboard > div:nth-child(2) > div { padding: 10px 11px; }
+            #tab-dashboard-content > section,
+            #tab-expenses-content > .bg-white,
+            #tab-income-content > #sales-main-view > .bg-white,
+            #tab-income-content > .bg-white,
+            #tab-profile-content > .bg-white { padding: 14px; }
+            #tab-analytics-content .analytics-tab-btn { font-size: .78rem; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
@@ -391,19 +473,19 @@
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
                 <span>Dashboard</span>
             </a>
-            <a id="btn-tab-expenses" data-dashboard-tab="expenses" href="/dashboard/expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'expenses' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-expenses" data-dashboard-tab="expenses" href="/expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'expenses' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                 <span>Expenses</span>
             </a>
-            <a id="btn-tab-income" data-dashboard-tab="income" href="/dashboard/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-emerald-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-income" data-dashboard-tab="income" href="/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-emerald-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                 <span>Sales</span>
             </a>
-            <a id="btn-tab-analytics" data-dashboard-tab="analytics" href="/dashboard/analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'analytics' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-analytics" data-dashboard-tab="analytics" href="/analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'analytics' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                 <span>Analytics</span>
             </a>
-            <a id="btn-tab-profile" data-dashboard-tab="profile" href="/dashboard/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-profile" data-dashboard-tab="profile" href="/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
                 <span>Profile</span>
             </a>
@@ -434,7 +516,7 @@
                 <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
                     Hi, <span id="user-greeting-name">{{ username }}</span> <svg class="w-4 h-4 text-amber-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </h2>
-                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Here is your business overview today</p>
+                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Money collected, business expenses, and monthly budgets at a glance.</p>
             </div>
             <a id="btn-global-overview" data-dashboard-tab="dashboard" href="/dashboard" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
                 Overview
@@ -457,6 +539,7 @@
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Total Sales</p>
                 </div>
                 <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
+                <p class="dashboard-card-hint text-[10px] text-emerald-700/80 leading-tight">Total money customers have paid</p>
             </div>
 
             <!-- Total Expenses Card -->
@@ -466,6 +549,7 @@
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
                 </div>
                 <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
+                <p class="dashboard-card-hint text-[10px] text-rose-700/80 leading-tight">Total business costs recorded</p>
             </div>
         </div>
 
@@ -479,7 +563,7 @@
                     </span>
                     <div class="min-w-0">
                         <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-400{% endif %} tracking-wider leading-none truncate">Net Profit</p>
-                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Sales − Expenses</p>
+                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Money received minus money spent</p>
                     </div>
                 </div>
                 <span class="stat-value {% if np >= 0 %}text-indigo-700{% else %}text-amber-600{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
@@ -493,7 +577,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
                     <div>
                         <h3 id="budget-heading" class="font-bold text-slate-800">Monthly budgets</h3>
-                        <p class="text-xs text-slate-500 mt-1">Set a limit for a category and track spending as you log expenses.</p>
+                        <p class="text-xs text-slate-500 mt-1">Set a monthly spending limit by category. Progress updates as you log expenses.</p>
                     </div>
                     <label class="text-xs font-semibold text-slate-500">Month
                         <input id="budget-month" type="month" class="block mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -839,7 +923,7 @@
             <!-- Analytics View -->
             <div id="analytics-view" class="space-y-6">
                 <div class="flex items-center gap-3">
-                    <h2 class="font-bold text-slate-800 text-lg"class="font-bold text-slate-800 text-lg">Sales Analytics</h2>
+                    <h2 class="font-bold text-slate-800 text-lg">Sales Analytics</h2>
                 </div>
 
                 <!-- Segmented Control Bar -->
@@ -2798,10 +2882,10 @@
             // -------------------------------------------------------------
             const dashboardPaths = {
                 dashboard: '/dashboard',
-                expenses: '/dashboard/expenses',
-                income: '/dashboard/sales',
-                analytics: '/dashboard/analytics',
-                profile: '/dashboard/profile'
+                expenses: '/expenses',
+                income: '/sales',
+                analytics: '/analytics',
+                profile: '/profile'
             };
             const dashboardViews = {
                 dashboard: document.getElementById('tab-dashboard-content'),
@@ -4967,19 +5051,19 @@
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
     <span class="text-[10px] font-bold">Home</span>
   </a>
-  <a href="/dashboard/expenses" data-dashboard-tab="expenses" data-mobile-tab="expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'expenses' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/expenses" data-dashboard-tab="expenses" data-mobile-tab="expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'expenses' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
     <span class="text-[10px] font-bold">Expenses</span>
   </a>
-  <a href="/dashboard/sales" data-dashboard-tab="income" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'income' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/sales" data-dashboard-tab="income" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'income' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
     <span class="text-[10px] font-bold">Sales</span>
   </a>
-  <a href="/dashboard/analytics" data-dashboard-tab="analytics" data-mobile-tab="analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'analytics' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/analytics" data-dashboard-tab="analytics" data-mobile-tab="analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'analytics' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
     <span class="text-[10px] font-bold">Analytics</span>
   </a>
-  <a href="/dashboard/profile" data-dashboard-tab="profile" data-mobile-tab="profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'profile' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
+  <a href="/profile" data-dashboard-tab="profile" data-mobile-tab="profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-2.5 gap-0.5 {% if active_tab == 'profile' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
     <span class="text-[10px] font-bold">Profile</span>
   </a>

@@ -1,6 +1,8 @@
 const CACHE_NAME = 'solobiz-offline-{{ version }}';
 const PRIVATE_CACHE_NAME = 'solobiz-private-{{ version }}';
 const OFFLINE_SHELL_KEY = new URL('/__solobiz_offline_dashboard__', self.location.origin).href;
+const AUTHENTICATED_PAGE_PATHS = new Set(['/dashboard', '/expenses', '/sales', '/analytics', '/profile']);
+const isAuthenticatedPage = (pathname) => AUTHENTICATED_PAGE_PATHS.has(pathname) || pathname.startsWith('/dashboard/');
 
 // Public assets are shared. The dashboard shell is stored separately because
 // it contains user-specific values and is removed when the user logs out.
@@ -49,12 +51,10 @@ self.addEventListener('message', (event) => {
     event.waitUntil((async () => {
       try {
         const pageUrl = new URL(event.data.url, self.location.origin);
-        if (pageUrl.origin !== self.location.origin ||
-            !(pageUrl.pathname === '/dashboard' || pageUrl.pathname.startsWith('/dashboard/'))) return;
+        if (pageUrl.origin !== self.location.origin || !isAuthenticatedPage(pageUrl.pathname)) return;
         const response = await fetch(pageUrl.href, { cache: 'no-store', credentials: 'same-origin' });
         const finalUrl = new URL(response.url || pageUrl.href);
-        if (!response.ok || finalUrl.origin !== self.location.origin ||
-            !(finalUrl.pathname === '/dashboard' || finalUrl.pathname.startsWith('/dashboard/'))) return;
+        if (!response.ok || finalUrl.origin !== self.location.origin || !isAuthenticatedPage(finalUrl.pathname)) return;
         const privateCache = await caches.open(PRIVATE_CACHE_NAME);
         await privateCache.put(OFFLINE_SHELL_KEY, response);
       } catch (error) {
@@ -75,7 +75,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    const isDashboard = url.pathname === '/dashboard' || url.pathname.startsWith('/dashboard/');
+    const isDashboard = isAuthenticatedPage(url.pathname);
     const isLogout = url.pathname === '/logout';
 
     event.respondWith((async () => {
@@ -94,8 +94,7 @@ self.addEventListener('fetch', (event) => {
       try {
         const response = await fetch(request, { cache: 'no-cache' });
         const finalUrl = new URL(response.url || request.url);
-        const isAuthenticatedDashboard = response.ok &&
-          (finalUrl.pathname === '/dashboard' || finalUrl.pathname.startsWith('/dashboard/'));
+        const isAuthenticatedDashboard = response.ok && isAuthenticatedPage(finalUrl.pathname);
         if (isAuthenticatedDashboard) {
           const privateCache = await caches.open(PRIVATE_CACHE_NAME);
           await privateCache.put(OFFLINE_SHELL_KEY, response.clone());
