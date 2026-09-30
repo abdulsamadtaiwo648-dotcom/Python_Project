@@ -1376,6 +1376,22 @@
         </div>
     </div>
 
+    <div id="sale-delete-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="sale-delete-title" aria-describedby="sale-delete-description">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
+            <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+            </div>
+            <p class="text-[10px] uppercase tracking-[0.2em] font-black text-rose-600">Confirm deletion</p>
+            <h3 id="sale-delete-title" class="text-xl font-black text-slate-900 mt-1">Delete this sale?</h3>
+            <p id="sale-delete-description" class="text-sm text-slate-600 mt-2">This will permanently remove the recorded sale.</p>
+            <p id="sale-delete-error" class="hidden mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700" role="alert"></p>
+            <div class="flex gap-3 mt-6">
+                <button type="button" id="cancel-sale-delete" class="flex-1 rounded-xl bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200">Keep sale</button>
+                <button type="button" id="confirm-sale-delete" class="flex-1 rounded-xl bg-rose-600 py-3 text-xs font-black text-white hover:bg-rose-700 shadow-md">Delete sale</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Settle Debt Modal -->
     <div id="settle-debt-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
@@ -2354,7 +2370,27 @@
                     getIncomeReq.onsuccess = async () => {
                         try {
                     const allIncome = getIncomeReq.result || [];
-                    const unsyncedIncome = allIncome.filter(item => !item.synced);
+                    const deletedSaleGroups = new Set();
+                    for (const item of allIncome.filter(record => record.pending_delete && (record.server_id != null || record.id != null))) {
+                        const groupKey = incomeSaleGroupKey(item);
+                        if (deletedSaleGroups.has(groupKey)) continue;
+                        deletedSaleGroups.add(groupKey);
+                        try {
+                            const serverId = item.server_id ?? item.id;
+                            const response = await authenticatedFetch(`/api/income/${serverId}`, { method: 'DELETE' });
+                            const result = await response.json();
+                            if (!response.ok || result.status !== 'success') {
+                                throw new Error(result.message || 'Sale deletion sync failed');
+                            }
+                            applySaleDeleteStock(result.stock);
+                            if (!Object.keys(result.stock || {}).length && typeof loadPresets === 'function') await loadPresets();
+                            const groupRecords = allIncome.filter(record => incomeSaleGroupKey(record) === groupKey);
+                            await removeIncomeRecordsFromDevice(groupRecords);
+                        } catch (error) {
+                            console.warn(`Could not sync deletion for sale ${groupKey}:`, error);
+                        }
+                    }
+                    const unsyncedIncome = allIncome.filter(item => !item.synced && !item.pending_delete);
                     const processedCheckoutIds = new Set();
 
                     for (const item of unsyncedIncome) {
@@ -3740,7 +3776,7 @@
                 return Math.max(totalValue - updatedPaid, 0);
             }
 
-            function renderIncomeItemHTML(income) {
+            function renderIncomeItemHTML(income, showDelete = true) {
                 const offlineBadge = !income.synced ? `<span class="text-[9px] font-semibold bg-amber-100 text-amber-300 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
                 const paymentState = getReceiptPaymentState(income);
                 const totalValue = paymentState.totalValue;
@@ -3760,6 +3796,9 @@
 
                 const settleButton = balanceOwed > 0 ? `<button type="button" data-settle-income-id="${income.local_id ?? income.server_id ?? income.id ?? ''}" class="btn-settle-debt inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-300 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
                     <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg> Settle Debt
+                </button>` : '';
+                const deleteButton = showDelete ? `<button type="button" data-delete-income-id="${income.local_id || ''}" class="btn-delete-income inline-flex items-center gap-1 text-[10px] uppercase font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded transition border border-rose-200 shadow-sm" aria-label="Delete sale">
+                    <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg> Delete sale
                 </button>` : '';
 
                 return `
@@ -3781,6 +3820,7 @@
                             <button type="button" onclick="generatePDFReceipt(${income.local_id})" class="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded transition border border-emerald-200 shadow-sm">
                                 <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg> Receipt
                             </button>
+                            ${deleteButton}
                         </div>
                     </div>
                 </div>`;
@@ -3791,18 +3831,20 @@
                 const totalIncomeEl = document.getElementById('total-income-amount');
                 if (!listContainer) return;
 
-                const incomeItems = await getIncomeLocal();
+                const incomeItems = (await getIncomeLocal()).filter(item => !item.pending_delete);
                 let totalIncome = 0;
 
                 if (incomeItems.length === 0) {
                     listContainer.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
                 } else {
-                    listContainer.innerHTML = incomeItems.map(item => {
-                        if (!item.pending_delete) {
-                            totalIncome += parseFloat(item.amount_paid ?? item.amount ?? 0);
-                        }
-                        return renderIncomeItemHTML(item);
-                    }).reverse().join('');
+                    const renderedSaleGroups = new Set();
+                    listContainer.innerHTML = incomeItems.slice().reverse().map(item => {
+                        totalIncome += parseFloat(item.amount_paid ?? item.amount ?? 0);
+                        const groupKey = incomeSaleGroupKey(item);
+                        const showDelete = !renderedSaleGroups.has(groupKey);
+                        renderedSaleGroups.add(groupKey);
+                        return renderIncomeItemHTML(item, showDelete);
+                    }).join('');
                 }
 
                 if (totalIncomeEl) {
@@ -3817,8 +3859,164 @@
             const settleDebtAmount = document.getElementById('settle-debt-amount');
             const settleDebtAfter = document.getElementById('settle-debt-after');
             const settleDebtError = document.getElementById('settle-debt-error');
+            const saleDeleteModal = document.getElementById('sale-delete-modal');
+            const saleDeleteDescription = document.getElementById('sale-delete-description');
+            const saleDeleteError = document.getElementById('sale-delete-error');
+            const confirmSaleDeleteButton = document.getElementById('confirm-sale-delete');
+            let pendingSaleDelete = null;
+            let saleDeleteTrigger = null;
+            let saleDeleteInProgress = false;
+
+            function incomeSaleGroupKey(item) {
+                return item.checkout_id
+                    ? `checkout:${item.checkout_id}`
+                    : `record:${item.local_id ?? item.server_id ?? item.id ?? ''}`;
+            }
+
+            async function getLocalSaleGroup(item) {
+                const key = incomeSaleGroupKey(item);
+                return (await getIncomeLocal()).filter(candidate => incomeSaleGroupKey(candidate) === key);
+            }
+
+            async function removeIncomeRecordsFromDevice(records) {
+                const localIds = records.map(record => record.local_id).filter(id => id != null);
+                if (!localIds.length) return;
+                const db = await openIndexedDB();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(INCOME_STORE, 'readwrite');
+                    const store = tx.objectStore(INCOME_STORE);
+                    localIds.forEach(id => store.delete(id));
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(tx.error || new Error('Could not update local sales.'));
+                });
+            }
+
+            function applySaleDeleteStock(stock) {
+                Object.entries(stock || {}).forEach(([id, quantity]) => {
+                    const product = inventoryPresets.find(item => String(item.id) === String(id));
+                    if (product) product.stock = Number(quantity);
+                });
+                saveInventoryCache();
+                renderPresetsGrid();
+                renderManageList();
+            }
+
+            function restoreLocalSaleStock(records) {
+                const quantities = new Map();
+                records.forEach(record => {
+                    if (record.inventory_item_id == null) return;
+                    const id = String(record.inventory_item_id);
+                    quantities.set(id, (quantities.get(id) || 0) + Math.max(1, Number(record.quantity) || 1));
+                });
+                quantities.forEach((quantity, id) => {
+                    const product = inventoryPresets.find(item => String(item.id) === id);
+                    if (product?.track_stock) product.stock = Number(product.stock || 0) + quantity;
+                });
+                saveInventoryCache();
+                renderPresetsGrid();
+                renderManageList();
+            }
+
+            async function queueSaleDeletion(records) {
+                const db = await openIndexedDB();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(INCOME_STORE, 'readwrite');
+                    const store = tx.objectStore(INCOME_STORE);
+                    records.forEach(record => store.put({ ...record, pending_delete: true, synced: false }));
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                    tx.onabort = () => reject(tx.error || new Error('Could not queue this sale deletion.'));
+                });
+            }
+
+            async function openSaleDeleteModal(localId, trigger) {
+                const item = await findLocalIncomeRecord(localId);
+                if (!item) return;
+                const records = (await getLocalSaleGroup(item)).filter(record => !record.pending_delete);
+                if (!records.length) return;
+                pendingSaleDelete = records;
+                saleDeleteTrigger = trigger;
+                const total = records.reduce((sum, record) => sum + Number(record.total_value ?? record.amount ?? 0), 0);
+                const receipt = item.receipt_id ? ` (${item.receipt_id})` : '';
+                document.getElementById('sale-delete-title').textContent = `Delete this sale${records.length > 1 ? ` (${records.length} items)` : ''}?`;
+                saleDeleteDescription.textContent = `This will delete ${records.length} ${records.length === 1 ? 'item' : 'items'} from receipt${receipt}, remove it from sales history, and restore tracked stock. Total: ₦${total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. This cannot be undone.`;
+                saleDeleteError?.classList.add('hidden');
+                saleDeleteModal?.classList.remove('hidden');
+                saleDeleteModal?.classList.add('flex');
+                document.getElementById('cancel-sale-delete').focus();
+            }
+
+            function closeSaleDeleteModal() {
+                if (saleDeleteInProgress) return;
+                saleDeleteModal?.classList.add('hidden');
+                saleDeleteModal?.classList.remove('flex');
+                saleDeleteError?.classList.add('hidden');
+                confirmSaleDeleteButton.disabled = false;
+                confirmSaleDeleteButton.textContent = 'Delete sale';
+                document.getElementById('cancel-sale-delete').disabled = false;
+                pendingSaleDelete = null;
+                if (saleDeleteTrigger?.isConnected) saleDeleteTrigger.focus();
+                saleDeleteTrigger = null;
+            }
+
+            document.getElementById('cancel-sale-delete')?.addEventListener('click', closeSaleDeleteModal);
+            saleDeleteModal?.addEventListener('click', event => {
+                if (event.target === saleDeleteModal) closeSaleDeleteModal();
+            });
+            saleDeleteModal?.addEventListener('keydown', event => {
+                if (event.key === 'Escape') closeSaleDeleteModal();
+            });
+            confirmSaleDeleteButton?.addEventListener('click', async () => {
+                if (!pendingSaleDelete || saleDeleteInProgress) return;
+                const records = pendingSaleDelete;
+                const syncedRecord = records.find(record => record.server_id != null || record.id != null);
+                const serverId = syncedRecord?.server_id ?? syncedRecord?.id;
+                const cancelButton = document.getElementById('cancel-sale-delete');
+                saleDeleteInProgress = true;
+                confirmSaleDeleteButton.disabled = true;
+                confirmSaleDeleteButton.textContent = 'Deleting…';
+                cancelButton.disabled = true;
+                try {
+                    if (serverId == null) {
+                        await removeIncomeRecordsFromDevice(records);
+                        restoreLocalSaleStock(records);
+                    } else if (!navigator.onLine) {
+                        await queueSaleDeletion(records);
+                        restoreLocalSaleStock(records);
+                    } else {
+                        const response = await authenticatedFetch(`/api/income/${serverId}`, { method: 'DELETE' });
+                        const result = await response.json();
+                        if (!response.ok || result.status !== 'success') {
+                            throw new Error(result.message || 'Could not delete this sale.');
+                        }
+                        applySaleDeleteStock(result.stock);
+                        if (!Object.keys(result.stock || {}).length && typeof loadPresets === 'function') await loadPresets();
+                        await removeIncomeRecordsFromDevice(records);
+                    }
+                    await renderIncomeListUI();
+                    calculateDashboard();
+                    if (serverId != null && !navigator.onLine) {
+                        updateNetworkStatus(false, 'Sale deletion saved on this device. It will sync when you reconnect.');
+                    }
+                    saleDeleteInProgress = false;
+                    closeSaleDeleteModal();
+                } catch (error) {
+                    saleDeleteInProgress = false;
+                    confirmSaleDeleteButton.disabled = false;
+                    confirmSaleDeleteButton.textContent = 'Delete sale';
+                    cancelButton.disabled = false;
+                    saleDeleteError.textContent = error.message || 'Could not delete this sale. Try again.';
+                    saleDeleteError.classList.remove('hidden');
+                }
+            });
 
             incomeList?.addEventListener('click', (event) => {
+                const deleteButton = event.target.closest('.btn-delete-income');
+                if (deleteButton) {
+                    openSaleDeleteModal(deleteButton.dataset.deleteIncomeId, deleteButton);
+                    return;
+                }
                 const button = event.target.closest('.btn-settle-debt');
                 if (!button) return;
                 const incomeId = button.dataset.settleIncomeId;

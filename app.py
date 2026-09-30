@@ -241,7 +241,18 @@ def enforce_csrf():
 def get_current_user_id():
     """Retrieve string-based user_id from active Flask session cookie."""
     if "user_id" in session and session["user_id"]:
-        return str(session["user_id"])
+        user_id = str(session["user_id"])
+        # A signed session cookie can outlive its database row. Resolve the
+        # account before treating the cookie as authenticated.
+        try:
+            with get_db() as db:
+                exists = db.execute("SELECT 1 FROM users WHERE id = ?", (user_id,)).fetchone()
+            if exists:
+                return user_id
+        except Exception as auth_error:
+            logging.error("Could not validate the active user session: %s", auth_error)
+            return None
+        session.clear()
     return None
 
 
@@ -475,6 +486,37 @@ def init_db():
             except Exception as e:
                 print(f"Migration note for '{alter_cmd}': {e}", flush=True)
 
+        # Direct SQL deletion of a user must also remove every account-owned
+        # row and any registration/reset code tied to that email.
+        try:
+            with get_db() as db:
+                db.execute("""
+                    CREATE OR REPLACE FUNCTION solobiz_cleanup_deleted_user() RETURNS TRIGGER AS $$
+                    BEGIN
+                        DELETE FROM expenses WHERE user_id = OLD.id;
+                        DELETE FROM income WHERE user_id = OLD.id;
+                        DELETE FROM business_profiles WHERE user_id = OLD.id;
+                        DELETE FROM inventory_presets WHERE user_id = OLD.id;
+                        DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
+                        RETURN OLD;
+                    END;
+                    $$ LANGUAGE plpgsql
+                """)
+                db.execute("DROP TRIGGER IF EXISTS solobiz_user_delete_cleanup ON users")
+                db.execute("""
+                    CREATE TRIGGER solobiz_user_delete_cleanup
+                    AFTER DELETE ON users
+                    FOR EACH ROW EXECUTE FUNCTION solobiz_cleanup_deleted_user()
+                """)
+                for table in ("expenses", "income", "business_profiles", "inventory_presets"):
+                    db.execute(
+                        f"DELETE FROM {table} WHERE NOT EXISTS "
+                        f"(SELECT 1 FROM users WHERE users.id = {table}.user_id)"
+                    )
+                db.commit()
+        except Exception as cleanup_error:
+            logging.error("Could not install account deletion cleanup: %s", cleanup_error, exc_info=True)
+
         # Fail-safe: verify and convert user_id column types to TEXT
         for target_table, target_col in [("users", "id"), ("expenses", "user_id"), ("income", "user_id"), ("business_profiles", "user_id")]:
             try:
@@ -604,6 +646,22 @@ def init_db():
                 )
             except Exception:
                 pass
+            db.execute("""
+                CREATE TRIGGER IF NOT EXISTS solobiz_user_delete_cleanup
+                AFTER DELETE ON users
+                BEGIN
+                    DELETE FROM expenses WHERE user_id = OLD.id;
+                    DELETE FROM income WHERE user_id = OLD.id;
+                    DELETE FROM business_profiles WHERE user_id = OLD.id;
+                    DELETE FROM inventory_presets WHERE user_id = OLD.id;
+                    DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
+                END
+            """)
+            for table in ("expenses", "income", "business_profiles", "inventory_presets"):
+                db.execute(
+                    f"DELETE FROM {table} WHERE NOT EXISTS "
+                    f"(SELECT 1 FROM users WHERE users.id = {table}.user_id)"
+                )
             db.commit()
 
     # Repair legacy duplicate storefront slugs so one public URL cannot expose
@@ -887,6 +945,10 @@ def register_api_verify():
         if not email or not code:
             return jsonify({"status": "error", "message": "Email and verification PIN are required."}), 400
 
+        with get_db() as db:
+            if db.execute("SELECT 1 FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
+                return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
+
         record, error = verify_otp(email, "register", code, consume=False)
         if error:
             return jsonify({"status": "error", "message": error}), 400
@@ -1042,6 +1104,10 @@ def forgot_password_reset():
             return jsonify({"status": "error", "message": "Email, verification PIN, and new password are required."}), 400
         if not is_valid_password(new_password):
             return jsonify({"status": "error", "message": "New password must be at least 8 characters and include a letter and a number."}), 400
+
+        with get_db() as db:
+            if not db.execute("SELECT 1 FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
+                return jsonify({"status": "error", "message": "No account exists for this email. Please register first."}), 404
 
         record, error = verify_otp(email, "reset", code, consume=True)
         if error:
@@ -2000,15 +2066,70 @@ def reject_income_collection_delete():
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    return jsonify({"status": "error", "message": "Recorded sales cannot be deleted."}), 405
+    return jsonify({"status": "error", "message": "Choose a specific sale to delete."}), 405
 
 
 @app.route("/api/income/<int:income_id>", methods=["DELETE"])
-def reject_income_delete(income_id):
+def api_delete_income(income_id):
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    return jsonify({"status": "error", "message": "Recorded sales cannot be deleted."}), 405
+
+    try:
+        with get_db() as db:
+            target = db.execute(
+                "SELECT id, checkout_id, receipt_id FROM income WHERE id = ? AND user_id = ?",
+                (income_id, user_id)
+            ).fetchone()
+            if not target:
+                return jsonify({"status": "success", "message": "Sale was already deleted.", "deleted_count": 0, "stock": {}}), 200
+
+            target = dict(target)
+            checkout_id = target.get("checkout_id")
+            if checkout_id:
+                deleted_items = db.execute(
+                    "DELETE FROM income WHERE user_id = ? AND checkout_id = ? RETURNING inventory_item_id, quantity",
+                    (user_id, checkout_id)
+                ).fetchall()
+            else:
+                deleted_items = db.execute(
+                    "DELETE FROM income WHERE id = ? AND user_id = ? RETURNING inventory_item_id, quantity",
+                    (income_id, user_id)
+                ).fetchall()
+
+            quantities_by_product = {}
+            for deleted_item in deleted_items:
+                item = dict(deleted_item)
+                inventory_id = item.get("inventory_item_id")
+                if inventory_id is not None:
+                    quantity = max(int(item.get("quantity") or 1), 1)
+                    quantities_by_product[inventory_id] = quantities_by_product.get(inventory_id, 0) + quantity
+
+            restored_stock = {}
+            for inventory_id, quantity in quantities_by_product.items():
+                db.execute(
+                    "UPDATE inventory_presets SET stock = COALESCE(stock, 0) + ? WHERE id = ? AND user_id = ? AND track_stock = 1",
+                    (quantity, inventory_id, user_id)
+                )
+                stock_row = db.execute(
+                    "SELECT stock FROM inventory_presets WHERE id = ? AND user_id = ? AND track_stock = 1",
+                    (inventory_id, user_id)
+                ).fetchone()
+                if stock_row:
+                    restored_stock[str(inventory_id)] = int(dict(stock_row)["stock"] or 0)
+
+            db.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": "Sale deleted successfully.",
+            "receipt_id": target.get("receipt_id"),
+            "deleted_count": len(deleted_items),
+            "stock": restored_stock
+        }), 200
+    except Exception as error:
+        logging.error("Sale deletion failed for income %s: %s", income_id, error, exc_info=True)
+        return jsonify({"status": "error", "message": "Could not delete this sale. Please try again."}), 500
 
 
 @app.route("/api/checkout", methods=["POST"])
