@@ -1995,6 +1995,22 @@ def api_income():
         }), 201
 
 
+@app.route("/api/income", methods=["DELETE"])
+def reject_income_collection_delete():
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    return jsonify({"status": "error", "message": "Recorded sales cannot be deleted."}), 405
+
+
+@app.route("/api/income/<int:income_id>", methods=["DELETE"])
+def reject_income_delete(income_id):
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    return jsonify({"status": "error", "message": "Recorded sales cannot be deleted."}), 405
+
+
 @app.route("/api/checkout", methods=["POST"])
 def api_checkout():
     """Record a multi-item inventory sale and decrement tracked stock atomically."""
