@@ -678,7 +678,6 @@ def send_otp_email(to_email: str, otp_code: str, subject_type: str = "Email Veri
     """
     api_key = os.environ.get("RESEND_API_KEY")
     smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", 587))
     smtp_user = (os.environ.get("SMTP_USER")
                  or os.environ.get("SMTP_USERNAME")
                  or os.environ.get("GMAIL_USER"))
@@ -728,6 +727,9 @@ def send_otp_email(to_email: str, otp_code: str, subject_type: str = "Email Veri
     # 2. Try SMTP (Gmail or other)
     if smtp_user and smtp_pass:
         try:
+            smtp_port = int(os.environ.get("SMTP_PORT") or "587")
+            if not 1 <= smtp_port <= 65535:
+                raise ValueError("SMTP_PORT must be between 1 and 65535.")
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = from_email
