@@ -127,13 +127,22 @@ class DBWrapper:
 
             cur = self.conn.cursor()
             is_insert = "INSERT INTO" in pg_sql.upper()
-            if is_insert and "RETURNING" not in pg_sql.upper():
+            insert_match = re.match(r"\s*INSERT\s+INTO\s+([\w.\"]+)", pg_sql, re.IGNORECASE)
+            insert_table = insert_match.group(1).split(".")[-1].strip('"').lower() if insert_match else ""
+            # OTP rows are keyed by (email, purpose) and have no generated id.
+            # Asking PostgreSQL for RETURNING id makes the OTP insert fail before email delivery.
+            should_return_id = (
+                is_insert
+                and "RETURNING" not in pg_sql.upper()
+                and insert_table != "otp_codes"
+            )
+            if should_return_id:
                 pg_sql += " RETURNING id"
 
             cur.execute(pg_sql, params)
 
             last_id = None
-            if is_insert:
+            if is_insert and "RETURNING" in pg_sql.upper():
                 try:
                     row = cur.fetchone()
                     if row:
