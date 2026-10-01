@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoloBiz Tracker - Pocket CFO</title>
+    <title>SoloBiz</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <!-- PWA Web App Manifest & Mobile App Meta Tags -->
     <link rel="manifest" href="/static/manifest.json">
@@ -152,10 +152,6 @@
             .desktop-content {
                 padding: 14px 0 20px;
             }
-            .desktop-greeting {
-                margin-top: 14px;
-                margin-bottom: 12px;
-            }
         }
 
         /* ═══════════════════════════════════════════
@@ -246,34 +242,6 @@
                 background: #f1f5f9;
                 color: #1e293b;
             }
-            /* Active Expenses/Profile — indigo */
-            .desktop-sidebar .tab-btn.bg-indigo-600 {
-                background: #eef2ff !important;
-                color: #4338ca !important;
-                font-weight: 700;
-                box-shadow: none;
-            }
-            .desktop-sidebar .tab-btn.bg-indigo-600 svg {
-                color: #4338ca !important;
-            }
-            /* Active Sales — emerald */
-            .desktop-sidebar .tab-btn.bg-emerald-600 {
-                background: #ecfdf5 !important;
-                color: #047857 !important;
-                font-weight: 700;
-            }
-            .desktop-sidebar .tab-btn.bg-emerald-600 svg {
-                color: #059669 !important;
-            }
-            /* Active Analytics — blue */
-            .desktop-sidebar .tab-btn.bg-blue-600 {
-                background: #eff6ff !important;
-                color: #1d4ed8 !important;
-                font-weight: 700;
-            }
-            .desktop-sidebar .tab-btn.bg-blue-600 svg {
-                color: #2563eb !important;
-            }
 
             /* ── Right content area ── */
             .desktop-content {
@@ -286,13 +254,6 @@
             }
 
             /* Greeting card in content area */
-            .desktop-greeting {
-                margin-bottom: 20px;
-                padding: 20px 24px;
-                border-radius: 16px;
-            }
-            .desktop-greeting h2 { font-size: 1.2rem; }
-            .desktop-greeting p { font-size: 0.82rem; }
 
             /* CFO stat cards */
             #cfo-dashboard { margin-bottom: 24px; }
@@ -364,14 +325,6 @@
             margin-top: 1rem;
             margin-bottom: 0;
         }
-        .desktop-greeting {
-            margin-bottom: 14px;
-            padding: 14px 18px;
-            border-radius: 14px;
-            box-shadow: none;
-        }
-        .desktop-greeting h2 { font-size: 1rem; }
-        .desktop-greeting p { font-size: .75rem; }
         #cfo-dashboard { margin-bottom: 14px; }
         #cfo-dashboard > div:first-child { gap: 8px; margin-bottom: 8px; }
         #cfo-dashboard > div:first-child > div,
@@ -430,7 +383,6 @@
         @media (max-width: 1023px) {
             .desktop-dashboard-shell { padding-right: 10px; padding-left: 10px; }
             .desktop-content { padding: 10px 0 16px; }
-            .desktop-greeting { margin-top: 10px; margin-bottom: 10px; padding: 12px 14px; }
             #cfo-dashboard { margin-bottom: 10px; }
             #cfo-dashboard > div:first-child { gap: 7px; margin-bottom: 7px; }
             #cfo-dashboard > div:first-child > div,
@@ -444,8 +396,6 @@
         }
         @media (max-width: 639px) {
             .mobile-secondary-copy { display: none !important; }
-            .desktop-greeting { padding: 11px 13px; margin-top: 8px; margin-bottom: 8px; }
-            .desktop-greeting h2 { font-size: .95rem; }
             #tab-dashboard-content > section { padding: 12px; }
             #budget-heading { font-size: .95rem; }
             #budget-insight {
@@ -481,26 +431,23 @@
             #tab-inventory-content .inventory-toolbar > .flex { width:100%; }
         }
     </style>
+    <link rel="stylesheet" href="/static/solobiz-ui.css">
 </head>
-<body class="bg-gray-50 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
+<body class="app-shell bg-gray-50 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
     
     <!-- App Header -->
-    <header class="bg-[#0f172a] text-white p-3.5 sm:p-4 shadow-lg sticky top-0 z-40">
+    <header class="bg-white text-slate-900 p-3.5 sm:p-4 shadow-none sticky top-0 z-40">
         <div class="max-w-screen-2xl mx-auto flex justify-between items-center px-4">
             <!-- Left: Logo + Name + Tag -->
             <div class="flex items-center gap-2.5">
                 <div id="app-header-logo-wrap" class="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-indigo-600 flex items-center justify-center shadow-md">
                     <img id="app-header-logo" src="/static/logo.svg" alt="SoloBiz Logo" class="w-full h-full object-cover rounded-xl">
                 </div>
-                <h1 id="app-header-biz-name" class="font-extrabold text-base sm:text-lg tracking-wide text-white">SoloBiz</h1>
-                <span class="text-[9px] font-bold uppercase bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full hidden sm:inline">Pocket CFO</span>
+                <h1 id="app-header-biz-name" class="font-bold text-base sm:text-lg tracking-tight text-slate-900">SoloBiz</h1>
             </div>
             <!-- Right: Status + Logout -->
             <div class="flex items-center gap-2">
-                <span class="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-full">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live Cloud
-                </span>
-                <button onclick="handleLogout()" type="button" class="text-xs font-bold text-slate-700 hover:text-white transition tracking-wide bg-white/5 border border-white/10 hover:bg-white/10 px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer">
+                <button onclick="handleLogout()" type="button" class="text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                     <span>Logout</span>
                 </button>
@@ -522,17 +469,17 @@
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                 <span>Expenses</span>
             </a>
-            <a id="btn-tab-inventory" data-dashboard-tab="inventory" href="/inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'inventory' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-inventory" data-dashboard-tab="inventory" href="/inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'inventory' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/><path d="M9 12v4M15 12v4"/></svg>
                 <span>Inventory</span>
             </a>
-            <a id="btn-tab-income" data-dashboard-tab="income" href="/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-emerald-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-income" data-dashboard-tab="income" href="/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                 <span>Sales</span>
             </a>
-            <a id="btn-tab-analytics" data-dashboard-tab="analytics" href="/analytics" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'analytics' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-                <span>Analytics</span>
+            <a id="btn-tab-budget" data-dashboard-tab="budget" href="/budget" {% if active_tab == 'budget' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'budget' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h4M7 16h6"/></svg>
+                <span>Budget</span>
             </a>
             <a id="btn-tab-profile" data-dashboard-tab="profile" href="/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
@@ -551,7 +498,7 @@
                 </div>
                 <div>
                     <h3 id="pwa-banner-title" class="text-xs font-bold text-white">Install SoloBiz App</h3>
-                    <p class="text-[10px] text-indigo-200">Add to home screen for offline access!</p>
+                <p class="text-[10px] text-indigo-200">Offline access from your home screen.</p>
                 </div>
             </div>
             <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap flex items-center gap-1.5">
@@ -559,24 +506,19 @@
             </button>
         </div>
 
-        <!-- Mobile User Greeting Banner at the Top of Main Body -->
-        <div id="desktop-greeting" class="desktop-greeting mb-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center justify-between">
-            <div>
-                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
-                    Hi, <span id="user-greeting-name">{{ username }}</span> <svg class="w-4 h-4 text-amber-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                </h2>
-                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Welcome back. Here’s your business at a glance.</p>
-            </div>
-            <a id="btn-global-overview" data-dashboard-tab="dashboard" href="/dashboard" class="bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition">
-                Overview
-            </a>
-        </div>
         <div id="network-status-banner" class="hidden mb-4 rounded-xl border bg-white px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
             <span id="network-status-text"></span>
             <button type="button" id="retry-sync-button" class="hidden rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide">Retry sync</button>
         </div>
 
-        <!-- CFO Dashboard Cards (Total Sales, Total Expenses, Net Profit) -->
+        <section id="tab-dashboard-content" class="tab-content space-y-6 {% if active_tab != 'dashboard' %}hidden{% endif %}">
+            <div class="rounded-2xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
+                <p class="text-sm font-medium text-slate-500">Your business</p>
+                <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Welcome, {{ username }}</h2>
+            </div>
+        </section>
+
+        <!-- CFO Dashboard Cards (This month) -->
         <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab != 'dashboard' %}hidden{% endif %}">
         <!-- Top row: Sales + Expenses side by side -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -585,10 +527,10 @@
             <div class="bg-emerald-50 border border-emerald-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
                 <div class="flex items-center gap-1.5">
                     <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Total Sales</p>
+                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Sales collected</p>
                 </div>
                 <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-emerald-700/80 leading-tight">Total money customers have paid</p>
+                <p class="dashboard-card-hint text-[10px] text-emerald-700/80 leading-tight">Payments received this month</p>
             </div>
 
             <!-- Total Expenses Card -->
@@ -598,7 +540,12 @@
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
                 </div>
                 <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-rose-700/80 leading-tight">Total business costs recorded</p>
+                <p class="dashboard-card-hint text-[10px] text-rose-700/80 leading-tight">Recorded this month</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
+                <p class="text-[9px] sm:text-[10px] uppercase font-bold text-amber-700 tracking-wider leading-none">Outstanding</p>
+                <span class="stat-value text-amber-800" id="top-outstanding">₦{{ "{:,.2f}".format(total_outstanding or 0.0) }}</span>
+                <p class="dashboard-card-hint text-[10px] text-amber-700/80 leading-tight">Balance due on this month’s sales</p>
             </div>
         </div>
 
@@ -611,8 +558,8 @@
                         {% if np >= 0 %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>{% else %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{% endif %}
                     </span>
                     <div class="min-w-0">
-                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-400{% endif %} tracking-wider leading-none truncate">Net Profit</p>
-                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Money received minus money spent</p>
+                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-400{% endif %} tracking-wider leading-none truncate">Net cash flow</p>
+                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Payments received minus expenses</p>
                     </div>
                 </div>
                 <span class="stat-value {% if np >= 0 %}text-indigo-700{% else %}text-amber-600{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
@@ -620,7 +567,71 @@
         </div>
         </div> <!-- End cfo-dashboard -->
 
-        <section id="tab-dashboard-content" class="tab-content space-y-6 {% if active_tab != 'dashboard' %}hidden{% endif %}">
+        <section id="dashboard-insights" class="{% if active_tab != 'dashboard' %}hidden{% endif %} space-y-4" aria-labelledby="dashboard-insights-heading">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 id="dashboard-insights-heading" class="text-base font-bold text-slate-900">Business analysis</h2>
+                    <p class="mt-1 text-xs text-slate-500">See how sales and spending change over time.</p>
+                </div>
+                <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Choose reporting period">
+                    <button type="button" data-period="daily" class="analytics-tab-btn rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm">Day</button>
+                    <button type="button" data-period="weekly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Week</button>
+                    <button type="button" data-period="monthly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Month</button>
+                    <button type="button" data-period="yearly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Year</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Sales value</p>
+                    <p id="analytics-total-value" class="mt-1 text-base font-bold text-slate-900">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Collected</p>
+                    <p id="analytics-cash-collected" class="mt-1 text-base font-bold text-emerald-700">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Expenses</p>
+                    <p id="analytics-total-expenses" class="mt-1 text-base font-bold text-rose-700">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Balance due</p>
+                    <p id="analytics-outstanding-balance" class="mt-1 text-base font-bold text-amber-700">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Net cash flow</p>
+                    <p id="analytics-liquid-profit" class="mt-1 text-base font-bold text-emerald-700">₦0.00</p>
+                </article>
+            </div>
+            <p class="-mt-2 text-[10px] text-slate-400">Totals across all recorded sales and expenses.</p>
+            <p id="analytics-outstanding-alert" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">Some sales still have an outstanding balance.</p>
+
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+                <section class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="analytics-trend-heading">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h3 id="analytics-trend-heading" class="text-sm font-bold text-slate-800">Sales and expenses</h3>
+                            <p id="analytics-period-label" class="mt-0.5 text-[11px] text-slate-500">By day</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-[10px] font-medium text-slate-500" aria-label="Chart legend">
+                            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-indigo-600"></span>Sales collected</span>
+                            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-rose-500"></span>Expenses</span>
+                        </div>
+                    </div>
+                    <canvas id="analytics-trend-chart" class="block h-64 w-full" aria-label="Sales and expenses trend chart"></canvas>
+                    <p id="analytics-trend-summary" class="sr-only" aria-live="polite"></p>
+                </section>
+                <section class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="analytics-history-heading">
+                    <h3 id="analytics-history-heading" class="text-sm font-bold text-slate-800">Sales by period</h3>
+                    <p class="mt-0.5 text-[11px] text-slate-500">Open a period to see its recorded sales.</p>
+                    <div id="analytics-grouped-list" class="mt-3 max-h-[340px] space-y-2 overflow-y-auto" aria-live="polite">
+                        <p class="py-6 text-center text-sm text-slate-500">Loading sales…</p>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section id="tab-budget-content" class="tab-content space-y-6 {% if active_tab != 'budget' %}hidden{% endif %}">
             <!-- Monthly category budgets are stored locally for offline use. -->
             <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5" aria-labelledby="budget-heading">
                 <div class="flex items-center justify-between gap-3">
@@ -679,9 +690,13 @@
         <!-- TAB 1: EXPENSES CONTENT                                    -->
         <!-- ========================================================= -->
         <section id="tab-expenses-content" class="tab-content space-y-6 {% if active_tab != 'expenses' %}hidden{% endif %}">
+            <div class="flex items-center justify-between gap-3">
+                <div><h2 class="text-lg font-bold text-slate-900">Expenses</h2><p class="mt-1 text-sm text-slate-500">Your recorded expenses.</p></div>
+                <button type="button" id="btn-new-expense" class="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">Add expense</button>
+            </div>
 
-            <!-- Total Spent Card — always shows the global grand total, never overwritten by search -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 text-center overflow-hidden">
+            <!-- Dashboard owns the overall total; this page stays focused on transaction history. -->
+            <div class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-5 text-center overflow-hidden">
                 <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Total Expenses</p>
                 <h2 class="big-total-value text-slate-900" id="main-dashboard-total" data-total="{{ total }}">₦{{ "{:,.2f}".format(total) }}</h2>
                 {% if searching %}
@@ -690,7 +705,9 @@
             </div>
 
             <!-- Add Expense Form -->
-            <div id="expense-entry-card" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div id="expense-entry-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
+            <div id="expense-entry-card" class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+                <div class="mb-4 flex items-center justify-between"><h3 id="expense-modal-title" class="font-bold text-slate-800">Add an expense</h3><button type="button" data-close-entry="expense-entry-modal" class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100" aria-label="Close">Close</button></div>
                 <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Log New Expense
                 </h3>
@@ -725,6 +742,7 @@
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Expense
                     </button>
                 </form>
+            </div>
             </div>
 
             <!-- Transaction Filter Bar -->
@@ -810,7 +828,6 @@
             <div>
                 <h3 class="font-bold text-slate-800 mb-3 flex items-center justify-between">
                     <span>Recent Transactions</span>
-                    <span class="text-xs text-slate-500 font-normal">Offline-First</span>
                 </h3>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="transaction-list">
                     {% if expenses|length == 0 %}
@@ -897,17 +914,23 @@
         <!-- TAB 2: SALES / INCOME CONTENT                             -->
         <!-- ========================================================= -->
         <section id="tab-income-content" class="tab-content space-y-6 {% if active_tab != 'income' %}hidden{% endif %}">
+            <div class="flex items-center justify-between gap-3">
+                <div><h2 class="text-lg font-bold text-slate-900">Sales</h2><p class="mt-1 text-sm text-slate-500">Your recorded sales and payments.</p></div>
+                <button type="button" id="btn-new-sale" class="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Add sale</button>
+            </div>
             
             <div id="sales-main-view" class="space-y-6">
                 <!-- Sales Summary Card -->
-                <div class="bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-2xl shadow-sm p-5 text-white text-center overflow-hidden relative">
-                    <p class="text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
+                <div class="hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-2xl shadow-sm p-5 text-white text-center overflow-hidden relative">
+                    <p class="hidden text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
                     <h2 class="big-total-value text-white" id="total-income-amount">₦0.00</h2>
                     <p class="text-xs text-emerald-100/90 mt-2 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span> Auto-saved locally &amp; synced to cloud</p>
                 </div>
 
             <!-- Log Sale Form -->
-            <div id="sale-entry-card" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div id="sale-entry-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
+            <div id="sale-entry-card" class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+                <div class="mb-4 flex items-center justify-between"><h3 id="sale-modal-title" class="font-bold text-slate-800">Add a sale</h3><button type="button" data-close-entry="sale-entry-modal" class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100" aria-label="Close">Close</button></div>
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold text-slate-800 flex items-center gap-2">
                         <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Log New Sale / Revenue
@@ -963,105 +986,51 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition shadow-sm flex items-center justify-center gap-2 mt-4">
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl hover:bg-indigo-700 transition shadow-sm flex items-center justify-center gap-2 mt-4">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Transaction
                     </button>
                 </form>
             </div>
+            </div>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Filter sales history">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <label class="text-xs font-semibold text-slate-600">Product bought
+                        <select id="sales-product-filter" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
+                            <option value="">All products</option>
+                        </select>
+                    </label>
+                    <label class="text-xs font-semibold text-slate-600">Payment status
+                        <select id="sales-payment-filter" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
+                            <option value="">Any payment status</option>
+                            <option value="paid">Fully paid</option>
+                            <option value="partial">Part-paid</option>
+                            <option value="unpaid">Unpaid</option>
+                        </select>
+                    </label>
+                    <label class="text-xs font-semibold text-slate-600">Minimum sale (₦)
+                        <input id="sales-min-total" type="number" min="0" step="0.01" inputmode="decimal" placeholder="No minimum" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700">
+                    </label>
+                    <label class="text-xs font-semibold text-slate-600">Maximum sale (₦)
+                        <input id="sales-max-total" type="number" min="0" step="0.01" inputmode="decimal" placeholder="No maximum" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700">
+                    </label>
+                </div>
+                <div class="mt-3 flex items-center justify-between gap-3">
+                    <p id="sales-filter-summary" class="text-xs text-slate-500" aria-live="polite">All sales</p>
+                    <button id="sales-clear-filters" type="button" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800">Clear filters</button>
+                </div>
+            </section>
 
             <!-- Income History List -->
             <div>
                 <h3 class="font-bold text-slate-800 mb-3 flex items-center justify-between">
                     <span>Sales History</span>
-                    <span class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Real-time Sync</span>
                 </h3>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="income-list">
                     <p class="text-center text-slate-500 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>
                 </div>
             </div>
             </div> <!-- Close sales-main-view -->
-        </section>
-
-        <!-- ========================================================= -->
-        <!-- TAB 4: ANALYTICS CONTENT                                  -->
-        <!-- ========================================================= -->
-        <section id="tab-analytics-content" class="tab-content space-y-6 {% if active_tab != 'analytics' %}hidden{% endif %}">
-            <!-- Analytics View -->
-            <div id="analytics-view" class="space-y-6">
-                <div class="flex items-center gap-3">
-                    <h2 class="font-bold text-slate-800 text-lg">Sales Analytics</h2>
-                </div>
-
-                <!-- Segmented Control Bar -->
-                <div class="bg-slate-100 p-1 rounded-xl flex gap-1 text-sm font-semibold">
-                    <button type="button" data-period="daily" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg bg-white shadow-sm text-slate-900">Daily</button>
-                    <button type="button" data-period="weekly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Weekly</button>
-                    <button type="button" data-period="monthly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Monthly</button>
-                    <button type="button" data-period="yearly" class="analytics-tab-btn flex-1 py-1.5 text-center rounded-lg text-slate-500 hover:text-slate-700">Yearly</button>
-                </div>
-
-                <!-- Top Summary Dashboard -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <!-- Value & Cash -->
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Value Booked</p>
-                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-total-value">₦0.00</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Cash Collected</p>
-                        <p class="text-lg sm:text-xl font-bold text-emerald-600" id="analytics-cash-collected">₦0.00</p>
-                    </div>
-
-                    <!-- Expenses & Profit -->
-                    <div class="bg-white p-4 rounded-xl border border-slate-200">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Total Expenses</p>
-                        <p class="text-lg sm:text-xl font-bold text-rose-500" id="analytics-total-expenses">₦0.00</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 bg-slate-50">
-                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Liquid Profit</p>
-                        <p class="text-lg sm:text-xl font-bold text-slate-900" id="analytics-liquid-profit">₦0.00</p>
-                    </div>
-                </div>
-
-                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                        <div>
-                            <h3 class="font-bold text-slate-800">Cash Flow Trend</h3>
-                            <p class="text-xs text-slate-500">Money collected compared with operating expenses</p>
-                        </div>
-                        <div class="flex items-center gap-3 text-[10px] font-semibold text-slate-500">
-                            <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-600"></span> Sales</span>
-                            <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Expenses</span>
-                        </div>
-                    </div>
-                    <canvas id="analytics-trend-chart" class="block w-full h-64" role="img" aria-label="Bar chart comparing sales collected and expenses over time">
-                        Cash flow chart: sales collected compared with expenses.
-                    </canvas>
-                    <p id="analytics-trend-summary" class="sr-only" aria-live="polite"></p>
-                </div>
-
-                <!-- Outstanding Alert (Only shows if money is owed) -->
-                <div id="analytics-outstanding-alert" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <p class="text-sm font-semibold text-amber-300">Outstanding Payments</p>
-                        <p class="text-xs text-amber-400">Money still owed to you.</p>
-                    </div>
-                    <p class="text-lg font-bold text-amber-700" id="analytics-outstanding-balance">₦0.00</p>
-                </div>
-
-                <!-- Expandable Grouped List -->
-                <div>
-                    <h3 class="font-bold text-slate-800 mb-3 text-sm flex items-center justify-between">
-                        <span>Detailed Breakdown</span>
-                        <span id="analytics-period-label" class="text-xs text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full font-semibold border border-slate-200">Today</span>
-                    </h3>
-                    <div class="space-y-3" id="analytics-grouped-list">
-                        <!-- Populated via JS -->
-                        <p class="text-center text-slate-500 py-8 text-sm">No sales data available for this period.</p>
-                    </div>
-                </div>
-            </div>
-
         </section>
 
         <!-- ========================================================= -->
@@ -1193,7 +1162,11 @@
 
                 <!-- Edit Mode Container -->
                 <div id="profile-edit-mode" class="hidden">
-                    <form id="profile-form" class="space-y-4" enctype="multipart/form-data">
+                    <form id="profile-form" class="space-y-4" enctype="multipart/form-data" novalidate>
+                        <p id="profile-required-error" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700" role="alert"></p>
+                        <div id="profile-change-lock" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3" role="status" aria-live="polite">
+                            <p id="profile-change-window-copy" class="text-xs leading-relaxed text-amber-900"></p>
+                        </div>
                         
                         <!-- Company Name -->
                         <div>
@@ -1490,6 +1463,33 @@
         // CSRF token injected server-side — sent with every mutating fetch
         const CSRF_TOKEN = {{ csrf_token | tojson }};
         const ACTIVE_DASHBOARD_TAB = {{ active_tab | tojson }};
+        const INITIAL_PROFILE_UPDATED_AT = {{ (profile.profile_updated_at if profile and profile.profile_updated_at else '') | tojson }};
+        const INITIAL_PROFILE_DATA = {
+            company_name: {{ (profile.company_name if profile and profile.company_name else '') | tojson }},
+            business_phone: {{ (profile.business_phone if profile and profile.business_phone else '') | tojson }},
+            business_address: {{ (profile.business_address if profile and profile.business_address else '') | tojson }},
+            whatsapp_number: {{ (profile.whatsapp_number if profile and profile.whatsapp_number else '') | tojson }},
+            instagram_handle: {{ (profile.instagram_handle if profile and profile.instagram_handle else '') | tojson }},
+            store_policy: {{ (profile.store_policy if profile and profile.store_policy else '') | tojson }},
+            brand_color: {{ (profile.brand_color if profile and profile.brand_color else '#4F46E5') | tojson }},
+            profile_updated_at: INITIAL_PROFILE_UPDATED_AT
+        };
+        window.SOLOBIZ_PROFILE = window.SOLOBIZ_PROFILE || INITIAL_PROFILE_DATA;
+        function profileChangeAvailableAt(changedAt) {
+            if (!changedAt) return null;
+            const changed = new Date(changedAt);
+            if (Number.isNaN(changed.getTime())) return null;
+            const deadline = new Date(changed);
+            const day = deadline.getDate();
+            deadline.setDate(1);
+            deadline.setMonth(deadline.getMonth() + 3);
+            deadline.setDate(Math.min(day, new Date(deadline.getFullYear(), deadline.getMonth() + 1, 0).getDate()));
+            return deadline;
+        }
+        function isWithinProfileChangeWindow(changedAt) {
+            const deadline = profileChangeAvailableAt(changedAt);
+            return Boolean(deadline && Date.now() < deadline.getTime());
+        }
 
         // -------------------------------------------------------------
         // STEP 1 & 3: OFFLINE BOUNCER & FAIL-SAFE TICKET
@@ -1579,8 +1579,10 @@
         function calculateTotal(expensesArray) {
             let totalExpenses = 0;
             const rows = Array.isArray(expensesArray) ? expensesArray : [];
+            const currentMonth = new Date().toISOString().slice(0, 7);
 
             rows.forEach(expense => {
+                if (expense?.date && String(expense.date).slice(0, 7) !== currentMonth) return;
                 const amount = Number.parseFloat(expense && (expense.amount ?? expense.total_value ?? expense.total ?? 0));
                 if (Number.isFinite(amount)) {
                     totalExpenses += amount;
@@ -1624,7 +1626,7 @@
         // UNIFIED DOM METRICS UPDATER
         // Updates all 4 summary indicators on the page simultaneously
         // -------------------------------------------------------------
-        function updateAllDashboardTotals(totalSales, totalExpenses) {
+        function updateAllDashboardTotals(totalSales, totalExpenses, totalOutstanding = null) {
             const sales = parseFloat(totalSales) || 0;
             const expenses = parseFloat(totalExpenses) || 0;
             const netProfit = sales - expenses;
@@ -1658,6 +1660,8 @@
                 // Only touch colour — preserve the stat-value layout class
                 topProfitEl.style.color = netProfit < 0 ? '#b45309' : '#3730a3';
             }
+            const outstandingEl = document.getElementById('top-outstanding');
+            if (outstandingEl && totalOutstanding !== null) outstandingEl.innerText = fmt(totalOutstanding);
 
             // Also flip the Net Profit card background when JS updates it live
             const npCard = topProfitEl ? topProfitEl.closest('[class*="rounded-2xl"]') : null;
@@ -1724,6 +1728,9 @@
                             brand_color: result.profile.brand_color || '#4F46E5',
                             logo_url: result.profile.logo_url || '',
                             store_slug: result.profile.store_slug || '',
+                            profile_updated_at: result.profile.profile_updated_at || '',
+                            profile_change_reason: result.profile.profile_change_reason || '',
+                            profile_change_note: result.profile.profile_change_note || '',
                             synced: true,
                             updated_at: new Date().toISOString()
                         };
@@ -1785,6 +1792,9 @@
                     brand_color: p.brand_color || '#4F46E5',
                     logo_url: p.logo_url || '',
                     store_slug: p.store_slug || '',
+                    profile_updated_at: p.profile_updated_at || '',
+                    profile_change_reason: p.profile_change_reason || '',
+                    profile_change_note: p.profile_change_note || '',
                     synced: true,
                     updated_at: new Date().toISOString()
                 };
@@ -2162,6 +2172,13 @@
                     }
                     if (changedAny && typeof renderIncomeListUI === 'function') {
                         await renderIncomeListUI();
+                    }
+                    if (changedAny) {
+                        if (typeof calculateDashboard === 'function') await calculateDashboard();
+                        if (typeof renderAnalytics === 'function') {
+                            const period = document.querySelector('.analytics-tab-btn.bg-white')?.dataset.period || 'daily';
+                            await renderAnalytics(period);
+                        }
                     }
                 }
             } catch (err) {
@@ -2593,8 +2610,9 @@
             let expSum = 0;
             try {
                 const expenses = await getExpensesLocal();
+                const currentMonth = new Date().toISOString().slice(0, 7);
                 expSum = (expenses || []).reduce((total, item) => {
-                    if (item && !item.pending_delete) {
+                    if (item && !item.pending_delete && (!item.date || String(item.date).slice(0, 7) === currentMonth)) {
                         total += parseFloat(item.amount || 0);
                     }
                     return total;
@@ -2960,6 +2978,22 @@
             });
 
             const addForm = document.getElementById('expense-form');
+            const expenseEntryModal = document.getElementById('expense-entry-modal');
+            document.getElementById('btn-new-expense')?.addEventListener('click', () => {
+                expenseEntryModal?.classList.remove('hidden');
+                expenseEntryModal?.querySelector('[name="amount"]')?.focus();
+            });
+            document.querySelectorAll('[data-close-entry]').forEach(button => {
+                button.addEventListener('click', () => document.getElementById(button.dataset.closeEntry)?.classList.add('hidden'));
+            });
+            document.querySelectorAll('#expense-entry-modal, #sale-entry-modal').forEach(modal => {
+                modal.addEventListener('click', event => {
+                    if (event.target === modal) modal.classList.add('hidden');
+                });
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') document.querySelectorAll('#expense-entry-modal, #sale-entry-modal').forEach(modal => modal.classList.add('hidden'));
+            });
 
             // Add Expense Form Handler
             if (addForm) {
@@ -2991,6 +3025,7 @@
 
                         await renderExpenseListFromIndexedDB();
                         addForm.reset();
+                        expenseEntryModal?.classList.add('hidden');
 
                         if (navigator.onLine) {
                             syncExpenseToServer(localExpense);
@@ -3081,11 +3116,11 @@
             // Dashboard routing: change sections without reloading the shared shell.
             // -------------------------------------------------------------
             const dashboardPaths = {
-                dashboard: '/dashboard',
+            dashboard: '/dashboard',
                 expenses: '/expenses',
                 inventory: '/inventory',
                 income: '/sales',
-                analytics: '/analytics',
+                budget: '/budget',
                 profile: '/profile'
             };
             const dashboardViews = {
@@ -3093,15 +3128,15 @@
                 expenses: document.getElementById('tab-expenses-content'),
                 inventory: document.getElementById('tab-inventory-content'),
                 income: document.getElementById('tab-income-content'),
-                analytics: document.getElementById('tab-analytics-content'),
+                budget: document.getElementById('tab-budget-content'),
                 profile: document.getElementById('tab-profile-content')
             };
             const dashboardColors = {
                 dashboard: 'bg-indigo-600',
                 expenses: 'bg-indigo-600',
-                inventory: 'bg-amber-500',
-                income: 'bg-emerald-600',
-                analytics: 'bg-blue-600',
+                inventory: 'bg-indigo-600',
+                income: 'bg-indigo-600',
+                budget: 'bg-indigo-600',
                 profile: 'bg-indigo-600'
             };
             function dashboardTabFromLocation() {
@@ -3116,6 +3151,7 @@
                     view?.classList.toggle('hidden', name !== tab);
                 });
                 document.getElementById('cfo-dashboard')?.classList.toggle('hidden', tab !== 'dashboard');
+                document.getElementById('dashboard-insights')?.classList.toggle('hidden', tab !== 'dashboard');
 
                 document.querySelectorAll('[data-dashboard-tab]').forEach(link => {
                     const active = link.dataset.dashboardTab === tab;
@@ -3132,16 +3168,30 @@
                     } else if (link.classList.contains('mobile-nav-btn')) {
                         link.classList.toggle('text-indigo-600', active);
                         link.classList.toggle('text-slate-400', !active);
+                    } else if (link.getAttribute('role') === 'menuitem') {
+                        link.classList.toggle('text-indigo-700', active);
+                        link.classList.toggle('bg-indigo-50', active);
+                        link.classList.toggle('text-slate-700', !active);
                     }
                 });
+                const moreButton = document.getElementById('mobile-more-btn');
+                const moreActive = tab === 'budget' || tab === 'profile';
+                moreButton?.classList.toggle('text-indigo-600', moreActive);
+                moreButton?.classList.toggle('text-slate-400', !moreActive);
+                if (moreActive) moreButton?.setAttribute('aria-current', 'page');
+                else moreButton?.removeAttribute('aria-current');
 
                 if (addHistory && window.location.pathname !== dashboardPaths[tab]) {
                     window.history.pushState({ dashboardTab: tab }, '', dashboardPaths[tab]);
                 }
                 if (refreshContent) {
                     if (tab === 'income') renderIncomeListUI();
-                    if (tab === 'analytics') renderAnalytics('daily');
+                    if (tab === 'budget') renderCategoryBudgets();
                     if (tab === 'profile') populateProfileFormUI();
+                    if (tab === 'dashboard') {
+                        const period = document.querySelector('.analytics-tab-btn.bg-white')?.dataset.period || 'daily';
+                        renderAnalytics(period);
+                    }
                 }
                 window.scrollTo({ top: 0, behavior: 'auto' });
             }
@@ -3178,23 +3228,23 @@
                     // --- Total Sales & Cash (always unfiltered — income has no category) ---
 
                     // 1. CASH COLLECTED (The physical money actually paid by customers)
-                    const cashCollected = incomeItems
-                        .filter(item => !item.pending_delete)
+                    const currentMonth = new Date().toISOString().slice(0, 7);
+                    const currentMonthIncome = incomeItems.filter(item =>
+                        !item.pending_delete && String(item.date || '').slice(0, 7) === currentMonth
+                    );
+                    const cashCollected = currentMonthIncome
                         .reduce((sum, item) => sum + parseFloat(item.amount_paid ?? item.amount ?? 0), 0);
 
                     // 2. TOTAL OWED (The remaining balance customers owe you)
-                    const totalOwed = incomeItems
-                        .filter(item => !item.pending_delete)
+                    const totalOwed = currentMonthIncome
                         .reduce((sum, item) => {
                             const itemTotal = parseFloat(item.total_value ?? item.amount ?? 0);
                             const itemPaid = parseFloat(item.amount_paid ?? item.amount ?? 0);
-                            return sum + (itemTotal - itemPaid);
+                            return sum + Math.max(0, itemTotal - itemPaid);
                         }, 0);
 
                     // 3. SALES VOLUME (The total value of the inventory that left the store)
-                    const totalSalesVolume = incomeItems
-                        .filter(item => !item.pending_delete)
-                        .reduce((sum, item) => sum + parseFloat(item.total_value ?? item.amount ?? 0), 0);
+                    const totalSalesVolume = currentMonthIncome.reduce((sum, item) => sum + parseFloat(item.total_value ?? item.amount ?? 0), 0);
 
                     const totalSales = cashCollected;
 
@@ -3211,17 +3261,18 @@
                         if (amountMax !== null && parseFloat(item.amount || 0) > amountMax) return false;
                         return true;
                     });
+                    const currentMonthExpenses = expItems.filter(item => String(item.date || '').slice(0, 7) === currentMonth);
 
                     let totalExpenses = 0;
                     if (allExpItems.length > 0) {
-                        totalExpenses = expItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+                        totalExpenses = currentMonthExpenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
                     } else {
                         const domTotalEl = document.getElementById('main-dashboard-total');
                         if (domTotalEl) totalExpenses = parseFloat(domTotalEl.dataset.total || '0') || 0;
                     }
 
                     // Update all dashboard elements simultaneously
-                    updateAllDashboardTotals(totalSales, totalExpenses);
+                    updateAllDashboardTotals(totalSales, totalExpenses, totalOwed);
 
                     // --- Filtered result banner below filter controls ---
                     const banner = document.getElementById('filter-result-banner');
@@ -3548,7 +3599,7 @@
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(6.5);
                     doc.setTextColor(brandR, brandG, brandB);
-                    doc.text('SoloBiz Pocket CFO', 40, y + 4, { align: 'center' });
+                    doc.text('SoloBiz', 40, y + 4, { align: 'center' });
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(148, 163, 184);
                     doc.text('Verified Financial Document · solobiz.dev', 40, y + 7.5, { align: 'center' });
@@ -3826,19 +3877,74 @@
                 </div>`;
             }
 
+            function salesFilterGroups(items) {
+                const groups = new Map();
+                items.forEach(item => {
+                    const key = incomeSaleGroupKey(item);
+                    if (!groups.has(key)) groups.set(key, { key, items: [], total: 0, paid: 0 });
+                    const group = groups.get(key);
+                    group.items.push(item);
+                    group.total += Number(item.total_value ?? item.amount ?? 0) || 0;
+                    group.paid += Number(item.amount_paid ?? item.amount ?? 0) || 0;
+                });
+                return [...groups.values()];
+            }
+
+            function updateSalesProductOptions(items) {
+                const select = document.getElementById('sales-product-filter');
+                if (!select) return;
+                const selected = select.value;
+                const products = [...new Set(items.map(item => String(item.description || item.item_sold || '').trim()).filter(Boolean))]
+                    .sort((a, b) => a.localeCompare(b));
+                select.replaceChildren(new Option('All products', ''));
+                products.forEach(product => select.add(new Option(product, product)));
+                select.value = products.includes(selected) ? selected : '';
+            }
+
+            function getFilteredSales(items) {
+                const product = document.getElementById('sales-product-filter')?.value || '';
+                const status = document.getElementById('sales-payment-filter')?.value || '';
+                const minRaw = document.getElementById('sales-min-total')?.value || '';
+                const maxRaw = document.getElementById('sales-max-total')?.value || '';
+                const minimum = minRaw === '' ? null : Number(minRaw);
+                const maximum = maxRaw === '' ? null : Number(maxRaw);
+                const groups = salesFilterGroups(items);
+                const matchingGroups = groups.filter(group => {
+                    const hasProduct = !product || group.items.some(item => String(item.description || item.item_sold || '').trim() === product);
+                    const groupStatus = group.paid >= group.total ? 'paid' : group.paid > 0 ? 'partial' : 'unpaid';
+                    return hasProduct && (!status || status === groupStatus) &&
+                        (minimum === null || group.total >= minimum) &&
+                        (maximum === null || group.total <= maximum);
+                });
+                const matchingKeys = new Set(matchingGroups.map(group => group.key));
+                const matchingItems = items.filter(item => matchingKeys.has(incomeSaleGroupKey(item)));
+                const filtered = Boolean(product || status || minRaw !== '' || maxRaw !== '');
+                return { items: matchingItems, groupCount: matchingGroups.length, totalGroups: groups.length, filtered };
+            }
+
             async function renderIncomeListUI() {
                 const listContainer = document.getElementById('income-list');
                 const totalIncomeEl = document.getElementById('total-income-amount');
                 if (!listContainer) return;
 
                 const incomeItems = (await getIncomeLocal()).filter(item => !item.pending_delete);
+                updateSalesProductOptions(incomeItems);
+                const filteredSales = getFilteredSales(incomeItems);
+                const salesFilterSummary = document.getElementById('sales-filter-summary');
+                const clearSalesFilters = document.getElementById('sales-clear-filters');
+                if (salesFilterSummary) {
+                    salesFilterSummary.textContent = filteredSales.filtered
+                        ? `Showing ${filteredSales.groupCount} of ${filteredSales.totalGroups} sales`
+                        : `${filteredSales.totalGroups} ${filteredSales.totalGroups === 1 ? 'sale' : 'sales'}`;
+                }
+                clearSalesFilters?.classList.toggle('hidden', !filteredSales.filtered);
                 let totalIncome = 0;
 
-                if (incomeItems.length === 0) {
-                    listContainer.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>`;
+                if (filteredSales.items.length === 0) {
+                    listContainer.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">${incomeItems.length === 0 ? 'No sales recorded yet.' : 'No sales match these filters.'}</p>`;
                 } else {
                     const renderedSaleGroups = new Set();
-                    listContainer.innerHTML = incomeItems.slice().reverse().map(item => {
+                    listContainer.innerHTML = filteredSales.items.slice().reverse().map(item => {
                         totalIncome += parseFloat(item.amount_paid ?? item.amount ?? 0);
                         const groupKey = incomeSaleGroupKey(item);
                         const showDelete = !renderedSaleGroups.has(groupKey);
@@ -3855,6 +3961,19 @@
             }
 
             const incomeList = document.getElementById('income-list');
+            ['sales-product-filter', 'sales-payment-filter'].forEach(id => {
+                document.getElementById(id)?.addEventListener('change', renderIncomeListUI);
+            });
+            ['sales-min-total', 'sales-max-total'].forEach(id => {
+                document.getElementById(id)?.addEventListener('input', renderIncomeListUI);
+            });
+            document.getElementById('sales-clear-filters')?.addEventListener('click', () => {
+                document.getElementById('sales-product-filter').value = '';
+                document.getElementById('sales-payment-filter').value = '';
+                document.getElementById('sales-min-total').value = '';
+                document.getElementById('sales-max-total').value = '';
+                renderIncomeListUI();
+            });
             const settleDebtForm = document.getElementById('settle-debt-form');
             const settleDebtAmount = document.getElementById('settle-debt-amount');
             const settleDebtAfter = document.getElementById('settle-debt-after');
@@ -4087,6 +4206,11 @@
 
             let incomeSubmitInProgress = false;
             const addIncomeForm = document.getElementById('add-income-form');
+            const saleEntryModal = document.getElementById('sale-entry-modal');
+            document.getElementById('btn-new-sale')?.addEventListener('click', () => {
+                saleEntryModal?.classList.remove('hidden');
+                document.querySelector('#manual-sale-items [data-manual-name]')?.focus();
+            });
             if (addIncomeForm) {
                 addIncomeForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
@@ -4211,6 +4335,7 @@
                             if (paidField) delete paidField.dataset.touched;
                             updateSaleTotals();
                             await renderIncomeListUI();
+                            saleEntryModal?.classList.add('hidden');
                             if (!checkoutResult) alert('Sale saved on this device. It will sync when you reconnect.');
                         } catch (error) {
                             console.error('Could not save checkout:', error);
@@ -4695,9 +4820,11 @@
             });
 
             const analyticsTabs = document.querySelectorAll('.analytics-tab-btn');
+            let activeAnalyticsPeriod = 'daily';
             analyticsTabs.forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const period = e.target.dataset.period;
+                    const period = e.currentTarget.dataset.period;
+                    activeAnalyticsPeriod = period;
                     // Update active tab styles
                     analyticsTabs.forEach(t => {
                         t.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
@@ -4845,7 +4972,8 @@
                     if (!item.date) return;
                     
                     const key = getPeriodKey(item.date);
-                    if (!groups[key]) groups[key] = { salesVolume: 0, items: [] };
+                    if (!groups[key]) groups[key] = { salesVolume: 0, items: [], sortDate: 0 };
+                    groups[key].sortDate = Math.max(groups[key].sortDate, new Date(item.date).getTime() || 0);
 
                     const tVal = parseFloat(item.total_value ?? item.amount ?? 0); // fallback for old records
                     const amtPaid = parseFloat(item.amount_paid ?? item.amount ?? 0);
@@ -4896,13 +5024,8 @@
                 
                 if (elProfit) {
                     elProfit.textContent = f(liquidProfit);
-                    if (liquidProfit < 0) {
-                        elProfit.classList.replace('text-slate-900', 'text-rose-600');
-                        elProfit.classList.replace('text-emerald-600', 'text-rose-600');
-                    } else {
-                        elProfit.classList.replace('text-rose-600', 'text-emerald-600');
-                        elProfit.classList.replace('text-slate-900', 'text-emerald-600');
-                    }
+                    elProfit.classList.toggle('text-rose-700', liquidProfit < 0);
+                    elProfit.classList.toggle('text-emerald-700', liquidProfit >= 0);
                 }
 
                 if (elOutstandingAlert && elOutstandingBalance) {
@@ -4927,7 +5050,7 @@
                 }
 
                 // Sort keys (newest first roughly)
-                const sortedKeys = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+                const sortedKeys = Object.keys(groups).sort((a, b) => groups[b].sortDate - groups[a].sortDate);
 
                 listEl.innerHTML = sortedKeys.map(key => {
                     const g = groups[key];
@@ -4950,7 +5073,7 @@
                                 <div class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
                                     <div>
                                         <p class="font-semibold text-slate-700">${title}</p>
-                                        <p class="text-[10px] text-slate-500">${item.customer_name || 'Walk-in'} ${receiptBadge}</p>
+                                        <p class="text-[10px] text-slate-500">${receiptBadge}</p>
                                     </div>
                                     <div class="text-right">
                                         <p class="font-bold text-emerald-600">₦${finalPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
@@ -4964,9 +5087,7 @@
                 }).join('');
             }
 
-            if (dashboardTabFromLocation() === 'analytics') {
-                renderAnalytics('daily');
-            }
+            if (dashboardTabFromLocation() === 'dashboard') renderAnalytics(activeAnalyticsPeriod);
 
             // Initial calculations and renders
             renderIncomeListUI();
@@ -5104,6 +5225,7 @@
                 if (!viewContainer || !editContainer) return;
 
                 if (mode === 'edit') {
+                    window.refreshProfileEditAvailability?.();
                     viewContainer.classList.add('hidden');
                     editContainer.classList.remove('hidden');
                 } else {
@@ -5362,8 +5484,49 @@
             let pendingProfileFormData = null;
 
             if (profileForm) {
+                const profileRequiredError = document.getElementById('profile-required-error');
+                const profileChangeLock = document.getElementById('profile-change-lock');
+                const profileChangeWindowCopy = document.getElementById('profile-change-window-copy');
+                function refreshProfileEditAvailability() {
+                    const changedAt = window.SOLOBIZ_PROFILE?.profile_updated_at || INITIAL_PROFILE_UPDATED_AT;
+                    const allowedAt = profileChangeAvailableAt(changedAt);
+                    const isLocked = Boolean(changedAt && allowedAt && Date.now() < allowedAt.getTime());
+                    profileChangeLock?.classList.toggle('hidden', !isLocked);
+                    if (isLocked && allowedAt && profileChangeWindowCopy) {
+                        profileChangeWindowCopy.textContent = `You can update your business profile after ${allowedAt.toLocaleDateString()}. For a time-sensitive change, please contact our support team.`;
+                    }
+                    profileForm.querySelectorAll('input, textarea, select, button[type="submit"]').forEach(control => {
+                        control.disabled = isLocked;
+                    });
+                    return !isLocked;
+                }
+                window.refreshProfileEditAvailability = refreshProfileEditAvailability;
+                profileForm.addEventListener('input', () => {
+                    profileRequiredError?.classList.add('hidden');
+                    if (profileRequiredError) profileRequiredError.textContent = '';
+                });
                 profileForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    const requiredProfileFields = [
+                        ['profile-company-name', 'company / brand name'],
+                        ['profile-business-phone', 'business phone'],
+                        ['profile-business-address', 'business address']
+                    ];
+                    const missingFields = requiredProfileFields
+                        .filter(([id]) => !document.getElementById(id)?.value.trim())
+                        .map(([, label]) => label);
+                    if (missingFields.length) {
+                        if (profileRequiredError) {
+                            profileRequiredError.textContent = `Please complete the required fields: ${missingFields.join(', ')}.`;
+                            profileRequiredError.classList.remove('hidden');
+                        }
+                        document.getElementById(requiredProfileFields.find(([id]) => !document.getElementById(id)?.value.trim())?.[0])?.focus();
+                        return;
+                    }
+                    if (!refreshProfileEditAvailability()) {
+                        profileChangeLock?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
                     const saveBtn = document.getElementById('btn-save-profile');
                     if (saveBtn) {
                         saveBtn.disabled = true;
@@ -5437,7 +5600,9 @@
             }
 
             // Pre-fill profile form on load
-            populateProfileFormUI();
+            populateProfileFormUI().then(() => {
+                window.refreshProfileEditAvailability?.();
+            });
 
             const receiptProfileModal = document.getElementById('receipt-profile-modal');
             document.getElementById('close-receipt-profile-modal')?.addEventListener('click', closeReceiptProfileRequired);
@@ -5561,13 +5726,13 @@
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
     <span class="text-[10px] font-bold">Sales</span>
   </a>
-  <button id="mobile-more-btn" type="button" aria-expanded="false" aria-controls="mobile-more-menu" aria-haspopup="true" {% if active_tab in ['analytics', 'profile'] %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-3 gap-0.5 {% if active_tab in ['analytics', 'profile'] %}text-indigo-600{% else %}text-slate-400{% endif %}">
+  <button id="mobile-more-btn" type="button" aria-expanded="false" aria-controls="mobile-more-menu" aria-haspopup="true" {% if active_tab in ['budget', 'profile'] %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-3 gap-0.5 {% if active_tab in ['budget', 'profile'] %}text-indigo-600{% else %}text-slate-400{% endif %}">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
     <span class="text-[10px] font-bold">More</span>
   </button>
   <div id="mobile-more-menu" class="hidden w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl" role="menu" aria-label="More pages">
-    <a href="/analytics" role="menuitem" {% if active_tab == 'analytics' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'analytics' %}text-indigo-700 bg-indigo-50{% else %}text-slate-700{% endif %} hover:bg-indigo-50 hover:text-indigo-700" style="text-decoration:none">
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg> Analytics
+    <a href="/budget" data-dashboard-tab="budget" role="menuitem" {% if active_tab == 'budget' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'budget' %}text-indigo-700 bg-indigo-50{% else %}text-slate-700{% endif %} hover:bg-indigo-50 hover:text-indigo-700" style="text-decoration:none">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h4M7 16h6"/></svg> Budget
     </a>
     <a href="/profile" role="menuitem" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'profile' %}text-indigo-700 bg-indigo-50{% else %}text-slate-700{% endif %} hover:bg-indigo-50 hover:text-indigo-700" style="text-decoration:none">
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg> Profile

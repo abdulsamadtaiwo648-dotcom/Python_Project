@@ -1,5 +1,7 @@
 import hmac
 import html
+import calendar
+import json
 import logging
 import math
 import os
@@ -53,7 +55,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20260928.2")
+APP_VERSION = os.environ.get("APP_VERSION", "20260930.3")
 
 # Session / Cookie hardening
 _secure_cookie = os.environ.get("SESSION_COOKIE_SECURE")
@@ -383,7 +385,9 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
-                password TEXT
+                password TEXT,
+                first_name TEXT,
+                last_name TEXT
             )""",
             """CREATE TABLE IF NOT EXISTS expenses (
                 id SERIAL PRIMARY KEY,
@@ -404,7 +408,10 @@ def init_db():
                 store_policy TEXT,
                 brand_color TEXT DEFAULT '#4F46E5',
                 logo_url TEXT,
-                store_slug TEXT
+                store_slug TEXT,
+                profile_updated_at TEXT,
+                profile_change_reason TEXT,
+                profile_change_note TEXT
             )""",
             """CREATE TABLE IF NOT EXISTS income (
                 id SERIAL PRIMARY KEY,
@@ -442,6 +449,8 @@ def init_db():
         migrations = [
             "ALTER TABLE users ALTER COLUMN id DROP DEFAULT",
             "ALTER TABLE users ALTER COLUMN id TYPE TEXT USING id::TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT",
             "ALTER TABLE expenses ALTER COLUMN user_id DROP DEFAULT",
             "ALTER TABLE expenses ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
             "ALTER TABLE income ALTER COLUMN user_id DROP DEFAULT",
@@ -465,7 +474,11 @@ def init_db():
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_policy TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS brand_color TEXT DEFAULT '#4F46E5'",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url TEXT",
-                "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_slug TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_slug TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS profile_updated_at TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS profile_change_reason TEXT",
+            "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS profile_change_note TEXT",
+            "UPDATE business_profiles SET profile_updated_at = CURRENT_TIMESTAMP::TEXT WHERE profile_updated_at IS NULL",
             """CREATE TABLE IF NOT EXISTS otp_codes (
                 email TEXT NOT NULL,
                 purpose TEXT NOT NULL,
@@ -542,9 +555,16 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
                     email TEXT UNIQUE NOT NULL,
-                    password TEXT
+                    password TEXT,
+                    first_name TEXT,
+                    last_name TEXT
                 )
             """)
+            user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)").fetchall()}
+            if "first_name" not in user_columns:
+                db.execute("ALTER TABLE users ADD COLUMN first_name TEXT")
+            if "last_name" not in user_columns:
+                db.execute("ALTER TABLE users ADD COLUMN last_name TEXT")
             db.execute("""
                 CREATE TABLE IF NOT EXISTS expenses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -567,7 +587,10 @@ def init_db():
                     store_policy TEXT,
                     brand_color TEXT DEFAULT '#4F46E5',
                     logo_url TEXT,
-                    store_slug TEXT
+                    store_slug TEXT,
+                    profile_updated_at TEXT,
+                    profile_change_reason TEXT,
+                    profile_change_note TEXT
                 )
             """)
             db.execute("""
@@ -605,11 +628,18 @@ def init_db():
                 ("brand_color", "TEXT DEFAULT '#4F46E5'"),
                 ("logo_url", "TEXT"),
                 ("store_slug", "TEXT"),
+                ("profile_updated_at", "TEXT"),
+                ("profile_change_reason", "TEXT"),
+                ("profile_change_note", "TEXT"),
             ]:
                 try:
                     db.execute(f"ALTER TABLE business_profiles ADD COLUMN {col_name} {col_type}")
                 except Exception:
                     pass
+            db.execute(
+                "UPDATE business_profiles SET profile_updated_at = ? WHERE profile_updated_at IS NULL",
+                (datetime.now(timezone.utc).isoformat(),)
+            )
             try:
                 db.execute("ALTER TABLE income ADD COLUMN receipt_id TEXT")
             except Exception:
@@ -847,6 +877,9 @@ def register():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "").strip()
+        first_name = request.form.get("first_name", "").strip()
+        last_name = request.form.get("last_name", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
         otp_code = request.form.get("otp_code", "").strip()
 
         if otp_code:
@@ -859,10 +892,11 @@ def register():
                 return render_template("register.html", step="otp", pending_email=email)
             new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
             try:
+                registration = json.loads(record.get("payload") or "{}")
                 with get_db() as db:
                     db.execute(
-                        "INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
-                        (new_user_id, email, record.get("payload"))
+                        "INSERT INTO users (id, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)",
+                        (new_user_id, email, registration.get("password"), registration.get("first_name"), registration.get("last_name"))
                     )
                     db.commit()
                 verify_otp(email, "register", otp_code, consume=True)
@@ -877,8 +911,11 @@ def register():
                 flash("Account creation failed. Please try again.", "danger")
                 return render_template("register.html", step="otp", pending_email=email)
 
-        if not email or not password:
+        if not email or not password or not first_name or not last_name or not confirm_password:
             flash("Please fill in all required fields.", "danger")
+            return render_template("register.html")
+        if password != confirm_password:
+            flash("Passwords do not match.", "danger")
             return render_template("register.html")
         if not is_valid_password(password):
             flash("Password must be at least 8 characters and include a letter and a number.", "danger")
@@ -898,7 +935,7 @@ def register():
             return render_template("register.html")
 
         ok, message, status, is_live = send_and_store_otp(
-            email, "register", generate_password_hash(password), "Email Verification"
+            email, "register", json.dumps({"password": generate_password_hash(password), "first_name": first_name, "last_name": last_name}), "Email Verification"
         )
         flash(message, "success" if ok else "danger")
         if not ok:
@@ -913,10 +950,15 @@ def register_api_request():
     try:
         data = request.get_json(force=True) or {}
         email = (data.get("email") or "").strip().lower()
+        first_name = (data.get("first_name") or "").strip()
+        last_name = (data.get("last_name") or "").strip()
         password = (data.get("password") or "").strip()
+        confirm_password = (data.get("confirm_password") or "").strip()
 
-        if not email or not password:
-            return jsonify({"status": "error", "message": "Email and password are required."}), 400
+        if not email or not first_name or not last_name or not password or not confirm_password:
+            return jsonify({"status": "error", "message": "Complete all required fields."}), 400
+        if password != confirm_password:
+            return jsonify({"status": "error", "message": "Passwords do not match."}), 400
         if not is_valid_password(password):
             return jsonify({"status": "error", "message": "Password must be at least 8 characters long and contain both letters and numbers."}), 400
 
@@ -925,7 +967,7 @@ def register_api_request():
                 return jsonify({"status": "error", "message": "Email already registered. Please log in."}), 400
 
         ok, message, status, _ = send_and_store_otp(
-            email, "register", generate_password_hash(password), "Email Verification"
+            email, "register", json.dumps({"password": generate_password_hash(password), "first_name": first_name, "last_name": last_name}), "Email Verification"
         )
         if not ok:
             return jsonify({"status": "error", "message": message}), status
@@ -954,10 +996,11 @@ def register_api_verify():
             return jsonify({"status": "error", "message": error}), 400
 
         new_user_id = f"user_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+        registration = json.loads(record.get("payload") or "{}")
         with get_db() as db:
             db.execute(
-                "INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
-                (new_user_id, email, record.get("payload"))
+                "INSERT INTO users (id, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)",
+                (new_user_id, email, registration.get("password"), registration.get("first_name"), registration.get("last_name"))
             )
             db.commit()
         verify_otp(email, "register", code, consume=True)
@@ -1181,10 +1224,15 @@ def favicon():
 # ==========================================
 @app.route("/dashboard")
 def dashboard_home():
-    """Render the business overview dashboard."""
+    """Render the business snapshot."""
     if not get_current_user_id():
         return redirect("/login")
     return render_dashboard_page("dashboard")
+
+
+@app.route("/budget")
+def budget_page():
+    return render_dashboard_page("budget")
 
 
 @app.route("/expenses")
@@ -1204,7 +1252,7 @@ def inventory_page():
 
 @app.route("/analytics")
 def analytics_page():
-    return render_dashboard_page("analytics")
+    return redirect("/dashboard")
 
 
 @app.route("/profile")
@@ -1214,8 +1262,10 @@ def profile_page():
 
 @app.route("/dashboard/<section>")
 def legacy_dashboard_section(section):
-    if section not in {"expenses", "sales", "inventory", "analytics", "profile"}:
+    if section not in {"expenses", "sales", "inventory", "analytics", "budget", "profile"}:
         return render_template("404.html"), 404
+    if section == "analytics":
+        return redirect("/dashboard", code=302)
     return redirect(f"/{section}", code=302)
 
 
@@ -1224,7 +1274,7 @@ def render_dashboard_page(section):
     if not user_id:
         return redirect("/login")
 
-    if section not in {"dashboard", "expenses", "sales", "inventory", "analytics", "profile"}:
+    if section not in {"dashboard", "expenses", "sales", "inventory", "budget", "profile"}:
         return render_template("404.html"), 404
 
     active_tab = "income" if section == "sales" else section
@@ -1232,14 +1282,16 @@ def render_dashboard_page(section):
     expenses = []
     total_sales = 0.0
     total_expenses = 0.0
+    total_outstanding = 0.0
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
     username = "Entrepreneur"
 
     try:
         with get_db() as db:
             try:
-                user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+                user = db.execute("SELECT email, first_name FROM users WHERE id = ?", (user_id,)).fetchone()
                 if user and user["email"]:
-                    username = user["email"].split("@")[0].capitalize()
+                    username = (user["first_name"] or user["email"].split("@")[0]).capitalize()
             except Exception as e:
                 print(f"Dashboard user query note: {e}", flush=True)
 
@@ -1253,8 +1305,8 @@ def render_dashboard_page(section):
 
             try:
                 row = db.execute(
-                    "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
-                    (user_id,)
+                    "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ? AND date LIKE ?",
+                    (user_id, current_month + "%")
                 ).fetchone()
                 if row and row["total"] is not None:
                     total_sales = float(row["total"])
@@ -1262,11 +1314,24 @@ def render_dashboard_page(section):
                 print(f"Dashboard sales sum note: {e}", flush=True)
 
             try:
-                row = db.execute("SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
+                row = db.execute(
+                    "SELECT SUM(amount) AS total FROM expenses WHERE user_id = ? AND date LIKE ?",
+                    (user_id, current_month + "%")
+                ).fetchone()
                 if row and row["total"] is not None:
                     total_expenses = float(row["total"])
             except Exception as e:
                 print(f"Dashboard expenses sum note: {e}", flush=True)
+
+            try:
+                row = db.execute(
+                    "SELECT SUM(CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) THEN COALESCE(total_value, 0) - COALESCE(amount_paid, 0) ELSE 0 END) AS total FROM income WHERE user_id = ? AND date LIKE ?",
+                    (user_id, current_month + "%")
+                ).fetchone()
+                if row and row["total"] is not None:
+                    total_outstanding = float(row["total"])
+            except Exception as e:
+                print(f"Dashboard outstanding sum note: {e}", flush=True)
 
     except Exception as e:
         logging.error(f"Dashboard data fetch error for user '{user_id}': {e}", exc_info=True)
@@ -1288,6 +1353,8 @@ def render_dashboard_page(section):
         total=total_expenses,
         total_sales=total_sales,
         total_expenses=total_expenses,
+        total_outstanding=total_outstanding,
+        current_month=current_month,
         net_profit=net_profit,
         username=username,
         profile=profile,
@@ -1759,7 +1826,8 @@ def api_business_profile():
                 "profile": {
                     "company_name": "", "business_phone": "", "business_address": "",
                     "instagram_handle": "", "whatsapp_number": "", "store_policy": "",
-                    "brand_color": "#4F46E5", "logo_url": "", "store_slug": ""
+                    "brand_color": "#4F46E5", "logo_url": "", "store_slug": "",
+                    "profile_updated_at": "", "profile_change_reason": "", "profile_change_note": ""
                 }
             }), 200
 
@@ -1777,12 +1845,78 @@ def api_business_profile():
                 "store_policy": profile_dict.get("store_policy") or "",
                 "brand_color": profile_dict.get("brand_color") or "#4F46E5",
                 "logo_url": profile_dict.get("logo_url") or "",
-                "store_slug": profile_dict.get("store_slug") or ""
+                "store_slug": profile_dict.get("store_slug") or "",
+                "profile_updated_at": profile_dict.get("profile_updated_at") or "",
+                "profile_change_reason": profile_dict.get("profile_change_reason") or "",
+                "profile_change_note": profile_dict.get("profile_change_note") or ""
             }
         }), 200
 
     elif request.method == "POST":
         data = request.form if request.form else (request.get_json(silent=True) or {})
+
+        company_name = str(data.get("company_name", "")).strip()
+        business_phone = str(data.get("business_phone", "")).strip()
+        business_address = str(data.get("business_address", "")).strip()
+        missing_profile_fields = [
+            label for label, value in (
+                ("company / brand name", company_name),
+                ("business phone", business_phone),
+                ("business address", business_address),
+            ) if not value
+        ]
+        if missing_profile_fields:
+            return jsonify({
+                "status": "error",
+                "message": "Please complete the required business profile fields: " + ", ".join(missing_profile_fields) + ".",
+            }), 400
+
+        with get_db() as db:
+            existing = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
+        existing_dict = dict(existing) if existing else {}
+
+        next_profile = {
+            "company_name": company_name,
+            "business_phone": business_phone,
+            "business_address": business_address,
+            "instagram_handle": str(data.get("instagram_handle", "")).strip(),
+            "whatsapp_number": str(data.get("whatsapp_number", "")).strip(),
+            "store_policy": str(data.get("store_policy", "")).strip(),
+            "brand_color": sanitize_brand_color(data.get("brand_color", "#4F46E5")),
+        }
+        profile_changed = any(
+            str(existing_dict.get(field) or ("#4F46E5" if field == "brand_color" else "")) != value
+            for field, value in next_profile.items()
+        )
+        uploaded_logo = request.files.get("logo")
+        requested_logo_url = sanitize_logo_url(data.get("logo_url")) if data.get("logo_url") else None
+        if uploaded_logo and uploaded_logo.filename:
+            profile_changed = True
+        elif requested_logo_url is not None and requested_logo_url != (existing_dict.get("logo_url") or ""):
+            profile_changed = True
+
+        last_changed_at = existing_dict.get("profile_updated_at")
+        if profile_changed and last_changed_at:
+            try:
+                previous_change = datetime.fromisoformat(str(last_changed_at).replace("Z", "+00:00"))
+                if previous_change.tzinfo is None:
+                    previous_change = previous_change.replace(tzinfo=timezone.utc)
+                month_number = previous_change.month - 1 + 3
+                target_year = previous_change.year + month_number // 12
+                target_month = month_number % 12 + 1
+                target_day = min(previous_change.day, calendar.monthrange(target_year, target_month)[1])
+                allowed_after = previous_change.replace(year=target_year, month=target_month, day=target_day)
+                if datetime.now(timezone.utc) < allowed_after:
+                    available_date = allowed_after.strftime("%B %d, %Y").replace(" 0", " ")
+                    return jsonify({
+                        "status": "error",
+                        "message": f"You can update your business profile after {available_date}. For a time-sensitive change, please contact our support team.",
+                    }), 403
+            except (TypeError, ValueError):
+                return jsonify({
+                    "status": "error",
+                    "message": "We couldn’t verify when this profile was last updated. Please contact our support team before making changes.",
+                }), 400
 
         # OTP Validation — verify against the hashed code stored in otp_codes table
         provided_otp = str(data.get("otp", "")).strip()
@@ -1795,16 +1929,10 @@ def api_business_profile():
         if otp_error:
             return jsonify({"status": "error", "message": otp_error}), 400
 
-        company_name = str(data.get("company_name", "")).strip()
-        business_phone = str(data.get("business_phone", "")).strip()
-        business_address = str(data.get("business_address", "")).strip()
         instagram_handle = str(data.get("instagram_handle", "")).strip()
         whatsapp_number = str(data.get("whatsapp_number", "")).strip()
         store_policy = str(data.get("store_policy", "")).strip()
         brand_color = sanitize_brand_color(data.get("brand_color", "#4F46E5"))
-
-        if not company_name:
-            return jsonify({"status": "error", "message": "Company name is required"}), 400
 
         logo_url = None
         if "logo" in request.files:
@@ -1816,6 +1944,13 @@ def api_business_profile():
                 logo_url = saved_url
         elif data.get("logo_url"):
             logo_url = sanitize_logo_url(data.get("logo_url"))
+
+        profile_updated_at = (
+            datetime.now(timezone.utc).isoformat() if profile_changed
+            else existing_dict.get("profile_updated_at")
+        )
+        profile_change_reason = None if profile_changed else existing_dict.get("profile_change_reason")
+        profile_change_note = None if profile_changed else existing_dict.get("profile_change_note")
 
         with get_db() as db:
             existing = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
@@ -1833,22 +1968,27 @@ def api_business_profile():
                     """UPDATE business_profiles
                        SET company_name=?, business_phone=?, business_address=?,
                            instagram_handle=?, whatsapp_number=?, store_policy=?,
-                           brand_color=?, logo_url=?, store_slug=?
+                           brand_color=?, logo_url=?, store_slug=?, profile_updated_at=?,
+                           profile_change_reason=?, profile_change_note=?
                        WHERE user_id=?""",
                     (company_name, business_phone, business_address,
                      instagram_handle, whatsapp_number, store_policy,
-                     brand_color, current_logo, store_slug, user_id)
+                     brand_color, current_logo, store_slug,
+                     profile_updated_at, profile_change_reason, profile_change_note,
+                     user_id)
                 )
                 profile_id = existing_dict["id"]
             else:
                 cursor = db.execute(
                     """INSERT INTO business_profiles
                        (user_id, company_name, business_phone, business_address, instagram_handle,
-                        whatsapp_number, store_policy, brand_color, logo_url, store_slug)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        whatsapp_number, store_policy, brand_color, logo_url, store_slug, profile_updated_at,
+                        profile_change_reason, profile_change_note)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (user_id, company_name, business_phone, business_address,
                      instagram_handle, whatsapp_number, store_policy,
-                     brand_color, current_logo, store_slug)
+                     brand_color, current_logo, store_slug, datetime.now(timezone.utc).isoformat(),
+                     None, None)
                 )
                 profile_id = cursor.lastrowid
             db.commit()
@@ -1861,7 +2001,10 @@ def api_business_profile():
                 "business_phone": business_phone, "business_address": business_address,
                 "instagram_handle": instagram_handle, "whatsapp_number": whatsapp_number,
                 "store_policy": store_policy, "brand_color": brand_color,
-                "logo_url": current_logo, "store_slug": store_slug
+                "logo_url": current_logo, "store_slug": store_slug,
+                "profile_updated_at": profile_updated_at or "",
+                "profile_change_reason": profile_change_reason or "",
+                "profile_change_note": profile_change_note or ""
             }
         }), 200
 

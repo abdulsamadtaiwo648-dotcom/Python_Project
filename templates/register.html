@@ -3,32 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Account — SoloBiz</title>
+  <title>Create account | SoloBiz</title>
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
   <script src="/static/tailwind.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; background:linear-gradient(140deg,#fbf9ff,#f2e9fc); color:#241a32; }
-    body > div.bg-slate-900 { background:#fff !important; border-color:#eee4f7 !important; box-shadow:0 20px 55px rgba(74,35,111,.12) !important; }
-    body > div.bg-slate-900 h1 { color:#241a32 !important; }
-    body > div.bg-slate-900 p { color:#766b81 !important; }
-    body > div.bg-slate-900 label { color:#574b63 !important; }
-    body > div.bg-slate-900 input { background:#fff !important; border-color:#e6d9f1 !important; color:#241a32 !important; }
-    body > div.bg-slate-900 input:focus { border-color:#8734df !important; }
-    body > div.bg-slate-900 .text-indigo-400 { color:#7025d4 !important; }
-    body > div.bg-slate-900 .bg-indigo-600 { background:#7025d4 !important; }
-    body > div.bg-slate-900 .bg-indigo-600:hover { background:#5f19bd !important; }
-  </style>
+  <link rel="stylesheet" href="/static/solobiz-ui.css">
 </head>
-<body class="bg-[#0f172a] text-white min-h-screen flex items-center justify-center p-4">
+<body class="auth-page min-h-screen flex items-center justify-center p-4">
 
-  <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative">
+  <div class="auth-card w-full max-w-md rounded-2xl p-6 sm:p-8 relative">
 
     <!-- Brand Header -->
     <div class="flex flex-col items-center mb-6 text-center">
       <img src="/static/logo.svg" alt="SoloBiz Logo" class="w-12 h-12 rounded-xl shadow-lg border border-indigo-500/20 mb-3">
-      <h1 id="page-title" class="text-2xl font-extrabold text-white">Create Your Account</h1>
-      <p id="page-subtitle" class="text-xs text-slate-400 mt-1">Verify your email to start managing your business</p>
+      <h1 id="page-title" class="text-2xl font-bold text-slate-900">Create your account</h1>
+      <p id="page-subtitle" class="text-sm text-slate-500 mt-1">Set up your business workspace.</p>
     </div>
 
     <!-- Alert Message Banner -->
@@ -48,17 +37,27 @@
     <!-- ─── STEP 1: Registration Form ─── -->
     <form id="step1-form" action="/register" method="POST" class="space-y-4 {% if step == 'otp' %}hidden{% endif %}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1" for="reg-first-name">First name</label>
+          <input type="text" id="reg-first-name" name="first_name" required autocomplete="given-name" placeholder="First name" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 placeholder-slate-400 text-sm transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1" for="reg-last-name">Last name</label>
+          <input type="text" id="reg-last-name" name="last_name" required autocomplete="family-name" placeholder="Last name" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 placeholder-slate-400 text-sm transition">
+        </div>
+      </div>
       <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1 tracking-wider">Gmail / Email Address</label>
-        <input type="email" id="reg-email" name="email" required placeholder="name@gmail.com" value="{{ pending_email or '' }}"
+        <label class="block text-xs font-semibold text-slate-700 mb-1" for="reg-email">Email address</label>
+        <input type="email" id="reg-email" name="email" required placeholder="you@example.com" value="{{ pending_email or '' }}"
                class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition">
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1 tracking-wider">Password</label>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
         <div class="relative">
-          <input type="password" id="reg-password" name="password" required minlength="8" placeholder="Min 8 chars"
-                 class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm transition pr-10">
+          <input type="password" id="reg-password" name="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"
+                 class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 placeholder-slate-400 text-sm transition pr-10">
           <button type="button" id="toggle-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
           </button>
@@ -66,9 +65,14 @@
         <p class="text-[10px] text-slate-500 mt-1">Use at least 8 characters, including a letter and a number.</p>
       </div>
 
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1" for="reg-confirm-password">Confirm password</label>
+        <input type="password" id="reg-confirm-password" name="confirm_password" required minlength="8" autocomplete="new-password" placeholder="Enter your password again" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 placeholder-slate-400 text-sm transition">
+      </div>
+
       <button type="submit" id="btn-send-otp"
               class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-xl shadow-lg transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
-        <span>Send Verification PIN</span> 📩
+        <span>Send verification code</span>
       </button>
     </form>
 
@@ -76,16 +80,16 @@
     <div id="step2-container" class="{% if step != 'otp' %}hidden{% endif %} space-y-4">
       
       <!-- Email Badge Info -->
-      <div class="bg-indigo-950/60 border border-indigo-800/60 rounded-xl p-3.5 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 flex-shrink-0">
+      <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3.5 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 flex-shrink-0">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-[11px] text-indigo-300 font-medium">Verification PIN sent to:</p>
-          <p id="target-email-display" class="text-xs font-bold text-white truncate">{{ pending_email or 'your email' }}</p>
+          <p class="text-[11px] text-indigo-700 font-medium">Code sent to</p>
+          <p id="target-email-display" class="text-xs font-semibold text-slate-900 truncate">{{ pending_email or 'your email' }}</p>
         </div>
-        <button type="button" id="btn-change-email" class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline cursor-pointer">
-          Edit
+          <button type="button" id="btn-change-email" class="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer">
+          Change
         </button>
       </div>
 
@@ -95,9 +99,9 @@
         
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">6-Digit Verification PIN</label>
-            <button type="button" id="btn-resend-otp" disabled class="text-xs text-indigo-400 hover:underline disabled:text-slate-500 disabled:no-underline font-medium cursor-pointer disabled:cursor-not-allowed">
-              Resend PIN (<span id="resend-timer">30</span>s)
+            <label class="block text-xs font-semibold text-slate-700">6-digit verification code</label>
+            <button type="button" id="btn-resend-otp" disabled class="text-xs text-indigo-600 hover:underline disabled:text-slate-500 disabled:no-underline font-medium cursor-pointer disabled:cursor-not-allowed">
+              Resend code (<span id="resend-timer">30</span>s)
             </button>
           </div>
           <input type="text" id="reg-otp" name="otp_code" maxlength="6" required placeholder="123456" autofocus
@@ -105,16 +109,16 @@
         </div>
 
         <button type="submit" id="btn-verify-otp"
-                class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-lg transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
-          <span>Verify Email & Create Account</span> ✨
+                class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl shadow-sm transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
+          <span>Create account</span>
         </button>
       </form>
     </div>
 
     <!-- Login Link -->
-    <p class="mt-6 text-center text-xs text-slate-400">
-      Already have an account?
-      <a href="/login" class="text-indigo-400 font-bold hover:underline">Log in</a>
+    <p class="mt-6 text-center text-xs text-slate-500">
+      Already have an account
+      <a href="/login" class="text-indigo-600 font-semibold hover:underline">Sign in</a>
     </p>
 
   </div>
@@ -142,24 +146,24 @@
       btnResend.disabled = true;
       if (resendInterval) clearInterval(resendInterval);
       
-      btnResend.innerHTML = `Resend PIN (<span id="resend-timer">${secondsLeft}</span>s)`;
+      btnResend.innerHTML = `Resend code (<span id="resend-timer">${secondsLeft}</span>s)`;
       
       resendInterval = setInterval(() => {
         secondsLeft--;
         if (secondsLeft <= 0) {
           clearInterval(resendInterval);
           btnResend.disabled = false;
-          btnResend.innerHTML = "Resend PIN 📩";
+          btnResend.innerHTML = "Resend code";
         } else {
           const timerSpan = document.getElementById('resend-timer');
           if (timerSpan) timerSpan.textContent = secondsLeft;
-          else btnResend.innerHTML = `Resend PIN (<span id="resend-timer">${secondsLeft}</span>s)`;
+          else btnResend.innerHTML = `Resend code (<span id="resend-timer">${secondsLeft}</span>s)`;
         }
       }, 1000);
     }
 
     // Toggle Password Visibility
-    document.getElementById('toggle-password')?.addEventListener('click', function() {
+    document.getElementById('toggle-password').addEventListener('click', function() {
       const passInput = document.getElementById('reg-password');
       if (passInput.type === 'password') {
         passInput.type = 'text';
@@ -172,10 +176,17 @@
     step1Form.addEventListener('submit', async function(e) {
       e.preventDefault();
       const email = document.getElementById('reg-email').value.trim();
+      const firstName = document.getElementById('reg-first-name').value.trim();
+      const lastName = document.getElementById('reg-last-name').value.trim();
       const password = document.getElementById('reg-password').value.trim();
+      const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
       
-      if (!email || !password) {
-        showAlert('Please enter both email and password.', true);
+      if (!email || !firstName || !lastName || !password || !confirmPassword) {
+        showAlert('Complete all required fields.', true);
+        return;
+      }
+      if (password !== confirmPassword) {
+        showAlert('Passwords do not match.', true);
         return;
       }
       const isMinLength = password.length >= 8;
@@ -189,13 +200,13 @@
 
       const btn = document.getElementById('btn-send-otp');
       btn.disabled = true;
-      btn.innerHTML = `<span>Sending Verification Code…</span> <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
+      btn.innerHTML = `<span>Sending code...</span> <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
 
       try {
         const res = await fetch('/api/register/request', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email, first_name: firstName, last_name: lastName, password, confirm_password: confirmPassword })
         });
         const data = await res.json();
 
@@ -206,20 +217,20 @@
           
           step1Form.classList.add('hidden');
           step2Container.classList.remove('hidden');
-          document.getElementById('page-title').textContent = 'Verify Your Email';
-          document.getElementById('page-subtitle').textContent = 'Enter the 6-digit PIN sent to your inbox';
+          document.getElementById('page-title').textContent = 'Verify your email';
+          document.getElementById('page-subtitle').textContent = 'Enter the 6-digit code sent to your inbox.';
           
           startResendTimer();
           document.getElementById('reg-otp').focus();
         } else {
-          showAlert(data.message || 'Failed to send verification PIN.', true);
+          showAlert(data.message || 'We could not send a verification code. Try again.', true);
         }
       } catch (err) {
         console.error('Registration request error:', err);
         showAlert('Connection error. Please try again.', true);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<span>Send Verification PIN</span> 📩`;
+        btn.innerHTML = `<span>Send verification code</span>`;
       }
     });
 
@@ -230,13 +241,13 @@
       const code = document.getElementById('reg-otp').value.trim();
 
       if (!email || !code) {
-        showAlert('Please enter the 6-digit verification PIN.', true);
+        showAlert('Enter the 6-digit verification code.', true);
         return;
       }
 
       const btn = document.getElementById('btn-verify-otp');
       btn.disabled = true;
-      btn.innerHTML = `<span>Verifying PIN…</span> <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
+      btn.innerHTML = `<span>Verifying...</span> <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
 
       try {
         const res = await fetch('/api/register/verify', {
@@ -252,19 +263,19 @@
             window.location.href = data.redirect || '/dashboard';
           }, 600);
         } else {
-          showAlert(data.message || 'Incorrect verification PIN.', true);
+          showAlert(data.message || 'That code was not accepted. Check it and try again.', true);
           btn.disabled = false;
-          btn.innerHTML = `<span>Verify Email & Create Account</span> ✨`;
+          btn.innerHTML = `<span>Create account</span>`;
         }
       } catch (err) {
         console.error('OTP verify error:', err);
         showAlert('Connection error. Please try again.', true);
         btn.disabled = false;
-        btn.innerHTML = `<span>Verify Email & Create Account</span> ✨`;
+        btn.innerHTML = `<span>Create account</span>`;
       }
     });
 
-    // Resend PIN button
+    // Resend code button
     btnResend.addEventListener('click', async function() {
       const email = otpHiddenEmail.value.trim() || document.getElementById('reg-email').value.trim();
       if (!email) return;
@@ -284,14 +295,14 @@
           showAlert(data.message, false);
           startResendTimer();
         } else {
-          showAlert(data.message || 'Failed to resend PIN.', true);
+          showAlert(data.message || 'We couldn’t send a code. Try again.', true);
           btnResend.disabled = false;
-          btnResend.innerText = "Resend PIN 📩";
+          btnResend.innerText = "Resend code";
         }
       } catch (err) {
         showAlert('Connection error. Please try again.', true);
         btnResend.disabled = false;
-        btnResend.innerText = "Resend PIN 📩";
+        btnResend.innerText = "Resend code";
       }
     });
 
@@ -299,7 +310,7 @@
     document.getElementById('btn-change-email').addEventListener('click', function() {
       step2Container.classList.add('hidden');
       step1Form.classList.remove('hidden');
-      document.getElementById('page-title').textContent = 'Create Your Account';
+      document.getElementById('page-title').textContent = 'Create your account';
       document.getElementById('page-subtitle').textContent = 'Verify your email to start managing your business';
       alertBox.classList.add('hidden');
       if (resendInterval) clearInterval(resendInterval);
