@@ -55,7 +55,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20260930.3")
+APP_VERSION = os.environ.get("APP_VERSION", "20261001.1")
 
 # Session / Cookie hardening
 _secure_cookie = os.environ.get("SESSION_COOKIE_SECURE")
@@ -900,9 +900,9 @@ def register():
                     )
                     db.commit()
                 verify_otp(email, "register", otp_code, consume=True)
-                complete_login(new_user_id)
-                flash("Email verified! Welcome to SoloBiz!", "success")
-                return redirect("/dashboard")
+                session.pop("user_id", None)
+                flash("Your account is ready. Please sign in.", "success")
+                return redirect("/login")
             except Exception as e:
                 logging.error(f"Account creation failed after OTP verify: {e}", exc_info=True)
                 if is_unique_violation(e):
@@ -1004,8 +1004,9 @@ def register_api_verify():
             )
             db.commit()
         verify_otp(email, "register", code, consume=True)
-        complete_login(new_user_id)
-        return jsonify({"status": "ok", "message": "Account created successfully!", "redirect": "/dashboard"})
+        session.pop("user_id", None)
+        flash("Your account is ready. Please sign in.", "success")
+        return jsonify({"status": "ok", "message": "Account created. Please sign in.", "redirect": "/login"})
     except Exception as e:
         logging.error(f"register_api_verify error: {e}", exc_info=True)
         if is_unique_violation(e):

@@ -102,7 +102,7 @@ body.edit-page > header {
 .edit-expense-card {
   border-color: var(--sb-line) !important;
   border-radius: 16px !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, .04), 0 10px 26px rgba(15, 23, 42, .06) !important;
 }
 .edit-expense-card label {
   color: #475569 !important;
@@ -153,8 +153,20 @@ body.app-shell > header button:hover {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, .14);
 }
 
-.desktop-content .shadow-sm,
-.desktop-content .shadow-md { box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important; }
+.desktop-content .shadow-sm:not(button):not(a),
+.desktop-content .shadow-md:not(button):not(a) {
+  border-color: #e7ebf2;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, .04), 0 10px 26px rgba(15, 23, 42, .06) !important;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .desktop-content .shadow-sm:not(button):not(a):hover,
+  .desktop-content .shadow-md:not(button):not(a):hover {
+    box-shadow: 0 4px 10px rgba(15, 23, 42, .05), 0 16px 34px rgba(15, 23, 42, .09) !important;
+    transform: translateY(-1px);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

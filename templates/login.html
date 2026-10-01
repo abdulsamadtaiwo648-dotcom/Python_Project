@@ -31,7 +31,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-xs font-medium text-center animate-pulse">
+          <div class="mb-4 px-4 py-3 rounded-lg text-xs font-medium text-center {% if category == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-700{% else %}bg-red-50 border border-red-200 text-red-700{% endif %}">
             {{ message }}
           </div>
         {% endfor %}
@@ -158,7 +158,7 @@
 
     function showAlert(msg, isError = false) {
       resetAlert.className = `mb-4 p-3 rounded-lg text-xs font-semibold text-center ${
-        isError  "bg-red-500/10 border border-red-500/30 text-red-400" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+        isError ? "bg-red-500/10 border border-red-500/30 text-red-400" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
       }`;
       resetAlert.innerHTML = msg;
       resetAlert.classList.remove("hidden");
