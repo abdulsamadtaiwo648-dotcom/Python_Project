@@ -1,4 +1,4 @@
-"""Manual expense-flow check using an isolated temporary SQLite database."""
+﻿"""Manual expense-flow check using an isolated temporary SQLite database."""
 
 import os
 import tempfile
@@ -6,13 +6,15 @@ import tempfile
 
 previous_directory = os.getcwd()
 database_url = os.environ.pop("DATABASE_URL", None)
+sqlite_database_path = os.environ.get("SQLITE_DATABASE_PATH")
 
 try:
     with tempfile.TemporaryDirectory(prefix="solobiz-expense-flow-") as temp_directory:
         os.chdir(temp_directory)
+        os.environ["SQLITE_DATABASE_PATH"] = os.path.join(temp_directory, "solobiz.db")
 
-        # Importing app initializes its database, so change directories first.
-        from app import app
+        # Importing the application initializes its database in the temp directory.
+        from server.app import app
 
         with app.test_client() as client:
             csrf_token = "local-expense-flow-check"
@@ -44,3 +46,7 @@ finally:
     os.chdir(previous_directory)
     if database_url is not None:
         os.environ["DATABASE_URL"] = database_url
+    if sqlite_database_path is None:
+        os.environ.pop("SQLITE_DATABASE_PATH", None)
+    else:
+        os.environ["SQLITE_DATABASE_PATH"] = sqlite_database_path
