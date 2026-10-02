@@ -434,6 +434,34 @@
             #tab-inventory-content .inventory-search { max-width: none; width: 100%; flex:1; min-width:0; }
             #tab-inventory-content .inventory-toolbar > .flex { width:100%; }
         }
+
+        /* Give the dashboard summary a consistent width and roomier cards. */
+        #tab-dashboard-content,
+        #cfo-dashboard,
+        #dashboard-insights {
+            max-width: 1080px;
+            width: 100%;
+        }
+        #cfo-dashboard { margin-top: 18px; margin-bottom: 22px; }
+        #cfo-dashboard > div:first-child {
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        #cfo-dashboard > div:first-child > div {
+            min-height: 126px;
+            padding: 18px;
+            gap: 9px;
+        }
+        #cfo-dashboard > div:nth-child(2) > div {
+            min-height: 78px;
+            padding: 16px 20px;
+        }
+        @media (max-width: 639px) {
+            #cfo-dashboard { margin-top: 14px; }
+            #cfo-dashboard > div:first-child > div { min-height: 112px; padding: 16px; }
+            #cfo-dashboard > div:nth-child(2) > div { padding: 14px 16px; }
+        }
     </style>
     <link rel="stylesheet" href="/static/solobiz-ui.css">
 </head>
