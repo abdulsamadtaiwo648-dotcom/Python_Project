@@ -114,6 +114,109 @@ def get_db():
         conn.row_factory = sqlite3.Row
         return DBWrapper(conn, is_postgres=False)
 
+def init_admin_db():
+    """Create the separate super-admin accounts and admin audit storage."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS super_admins (
+                    id SERIAL PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    session_version INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
+                )
+            """)
+        else:
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS super_admins (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    session_version INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS admin_login_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fingerprint TEXT UNIQUE NOT NULL,
+                attempts INTEGER NOT NULL,
+                window_started TEXT NOT NULL,
+                blocked_until TEXT
+            )
+        """ if not db.is_postgres else """
+            CREATE TABLE IF NOT EXISTS admin_login_attempts (
+                id SERIAL PRIMARY KEY,
+                fingerprint TEXT UNIQUE NOT NULL,
+                attempts INTEGER NOT NULL,
+                window_started TEXT NOT NULL,
+                blocked_until TEXT
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                target_type TEXT NOT NULL,
+                target_id TEXT,
+                reason TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """ if not db.is_postgres else """
+            CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                id SERIAL PRIMARY KEY,
+                admin_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                target_type TEXT NOT NULL,
+                target_id TEXT,
+                reason TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
+            )
+        """)
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at "
+            "ON admin_audit_logs (created_at)"
+        )
+        if db.is_postgres:
+            db.execute(
+                "ALTER TABLE super_admins ADD COLUMN IF NOT EXISTS "
+                "is_active INTEGER NOT NULL DEFAULT 1"
+            )
+            db.execute(
+                "ALTER TABLE super_admins ADD COLUMN IF NOT EXISTS "
+                "session_version INTEGER NOT NULL DEFAULT 1"
+            )
+            db.execute(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
+                "account_status TEXT NOT NULL DEFAULT 'active'"
+            )
+        else:
+            admin_columns = {
+                row["name"] for row in db.execute("PRAGMA table_info(super_admins)").fetchall()
+            }
+            if "is_active" not in admin_columns:
+                db.execute(
+                    "ALTER TABLE super_admins ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"
+                )
+            if "session_version" not in admin_columns:
+                db.execute(
+                    "ALTER TABLE super_admins ADD COLUMN session_version INTEGER NOT NULL DEFAULT 1"
+                )
+            users_table = db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'"
+            ).fetchone()
+            if users_table:
+                columns = {row["name"] for row in db.execute("PRAGMA table_info(users)").fetchall()}
+                if "account_status" not in columns:
+                    db.execute(
+                        "ALTER TABLE users ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'"
+                    )
+        db.commit()
+
 def init_db():
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:
@@ -188,6 +291,7 @@ def init_db():
             "ALTER TABLE users ALTER COLUMN id TYPE TEXT USING id::TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status TEXT NOT NULL DEFAULT 'active'",
             "ALTER TABLE expenses ALTER COLUMN user_id DROP DEFAULT",
             "ALTER TABLE expenses ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
             "ALTER TABLE income ALTER COLUMN user_id DROP DEFAULT",
@@ -302,6 +406,8 @@ def init_db():
                 db.execute("ALTER TABLE users ADD COLUMN first_name TEXT")
             if "last_name" not in user_columns:
                 db.execute("ALTER TABLE users ADD COLUMN last_name TEXT")
+            if "account_status" not in user_columns:
+                db.execute("ALTER TABLE users ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'")
             db.execute("""
                 CREATE TABLE IF NOT EXISTS expenses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,

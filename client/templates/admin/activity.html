@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Admin activity{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Security and oversight</p><h1>Admin activity</h1><p class="summary">A record of administrator sign-ins and account actions.</p></div></div>
+<section class="panel"><div class="table-wrap"><table><thead><tr><th>Time</th><th>Administrator</th><th>Action</th><th>Target</th><th>Reason</th></tr></thead><tbody>
+{% for event in events %}<tr><td>{{ event.created_at }}</td><td>{{ event.email }}</td><td>{{ event.action }}</td><td>{{ event.target_type }}{% if event.target_id %} · {{ event.target_id }}{% endif %}</td><td>{{ event.reason or '—' }}</td></tr>
+{% else %}<tr><td colspan="5" class="empty">No activity recorded yet.</td></tr>{% endfor %}
+</tbody></table></div><p class="muted" style="font-size:12px">Showing the 200 most recent admin events.</p></section>
+{% endblock %}

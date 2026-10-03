@@ -155,9 +155,12 @@ def get_current_user_id():
         # account before treating the cookie as authenticated.
         try:
             with get_db() as db:
-                exists = db.execute("SELECT 1 FROM users WHERE id = ?", (user_id,)).fetchone()
+                exists = db.execute(
+                    "SELECT account_status FROM users WHERE id = ?", (user_id,)
+                ).fetchone()
             if exists:
-                return user_id
+                if exists["account_status"] == "active":
+                    return user_id
         except Exception as auth_error:
             logging.error("Could not validate the active user session: %s", auth_error)
             return None

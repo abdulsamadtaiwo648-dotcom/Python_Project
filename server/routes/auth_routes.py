@@ -206,6 +206,9 @@ def login():
                 if not user or not user["password"] or not check_password_hash(user["password"], password):
                     flash("Invalid email or password. Please try again.", "danger")
                     return render_template("login.html")
+                if user["account_status"] != "active":
+                    flash("This account is currently unavailable. Please contact support.", "danger")
+                    return render_template("login.html")
                 complete_login(user["id"])
                 return redirect("/dashboard")
         except Exception as e:

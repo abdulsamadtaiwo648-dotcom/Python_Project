@@ -19,6 +19,11 @@ def root():
     return render_template("landing.html")
 
 
+@app.route("/data-access")
+def data_access_notice():
+    return render_template("data_access.html")
+
+
 @app.route('/sw.js')
 def service_worker():
     sw_script = render_template('sw.js', version=APP_VERSION)

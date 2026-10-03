@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Platform overview</p><h1>Business activity</h1><p class="summary">A view of activity across SoloBiz.</p></div></div>
+<section class="metric-grid" aria-label="Platform totals">
+  <article class="metric"><div class="metric-label">Registered accounts</div><div class="metric-value">{{ metrics.users }}</div><div class="metric-note">{{ metrics.businesses }} business profiles</div></article>
+  <article class="metric"><div class="metric-label">Sales recorded</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.sales) }}</div><div class="metric-note">All recorded sales</div></article>
+  <article class="metric"><div class="metric-label">Payments collected</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.collected) }}</div><div class="metric-note">₦{{ "{:,.2f}".format(metrics.outstanding) }} outstanding</div></article>
+  <article class="metric"><div class="metric-label">Expenses recorded</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.expenses) }}</div><div class="metric-note">Across all accounts</div></article>
+</section>
+<section class="metric-grid" style="margin-top:14px" aria-label="Current month and account status">
+  <article class="metric"><div class="metric-label">Collected this month</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.month_sales) }}</div></article>
+  <article class="metric"><div class="metric-label">Expenses this month</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.month_expenses) }}</div></article>
+  <article class="metric"><div class="metric-label">Net cash movement this month</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.month_sales - metrics.month_expenses) }}</div></article>
+  <article class="metric"><div class="metric-label">Paused accounts</div><div class="metric-value">{{ metrics.paused }}</div><div class="metric-note"><a class="link" href="{{ url_for('users') }}">Review accounts</a></div></article>
+</section>
+<section class="panel"><div class="heading" style="margin-bottom:10px"><div><h2>Recent admin activity</h2><p class="summary">Account actions performed in this portal.</p></div><a class="link" href="{{ url_for('activity') }}">View activity</a></div>
+{% if metrics.recent_activity %}<div class="activity-list">{% for item in metrics.recent_activity %}<div class="activity-item"><span>{{ item.action }} · {{ item.target_type }}{% if item.target_id %} {{ item.target_id }}{% endif %}{% if item.reason %}<span class="muted"> — {{ item.reason }}</span>{% endif %}</span><time class="muted">{{ item.created_at }}</time></div>{% endfor %}</div>{% else %}<p class="muted">No admin actions recorded yet.</p>{% endif %}</section>
+{% endblock %}

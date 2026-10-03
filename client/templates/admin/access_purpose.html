@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirm data access purpose · SoloBiz Admin</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f6f8; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 22px; }
+    main { width: min(100%, 500px); padding: 32px; border: 1px solid #e2e6ed; border-radius: 13px; background: #fff; }
+    .brand { margin: 0 0 28px; color: #263b86; font-size: 14px; font-weight: 700; }
+    h1 { margin: 0; font-size: 25px; letter-spacing: -.035em; }
+    p { color: #687386; font-size: 14px; line-height: 1.6; }
+    label { display: block; margin: 19px 0 7px; color: #263044; font-size: 13px; font-weight: 600; }
+    select, input { width: 100%; height: 44px; padding: 0 11px; border: 1px solid #d5dbe5; border-radius: 7px; font: inherit; font-size: 14px; }
+    input[hidden] { display: none; }
+    button { width: 100%; height: 44px; margin-top: 24px; border: 0; border-radius: 7px; background: #263b86; color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
+    .flash { color: #a5261d; }
+    .hint { margin-top: 8px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">SoloBiz / Admin</p>
+    <h1>Confirm the reason for access</h1>
+    <p>Select why you need to view business or transaction information. Your selection will be recorded with the pages you access and will expire after 20 minutes.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for _category, message in messages %}<p class="flash" role="alert">{{ message }}</p>{% endfor %}{% endwith %}
+    <form method="post" action="{{ url_for('access_purpose') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next_path }}">
+      <label for="purpose">Access purpose</label>
+      <select id="purpose" name="purpose" required>
+        <option value="">Choose a reason</option>
+        <option value="support">Customer support</option>
+        <option value="security">Security review</option>
+        <option value="operations">Service operations</option>
+        <option value="legal">Legal request</option>
+        <option value="other">Other</option>
+      </select>
+      <div id="other-reason" hidden>
+        <label for="note">Brief reason</label>
+        <input id="note" name="note" type="text" maxlength="120" autocomplete="off" placeholder="Do not include personal or customer details">
+        <p class="hint">Keep this short and avoid entering personal or customer information.</p>
+      </div>
+      <button type="submit">Continue to admin portal</button>
+    </form>
+  </main>
+  <script>
+    const purpose = document.getElementById('purpose');
+    const otherReason = document.getElementById('other-reason');
+    const note = document.getElementById('note');
+    purpose.addEventListener('change', () => {
+      const isOther = purpose.value === 'other';
+      otherReason.hidden = !isOther;
+      note.required = isOther;
+    });
+  </script>
+</body>
+</html>

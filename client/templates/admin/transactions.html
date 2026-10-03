@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Platform records</p><h1>{{ heading }}</h1><p class="summary">Review transactions across all SoloBiz businesses.</p></div></div>
+<form class="toolbar" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="Search description, business or email" aria-label="Search description, business or email">
+  {% if is_sales %}<select name="category" aria-label="Filter by payment status"><option value="">All payment statuses</option><option value="paid" {% if detail_filter == 'paid' %}selected{% endif %}>Fully paid</option><option value="partial" {% if detail_filter == 'partial' %}selected{% endif %}>Part paid</option><option value="unpaid" {% if detail_filter == 'unpaid' %}selected{% endif %}>Unpaid</option></select>
+  {% else %}<input type="text" name="category" value="{{ detail_filter }}" placeholder="Expense category" aria-label="Expense category">{% endif %}
+  <input type="number" name="min_amount" min="0" step="0.01" value="{{ min_amount }}" placeholder="Minimum amount" aria-label="Minimum amount">
+  <input type="number" name="max_amount" min="0" step="0.01" value="{{ max_amount }}" placeholder="Maximum amount" aria-label="Maximum amount">
+  <button class="primary" type="submit">Apply filters</button>{% if query or detail_filter or min_amount or max_amount %}<a class="button" href="{{ request.path }}">Clear</a>{% endif %}
+</form>
+<section class="panel"><div class="table-wrap"><table><thead><tr><th>Business</th><th>Email</th><th>Description</th>{% if is_sales %}<th>Total</th><th>Paid</th><th>Balance</th><th>Status</th>{% else %}<th>Category</th><th>Amount</th>{% endif %}<th>Date</th></tr></thead><tbody>
+{% for row in rows %}<tr><td>{{ row.company_name or 'Business profile not set' }}</td><td>{{ row.email }}</td><td>{{ row.label or '—' }}</td>{% if is_sales %}<td>₦{{ "{:,.2f}".format(row.amount) }}</td><td>₦{{ "{:,.2f}".format(row.paid) }}</td><td>₦{{ "{:,.2f}".format([row.amount - row.paid, 0]|max) }}</td><td>{% if row.paid >= row.amount %}Paid{% elif row.paid > 0 %}Part paid{% else %}Unpaid{% endif %}</td>{% else %}<td>{{ row.detail }}</td><td>₦{{ "{:,.2f}".format(row.amount) }}</td>{% endif %}<td>{{ row.date or '—' }}</td></tr>
+{% else %}<tr><td colspan="{% if is_sales %}8{% else %}6{% endif %}" class="empty">No matching transactions found.</td></tr>{% endfor %}
+</tbody></table></div><p class="muted" style="font-size:12px">Showing up to 200 most recent matching records.</p></section>
+{% endblock %}
