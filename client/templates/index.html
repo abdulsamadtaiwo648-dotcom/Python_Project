@@ -577,7 +577,7 @@
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Sales collected</p>
                 </div>
                 <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-emerald-700/80 leading-tight">Payments received this month</p>
+                <p class="dashboard-card-hint text-[10px] text-emerald-700/80 leading-tight">Payments received across all sales</p>
             </div>
 
             <!-- Total Expenses Card -->
@@ -587,12 +587,12 @@
                     <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
                 </div>
                 <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-rose-700/80 leading-tight">Recorded this month</p>
+                <p class="dashboard-card-hint text-[10px] text-rose-700/80 leading-tight">Across all recorded expenses</p>
             </div>
             <div class="bg-amber-50 border border-amber-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
                 <p class="text-[9px] sm:text-[10px] uppercase font-bold text-amber-700 tracking-wider leading-none">Outstanding</p>
                 <span class="stat-value text-amber-800" id="top-outstanding">₦{{ "{:,.2f}".format(total_outstanding or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-amber-700/80 leading-tight">Balance due on this month’s sales</p>
+                <p class="dashboard-card-hint text-[10px] text-amber-700/80 leading-tight">Balance due across all sales</p>
             </div>
         </div>
 
@@ -606,7 +606,7 @@
                     </span>
                     <div class="min-w-0">
                         <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-400{% endif %} tracking-wider leading-none truncate">Net cash flow</p>
-                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">Payments received minus expenses</p>
+                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">All payments received minus all expenses</p>
                     </div>
                 </div>
                 <span class="stat-value {% if np >= 0 %}text-indigo-700{% else %}text-amber-600{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
@@ -618,7 +618,7 @@
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <h2 id="dashboard-insights-heading" class="text-base font-bold text-slate-900">Business analysis</h2>
-                    <p class="mt-1 text-xs text-slate-500">See how sales and spending change over time.</p>
+                    <p class="mt-1 text-xs text-slate-500">Review sales and expenses for the selected period.</p>
                 </div>
                 <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Choose reporting period">
                     <button type="button" data-period="daily" class="analytics-tab-btn rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm">Day</button>
@@ -650,7 +650,7 @@
                     <p id="analytics-liquid-profit" class="mt-1 text-base font-bold text-emerald-700">₦0.00</p>
                 </article>
             </div>
-            <p class="-mt-2 text-[10px] text-slate-400">All-time totals across recorded sales and expenses.</p>
+            <p id="analytics-period-summary" class="-mt-2 text-[10px] text-slate-400">Analysis totals for today.</p>
             <p id="analytics-outstanding-alert" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">Some sales still have an outstanding balance.</p>
 
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
@@ -3357,10 +3357,31 @@
 
             // -------------------------------------------------------------
             // CFO DASHBOARD METRICS CALCULATION
-            // Accepts optional { categoryFilter, amountMax } to show filtered totals.
-            // When no filters are passed, shows grand totals.
+            // Main dashboard totals cover all recorded transactions. Analysis uses its selected period.
             // -------------------------------------------------------------
-            async function calculateDashboard({ categoryFilter = '', amountMax = null } = {}) {
+            function currentReportPeriodContains(dateValue, period) {
+                const dateKey = String(dateValue || '').slice(0, 10);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return false;
+                const todayKey = new Date().toISOString().slice(0, 10);
+                if (dateKey > todayKey) return false;
+                if (period === 'daily') return dateKey === todayKey;
+                if (period === 'weekly') {
+                    const weekStart = new Date(`${todayKey}T00:00:00Z`);
+                    weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
+                    return dateKey >= weekStart.toISOString().slice(0, 10);
+                }
+                if (period === 'yearly') return dateKey.slice(0, 4) === todayKey.slice(0, 4);
+                return dateKey.slice(0, 7) === todayKey.slice(0, 7);
+            }
+
+            function updateDashboardPeriodCopy(period) {
+                const phrase = { daily: 'today', weekly: 'this week', monthly: 'this month', yearly: 'this year' }[period] || 'this month';
+                const summary = period === 'daily' ? 'Totals for today.' : `Totals for ${phrase} to date.`;
+                const analyticsSummary = document.getElementById('analytics-period-summary');
+                if (analyticsSummary) analyticsSummary.textContent = summary;
+            }
+
+            async function calculateDashboard({ categoryFilter = '', amountMax = null, period = activeAnalyticsPeriod } = {}) {
                 try {
                     const db = await openIndexedDB();
                     const fmt = (val) => '₦' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -3376,15 +3397,12 @@
                     // --- Total Sales & Cash (always unfiltered — income has no category) ---
 
                     // 1. CASH COLLECTED (The physical money actually paid by customers)
-                    const currentMonth = new Date().toISOString().slice(0, 7);
-                    const currentMonthIncome = incomeItems.filter(item =>
-                        !item.pending_delete && String(item.date || '').slice(0, 7) === currentMonth
-                    );
-                    const cashCollected = currentMonthIncome
+                    const recordedIncome = incomeItems.filter(item => !item.pending_delete);
+                    const cashCollected = recordedIncome
                         .reduce((sum, item) => sum + parseFloat(item.amount_paid ?? item.amount ?? 0), 0);
 
                     // 2. TOTAL OWED (The remaining balance customers owe you)
-                    const totalOwed = currentMonthIncome
+                    const totalOwed = recordedIncome
                         .reduce((sum, item) => {
                             const itemTotal = parseFloat(item.total_value ?? item.amount ?? 0);
                             const itemPaid = parseFloat(item.amount_paid ?? item.amount ?? 0);
@@ -3392,11 +3410,9 @@
                         }, 0);
 
                     // 3. SALES VOLUME (The total value of the inventory that left the store)
-                    const totalSalesVolume = currentMonthIncome.reduce((sum, item) => sum + parseFloat(item.total_value ?? item.amount ?? 0), 0);
-
                     const totalSales = cashCollected;
 
-                    // --- Total Expenses (filtered by category and/or max amount) ---
+                    // --- All-time expenses for the dashboard KPIs ---
                     const expTx = db.transaction(STORE_NAME, 'readonly');
                     const getExpReq = expTx.objectStore(STORE_NAME).getAll();
                     const allExpItems = await new Promise(res => {
@@ -3409,18 +3425,13 @@
                         if (amountMax !== null && parseFloat(item.amount || 0) > amountMax) return false;
                         return true;
                     });
-                    const currentMonthExpenses = expItems.filter(item => String(item.date || '').slice(0, 7) === currentMonth);
-
-                    let totalExpenses = 0;
-                    if (allExpItems.length > 0) {
-                        totalExpenses = currentMonthExpenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-                    } else {
-                        const domTotalEl = document.getElementById('main-dashboard-total');
-                        if (domTotalEl) totalExpenses = parseFloat(domTotalEl.dataset.total || '0') || 0;
-                    }
+                    const recordedExpenses = allExpItems.filter(item => !item.pending_delete);
+                    const totalExpenses = recordedExpenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
                     // Update all dashboard elements simultaneously
+                    updateDashboardPeriodCopy(period);
                     updateAllDashboardTotals(totalSales, totalExpenses, totalOwed);
+                    if (dashboardTabFromLocation() === 'dashboard') renderAnalytics(period);
 
                     // --- Filtered result banner below filter controls ---
                     const banner = document.getElementById('filter-result-banner');
@@ -3433,7 +3444,7 @@
                         if (categoryFilter) labelParts.push(categoryFilter);
                         if (amountMax !== null) labelParts.push(`≤ ₦${amountMax.toLocaleString()}`);
                         if (bannerLabel) bannerLabel.textContent = 'Filtered: ' + labelParts.join(' · ');
-                        bannerTotal.textContent = fmt(totalExpenses);
+                        bannerTotal.textContent = fmt(expItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0));
                         banner.classList.remove('hidden');
                         if (clearBtn) clearBtn.classList.remove('hidden');
                     } else if (banner) {
@@ -5078,6 +5089,7 @@
             window.addEventListener('resize', () => drawAnalyticsTrend(latestAnalyticsChartData));
 
             async function renderAnalytics(period) {
+                updateDashboardPeriodCopy(period);
                 const incomeItems = await getIncomeLocal();
                 const expenseItems = await getExpensesLocal();
                 
@@ -5150,9 +5162,11 @@
                     groups[key].items.push(item);
                     addChartValue(item.date, 'sales', amtPaid);
                     
-                    totalValue += tVal;
-                    cashCollected += amtPaid;
-                    outstandingBalance += Math.max(0, tVal - amtPaid);
+                    if (currentReportPeriodContains(item.date, period)) {
+                        totalValue += tVal;
+                        cashCollected += amtPaid;
+                        outstandingBalance += Math.max(0, tVal - amtPaid);
+                    }
                 });
 
                 // Process Expenses
@@ -5161,12 +5175,9 @@
                     const amount = parseFloat(item.amount || 0);
                     
                     // Identify category
-                    const cat = item.category || '';
-                    if (cat.includes("Owner's Draw")) {
-                        // Personal draw: ignore from P&L
-                    } else {
+                    addChartValue(item.date, 'expenses', amount);
+                    if (currentReportPeriodContains(item.date, period)) {
                         totalExpenses += amount;
-                        addChartValue(item.date, 'expenses', amount);
                     }
                 });
 
@@ -5254,8 +5265,6 @@
                     `;
                 }).join('');
             }
-
-            if (dashboardTabFromLocation() === 'dashboard') renderAnalytics(activeAnalyticsPeriod);
 
             // Initial calculations and renders
             renderIncomeListUI();
