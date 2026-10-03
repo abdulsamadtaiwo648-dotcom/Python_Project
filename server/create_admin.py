@@ -2,20 +2,34 @@
 
 import argparse
 import getpass
+import os
 import re
 import sys
 
 from werkzeug.security import generate_password_hash
 
-from .database import get_db, init_admin_db
+from .database import HAS_PSYCOPG2, get_db, init_admin_db
 
 
 def main():
     parser = argparse.ArgumentParser(description="Provision or manage a SoloBiz super-admin account.")
     parser.add_argument(
-        "action", nargs="?", choices=("create", "reset", "disable", "enable"), default="create"
+        "action", nargs="?", choices=("create", "reset", "disable", "enable", "check"), default="create"
     )
     action = parser.parse_args().action
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    if database_url and not HAS_PSYCOPG2:
+        print(
+            "DATABASE_URL is set, but psycopg2 is not installed. "
+            "Install server/requirements.txt in this Python environment; refusing to use local SQLite.",
+            file=sys.stderr,
+        )
+        return 1
+    print(
+        "Database target: PostgreSQL (DATABASE_URL is set)."
+        if database_url else
+        "Database target: local SQLite. Render cannot see accounts created in this local database."
+    )
     init_admin_db()
     email = input("Super-admin email: ").strip().lower()
     if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
@@ -39,6 +53,13 @@ def main():
             existing = db.execute(
                 "SELECT id, is_active FROM super_admins WHERE LOWER(email) = LOWER(?)", (email,)
             ).fetchone()
+            if action == "check":
+                if not existing:
+                    print("No admin account with that email exists in this database.")
+                    return 1
+                status = "active" if existing["is_active"] else "disabled"
+                print(f"Admin account found in this database; status: {status}.")
+                return 0
             if action == "create" and existing:
                 print("A super-admin account already exists for that email.", file=sys.stderr)
                 return 1
@@ -60,9 +81,10 @@ def main():
                     "session_version = session_version + 1 WHERE id = ?",
                     (password_hash, existing["id"]),
                 )
+                db.execute("DELETE FROM admin_login_attempts")
                 target = existing
                 audit_action = "admin password reset via server shell"
-            else:
+            elif action in {"disable", "enable"}:
                 new_status = 0 if action == "disable" else 1
                 confirmation = input(
                     f"Type YES to {action} admin access for {email}: "

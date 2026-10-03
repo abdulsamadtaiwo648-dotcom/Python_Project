@@ -438,6 +438,7 @@
         /* Give the dashboard summary a consistent width and roomier cards. */
         #tab-dashboard-content,
         #cfo-dashboard,
+        #daily-business-checkin,
         #dashboard-insights {
             max-width: 1080px;
             width: 100%;
@@ -610,6 +611,51 @@
             </div>
         </div>
         </div> <!-- End cfo-dashboard -->
+
+        <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 id="daily-checkin-heading" class="text-base font-bold text-slate-900">Today at a glance</h2>
+                    <p class="mt-1 text-xs text-slate-500">A quick check of today’s money in and out.</p>
+                </div>
+                <span class="text-xs font-medium text-slate-500">{{ today }}</span>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium text-slate-500">Collected today</p>
+                    <p id="daily-collected" class="mt-2 text-xl font-semibold tracking-tight text-emerald-700">₦{{ "{:,.2f}".format(today_collected) }}</p>
+                </article>
+                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium text-slate-500">Expenses today</p>
+                    <p id="daily-expenses" class="mt-2 text-xl font-semibold tracking-tight text-rose-700">₦{{ "{:,.2f}".format(today_expenses) }}</p>
+                </article>
+                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium text-slate-500">Net cash today</p>
+                    <p id="daily-net" class="mt-2 text-xl font-semibold tracking-tight {% if today_net >= 0 %}text-slate-900{% else %}text-amber-700{% endif %}">₦{{ "{:,.2f}".format(today_net) }}</p>
+                    <p class="mt-1 text-[11px] text-slate-500">Collected minus expenses</p>
+                </article>
+            </div>
+            <div class="mt-4 border-t border-slate-100 pt-4">
+                <h3 class="text-sm font-semibold text-slate-800">Needs attention</h3>
+                <div class="mt-2 space-y-2" aria-live="polite">
+                    <div id="daily-unpaid-alert" class="{% if outstanding_sale_count == 0 %}hidden{% endif %} flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-3">
+                        <p class="text-sm text-amber-900"><strong id="daily-unpaid-count">{{ outstanding_sale_count }}</strong> sale<span id="daily-unpaid-plural">{% if outstanding_sale_count != 1 %}s{% endif %}</span> with a balance to follow up · <strong id="daily-unpaid-balance">₦{{ "{:,.2f}".format(total_unpaid_balance) }}</strong> outstanding</p>
+                        <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-amber-900 underline underline-offset-2">Review sales</a>
+                    </div>
+                    <div id="daily-stock-alert" class="{% if not low_stock_items %}hidden{% endif %} flex flex-wrap items-start justify-between gap-3 rounded-xl bg-rose-50 px-3 py-3">
+                        <div class="text-sm text-rose-900"><strong id="daily-stock-count">{{ low_stock_items|length }}</strong> tracked item<span id="daily-stock-plural">{% if low_stock_items|length != 1 %}s{% endif %}</span> at 3 units or fewer
+                            <p id="daily-stock-items" class="mt-1 text-xs text-rose-800">{% for item in low_stock_items[:5] %}{{ item.item_name }} ({{ item.stock }}){% if not loop.last %}, {% endif %}{% endfor %}{% if low_stock_items|length > 5 %}, and {{ low_stock_items|length - 5 }} more{% endif %}</p>
+                        </div>
+                        <a href="/inventory" data-dashboard-tab="inventory" class="text-sm font-semibold text-rose-900 underline underline-offset-2">Review stock</a>
+                    </div>
+                    <p id="daily-checkin-clear" class="{% if outstanding_sale_count or low_stock_items %}hidden{% endif %} rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-600">Nothing needs attention based on your current sales and stock records.</p>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2">
+                <a href="/sales" data-dashboard-tab="income" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white no-underline hover:bg-indigo-700">Record a sale</a>
+                <a href="/expenses" data-dashboard-tab="expenses" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 no-underline hover:bg-slate-50">Record an expense</a>
+            </div>
+        </section>
 
         <section id="dashboard-insights" class="{% if active_tab != 'dashboard' %}hidden{% endif %} space-y-4" aria-labelledby="dashboard-insights-heading">
             <div class="flex flex-wrap items-end justify-between gap-3">
@@ -1717,6 +1763,57 @@
                     npCard.classList.remove('bg-amber-50', 'border-amber-200');
                     npCard.classList.add('bg-indigo-50', 'border-indigo-200');
                 }
+            }
+            refreshDailyBusinessCheckin();
+        }
+
+        async function refreshDailyBusinessCheckin() {
+            const collectedEl = document.getElementById('daily-collected');
+            if (!collectedEl) return;
+            try {
+                const [incomeItems, expenseItems] = await Promise.all([
+                    getIncomeLocal(),
+                    getExpensesLocal()
+                ]);
+                const todayKey = new Date().toISOString().slice(0, 10);
+                let collected = 0;
+                let expenses = 0;
+                let unpaid = 0;
+                let unpaidCount = 0;
+                (incomeItems || []).forEach(item => {
+                    if (item.pending_delete) return;
+                    const total = Number(item.total_value ?? item.amount ?? 0) || 0;
+                    const paid = Number(item.amount_paid ?? item.amount ?? 0) || 0;
+                    if ((item.date || '').startsWith(todayKey)) collected += paid;
+                    const balance = Math.max(0, total - paid);
+                    if (balance > 0) {
+                        unpaid += balance;
+                        unpaidCount += 1;
+                    }
+                });
+                (expenseItems || []).forEach(item => {
+                    if (item.pending_delete || !(item.date || '').startsWith(todayKey)) return;
+                    expenses += Number(item.amount || 0) || 0;
+                });
+                const format = value => '₦' + value.toLocaleString('en-NG', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                const net = collected - expenses;
+                document.getElementById('daily-collected').textContent = format(collected);
+                document.getElementById('daily-expenses').textContent = format(expenses);
+                const netEl = document.getElementById('daily-net');
+                netEl.textContent = format(net);
+                netEl.classList.toggle('text-amber-700', net < 0);
+                netEl.classList.toggle('text-slate-900', net >= 0);
+                document.getElementById('daily-unpaid-count').textContent = unpaidCount;
+                document.getElementById('daily-unpaid-plural').textContent = unpaidCount === 1 ? '' : 's';
+                document.getElementById('daily-unpaid-balance').textContent = format(unpaid);
+                document.getElementById('daily-unpaid-alert').classList.toggle('hidden', unpaidCount === 0);
+                const noAttention = unpaidCount === 0 && document.getElementById('daily-stock-alert').classList.contains('hidden');
+                document.getElementById('daily-checkin-clear').classList.toggle('hidden', !noAttention);
+            } catch (error) {
+                console.warn('Could not refresh the daily business check-in:', error);
             }
         }
 
@@ -3199,6 +3296,7 @@
                     view?.classList.toggle('hidden', name !== tab);
                 });
                 document.getElementById('cfo-dashboard')?.classList.toggle('hidden', tab !== 'dashboard');
+                document.getElementById('daily-business-checkin')?.classList.toggle('hidden', tab !== 'dashboard');
                 document.getElementById('dashboard-insights')?.classList.toggle('hidden', tab !== 'dashboard');
 
                 document.querySelectorAll('[data-dashboard-tab]').forEach(link => {
@@ -4708,6 +4806,26 @@
                 } else {
                     presetsGrid.innerHTML = rows;
                     filterInventoryRows();
+                }
+                const lowStock = inventoryPresets
+                    .filter(product => Boolean(product.track_stock) && Number(product.stock || 0) <= 3)
+                    .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
+                const stockAlert = document.getElementById('daily-stock-alert');
+                stockAlert?.classList.toggle('hidden', lowStock.length === 0);
+                const stockCount = document.getElementById('daily-stock-count');
+                if (stockCount) stockCount.textContent = lowStock.length;
+                const stockPlural = document.getElementById('daily-stock-plural');
+                if (stockPlural) stockPlural.textContent = lowStock.length === 1 ? '' : 's';
+                const stockItems = document.getElementById('daily-stock-items');
+                if (stockItems) {
+                    const visibleItems = lowStock.slice(0, 5).map(product => `${product.item_name} (${product.stock})`);
+                    if (lowStock.length > 5) visibleItems.push(`and ${lowStock.length - 5} more`);
+                    stockItems.textContent = visibleItems.join(', ');
+                }
+                const clearNotice = document.getElementById('daily-checkin-clear');
+                const unpaidAlert = document.getElementById('daily-unpaid-alert');
+                if (clearNotice && unpaidAlert) {
+                    clearNotice.classList.toggle('hidden', lowStock.length > 0 || !unpaidAlert.classList.contains('hidden'));
                 }
                 renderInventorySalesPicker();
             }

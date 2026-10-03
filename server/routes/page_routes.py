@@ -128,6 +128,12 @@ def render_dashboard_page(section):
     total_expenses = 0.0
     total_outstanding = 0.0
     current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_collected = 0.0
+    today_expenses = 0.0
+    outstanding_sale_count = 0
+    total_unpaid_balance = 0.0
+    low_stock_items = []
     username = "Entrepreneur"
 
     try:
@@ -177,6 +183,38 @@ def render_dashboard_page(section):
             except Exception as e:
                 print(f"Dashboard outstanding sum note: {e}", flush=True)
 
+            try:
+                row = db.execute(
+                    "SELECT COALESCE(SUM(amount_paid), 0) AS total "
+                    "FROM income WHERE user_id = ? AND date LIKE ?",
+                    (user_id, today + "%"),
+                ).fetchone()
+                today_collected = float(row["total"] or 0)
+                row = db.execute(
+                    "SELECT COALESCE(SUM(amount), 0) AS total "
+                    "FROM expenses WHERE user_id = ? AND date LIKE ?",
+                    (user_id, today + "%"),
+                ).fetchone()
+                today_expenses = float(row["total"] or 0)
+                row = db.execute(
+                    "SELECT COUNT(CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) "
+                    "THEN 1 END) AS sale_count, COALESCE(SUM("
+                    "CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) "
+                    "THEN COALESCE(total_value, 0) - COALESCE(amount_paid, 0) ELSE 0 END), 0) AS balance "
+                    "FROM income WHERE user_id = ?",
+                    (user_id,),
+                ).fetchone()
+                outstanding_sale_count = int(row["sale_count"] or 0)
+                total_unpaid_balance = float(row["balance"] or 0)
+                low_stock_items = db.execute(
+                    "SELECT item_name, stock FROM inventory_presets "
+                    "WHERE user_id = ? AND track_stock = 1 AND COALESCE(stock, 0) <= 3 "
+                    "ORDER BY stock ASC, item_name ASC",
+                    (user_id,),
+                ).fetchall() or []
+            except Exception as e:
+                print(f"Dashboard daily check-in note: {e}", flush=True)
+
     except Exception as e:
         logging.error(f"Dashboard data fetch error for user '{user_id}': {e}", exc_info=True)
 
@@ -200,6 +238,13 @@ def render_dashboard_page(section):
         total_outstanding=total_outstanding,
         current_month=current_month,
         net_profit=net_profit,
+        today=today,
+        today_collected=today_collected,
+        today_expenses=today_expenses,
+        today_net=today_collected - today_expenses,
+        outstanding_sale_count=outstanding_sale_count,
+        total_unpaid_balance=total_unpaid_balance,
+        low_stock_items=low_stock_items,
         username=username,
         profile=profile,
         active_tab=active_tab
