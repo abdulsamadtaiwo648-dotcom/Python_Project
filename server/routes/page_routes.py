@@ -24,6 +24,11 @@ def data_access_notice():
     return render_template("data_access.html")
 
 
+@app.route("/privacy")
+def privacy_policy():
+    return render_template("privacy.html")
+
+
 @app.route('/sw.js')
 def service_worker():
     sw_script = render_template('sw.js', version=APP_VERSION)
@@ -40,6 +45,7 @@ def sitemap():
   <url><loc>https://solobiz.dev/</loc><lastmod>2026-09-20</lastmod><priority>1.0</priority></url>
   <url><loc>https://solobiz.dev/login</loc><priority>0.8</priority></url>
   <url><loc>https://solobiz.dev/register</loc><priority>0.8</priority></url>
+  <url><loc>https://solobiz.dev/privacy</loc><priority>0.5</priority></url>
 </urlset>"""
     response = make_response(xml)
     response.headers["Content-Type"] = "application/xml; charset=utf-8"
@@ -52,6 +58,7 @@ def robots():
 Allow: /
 Allow: /login
 Allow: /register
+Allow: /privacy
 Disallow: /dashboard
 Disallow: /api/
 

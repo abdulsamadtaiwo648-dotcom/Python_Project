@@ -9,10 +9,10 @@
     <meta name="google-site-verification" content="jIKs4os8bdWz0Ih9j9f8nuqwjYMYhWqxwqk8Yiwt2HY" />
 
     <!-- SEO and Social Sharing Tags -->
-    <meta name="description" content="SoloBiz is a free offline-first sales and expense tracker for independent vendors. Generate instant receipts and track daily profits.">
+    <meta name="description" content="Record sales and expenses, track stock, and see how your business is doing with SoloBiz.">
     <meta name="keywords" content="sales tracker, expense tracker, business receipt generator, vendor app, bookkeeping">
     <meta property="og:title" content="SoloBiz | Smart Finance for Independent Vendors">
-    <meta property="og:description" content="Log sales, track daily expenses, and generate professional multi-item receipts in seconds.">
+    <meta property="og:description" content="Keep your sales, expenses, stock, and business overview together in SoloBiz.">
     <meta property="og:type" content="website">
 
     <link rel="icon" href="/static/favicon.png" type="image/png">
@@ -622,6 +622,43 @@
             .mock-recent .mock-row-amt { font-size:.56rem; }
             .preview-float { position:relative; right:auto; bottom:auto; width:max-content; margin:-12px 0 0 auto; }
         }
+
+        /* A quieter, clearer first impression */
+        .hero-showcase { border-color:var(--border); border-radius:20px; color:var(--ink); background:#f8fafc; box-shadow:0 12px 36px rgba(15,23,42,.07); }
+        .hero-showcase::before { display:none; }
+        .hero-badge { color:#475569; border-color:#e2e8f0; background:#fff; letter-spacing:.04em; }
+        .badge-dot,.live-dot { background:#16a34a; box-shadow:none; }
+        .hero h1 { color:#111827; letter-spacing:-.045em; }
+        .hero h1 em { color:var(--blue); background:none; -webkit-text-fill-color:currentColor; }
+        .hero > .hero-copy > p:not(.hero-note) { color:#596579; }
+        .hero-note { color:#64748b; }
+        .hero-note > span:first-child { color:#15803d; background:#dcfce7; }
+        .preview-frame { border-color:#dbe3ed; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.08); }
+        .browser-bar { border-color:#e2e8f0; background:#fff; }
+        .dot,.browser-dots .dot:first-child,.browser-dots .dot:nth-child(2),.browser-dots .dot:nth-child(3) { background:#cbd5e1; }
+        .browser-url,.app-mockup { border-color:#e2e8f0; background:#f8fafc; color:#475569; }
+        .url-lock,.mock-pill,.recent-head a { color:#475569; }
+        .mock-title,.mock-chart-heading strong,.recent-head strong,.mock-recent .mock-row-label,.mock-recent .mock-row-amt { color:#172033; }
+        .mock-overline,.mock-chart-heading > div > span,.mock-row-label small,.preview-menu { color:#64748b; }
+        .mock-pill { background:#f1f5f9; }
+        .mock-card,.mock-chart-card,.mock-recent { border-color:#e2e8f0; background:#fff; }
+        .mock-card-label,.chart-y-labels,.chart-x-labels { color:#64748b; }
+        .mock-card-val { color:#172033; }
+        .mock-card-val.green,.mock-recent .mock-row-amt { color:#15803d; }
+        .mock-card-val.red,.mock-recent .expense-amount { color:#be123c; }
+        .mock-card-val.blue { color:#334155; }
+        .chart-gridline { stroke:#e2e8f0; }
+        .sales-line { stroke:#16a34a; }
+        .expense-line { stroke:#94a3b8; }
+        .preview-float { border-color:#e2e8f0; color:#172033; background:#fff; box-shadow:0 8px 20px rgba(15,23,42,.10); }
+        .float-check { color:#15803d; background:#dcfce7; }
+        .preview-float small { color:#64748b; }
+        .social-proof { display:none; }
+        .cta-box { background:#f1f5f9; }
+        .cta-text h2 { color:#111827; }
+        .cta-text p { color:#596579; }
+        .btn-outline-white { color:#172033; border-color:#cbd5e1; }
+        .btn-outline-white:hover { background:#e2e8f0; }
     </style>
     <link rel="stylesheet" href="/static/solobiz-ui.css">
 
@@ -659,14 +696,13 @@
     <div class="hero-showcase">
       <section class="hero">
         <div class="hero-copy">
-          <div class="hero-badge"><span class="badge-dot"></span> SALES &bull; INVENTORY &bull; EXPENSES</div>
-          <h1>Know your numbers.<br><em>Grow your business.</em></h1>
-          <p>Keep sales, stock, and expenses in one simple place. Build one receipt for every customer order and see how your business is doing from your phone.</p>
+          <div class="hero-badge"><span class="badge-dot"></span> SALES &bull; EXPENSES &bull; INVENTORY</div>
+          <h1>Track sales and expenses.<br><em>Know where you stand.</em></h1>
+          <p>Record sales and expenses, keep track of stock, and see what you have collected and what is still owed.</p>
           <div class="hero-cta">
-            <a href="/register" class="btn btn-blue btn-lg">Create your free account <span aria-hidden="true">&#8594;</span></a>
-            <a href="#features" class="btn btn-ghost btn-lg">Explore features</a>
+            <a href="/register" class="btn btn-blue btn-lg">Create an account <span aria-hidden="true">&#8594;</span></a>
+            <a href="#how-it-works" class="btn btn-ghost btn-lg">How it works</a>
           </div>
-          <p class="hero-note"><span aria-hidden="true">&#10003;</span> No credit card needed <span class="note-divider">&middot;</span> Made for phone and laptop</p>
         </div>
       </section>
 
@@ -679,16 +715,16 @@
           </div>
           <div class="app-mockup">
             <div class="mock-header">
-              <div><span class="mock-overline">THIS WEEK AT A GLANCE</span><span class="mock-title">Business overview</span></div>
-              <span class="mock-pill"><span class="live-dot"></span> Live overview</span>
+              <div><span class="mock-overline">SAMPLE DATA</span><span class="mock-title">Business overview</span></div>
+              <span class="mock-pill">Example week</span>
             </div>
             <div class="mock-cards">
-              <div class="mock-card"><div class="mock-card-label">Total Sales</div><div class="mock-card-val green">&#8358;84,500</div><div class="mock-trend">&#8593; 12.8% this week</div></div>
-              <div class="mock-card"><div class="mock-card-label">Expenses</div><div class="mock-card-val red">&#8358;21,200</div><div class="mock-trend muted-trend">Across 8 transactions</div></div>
-              <div class="mock-card"><div class="mock-card-label">Net Profit</div><div class="mock-card-val blue">&#8358;63,300</div><div class="mock-trend">Your business is up</div></div>
+              <div class="mock-card"><div class="mock-card-label">Sales collected</div><div class="mock-card-val green">&#8358;84,500</div></div>
+              <div class="mock-card"><div class="mock-card-label">Expenses</div><div class="mock-card-val red">&#8358;21,200</div></div>
+              <div class="mock-card"><div class="mock-card-label">Net cash flow</div><div class="mock-card-val blue">&#8358;63,300</div></div>
             </div>
             <div class="mock-chart-card">
-              <div class="mock-chart-heading"><div><strong>Cash flow</strong><span>Sales and expenses at a glance</span></div><span class="chart-period">This week</span></div>
+              <div class="mock-chart-heading"><div><strong>Sales and expenses</strong><span>Example totals over a week</span></div><span class="chart-period">This week</span></div>
               <div class="chart-area" aria-hidden="true">
                 <div class="chart-y-labels"><span>&#8358;30k</span><span>&#8358;20k</span><span>&#8358;10k</span><span>&#8358;0</span></div>
                 <svg viewBox="0 0 520 130" preserveAspectRatio="none" role="img" aria-label="Weekly sales and expense line chart">
@@ -701,7 +737,7 @@
                 <div class="chart-x-labels"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
               </div>
             </div>
-            <div class="mock-recent"><div class="recent-head"><strong>Recent activity</strong><a href="/register">View all <span aria-hidden="true">&#8594;</span></a></div>
+            <div class="mock-recent"><div class="recent-head"><strong>Example entries</strong><a href="/register">Get started <span aria-hidden="true">&#8594;</span></a></div>
               <div class="mock-row"><span class="activity-icon sale-icon">&#8599;</span><span class="mock-row-label">5x Eden Cap <small>Today &middot; Sale</small></span><span class="mock-row-amt">+&#8358;12,500</span></div>
               <div class="mock-row"><span class="activity-icon expense-icon">&#8601;</span><span class="mock-row-label">Stock Purchase <small>Today &middot; Expense</small></span><span class="mock-row-amt expense-amount">&#8722;&#8358;8,000</span></div>
             </div>
@@ -713,7 +749,7 @@
 
     <!-- SOCIAL PROOF -->
     <div class="social-proof">
-        <p>Trusted by independent vendors for</p>
+        <p>Keep the everyday parts of your business in one place</p>
         <div class="trust-items">
             <span class="trust-item">
                 <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
@@ -741,56 +777,56 @@
     <!-- FEATURES -->
     <section id="features" class="features">
         <div class="section-label">Features</div>
-        <h2 class="section-title">Everything you need.<br>Nothing you don&rsquo;t.</h2>
-        <p class="section-sub">Built from the ground up for vendors in the market &mdash; fast, offline-capable, and genuinely simple to use.</p>
+        <h2 class="section-title">The essentials, in one place.</h2>
+        <p class="section-sub">A clear record of what comes in, what goes out, and what is still owed.</p>
 
         <div class="features-grid">
             <div class="feature-cell">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                 </div>
-                <div class="feature-title">Fast Sales Logging</div>
-                <p class="feature-desc">Add one item or build a full multi-item order for a single customer. Each sale gets a unique receipt ID automatically.</p>
+                <div class="feature-title">Record sales</div>
+                <p class="feature-desc">Save each sale, including the amount paid and any balance still due.</p>
             </div>
 
             <div class="feature-cell">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 </div>
-                <div class="feature-title">Professional Receipts</div>
-                <p class="feature-desc">Generate a clean, printable PDF receipt for any sale in one tap. Includes your business name, customer, items, and total.</p>
+                <div class="feature-title">Share receipts</div>
+                <p class="feature-desc">Create a receipt for an order and share or print it when needed.</p>
             </div>
 
             <div class="feature-cell">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
                 </div>
-                <div class="feature-title">Expense Tracking</div>
-                <p class="feature-desc">Log logistics, stock restocking, and daily costs. Know exactly where every naira is going at all times.</p>
+                <div class="feature-title">Track expenses</div>
+                <p class="feature-desc">Record business costs by category and review them alongside your sales.</p>
             </div>
 
             <div class="feature-cell">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg>
                 </div>
-                <div class="feature-title">Live Profit Dashboard</div>
-                <p class="feature-desc">Your total sales, expenses, and net profit update in real time. Always know if you are making money today.</p>
+                <div class="feature-title">See your business summary</div>
+                <p class="feature-desc">Review sales, expenses, outstanding balances, and cash flow for the period you choose.</p>
             </div>
 
             <div class="feature-cell">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
                 </div>
-                <div class="feature-title">Works on Any Phone</div>
-                <p class="feature-desc">No app store needed. Open in your browser, add to home screen, and it works just like a native app &mdash; even offline.</p>
+                <div class="feature-title">Use it on your phone</div>
+                <p class="feature-desc">Open SoloBiz in your mobile browser and add it to your home screen for quick access.</p>
             </div>
 
             <div class="feature-cell">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z"/><path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2"/><path d="M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2"/></svg>
                 </div>
-                <div class="feature-title">Digital Business Card</div>
-                <p class="feature-desc">Set up your brand once. Get a professional card with your name, phone, and address, ready to share or download instantly.</p>
+                <div class="feature-title">Set up your business profile</div>
+                <p class="feature-desc">Add your business details so they can appear on your receipts and business page.</p>
             </div>
         </div>
     </section>
@@ -799,23 +835,23 @@
     <section id="how-it-works" class="how">
         <div class="how-inner">
             <div class="section-label">How it works</div>
-            <h2 class="section-title">Up and running in minutes.</h2>
+            <h2 class="section-title">Get started in three steps.</h2>
 
             <div class="steps">
                 <div class="step">
                     <div class="step-num">1</div>
-                    <div class="step-title">Create your free account</div>
-                    <p class="step-desc">Sign up with your email and password. No payment required. Your account is ready immediately with no waiting.</p>
+                    <div class="step-title">Create an account</div>
+                    <p class="step-desc">Sign up with your name, email, and password, then verify your email address.</p>
                 </div>
                 <div class="step">
                     <div class="step-num">2</div>
                     <div class="step-title">Set up your business profile</div>
-                    <p class="step-desc">Add your business name, phone number, and address. This appears on every receipt you generate for your customers.</p>
+                    <p class="step-desc">Add your business details to personalize your records and receipts.</p>
                 </div>
                 <div class="step">
                     <div class="step-num">3</div>
-                    <div class="step-title">Start logging and growing</div>
-                    <p class="step-desc">Log your first sale, track expenses, and download a receipt &mdash; all within your first session on the platform.</p>
+                    <div class="step-title">Record your activity</div>
+                    <p class="step-desc">Add sales, expenses, and stock as your business day goes on.</p>
                 </div>
             </div>
         </div>
@@ -825,11 +861,11 @@
     <div class="cta-section">
         <div class="cta-box">
             <div class="cta-text">
-                <h2>Ready to take control?</h2>
-                <p>Join vendors who track their business properly with SoloBiz.</p>
+                <h2>Ready to get started?</h2>
+                <p>Keep your business records together with SoloBiz.</p>
             </div>
             <div class="cta-actions">
-                <a href="/register" class="btn btn-white btn-lg">Create free account</a>
+                <a href="/register" class="btn btn-white btn-lg">Create an account</a>
                 <a href="/login" class="btn btn-outline-white btn-lg">Sign in</a>
             </div>
         </div>
@@ -846,6 +882,7 @@
                 <a href="/login">Sign in</a>
                 <a href="/register">Sign up</a>
                 <a href="/data-access">Data access</a>
+                <a href="/privacy">Privacy policy</a>
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How it works</a>
             </div>

@@ -26,6 +26,7 @@ def register():
         first_name = request.form.get("first_name", "").strip()
         last_name = request.form.get("last_name", "").strip()
         confirm_password = request.form.get("confirm_password", "").strip()
+        privacy_accepted = request.form.get("privacy_accepted") == "on"
         otp_code = request.form.get("otp_code", "").strip()
 
         if otp_code:
@@ -60,6 +61,9 @@ def register():
 
         if not email or not password or not first_name or not last_name or not confirm_password:
             flash("Please fill in all required fields.", "danger")
+            return render_template("register.html")
+        if not privacy_accepted:
+            flash("Please review and accept the Privacy Policy to create an account.", "danger")
             return render_template("register.html")
         if password != confirm_password:
             flash("Passwords do not match.", "danger")
@@ -101,9 +105,12 @@ def register_api_request():
         last_name = (data.get("last_name") or "").strip()
         password = (data.get("password") or "").strip()
         confirm_password = (data.get("confirm_password") or "").strip()
+        privacy_accepted = data.get("privacy_accepted") is True
 
         if not email or not first_name or not last_name or not password or not confirm_password:
             return jsonify({"status": "error", "message": "Complete all required fields."}), 400
+        if not privacy_accepted:
+            return jsonify({"status": "error", "message": "Please review and accept the Privacy Policy to create an account."}), 400
         if password != confirm_password:
             return jsonify({"status": "error", "message": "Passwords do not match."}), 400
         if not is_valid_password(password):
