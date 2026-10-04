@@ -177,6 +177,27 @@ def init_admin_db():
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
             )
         """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """ if not db.is_postgres else """
+            CREATE TABLE IF NOT EXISTS user_activity_logs (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
+            )
+        """)
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_user_activity_user_time "
+            "ON user_activity_logs (user_id, created_at)"
+        )
         db.execute(
             "CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at "
             "ON admin_audit_logs (created_at)"
@@ -276,6 +297,13 @@ def init_db():
                 price NUMERIC NOT NULL,
                 stock INTEGER DEFAULT 0,
                 track_stock INTEGER NOT NULL DEFAULT 0
+            )""",
+            """CREATE TABLE IF NOT EXISTS user_activity_logs (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
             )"""
         ]
         for tbl_sql in tables:
@@ -330,7 +358,8 @@ def init_db():
                 last_sent TEXT NOT NULL,
                 PRIMARY KEY (email, purpose)
             )""",
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_business_profiles_store_slug ON business_profiles (store_slug)"
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_business_profiles_store_slug ON business_profiles (store_slug)",
+            "CREATE INDEX IF NOT EXISTS idx_user_activity_user_time ON user_activity_logs (user_id, created_at)",
         ]
         for alter_cmd in migrations:
             try:
@@ -351,6 +380,7 @@ def init_db():
                         DELETE FROM income WHERE user_id = OLD.id;
                         DELETE FROM business_profiles WHERE user_id = OLD.id;
                         DELETE FROM inventory_presets WHERE user_id = OLD.id;
+                        DELETE FROM user_activity_logs WHERE user_id = OLD.id;
                         DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                         RETURN OLD;
                     END;
@@ -362,7 +392,7 @@ def init_db():
                     AFTER DELETE ON users
                     FOR EACH ROW EXECUTE FUNCTION solobiz_cleanup_deleted_user()
                 """)
-                for table in ("expenses", "income", "business_profiles", "inventory_presets"):
+                for table in ("expenses", "income", "business_profiles", "inventory_presets", "user_activity_logs"):
                     db.execute(
                         f"DELETE FROM {table} WHERE NOT EXISTS "
                         f"(SELECT 1 FROM users WHERE users.id = {table}.user_id)"
@@ -464,6 +494,19 @@ def init_db():
                     track_stock INTEGER NOT NULL DEFAULT 0
                 )
             """)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS user_activity_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_activity_user_time "
+                "ON user_activity_logs (user_id, created_at)"
+            )
             for col_name, col_type in [
                 ("instagram_handle", "TEXT"),
                 ("whatsapp_number", "TEXT"),
@@ -519,18 +562,20 @@ def init_db():
                 )
             except Exception:
                 pass
+            db.execute("DROP TRIGGER IF EXISTS solobiz_user_delete_cleanup")
             db.execute("""
-                CREATE TRIGGER IF NOT EXISTS solobiz_user_delete_cleanup
+                CREATE TRIGGER solobiz_user_delete_cleanup
                 AFTER DELETE ON users
                 BEGIN
                     DELETE FROM expenses WHERE user_id = OLD.id;
                     DELETE FROM income WHERE user_id = OLD.id;
                     DELETE FROM business_profiles WHERE user_id = OLD.id;
                     DELETE FROM inventory_presets WHERE user_id = OLD.id;
+                    DELETE FROM user_activity_logs WHERE user_id = OLD.id;
                     DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                 END
             """)
-            for table in ("expenses", "income", "business_profiles", "inventory_presets"):
+            for table in ("expenses", "income", "business_profiles", "inventory_presets", "user_activity_logs"):
                 db.execute(
                     f"DELETE FROM {table} WHERE NOT EXISTS "
                     f"(SELECT 1 FROM users WHERE users.id = {table}.user_id)"

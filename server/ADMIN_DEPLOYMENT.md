@@ -42,6 +42,7 @@ the DNS record Render provides. Keep the existing SoloBiz web service on its
 current domain. The portal includes a platform overview, searchable business
 accounts, cross-business sales and expense views, amount and payment-status
 filters, reversible account pausing, reason-gated data views, login throttling,
-and an audit history. Financial records can be reviewed but are not changed
-through the portal. Admin data-access events are retained for approximately
-one year.
+an administrator audit history, and a user activity feed for sign-ins, password
+resets, transactions, inventory changes, and profile updates or requests.
+Financial records can be reviewed but are not changed through the portal.
+Admin and user activity records are retained for approximately one year.

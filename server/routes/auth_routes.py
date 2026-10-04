@@ -9,6 +9,8 @@ from ..app import (
     complete_login,
     get_current_user_id,
     get_db,
+    record_user_activity,
+    record_user_login,
     is_unique_violation,
     is_valid_password,
     send_and_store_otp,
@@ -42,6 +44,7 @@ def register():
                         "INSERT INTO users (id, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)",
                         (new_user_id, email, registration.get("password"), registration.get("first_name"), registration.get("last_name"))
                     )
+                    record_user_activity(db, new_user_id, "account_created", "Created a SoloBiz account")
                     db.commit()
                 verify_otp(email, "register", otp_code, consume=True)
                 session.pop("user_id", None)
@@ -146,6 +149,7 @@ def register_api_verify():
                 "INSERT INTO users (id, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)",
                 (new_user_id, email, registration.get("password"), registration.get("first_name"), registration.get("last_name"))
             )
+            record_user_activity(db, new_user_id, "account_created", "Created a SoloBiz account")
             db.commit()
         verify_otp(email, "register", code, consume=True)
         session.pop("user_id", None)
@@ -204,11 +208,15 @@ def login():
             with get_db() as db:
                 user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
                 if not user or not user["password"] or not check_password_hash(user["password"], password):
+                    if user:
+                        record_user_activity(db, user["id"], "sign_in_failed", "Unsuccessful sign-in attempt")
                     flash("Invalid email or password. Please try again.", "danger")
                     return render_template("login.html")
                 if user["account_status"] != "active":
+                    record_user_activity(db, user["id"], "sign_in_blocked", "Sign-in attempt blocked because the account is paused")
                     flash("This account is currently unavailable. Please contact support.", "danger")
                     return render_template("login.html")
+                record_user_login(db, user["id"])
                 complete_login(user["id"])
                 return redirect("/dashboard")
         except Exception as e:
@@ -248,6 +256,8 @@ def forgot_password_request():
 
         with get_db() as db:
             user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            if user:
+                record_user_activity(db, user["id"], "password_change_requested", "Requested a password reset")
         if user:
             ok, message, status, _ = send_and_store_otp(email, "reset", None, "Password Reset")
             if not ok:
@@ -267,6 +277,8 @@ def forgot_password_resend():
             return jsonify({"status": "error", "message": "Please enter a valid email address."}), 400
         with get_db() as db:
             user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            if user:
+                record_user_activity(db, user["id"], "password_reset_code_resent", "Requested another password reset code")
         if user:
             ok, message, status, _ = send_and_store_otp(email, "reset", None, "Password Reset")
             if not ok:
@@ -286,16 +298,30 @@ def forgot_password_reset():
         new_password = (data.get("password") or "").strip()
 
         if not email or not code or not new_password:
+            if email:
+                with get_db() as db:
+                    user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+                    if user:
+                        record_user_activity(db, user["id"], "password_change_failed", "Password change submission was incomplete")
             return jsonify({"status": "error", "message": "Email, verification PIN, and new password are required."}), 400
         if not is_valid_password(new_password):
+            with get_db() as db:
+                user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+                if user:
+                    record_user_activity(db, user["id"], "password_change_failed", "Password change attempt did not meet security requirements")
             return jsonify({"status": "error", "message": "New password must be at least 8 characters and include a letter and a number."}), 400
 
         with get_db() as db:
-            if not db.execute("SELECT 1 FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone():
+            user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+            if not user:
                 return jsonify({"status": "error", "message": "No account exists for this email. Please register first."}), 404
 
         record, error = verify_otp(email, "reset", code, consume=True)
         if error:
+            with get_db() as db:
+                user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+                if user:
+                    record_user_activity(db, user["id"], "password_change_failed", "Password reset verification failed")
             return jsonify({"status": "error", "message": error}), 400
 
         hashed = generate_password_hash(new_password)
@@ -304,6 +330,8 @@ def forgot_password_reset():
             db.commit()
             user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
             if user:
+                record_user_activity(db, user["id"], "password_changed", "Password was changed through account recovery")
+                record_user_login(db, user["id"])
                 complete_login(user["id"])
 
         return jsonify({"status": "ok", "message": "Password updated successfully!", "redirect": "/dashboard"})

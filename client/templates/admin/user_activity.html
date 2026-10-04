@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}User activity{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Security and oversight</p><h1>User activity</h1><p class="summary">Recent sign-ins, password changes, transactions, and profile updates across business accounts.</p></div></div>
+<section class="panel"><div class="table-wrap"><table><thead><tr><th>Time</th><th>Business or account</th><th>Email</th><th>Activity</th></tr></thead><tbody>
+{% for event in events %}<tr><td>{{ event.created_at }}</td><td><a class="link" href="{{ url_for('user_detail', user_id=event.user_id) }}">{{ event.company_name or (((event.first_name or '') ~ ' ' ~ (event.last_name or ''))|trim) or 'Business profile not set' }}</a></td><td>{{ event.email }}</td><td>{{ event.summary }}</td></tr>
+{% else %}<tr><td colspan="4" class="empty">No user activity has been recorded yet.</td></tr>{% endfor %}
+</tbody></table></div><p class="muted" style="font-size:12px">Showing up to 200 events. User activity records are removed after approximately one year.</p></section>
+{% endblock %}

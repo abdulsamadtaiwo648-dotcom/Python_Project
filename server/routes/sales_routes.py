@@ -7,6 +7,7 @@ from ..app import (
     app,
     get_current_user_id,
     get_db,
+    record_user_activity,
 )
 
 
@@ -89,6 +90,7 @@ def api_income():
                 "date": income_date,
                 "receipt_id": receipt_id
             }
+            record_user_activity(db, user_id, "sale_created", "Recorded a sale")
             db.commit()
 
         return jsonify({
@@ -156,6 +158,7 @@ def api_delete_income(income_id):
                 if stock_row:
                     restored_stock[str(inventory_id)] = int(dict(stock_row)["stock"] or 0)
 
+            record_user_activity(db, user_id, "sale_deleted", "Deleted a sale")
             db.commit()
 
         return jsonify({
@@ -313,6 +316,8 @@ def api_checkout():
                     "total_value": line_total, "amount_paid": line_paid, "customer_name": customer_name,
                     "payment_mode": payment_mode, "date": sale_date, "receipt_id": receipt_id, "checkout_id": checkout_id
                 })
+            record_user_activity(db, user_id, "sale_created", f"Recorded a sale with {len(saved_items)} item(s)")
+            db.commit()
     except ValueError as error:
         return jsonify({"status": "error", "message": str(error)}), 409
 
@@ -351,6 +356,7 @@ def update_payment(receipt_id):
             "UPDATE income SET amount_paid = ? WHERE id = ? AND user_id = ?",
             (updated_paid, receipt_id, user_id)
         )
+        record_user_activity(db, user_id, "sale_payment_updated", "Recorded a payment against a sale")
         db.commit()
 
     return jsonify({
@@ -415,6 +421,8 @@ def sync_sales():
                 "customer_name": customer_name, "payment_mode": payment_mode,
                 "date": sale_date, "receipt_id": receipt_id
             })
+        if saved_items:
+            record_user_activity(db, user_id, "sale_created", f"Synced {len(saved_items)} sale item(s)")
         db.commit()
 
     return jsonify({

@@ -7,6 +7,7 @@ from ..app import (
     app,
     get_current_user_id,
     get_db,
+    record_user_activity,
 )
 
 
@@ -71,6 +72,7 @@ def add_expense():
             (user_id, amount, category, description, expense_date)
         )
         expense_id = cursor.lastrowid
+        record_user_activity(db, user_id, "expense_created", "Recorded an expense")
         db.commit()
 
     return jsonify({
@@ -95,7 +97,9 @@ def api_expense_detail(expense_id):
 
     if request.method == "DELETE":
         with get_db() as db:
-            db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
+            deleted = db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
+            if deleted.rowcount:
+                record_user_activity(db, user_id, "expense_deleted", "Deleted an expense")
             db.commit()
         return jsonify({"status": "success", "message": "Expense deleted successfully", "id": expense_id}), 200
 
@@ -118,10 +122,12 @@ def api_expense_detail(expense_id):
 
         expense_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
         with get_db() as db:
-            db.execute(
+            updated = db.execute(
                 "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
                 (amount, category, description, expense_date, expense_id, user_id)
             )
+            if updated.rowcount:
+                record_user_activity(db, user_id, "expense_updated", "Updated an expense")
             db.commit()
 
         return jsonify({
@@ -143,6 +149,7 @@ def delete_expense(expense_id):
         if not existing:
             return redirect("/dashboard")
         db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
+        record_user_activity(db, user_id, "expense_deleted", "Deleted an expense")
         db.commit()
     return redirect("/dashboard")
 
@@ -180,10 +187,12 @@ def edit_expense(expense_id):
 
         expenses_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
         with get_db() as db:
-            db.execute(
+            updated = db.execute(
                 "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
                 (amount, category, description, expenses_date, expense_id, user_id)
             )
+            if updated.rowcount:
+                record_user_activity(db, user_id, "expense_updated", "Updated an expense")
             db.commit()
         return redirect("/dashboard")
 

@@ -56,7 +56,7 @@ ACCESS_PURPOSES = {
 }
 SENSITIVE_ENDPOINTS = {
     "dashboard", "users", "user_detail", "update_user_status",
-    "sales", "expenses", "activity",
+    "sales", "expenses", "activity", "user_activity",
 }
 ADMIN_LOGIN_WINDOW = timedelta(minutes=15)
 ADMIN_LOGIN_LOCKOUT = timedelta(minutes=15)
@@ -210,10 +210,11 @@ def purge_expired_admin_audit_logs():
     try:
         with get_db() as db:
             db.execute("DELETE FROM admin_audit_logs WHERE created_at < ?", (cutoff,))
+            db.execute("DELETE FROM user_activity_logs WHERE created_at < ?", (cutoff,))
             db.commit()
         _last_audit_cleanup = now
     except Exception:
-        logging.exception("Could not purge expired admin audit records")
+        logging.exception("Could not purge expired admin or user activity records")
     return None
 
 
@@ -351,6 +352,13 @@ def dashboard(admin):
                 "SELECT action, target_type, target_id, reason, created_at "
                 "FROM admin_audit_logs ORDER BY id DESC LIMIT 6"
             ).fetchall(),
+            "recent_user_activity": db.execute(
+                "SELECT a.user_id, a.event_type, a.summary, a.created_at, "
+                "u.email, u.first_name, u.last_name, bp.company_name "
+                "FROM user_activity_logs a JOIN users u ON u.id = a.user_id "
+                "LEFT JOIN business_profiles bp ON bp.user_id = u.id "
+                "ORDER BY a.id DESC LIMIT 10"
+            ).fetchall(),
         }
         log_sensitive_view(db, admin, "viewed platform overview", "analytics")
         db.commit()
@@ -364,7 +372,9 @@ def users(admin):
     pattern = f"%{query}%"
     with get_db() as db:
         rows = db.execute(
-            "SELECT u.id, u.email, u.first_name, u.last_name, u.account_status, bp.company_name "
+            "SELECT u.id, u.email, u.first_name, u.last_name, u.account_status, bp.company_name, "
+            "(SELECT MAX(a.created_at) FROM user_activity_logs a "
+            "WHERE a.user_id = u.id AND a.event_type = 'sign_in') AS last_login "
             "FROM users u LEFT JOIN business_profiles bp ON bp.user_id = u.id "
             "WHERE (? = '' OR LOWER(u.email) LIKE LOWER(?) "
             "OR LOWER(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) LIKE LOWER(?) "
@@ -397,9 +407,13 @@ def user_detail(admin, user_id):
             "SELECT id, category, description, amount, date "
             "FROM expenses WHERE user_id = ? ORDER BY id DESC LIMIT 100", (user_id,)
         ).fetchall()
+        user_activity = db.execute(
+            "SELECT event_type, summary, created_at FROM user_activity_logs "
+            "WHERE user_id = ? ORDER BY id DESC LIMIT 100", (user_id,)
+        ).fetchall()
         log_sensitive_view(
             db, admin, "viewed business account and transactions", "user", user_id,
-            count=len(sales) + len(expenses),
+            count=len(sales) + len(expenses) + len(user_activity),
         )
         audit = db.execute(
             "SELECT action, reason, created_at FROM admin_audit_logs "
@@ -407,7 +421,7 @@ def user_detail(admin, user_id):
         ).fetchall()
     return render_template(
         "user_detail.html", admin_email=admin["email"], user=user,
-        sales=sales, expenses=expenses, audit=audit,
+        sales=sales, expenses=expenses, user_activity=user_activity, audit=audit,
     )
 
 
@@ -545,6 +559,22 @@ def activity(admin):
             "ORDER BY a.id DESC LIMIT 200"
         ).fetchall()
     return render_template("activity.html", admin_email=admin["email"], events=rows)
+
+
+@admin_app.get("/user-activity")
+@require_super_admin
+def user_activity(admin):
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT a.event_type, a.summary, a.created_at, a.user_id, u.email, "
+            "u.first_name, u.last_name, bp.company_name "
+            "FROM user_activity_logs a JOIN users u ON u.id = a.user_id "
+            "LEFT JOIN business_profiles bp ON bp.user_id = u.id "
+            "ORDER BY a.id DESC LIMIT 200"
+        ).fetchall()
+        log_sensitive_view(db, admin, "viewed user activity history", "user_activity", count=len(rows))
+        db.commit()
+    return render_template("user_activity.html", admin_email=admin["email"], events=rows)
 
 
 @admin_app.post("/logout")

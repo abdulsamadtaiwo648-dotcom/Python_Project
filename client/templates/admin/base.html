@@ -61,6 +61,7 @@
       <a href="{{ url_for('users') }}" {% if request.endpoint in ('users', 'user_detail') %}aria-current="page"{% endif %}>Businesses</a>
       <a href="{{ url_for('sales') }}" {% if request.endpoint == 'sales' %}aria-current="page"{% endif %}>Sales</a>
       <a href="{{ url_for('expenses') }}" {% if request.endpoint == 'expenses' %}aria-current="page"{% endif %}>Expenses</a>
+      <a href="{{ url_for('user_activity') }}" {% if request.endpoint == 'user_activity' %}aria-current="page"{% endif %}>User activity</a>
       <a href="{{ url_for('activity') }}" {% if request.endpoint == 'activity' %}aria-current="page"{% endif %}>Admin activity</a>
     </nav>
     <div class="account"><span>{{ admin_email }}</span><form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">Sign out</button></form></div>

@@ -1259,6 +1259,24 @@
                         <div id="profile-change-lock" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3" role="status" aria-live="polite">
                             <p id="profile-change-window-copy" class="text-xs leading-relaxed text-amber-900"></p>
                         </div>
+                        <p id="profile-request-feedback" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status" aria-live="polite"></p>
+                        {% if profile %}
+                        <div>
+                            <label for="profile-change-reason" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Reason for profile change *</label>
+                            <select name="profile_change_reason" id="profile-change-reason" required class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Choose a reason</option>
+                                <option value="business_rebrand">Business rebrand</option>
+                                <option value="contact_update">Contact information update</option>
+                                <option value="business_relocation">Business location change</option>
+                                <option value="business_details">Correct business details</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div id="profile-change-other-wrap" class="hidden">
+                            <label for="profile-change-note" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Brief reason *</label>
+                            <input type="text" name="profile_change_note" id="profile-change-note" maxlength="100" placeholder="Add a short explanation" class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        {% endif %}
                         
                         <!-- Company Name -->
                         <div>
@@ -1952,7 +1970,9 @@
                 window.SOLOBIZ_PROFILE = profileRecord;
                 return profileRecord;
             } else {
-                throw new Error(result.message || 'Failed to save business profile');
+                const error = new Error(result.message || 'Failed to save business profile');
+                error.requestRecorded = Boolean(result.request_recorded);
+                throw error;
             }
         }
 
@@ -5670,17 +5690,23 @@
                     const isLocked = Boolean(changedAt && allowedAt && Date.now() < allowedAt.getTime());
                     profileChangeLock?.classList.toggle('hidden', !isLocked);
                     if (isLocked && allowedAt && profileChangeWindowCopy) {
-                        profileChangeWindowCopy.textContent = `You can update your business profile after ${allowedAt.toLocaleDateString()}. For a time-sensitive change, please contact our support team.`;
+                        profileChangeWindowCopy.textContent = `Profile updates are available after ${allowedAt.toLocaleDateString()}. You can still submit a request with a reason. For an urgent update, please contact support.`;
                     }
-                    profileForm.querySelectorAll('input, textarea, select, button[type="submit"]').forEach(control => {
-                        control.disabled = isLocked;
-                    });
-                    return !isLocked;
                 }
                 window.refreshProfileEditAvailability = refreshProfileEditAvailability;
                 profileForm.addEventListener('input', () => {
                     profileRequiredError?.classList.add('hidden');
                     if (profileRequiredError) profileRequiredError.textContent = '';
+                    document.getElementById('profile-request-feedback')?.classList.add('hidden');
+                });
+                const changeReasonSelect = document.getElementById('profile-change-reason');
+                const otherReasonWrap = document.getElementById('profile-change-other-wrap');
+                const otherReasonInput = document.getElementById('profile-change-note');
+                changeReasonSelect?.addEventListener('change', () => {
+                    const isOther = changeReasonSelect.value === 'other';
+                    otherReasonWrap?.classList.toggle('hidden', !isOther);
+                    if (otherReasonInput) otherReasonInput.required = isOther;
+                    if (!isOther && otherReasonInput) otherReasonInput.value = '';
                 });
                 profileForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
@@ -5700,10 +5726,25 @@
                         document.getElementById(requiredProfileFields.find(([id]) => !document.getElementById(id)?.value.trim())?.[0])?.focus();
                         return;
                     }
-                    if (!refreshProfileEditAvailability()) {
-                        profileChangeLock?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (changeReasonSelect && !changeReasonSelect.value) {
+                        if (profileRequiredError) {
+                            profileRequiredError.textContent = 'Select a reason for changing your business profile.';
+                            profileRequiredError.classList.remove('hidden');
+                        }
+                        changeReasonSelect.focus();
                         return;
                     }
+                    if (changeReasonSelect?.value === 'other' && !otherReasonInput?.value.trim()) {
+                        if (profileRequiredError) {
+                            profileRequiredError.textContent = 'Add a short explanation for the reason you selected.';
+                            profileRequiredError.classList.remove('hidden');
+                        }
+                        otherReasonWrap?.classList.remove('hidden');
+                        otherReasonInput?.focus();
+                        return;
+                    }
+                    refreshProfileEditAvailability();
+                    document.getElementById('profile-request-feedback')?.classList.add('hidden');
                     const saveBtn = document.getElementById('btn-save-profile');
                     if (saveBtn) {
                         saveBtn.disabled = true;
@@ -5766,7 +5807,18 @@
                         toggleProfileMode('view');
                     } catch (err) {
                         console.error('Save profile error:', err);
-                        alert('Error saving profile: ' + (err.message || 'Invalid code'));
+                        if (err.requestRecorded) {
+                            const feedback = document.getElementById('profile-request-feedback');
+                            if (feedback) {
+                                feedback.textContent = err.message;
+                                feedback.classList.remove('hidden');
+                            }
+                            document.getElementById('profile-otp-modal').classList.add('hidden');
+                            otpForm.reset();
+                            pendingProfileFormData = null;
+                        } else {
+                            alert('Error saving profile: ' + (err.message || 'Invalid code'));
+                        }
                     } finally {
                         if (verifyBtn) {
                             verifyBtn.disabled = false;

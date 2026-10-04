@@ -3,8 +3,8 @@
 {% block content %}
 <div class="heading"><div><p class="eyebrow">Accounts</p><h1>Businesses</h1><p class="summary">Find an account, review its business information and recorded activity.</p></div></div>
 <form class="toolbar" method="get"><input type="search" name="q" value="{{ query }}" placeholder="Search name or email" aria-label="Search name or email"><button class="primary" type="submit">Search</button>{% if query %}<a class="button" href="{{ url_for('users') }}">Clear</a>{% endif %}</form>
-<section class="panel"><div class="table-wrap"><table><thead><tr><th>Business or account</th><th>Email</th><th>Access</th><th></th></tr></thead><tbody>
-{% for user in users %}<tr><td>{{ user.company_name or ((user.first_name or '') ~ ' ' ~ (user.last_name or '')) or 'Business profile not set' }}</td><td>{{ user.email }}</td><td><span class="pill {% if user.account_status != 'active' %}paused{% endif %}">{{ user.account_status|capitalize }}</span></td><td><a class="link" href="{{ url_for('user_detail', user_id=user.id) }}">View account</a></td></tr>
+<section class="panel"><div class="table-wrap"><table><thead><tr><th>Business or account</th><th>Email</th><th>Last sign-in</th><th>Access</th><th></th></tr></thead><tbody>
+{% for user in users %}<tr><td>{{ user.company_name or ((user.first_name or '') ~ ' ' ~ (user.last_name or '')) or 'Business profile not set' }}</td><td>{{ user.email }}</td><td>{{ user.last_login or 'Never' }}</td><td><span class="pill {% if user.account_status != 'active' %}paused{% endif %}">{{ user.account_status|capitalize }}</span></td><td><a class="link" href="{{ url_for('user_detail', user_id=user.id) }}">View account</a></td></tr>
 {% else %}<tr><td colspan="4" class="empty">No matching accounts found.</td></tr>{% endfor %}
 </tbody></table></div><p class="muted" style="font-size:12px">Showing up to 200 matching accounts.</p></section>
 {% endblock %}

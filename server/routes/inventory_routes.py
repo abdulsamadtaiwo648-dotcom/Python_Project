@@ -6,6 +6,7 @@ from ..app import (
     app,
     get_current_user_id,
     get_db,
+    record_user_activity,
 )
 
 
@@ -45,6 +46,7 @@ def api_inventory_presets():
                 "INSERT INTO inventory_presets (user_id, item_name, price, stock, track_stock) VALUES (?, ?, ?, ?, ?)",
                 (user_id, item_name, price, stock, 1 if stock > 0 else 0)
             )
+            record_user_activity(db, user_id, "inventory_item_created", "Added an inventory item")
             db.commit()
         return jsonify({"status": "success", "preset": {"id": cursor.lastrowid, "item_name": item_name, "price": price, "stock": stock, "track_stock": stock > 0}}), 201
 
@@ -62,6 +64,7 @@ def api_inventory_preset_detail(preset_id):
 
         if request.method == "DELETE":
             db.execute("DELETE FROM inventory_presets WHERE id = ? AND user_id = ?", (preset_id, user_id))
+            record_user_activity(db, user_id, "inventory_item_deleted", "Removed an inventory item")
             db.commit()
             return jsonify({"status": "success", "message": "Preset deleted"}), 200
 
@@ -84,6 +87,7 @@ def api_inventory_preset_detail(preset_id):
                 "UPDATE inventory_presets SET item_name = ?, price = ?, stock = ?, track_stock = ? WHERE id = ? AND user_id = ?",
                 (item_name, price, stock, 1 if stock > 0 or bool(dict(existing).get("track_stock", 0)) else 0, preset_id, user_id)
             )
+            record_user_activity(db, user_id, "inventory_item_updated", "Updated an inventory item")
             db.commit()
             return jsonify({"status": "success", "preset": {"id": preset_id, "item_name": item_name, "price": price, "stock": stock, "track_stock": stock > 0 or bool(dict(existing).get("track_stock", 0))}}), 200
 

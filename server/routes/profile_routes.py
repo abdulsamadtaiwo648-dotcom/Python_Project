@@ -7,12 +7,21 @@ from ..app import (
     app,
     get_current_user_id,
     get_db,
+    record_user_activity,
     sanitize_brand_color,
     sanitize_logo_url,
     save_uploaded_logo,
     send_and_store_otp,
     verify_otp,
 )
+
+PROFILE_CHANGE_REASONS = {
+    "business_rebrand": "Business rebrand",
+    "contact_update": "Contact information update",
+    "business_relocation": "Business location change",
+    "business_details": "Business details correction",
+    "other": "Other",
+}
 
 
 def slugify(text):
@@ -132,6 +141,8 @@ def request_profile_otp():
 
     with get_db() as db:
         user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+        if user:
+            record_user_activity(db, user_id, "profile_change_code_requested", "Requested a verification code for a business profile change")
 
     if not user:
         return jsonify({"status": "error", "message": "User not found"}), 404
@@ -199,6 +210,8 @@ def api_business_profile():
             ) if not value
         ]
         if missing_profile_fields:
+            with get_db() as db:
+                record_user_activity(db, user_id, "profile_change_rejected", "Business profile submission was missing required fields")
             return jsonify({
                 "status": "error",
                 "message": "Please complete the required business profile fields: " + ", ".join(missing_profile_fields) + ".",
@@ -228,6 +241,30 @@ def api_business_profile():
         elif requested_logo_url is not None and requested_logo_url != (existing_dict.get("logo_url") or ""):
             profile_changed = True
 
+        reason_code = str(data.get("profile_change_reason", "")).strip()
+        reason_label = PROFILE_CHANGE_REASONS.get(reason_code, "")
+        reason_note = str(data.get("profile_change_note", "")).strip()[:100]
+        if profile_changed and existing and not reason_label:
+            with get_db() as db:
+                record_user_activity(db, user_id, "profile_change_rejected", "Business profile change submitted without a valid reason")
+            return jsonify({"status": "error", "message": "Select a reason for changing your business profile."}), 400
+        if profile_changed and existing and reason_code == "other" and not reason_note:
+            with get_db() as db:
+                record_user_activity(db, user_id, "profile_change_rejected", "Business profile change submitted without the required reason details")
+            return jsonify({"status": "error", "message": "Add a short explanation for the reason you selected."}), 400
+
+        provided_otp = str(data.get("otp", "")).strip()
+        with get_db() as db:
+            user_row = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not user_row:
+            return jsonify({"status": "error", "message": "User not found"}), 404
+
+        _record, otp_error = verify_otp(user_row["email"], "profile", provided_otp, consume=True)
+        if otp_error:
+            with get_db() as db:
+                record_user_activity(db, user_id, "profile_change_verification_failed", "Business profile change verification failed")
+            return jsonify({"status": "error", "message": otp_error}), 400
+
         last_changed_at = existing_dict.get("profile_updated_at")
         if profile_changed and last_changed_at:
             try:
@@ -241,26 +278,28 @@ def api_business_profile():
                 allowed_after = previous_change.replace(year=target_year, month=target_month, day=target_day)
                 if datetime.now(timezone.utc) < allowed_after:
                     available_date = allowed_after.strftime("%B %d, %Y").replace(" 0", " ")
+                    reason_text = f" — {reason_note}" if reason_code == "other" and reason_note else ""
+                    with get_db() as db:
+                        record_user_activity(
+                            db, user_id, "profile_change_requested",
+                            f"Business profile change requested during the 3-month edit window: {reason_label}{reason_text}",
+                        )
                     return jsonify({
-                        "status": "error",
-                        "message": f"You can update your business profile after {available_date}. For a time-sensitive change, please contact our support team.",
+                        "status": "locked",
+                        "request_recorded": True,
+                        "message": f"Your request has been recorded. Profile changes will be available after {available_date}. For an urgent update, please contact support.",
                     }), 403
             except (TypeError, ValueError):
+                with get_db() as db:
+                    record_user_activity(db, user_id, "profile_change_rejected", "Business profile change could not be verified against the last update date")
                 return jsonify({
                     "status": "error",
                     "message": "We couldnâ€™t verify when this profile was last updated. Please contact our support team before making changes.",
                 }), 400
 
         # OTP Validation â€” verify against the hashed code stored in otp_codes table
-        provided_otp = str(data.get("otp", "")).strip()
-        with get_db() as db:
-            user_row = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
-        if not user_row:
-            return jsonify({"status": "error", "message": "User not found"}), 404
-
-        _record, otp_error = verify_otp(user_row["email"], "profile", provided_otp, consume=True)
-        if otp_error:
-            return jsonify({"status": "error", "message": otp_error}), 400
+        # A locked profile change is stored as a request in the activity log,
+        # after identity verification, but the profile values remain unchanged.
 
         instagram_handle = str(data.get("instagram_handle", "")).strip()
         whatsapp_number = str(data.get("whatsapp_number", "")).strip()
@@ -282,8 +321,14 @@ def api_business_profile():
             datetime.now(timezone.utc).isoformat() if profile_changed
             else existing_dict.get("profile_updated_at")
         )
-        profile_change_reason = None if profile_changed else existing_dict.get("profile_change_reason")
-        profile_change_note = None if profile_changed else existing_dict.get("profile_change_note")
+        profile_change_reason = (
+            reason_label if profile_changed and existing else
+            ("Initial setup" if profile_changed else existing_dict.get("profile_change_reason"))
+        )
+        profile_change_note = (
+            reason_note if profile_changed and existing and reason_code == "other" else
+            (None if profile_changed else existing_dict.get("profile_change_note"))
+        )
 
         with get_db() as db:
             existing = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
@@ -320,10 +365,17 @@ def api_business_profile():
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (user_id, company_name, business_phone, business_address,
                      instagram_handle, whatsapp_number, store_policy,
-                     brand_color, current_logo, store_slug, datetime.now(timezone.utc).isoformat(),
-                     None, None)
+                     brand_color, current_logo, store_slug, profile_updated_at,
+                     profile_change_reason, profile_change_note)
                 )
                 profile_id = cursor.lastrowid
+            if profile_changed:
+                reason_text = f" — {reason_note}" if reason_code == "other" and reason_note else ""
+                event_type = "business_profile_updated" if existing else "business_profile_created"
+                summary = "Business profile updated" if existing else "Business profile created"
+                if existing:
+                    summary += f". Reason: {reason_label}{reason_text}"
+                record_user_activity(db, user_id, event_type, summary)
             db.commit()
 
         return jsonify({

@@ -416,6 +416,21 @@ def complete_login(user_id):
     session["user_id"] = str(user_id)
 
 
+def record_user_login(db, user_id):
+    try:
+        record_user_activity(db, user_id, "sign_in", "Signed in")
+    except Exception:
+        logging.exception("Could not record sign-in activity for user %s", user_id)
+        db.conn.rollback()
+
+
+def record_user_activity(db, user_id, event_type, summary):
+    db.execute(
+        "INSERT INTO user_activity_logs (user_id, event_type, summary) VALUES (?, ?, ?)",
+        (str(user_id), str(event_type)[:60], str(summary)[:240]),
+    )
+
+
 def send_and_store_otp(email, purpose, payload=None, subject_type="Email Verification"):
     code, wait_seconds = upsert_otp(email, purpose, payload=payload)
     if wait_seconds:
