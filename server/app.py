@@ -19,6 +19,7 @@ from flask import (Flask, Response, jsonify, make_response, redirect,
                    render_template, request, send_from_directory, session,
                    flash)
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
 try:
@@ -66,7 +67,9 @@ else:
     app.config["SESSION_COOKIE_SECURE"] = _secure_cookie.strip().lower() in ("1", "true", "yes")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
+# Allow room for multipart form fields in addition to the 2 MB logo limit.
+app.config["MAX_CONTENT_LENGTH"] = 3 * 1024 * 1024
+MAX_LOGO_BYTES = 2 * 1024 * 1024
 
 PASSWORD_PATTERN = re.compile(r"^(?=.*[a-zA-Z])(?=.*\d).{8,}$")
 BRAND_COLOR_PATTERN = re.compile(r"^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
@@ -194,7 +197,7 @@ def save_uploaded_logo(file_storage, user_id):
     file_storage.stream.seek(0, os.SEEK_END)
     size = file_storage.stream.tell()
     file_storage.stream.seek(0)
-    if size > app.config["MAX_CONTENT_LENGTH"]:
+    if size > MAX_LOGO_BYTES:
         return None, "Logo must be smaller than 2MB."
     folder = os.path.join(CLIENT_ROOT, "static", "uploads", "logos")
     os.makedirs(folder, exist_ok=True)
@@ -454,6 +457,14 @@ def handle_404(e):
     if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
         return jsonify({"status": "error", "message": "The requested resource was not found."}), 404
     return render_template("404.html"), 404
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_request_too_large(e):
+    message = "This upload is too large. Choose a logo smaller than 2 MB and try again."
+    if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
+        return jsonify({"status": "error", "message": message}), 413
+    return message, 413
 
 
 @app.errorhandler(500)

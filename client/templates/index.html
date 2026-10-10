@@ -1544,15 +1544,17 @@
     <!-- ============================================================ -->
     <div id="profile-otp-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 relative">
-            <h3 class="text-lg font-black text-slate-900 mb-2">Verify Profile Update</h3>
-            <p class="text-xs text-slate-500 mb-6 font-medium">For security, we've sent a 6-digit code to your email. Enter it below to save your changes.</p>
+            <h3 class="text-lg font-black text-slate-900 mb-2">Confirm it's you</h3>
+            <p class="text-xs text-slate-500 mb-5 font-medium">Enter the 6-digit code sent to your email to save your business profile.</p>
             
             <form id="profile-otp-form" class="space-y-4">
                 <div>
-                    <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">6-Digit Code</label>
+                    <label for="profile-otp-input" class="block text-xs font-semibold text-slate-600 mb-1.5">Verification code</label>
                     <input type="text" id="profile-otp-input" inputmode="numeric" pattern="\d{6}" maxlength="6" required placeholder="123456"
                            class="w-full border border-slate-200 rounded-xl p-3 text-center text-xl font-bold tracking-[0.2em] text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
+                <p id="profile-otp-feedback" class="hidden rounded-lg border px-3 py-2 text-sm" role="status" aria-live="polite"></p>
+                <button type="button" id="btn-profile-resend-code" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">Send a new code</button>
                 <div class="flex gap-3 mt-6">
                     <button type="button" onclick="document.getElementById('profile-otp-modal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 hover:bg-gray-200 text-slate-700 text-xs font-bold rounded-xl transition">Cancel</button>
                     <button type="submit" id="btn-verify-otp" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md">Verify & Save</button>
@@ -1634,6 +1636,14 @@
                 }
             }
             return fetch(url, options);
+        }
+
+        function profileConnectionMessage(action, error) {
+            const message = String(error?.message || '');
+            if (!navigator.onLine || error instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(message)) {
+                return `Could not connect to SoloBiz to ${action}. Check your internet connection and try again. Your profile has not been saved.`;
+            }
+            return message || 'Please try again.';
         }
 
         let syncInProgress = false;
@@ -5761,13 +5771,15 @@
                         const data = await response.json();
                         
                         if (response.ok && data.status === 'success') {
+                            otpFeedback?.classList.add('hidden');
+                            if (otpInput) otpInput.value = '';
                             document.getElementById('profile-otp-modal').classList.remove('hidden');
                         } else {
                             throw new Error(data.message || 'Failed to request code');
                         }
                     } catch (err) {
                         console.error('OTP request error:', err);
-                        alert('Error requesting verification code: ' + (err.message || 'Network issue'));
+                        alert(profileConnectionMessage('request a verification code', err));
                     } finally {
                         if (saveBtn) {
                             saveBtn.disabled = false;
@@ -5778,6 +5790,55 @@
             }
 
             const otpForm = document.getElementById('profile-otp-form');
+            const otpInput = document.getElementById('profile-otp-input');
+            const otpFeedback = document.getElementById('profile-otp-feedback');
+            const showOtpFeedback = (message, kind = 'error') => {
+                if (!otpFeedback) return;
+                otpFeedback.textContent = message;
+                otpFeedback.className = kind === 'success'
+                    ? 'rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800'
+                    : 'rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800';
+            };
+            const friendlyOtpError = (error) => {
+                const message = String(error?.message || '');
+                if (/incorrect verification pin/i.test(message)) {
+                    return "That code doesn't match. Check the latest email and try again.";
+                }
+                if (/expired|no pending verification|too many incorrect attempts/i.test(message)) {
+                    return 'This code can no longer be used. Select Send a new code to continue.';
+                }
+                return profileConnectionMessage('save your business profile', error);
+            };
+            otpInput?.addEventListener('input', () => {
+                if (otpFeedback && !otpFeedback.classList.contains('hidden')) otpFeedback.classList.add('hidden');
+            });
+
+            document.getElementById('btn-profile-resend-code')?.addEventListener('click', async (event) => {
+                const resendBtn = event.currentTarget;
+                if (!pendingProfileFormData) {
+                    showOtpFeedback('Close this window and select Save Profile to request a new code.');
+                    return;
+                }
+                resendBtn.disabled = true;
+                resendBtn.textContent = 'Sending...';
+                try {
+                    const response = await authenticatedFetch('/api/business_profile/request-otp', { method: 'POST' });
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Could not send a new code.');
+                    if (otpInput) {
+                        otpInput.value = '';
+                        otpInput.focus();
+                    }
+                    showOtpFeedback('A new code has been sent. Use the most recent email.', 'success');
+                } catch (error) {
+                    console.error('Profile code resend error:', error);
+                    showOtpFeedback(profileConnectionMessage('send a new verification code', error));
+                } finally {
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Send a new code';
+                }
+            });
+
             if (otpForm) {
                 otpForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
@@ -5803,6 +5864,7 @@
                         }
 
                         document.getElementById('profile-otp-modal').classList.add('hidden');
+                        otpFeedback?.classList.add('hidden');
                         otpForm.reset();
                         toggleProfileMode('view');
                     } catch (err) {
@@ -5817,7 +5879,8 @@
                             otpForm.reset();
                             pendingProfileFormData = null;
                         } else {
-                            alert('Error saving profile: ' + (err.message || 'Invalid code'));
+                            showOtpFeedback(friendlyOtpError(err));
+                            otpInput?.focus();
                         }
                     } finally {
                         if (verifyBtn) {
