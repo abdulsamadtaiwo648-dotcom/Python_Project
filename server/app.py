@@ -55,18 +55,19 @@ app.permanent_session_lifetime = timedelta(days=30)
 
 from .database import get_db, init_db
 from .extensions import community_db
+from sqlalchemy.engine import make_url
 
 # The community models share the configured SQLite/Postgres database used by
 # the rest of SoloBiz. Existing application tables continue using DBWrapper.
 _community_database_url = os.environ.get("DATABASE_URL")
 if _community_database_url:
-    if _community_database_url.startswith("postgres://"):
-        _community_database_url = _community_database_url.replace("postgres://", "postgresql://", 1)
-    elif _community_database_url.startswith("postgresql+psycopg://"):
-        # Render/Neon URLs sometimes name Psycopg 3 explicitly. This project
-        # ships psycopg2-binary, so keep SQLAlchemy on that installed driver.
-        _community_database_url = _community_database_url.replace(
-            "postgresql+psycopg://", "postgresql+psycopg2://", 1
+    # Parse the URL instead of relying on a string prefix: managed database
+    # providers may supply `postgres://`, `postgresql://`, or an explicit
+    # `postgresql+psycopg://` driver. This app installs psycopg2-binary.
+    _community_database_url = make_url(_community_database_url.strip())
+    if _community_database_url.get_backend_name() in {"postgres", "postgresql"}:
+        _community_database_url = _community_database_url.set(
+            drivername="postgresql+psycopg2"
         )
     app.config["SQLALCHEMY_DATABASE_URI"] = _community_database_url
 else:

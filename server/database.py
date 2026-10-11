@@ -101,6 +101,7 @@ class DBWrapper:
 def get_db():
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:
+        database_url = database_url.strip()
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
         elif database_url.startswith("postgresql+psycopg://"):
