@@ -103,6 +103,10 @@ def get_db():
     if database_url and HAS_PSYCOPG2:
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
+        elif database_url.startswith("postgresql+psycopg://"):
+            database_url = database_url.replace("postgresql+psycopg://", "postgresql://", 1)
+        elif database_url.startswith("postgresql+psycopg2://"):
+            database_url = database_url.replace("postgresql+psycopg2://", "postgresql://", 1)
         conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
         return DBWrapper(conn, is_postgres=True)
     else:

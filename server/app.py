@@ -62,6 +62,12 @@ _community_database_url = os.environ.get("DATABASE_URL")
 if _community_database_url:
     if _community_database_url.startswith("postgres://"):
         _community_database_url = _community_database_url.replace("postgres://", "postgresql://", 1)
+    elif _community_database_url.startswith("postgresql+psycopg://"):
+        # Render/Neon URLs sometimes name Psycopg 3 explicitly. This project
+        # ships psycopg2-binary, so keep SQLAlchemy on that installed driver.
+        _community_database_url = _community_database_url.replace(
+            "postgresql+psycopg://", "postgresql+psycopg2://", 1
+        )
     app.config["SQLALCHEMY_DATABASE_URI"] = _community_database_url
 else:
     _community_sqlite_path = os.environ.get(
