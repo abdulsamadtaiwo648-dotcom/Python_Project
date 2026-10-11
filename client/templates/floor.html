@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8fafc">
+  <title>The Floor | SoloBiz</title>
+  <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="stylesheet" href="/static/solobiz-ui.css">
+  <style>
+    :root { color-scheme:light; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:#111827; background:#f8fafc; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; padding-bottom:calc(76px + env(safe-area-inset-bottom)); background:#f8fafc; }
+    a { color:inherit; text-decoration:none; }
+    button,input,select,textarea { font:inherit; }
+    .floor-header { position:sticky; top:0; z-index:20; background:rgba(255,255,255,.96); border-bottom:1px solid #e2e8f0; backdrop-filter:blur(10px); }
+    .header-inner { width:min(1120px,100%); min-height:62px; margin:auto; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { display:flex; align-items:center; gap:10px; color:#111827; font-size:15px; font-weight:750; }
+    .brand img { width:31px; height:31px; border-radius:9px; }
+    .header-actions { display:flex; align-items:center; gap:8px; }
+    .header-link,.primary-btn,.quiet-btn { min-height:40px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; padding:0 14px; font-size:13px; font-weight:650; cursor:pointer; }
+    .header-link,.quiet-btn { border:1px solid #e2e8f0; background:#fff; color:#334155; }
+    .primary-btn { border:1px solid #2f5bff; background:#2f5bff; color:#fff; }
+    .header-link:hover,.quiet-btn:hover { background:#f1f5f9; }
+    .primary-btn:hover { background:#2449df; }
+    main { width:min(100%,980px); margin:0 auto; padding:28px 18px 40px; }
+    .page-heading { margin-bottom:22px; }
+    .eyebrow { margin:0 0 5px; color:#52627a; font-size:11px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; }
+    h1 { margin:0; color:#111827; font-size:clamp(26px,5vw,34px); letter-spacing:-.04em; line-height:1.15; }
+    .intro { max-width:620px; margin:9px 0 0; color:#64748b; font-size:14px; line-height:1.65; }
+    .filter-card,.panel,.post-card,.request-card,.mood-card { border:1px solid #e2e8f0; border-radius:16px; background:#fff; box-shadow:0 4px 15px rgba(15,23,42,.035); }
+    .filter-card { display:flex; align-items:end; gap:12px; padding:14px; margin-bottom:16px; }
+    .field { display:grid; gap:6px; min-width:0; flex:1; }
+    .field label,.field-label { color:#52627a; font-size:12px; font-weight:650; }
+    .control { min-height:42px; width:100%; border:1px solid #d8e0ea; border-radius:10px; padding:9px 11px; background:#fff; color:#172033; font-size:14px; }
+    .control:focus { outline:3px solid rgba(47,91,255,.14); border-color:#2f5bff; }
+    .floor-tabs { display:flex; gap:5px; margin:0 0 14px; padding:5px; overflow-x:auto; border:1px solid #e2e8f0; border-radius:13px; background:#eef2f7; scrollbar-width:none; }
+    .floor-tabs::-webkit-scrollbar { display:none; }
+    .floor-tab { min-height:42px; flex:1 0 auto; padding:0 14px; border:0; border-radius:9px; background:transparent; color:#5a687b; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .floor-tab[aria-selected="true"] { background:#fff; color:#2449df; box-shadow:0 1px 5px rgba(15,23,42,.10); }
+    .panel { padding:clamp(16px,3vw,24px); }
+    .panel[hidden] { display:none; }
+    .panel-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:17px; }
+    .panel-heading h2 { margin:0; font-size:19px; letter-spacing:-.02em; }
+    .panel-heading p { margin:5px 0 0; color:#64748b; font-size:13px; line-height:1.5; }
+    .small-count { flex:none; padding:6px 9px; border-radius:999px; color:#475569; background:#f1f5f9; font-size:11px; font-weight:700; }
+    .mood-highlight { padding:16px; border:1px solid #dbeafe; border-radius:13px; background:#f5f8ff; }
+    .mood-highlight p { margin:0; color:#1e3a8a; font-size:15px; font-weight:700; line-height:1.55; }
+    .mood-highlight small { display:block; margin-top:5px; color:#63738d; font-size:12px; }
+    .mood-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0 20px; }
+    .mood-card { padding:13px; box-shadow:none; }
+    .mood-card-top { display:flex; justify-content:space-between; gap:6px; margin-bottom:10px; color:#475569; font-size:12px; font-weight:650; }
+    .mood-card-top strong { color:#111827; }
+    .meter { height:7px; overflow:hidden; border-radius:999px; background:#e9eef5; }
+    .meter span { display:block; height:100%; border-radius:inherit; transition:width .2s ease; }
+    .meter-fire span { background:#16a34a; }
+    .meter-normal span { background:#2f5bff; }
+    .meter-cold span { background:#f59e0b; }
+    .checkin-area { padding-top:17px; border-top:1px solid #e8edf3; }
+    .checkin-area h3 { margin:0 0 4px; font-size:15px; }
+    .checkin-area > p { margin:0 0 12px; color:#64748b; font-size:12px; }
+    .mood-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+    .mood-choice { min-height:48px; border:1px solid #dbe2eb; border-radius:11px; background:#fff; color:#334155; font-size:13px; font-weight:700; cursor:pointer; }
+    .mood-choice:hover,.mood-choice[aria-pressed="true"] { border-color:#2f5bff; color:#2449df; background:#f5f8ff; }
+    .composer { margin-bottom:16px; padding:15px; border:1px solid #e2e8f0; border-radius:14px; background:#f8fafc; }
+    .composer h3 { margin:0 0 4px; font-size:14px; }
+    .composer > p { margin:0 0 10px; color:#64748b; font-size:12px; line-height:1.5; }
+    .composer-row { display:flex; align-items:end; gap:9px; }
+    .composer-row .field { flex:1; }
+    .char-count { display:flex; justify-content:space-between; margin-top:5px; color:#718096; font-size:11px; }
+    textarea.control { min-height:74px; resize:vertical; }
+    .feed { display:grid; gap:10px; }
+    .post-card { padding:14px; box-shadow:none; }
+    .post-meta { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-bottom:7px; color:#64748b; font-size:11px; }
+    .tag { padding:3px 7px; border-radius:999px; background:#f1f5f9; color:#475569; font-size:10px; font-weight:700; }
+    .post-text { margin:0; color:#1f2937; font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+    .post-actions { display:flex; justify-content:flex-end; margin-top:10px; }
+    .upvote-btn { min-height:35px; border:1px solid #dbe2eb; border-radius:9px; padding:0 10px; color:#334155; background:#fff; font-size:11px; font-weight:700; cursor:pointer; }
+    .upvote-btn:hover:not(:disabled) { border-color:#b7c8ff; color:#2449df; background:#f5f8ff; }
+    .upvote-btn:disabled { color:#64748b; background:#f8fafc; cursor:default; }
+    .request-card { overflow:hidden; box-shadow:none; }
+    .request-card summary { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:15px; cursor:pointer; list-style:none; }
+    .request-card summary::-webkit-details-marker { display:none; }
+    .request-summary-text { min-width:0; }
+    .request-summary-text .post-meta { margin-bottom:6px; }
+    .request-summary-text strong { display:block; color:#1f2937; font-size:14px; font-weight:650; line-height:1.5; overflow-wrap:anywhere; }
+    .request-body { padding:0 15px 15px; border-top:1px solid #edf1f6; }
+    .recommendation-list { display:grid; gap:9px; padding-top:12px; }
+    .recommendation { padding:11px; border:1px solid #edf1f6; border-radius:11px; background:#fbfcfe; }
+    .recommendation .post-text { font-size:13px; }
+    .recommendation .post-actions { margin-top:7px; }
+    .answer-form { margin-top:13px; padding-top:12px; border-top:1px solid #edf1f6; }
+    .answer-form .control { min-height:42px; }
+    .empty-state { padding:22px 14px; border:1px dashed #cbd5e1; border-radius:12px; color:#64748b; text-align:center; font-size:13px; line-height:1.6; }
+    #floor-message { position:fixed; z-index:40; right:16px; bottom:calc(86px + env(safe-area-inset-bottom)); max-width:min(420px,calc(100% - 32px)); padding:12px 15px; border:1px solid #bbf7d0; border-radius:12px; background:#f0fdf4; color:#166534; box-shadow:0 10px 35px rgba(15,23,42,.12); font-size:13px; }
+    #floor-message[data-kind="error"] { border-color:#fecaca; background:#fff1f2; color:#9f1239; }
+    #floor-message[hidden] { display:none; }
+    .mobile-nav { position:fixed; z-index:30; inset:auto 0 0; display:none; justify-content:space-around; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); border-top:1px solid #e2e8f0; background:rgba(255,255,255,.97); backdrop-filter:blur(10px); }
+    .mobile-nav a { display:grid; justify-items:center; gap:3px; min-width:62px; color:#64748b; font-size:10px; font-weight:700; }
+    .mobile-nav a[aria-current="page"] { color:#2f5bff; }
+    .mobile-nav svg { width:19px; height:19px; }
+    @media(max-width:640px) {
+      .header-inner { min-height:56px; padding:8px 14px; }
+      .header-link { min-height:36px; padding:0 10px; font-size:12px; }
+      main { padding:23px 12px 28px; }
+      .filter-card { align-items:stretch; padding:11px; gap:8px; }
+      .filter-card .field label { font-size:11px; }
+      .control { min-height:40px; padding:8px; font-size:13px; }
+      .floor-tab { padding:0 11px; font-size:12px; }
+      .mood-metrics { gap:7px; }
+      .mood-card { padding:10px 8px; }
+      .mood-card-top { align-items:flex-start; flex-direction:column; gap:3px; font-size:11px; }
+      .mood-choice { padding:6px 3px; font-size:11px; }
+      .composer-row { align-items:stretch; flex-direction:column; }
+      .composer-row .primary-btn { width:100%; }
+      .mobile-nav { display:flex; }
+      .header-actions .header-link:first-child { display:none; }
+    }
+    @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <header class="floor-header">
+    <div class="header-inner">
+      <a class="brand" href="/dashboard"><img src="/static/logo.svg" alt=""><span>SoloBiz</span></a>
+      <div class="header-actions">
+        <a class="header-link" href="/dashboard">Dashboard</a>
+        <a class="header-link" href="/sales">Sales</a>
+        <a class="header-link" href="/expenses">Expenses</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-heading" aria-labelledby="floor-title">
+      <p class="eyebrow">SoloBiz community</p>
+      <h1 id="floor-title">The Floor</h1>
+      <p class="intro">A place for business owners to compare how the week is going, share useful tips, and help each other find local suppliers.</p>
+    </section>
+
+    <form id="floor-scope-form" class="filter-card" action="/floor" method="get">
+      <div class="field">
+        <label for="floor-city">City</label>
+        <select class="control" id="floor-city" name="city">
+          {% for option in cities %}<option value="{{ option }}" {% if city == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="floor-category">Business category</label>
+        <select class="control" id="floor-category" name="category">
+          {% for option in categories %}<option value="{{ option }}" {% if category == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+        </select>
+      </div>
+    </form>
+
+    <div class="floor-tabs" role="tablist" aria-label="The Floor sections">
+      <button class="floor-tab" type="button" role="tab" id="tab-pulse" aria-controls="panel-pulse" aria-selected="true">Market Pulse</button>
+      <button class="floor-tab" type="button" role="tab" id="tab-plugs" aria-controls="panel-plugs" aria-selected="false" tabindex="-1">Sabi-Plug Board</button>
+      <button class="floor-tab" type="button" role="tab" id="tab-wisdom" aria-controls="panel-wisdom" aria-selected="false" tabindex="-1">Street Wisdom</button>
+    </div>
+    <div id="floor-message" role="status" aria-live="polite" hidden></div>
+
+    <section class="panel" id="panel-pulse" role="tabpanel" aria-labelledby="tab-pulse">
+      <div class="panel-heading">
+        <div><h2>This week's Market Pulse</h2><p>Anonymous check-ins from {{ city }} {{ category }} businesses.</p></div>
+        <span class="small-count" id="mood-total">{{ mood.total }} check-ins</span>
+      </div>
+      <div class="mood-highlight">
+        <p id="mood-insight">
+          {% if mood.total %}
+            {% set mood_words = {'fire': 'cash is flowing', 'normal': 'business is steady', 'cold': 'the market is cold'} %}
+            {{ mood.percentages[mood.leading_mood] }}% of {{ city }} {{ category }} check-ins say {{ mood_words[mood.leading_mood] }} this week. You're not on your own.
+          {% else %}
+            No one in {{ city }} {{ category }} has checked in this week. Be the first to share how business is going.
+          {% endif %}
+        </p>
+        <small>Your response is anonymous and can be updated once this week.</small>
+      </div>
+      <div class="mood-metrics" aria-label="Market mood percentages">
+        {% for mood_name, mood_label in [('fire', 'Cash flowing'), ('normal', 'Managing'), ('cold', 'Cold')] %}
+        <div class="mood-card">
+          <div class="mood-card-top"><span>{{ mood_label }}</span><strong data-mood-percent="{{ mood_name }}">{{ mood.percentages[mood_name] }}%</strong></div>
+          <div class="meter meter-{{ mood_name }}"><span data-mood-meter="{{ mood_name }}" style="width:{{ mood.percentages[mood_name] }}%"></span></div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="checkin-area">
+        <h3>How's business this week?</h3>
+        <p>Your check-in is grouped with others in your city and category.</p>
+        <div class="mood-options" role="group" aria-label="Choose this week's market mood">
+          {% for mood_name, mood_label in [('fire', '🔥 Cash flowing'), ('normal', '😐 Managing'), ('cold', '🧊 Cold')] %}
+          <button class="mood-choice" type="button" data-mood="{{ mood_name }}" aria-pressed="{{ 'true' if checked_in and checked_in.mood == mood_name else 'false' }}">{{ mood_label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-plugs" role="tabpanel" aria-labelledby="tab-plugs" hidden>
+      <div class="panel-heading">
+        <div><h2>Sabi-Plug Board</h2><p>Ask for a supplier, service, or local business recommendation.</p></div>
+        <span class="small-count" id="plug-total">{{ active_requests|length }} active</span>
+      </div>
+      <form id="plug-ask-form" class="composer">
+        <h3>What plug do you need?</h3>
+        <p>Keep the request specific. Your city and business category are attached automatically.</p>
+        <div class="composer-row">
+          <div class="field"><label class="field-label" for="plug-request-text">Your request</label><input class="control" id="plug-request-text" name="request_text" maxlength="140" required placeholder="e.g. Where can I get wholesale boxes around Challenge?" autocomplete="off"></div>
+          <button class="primary-btn" type="submit">Post request</button>
+        </div>
+        <div class="char-count"><span>Up to 140 characters</span><span data-count-for="plug-request-text">0 / 140</span></div>
+      </form>
+      <p class="intro" style="margin:-5px 0 14px;font-size:12px">Recommendations come from other SoloBiz users. Confirm the seller, price, and availability before sending payment.</p>
+      <div class="feed" id="plug-feed">
+        {% for plug_request in active_requests %}
+        <details class="request-card" data-request-card="{{ plug_request.id }}">
+          <summary>
+            <span class="request-summary-text">
+              <span class="post-meta"><span class="tag">{{ plug_request.city }}</span><span class="tag">{{ plug_request.category }}</span></span>
+              <strong>{{ plug_request.request_text }}</strong>
+            </span>
+            <span class="small-count" data-recommendation-count="{{ plug_request.id }}">{{ plug_request.recommendations_count }} replies</span>
+          </summary>
+          <div class="request-body">
+            <div class="recommendation-list" data-recommendation-list="{{ plug_request.id }}">
+              {% for recommendation in plug_request.recommendations %}
+              <article class="recommendation" data-recommendation="{{ recommendation.id }}">
+                <p class="post-text">{{ recommendation.plug_detail }}</p>
+                <div class="post-actions"><button class="upvote-btn" type="button" data-upvote="recommendation" data-id="{{ recommendation.id }}" {% if recommendation.id in voted_recommendations %}disabled aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ 'E choke / True dat' if recommendation.id not in voted_recommendations else 'You agreed' }} · <span data-upvotes>{{ recommendation.upvotes }}</span></button></div>
+              </article>
+              {% else %}<p class="empty-state" data-no-recommendations="{{ plug_request.id }}">No recommendations yet. Add one if you know a good local plug.</p>{% endfor %}
+            </div>
+            <form class="answer-form" data-answer-form="{{ plug_request.id }}">
+              <label class="field-label" for="answer-{{ plug_request.id }}">Share a recommendation</label>
+              <div class="composer-row"><input class="control" id="answer-{{ plug_request.id }}" name="plug_detail" maxlength="160" required placeholder="Name the shop or area and what to ask for"><button class="quiet-btn" type="submit">Add plug</button></div>
+            </form>
+          </div>
+        </details>
+        {% else %}<div class="empty-state" id="plug-empty">No requests for this city and category yet. Start the board with what you need help finding.</div>{% endfor %}
+      </div>
+    </section>
+
+    <section class="panel" id="panel-wisdom" role="tabpanel" aria-labelledby="tab-wisdom" hidden>
+      <div class="panel-heading">
+        <div><h2>Street Wisdom</h2><p>Short, practical advice from people running businesses like yours.</p></div>
+        <span class="small-count">160-character tips</span>
+      </div>
+      <form id="tip-form" class="composer">
+        <h3>Share something that works</h3>
+        <p>Keep it useful and link-free. Tips are shared anonymously.</p>
+        <div class="field"><label class="field-label" for="tip-content">Your tip</label><textarea class="control" id="tip-content" name="content" maxlength="160" required placeholder="A small lesson that could save another vendor time or money..."></textarea></div>
+        <div class="char-count"><span>No links, please</span><span data-count-for="tip-content">0 / 160</span></div>
+        <div class="composer-row" style="margin-top:9px"><span></span><button class="primary-btn" type="submit">Share tip</button></div>
+      </form>
+      <div class="feed" id="tip-feed">
+        {% for tip in tips %}
+        <article class="post-card" data-tip-card="{{ tip.id }}">
+          <div class="post-meta"><span class="tag">{{ tip.city }}</span><span class="tag">{{ tip.category }}</span></div>
+          <p class="post-text">{{ tip.content }}</p>
+          <div class="post-actions"><button class="upvote-btn" type="button" data-upvote="tip" data-id="{{ tip.id }}" {% if tip.id in voted_tips %}disabled aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ 'E choke / True dat' if tip.id not in voted_tips else 'You agreed' }} · <span data-upvotes>{{ tip.upvotes }}</span></button></div>
+        </article>
+        {% else %}<div class="empty-state" id="tip-empty">No tips for this city and category yet. Share a lesson that might help someone else.</div>{% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" aria-label="Main navigation">
+    <a href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>Home</a>
+    <a href="/sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Sales</a>
+    <a href="/floor" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6"/></svg>The Floor</a>
+    <a href="/expenses"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Expenses</a>
+  </nav>
+
+  <script>
+    (() => {
+      const csrfToken = {{ csrf_token|tojson }};
+      const selectedCity = {{ city|tojson }};
+      const selectedCategory = {{ category|tojson }};
+      const moodWords = { fire: 'cash is flowing', normal: 'business is steady', cold: 'the market is cold' };
+      const message = document.getElementById('floor-message');
+      let messageTimer;
+      function showMessage(text, isError = false) {
+        message.textContent = text;
+        message.dataset.kind = isError ? 'error' : 'success';
+        message.hidden = false;
+        clearTimeout(messageTimer);
+        messageTimer = setTimeout(() => { message.hidden = true; }, 4200);
+      }
+      async function postJson(url, payload) {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: JSON.stringify(payload)
+        });
+        let data;
+        try { data = await response.json(); }
+        catch (_) { throw new Error('SoloBiz could not complete that request. Please try again.'); }
+        if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Please try again.');
+        return data;
+      }
+      const cityField = document.getElementById('floor-city');
+      const categoryField = document.getElementById('floor-category');
+      function savePreference(name, value) {
+        try { localStorage.setItem(`solobiz_floor_${name}`, value); } catch (_) {}
+        document.cookie = `floor_${name}=${encodeURIComponent(value)}; Max-Age=31536000; Path=/; SameSite=Lax; Secure`;
+      }
+      const query = new URLSearchParams(window.location.search);
+      let storedCity = '', storedCategory = '';
+      try {
+        storedCity = localStorage.getItem('solobiz_floor_city') || '';
+        storedCategory = localStorage.getItem('solobiz_floor_category') || '';
+      } catch (_) {}
+      const isOption = (select, value) => [...select.options].some(option => option.value === value);
+      const preferredCity = !query.has('city') && isOption(cityField, storedCity) ? storedCity : selectedCity;
+      const preferredCategory = !query.has('category') && isOption(categoryField, storedCategory) ? storedCategory : selectedCategory;
+      if (preferredCity !== selectedCity || preferredCategory !== selectedCategory) {
+        const params = new URLSearchParams({ city: preferredCity, category: preferredCategory });
+        window.location.replace(`/floor?${params.toString()}`);
+        return;
+      }
+      savePreference('city', selectedCity);
+      savePreference('category', selectedCategory);
+      document.getElementById('floor-scope-form').addEventListener('change', () => {
+        const city = cityField.value, category = categoryField.value;
+        savePreference('city', city);
+        savePreference('category', category);
+        window.location.assign(`/floor?${new URLSearchParams({ city, category }).toString()}`);
+      });
+
+      const tabs = [...document.querySelectorAll('[role="tab"]')];
+      const panels = [...document.querySelectorAll('[role="tabpanel"]')];
+      function selectTab(tab, focus = false) {
+        tabs.forEach(item => {
+          const active = item === tab;
+          item.setAttribute('aria-selected', String(active));
+          item.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach(panel => { panel.hidden = panel.id !== tab.getAttribute('aria-controls'); });
+        if (focus) tab.focus();
+        try { localStorage.setItem('solobiz_floor_tab', tab.id); } catch (_) {}
+      }
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => selectTab(tab));
+        tab.addEventListener('keydown', event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+            : (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+          selectTab(tabs[next], true);
+        });
+      });
+      try {
+        const savedTab = localStorage.getItem('solobiz_floor_tab');
+        if (savedTab) selectTab(document.getElementById(savedTab) || tabs[0]);
+      } catch (_) {}
+
+      document.querySelectorAll('[data-count-for]').forEach(counter => {
+        const input = document.getElementById(counter.dataset.countFor);
+        const updateCount = () => { counter.textContent = `${input.value.length} / ${input.maxLength}`; };
+        input.addEventListener('input', updateCount);
+        updateCount();
+      });
+
+      function updateMoodSummary(summary) {
+        ['fire', 'normal', 'cold'].forEach(name => {
+          const percent = summary.percentages[name] || 0;
+          document.querySelector(`[data-mood-percent="${name}"]`).textContent = `${percent}%`;
+          document.querySelector(`[data-mood-meter="${name}"]`).style.width = `${percent}%`;
+        });
+        document.getElementById('mood-total').textContent = `${summary.total} check-ins`;
+        const insight = document.getElementById('mood-insight');
+        insight.textContent = summary.total
+          ? `${summary.percentages[summary.leading_mood]}% of ${selectedCity} ${selectedCategory} check-ins say ${moodWords[summary.leading_mood]} this week. You're not on your own.`
+          : `No one in ${selectedCity} ${selectedCategory} has checked in this week. Be the first to share how business is going.`;
+      }
+      document.querySelectorAll('[data-mood]').forEach(button => {
+        button.addEventListener('click', async () => {
+          document.querySelectorAll('[data-mood]').forEach(item => { item.disabled = true; });
+          try {
+            const data = await postJson('/floor/mood', { city: selectedCity, category: selectedCategory, mood: button.dataset.mood });
+            updateMoodSummary(data.mood);
+            document.querySelectorAll('[data-mood]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+            showMessage(data.message);
+          } catch (error) { showMessage(error.message, true); }
+          finally { document.querySelectorAll('[data-mood]').forEach(item => { item.disabled = false; }); }
+        });
+      });
+
+      function makeUpvoteButton(target, id, count) {
+        const button = document.createElement('button');
+        button.className = 'upvote-btn';
+        button.type = 'button';
+        button.dataset.upvote = target;
+        button.dataset.id = id;
+        button.setAttribute('aria-pressed', 'false');
+        button.append(document.createTextNode('E choke / True dat · '));
+        const number = document.createElement('span');
+        number.dataset.upvotes = '';
+        number.textContent = count;
+        button.append(number);
+        return button;
+      }
+      function makeTipCard(tip) {
+        const card = document.createElement('article');
+        card.className = 'post-card';
+        card.dataset.tipCard = tip.id;
+        const meta = document.createElement('div');
+        meta.className = 'post-meta';
+        [tip.city, tip.category].forEach(value => {
+          const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = value; meta.append(tag);
+        });
+        const content = document.createElement('p'); content.className = 'post-text'; content.textContent = tip.content;
+        const actions = document.createElement('div'); actions.className = 'post-actions';
+        actions.append(makeUpvoteButton('tip', tip.id, tip.upvotes));
+        card.append(meta, content, actions);
+        return card;
+      }
+      document.getElementById('tip-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const button = form.querySelector('[type="submit"]');
+        button.disabled = true;
+        try {
+          const data = await postJson('/floor/tip', {
+            city: selectedCity, category: selectedCategory,
+            content: document.getElementById('tip-content').value
+          });
+          document.getElementById('tip-empty')?.remove();
+          document.getElementById('tip-feed').prepend(makeTipCard(data.tip));
+          form.reset();
+          document.querySelector('[data-count-for="tip-content"]').textContent = '0 / 160';
+          showMessage(data.message);
+        } catch (error) { showMessage(error.message, true); }
+        finally { button.disabled = false; }
+      });
+
+      function makeRecommendation(recommendation) {
+        const article = document.createElement('article'); article.className = 'recommendation';
+        article.dataset.recommendation = recommendation.id;
+        const content = document.createElement('p'); content.className = 'post-text'; content.textContent = recommendation.plug_detail;
+        const actions = document.createElement('div'); actions.className = 'post-actions';
+        actions.append(makeUpvoteButton('recommendation', recommendation.id, recommendation.upvotes));
+        article.append(content, actions);
+        return article;
+      }
+      function makeRequestCard(item) {
+        const details = document.createElement('details'); details.className = 'request-card'; details.dataset.requestCard = item.id; details.open = true;
+        const summary = document.createElement('summary');
+        const textWrap = document.createElement('span'); textWrap.className = 'request-summary-text';
+        const meta = document.createElement('span'); meta.className = 'post-meta';
+        [item.city, item.category].forEach(value => { const tag = document.createElement('span'); tag.className='tag'; tag.textContent=value; meta.append(tag); });
+        const text = document.createElement('strong'); text.textContent = item.request_text; textWrap.append(meta, text);
+        const count = document.createElement('span'); count.className='small-count'; count.dataset.recommendationCount=item.id; count.textContent='0 replies';
+        summary.append(textWrap, count);
+        const body = document.createElement('div'); body.className='request-body';
+        const list = document.createElement('div'); list.className='recommendation-list'; list.dataset.recommendationList=item.id;
+        const empty = document.createElement('p'); empty.className='empty-state'; empty.dataset.noRecommendations=item.id; empty.textContent='No recommendations yet. Add one if you know a good local plug.'; list.append(empty);
+        const form = document.createElement('form'); form.className='answer-form'; form.dataset.answerForm=item.id;
+        const label = document.createElement('label'); label.className='field-label'; label.htmlFor=`answer-${item.id}`; label.textContent='Share a recommendation';
+        const row = document.createElement('div'); row.className='composer-row';
+        const input = document.createElement('input'); input.className='control'; input.id=`answer-${item.id}`; input.name='plug_detail'; input.maxLength=160; input.required=true; input.placeholder='Name the shop or area and what to ask for';
+        const submit = document.createElement('button'); submit.className='quiet-btn'; submit.type='submit'; submit.textContent='Add plug';
+        row.append(input, submit); form.append(label, row); body.append(list, form); details.append(summary, body);
+        return details;
+      }
+      document.getElementById('plug-ask-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const form = event.currentTarget, button = form.querySelector('[type="submit"]');
+        button.disabled = true;
+        try {
+          const data = await postJson('/floor/plug/ask', {
+            city: selectedCity, category: selectedCategory,
+            request_text: document.getElementById('plug-request-text').value
+          });
+          document.getElementById('plug-empty')?.remove();
+          document.getElementById('plug-feed').prepend(makeRequestCard(data.request));
+          form.reset();
+          document.querySelector('[data-count-for="plug-request-text"]').textContent = '0 / 140';
+          document.getElementById('plug-total').textContent = `${document.querySelectorAll('[data-request-card]').length} active`;
+          showMessage(data.message);
+        } catch (error) { showMessage(error.message, true); }
+        finally { button.disabled = false; }
+      });
+
+      document.addEventListener('submit', async event => {
+        const form = event.target.closest('[data-answer-form]');
+        if (!form) return;
+        event.preventDefault();
+        const requestId = form.dataset.answerForm;
+        const input = form.elements.plug_detail;
+        const button = form.querySelector('[type="submit"]');
+        button.disabled = true;
+        try {
+          const data = await postJson(`/floor/plug/answer/${requestId}`, { plug_detail: input.value });
+          document.querySelector(`[data-no-recommendations="${requestId}"]`)?.remove();
+          document.querySelector(`[data-recommendation-list="${requestId}"]`).prepend(makeRecommendation(data.recommendation));
+          document.querySelector(`[data-recommendation-count="${requestId}"]`).textContent = `${data.recommendations_count} replies`;
+          input.value = '';
+          showMessage(data.message);
+        } catch (error) { showMessage(error.message, true); }
+        finally { button.disabled = false; }
+      });
+
+      document.addEventListener('click', async event => {
+        const button = event.target.closest('[data-upvote]');
+        if (!button || button.disabled) return;
+        button.disabled = true;
+        try {
+          const data = await postJson(`/floor/upvote/${button.dataset.upvote}/${button.dataset.id}`, {});
+          button.querySelector('[data-upvotes]').textContent = data.upvotes;
+          button.setAttribute('aria-pressed', 'true');
+          button.firstChild.textContent = 'You agreed · ';
+          showMessage(data.message);
+        } catch (error) {
+          if (/already upvoted/i.test(error.message)) {
+            button.setAttribute('aria-pressed', 'true');
+            button.firstChild.textContent = 'You agreed · ';
+          } else button.disabled = false;
+          showMessage(error.message, true);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
