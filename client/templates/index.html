@@ -1569,6 +1569,17 @@
 
     <script>
         const CURRENT_USER_ID = {{ session.get('user_id', '0') | tojson }};
+
+        // Escape any user-supplied value before placing it in an HTML string
+        // (innerHTML / insertAdjacentHTML), so saved text can never run as markup.
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
         const DB_NAME = 'SoloBizDB_user_' + CURRENT_USER_ID;
         const DB_VERSION = 5;
         const STORE_NAME = 'expenses';
@@ -2916,7 +2927,7 @@
                     if (textNode) {
                         textNode.textContent = category;
                     } else {
-                        catElem.innerHTML = `<span class="category-name">${category}</span>`;
+                        catElem.innerHTML = `<span class="category-name">${escapeHtml(category)}</span>`;
                     }
                     const badge = catElem.querySelector('.sync-badge');
                     if (!updateObj.synced && !badge) {
@@ -3025,26 +3036,26 @@
                 maximumFractionDigits: 2
             });
 
-            const localIdAttr = expense.local_id ? `data-local-id="${expense.local_id}"` : '';
+            const localIdAttr = expense.local_id ? `data-local-id="${escapeHtml(expense.local_id)}"` : '';
             const serverId = expense.server_id || expense.id || '';
-            const serverIdAttr = serverId ? `data-server-id="${serverId}"` : '';
+            const serverIdAttr = serverId ? `data-server-id="${escapeHtml(serverId)}"` : '';
             const offlineBadge = !expense.synced ? `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-300 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
             const categoryLabel = (expense.category || 'Other').toString();
 
             return `
             <div ${localIdAttr} ${serverIdAttr}
-                 data-category="${categoryLabel}"
-                 data-amount="${expense.amount}"
+                 data-category="${escapeHtml(categoryLabel)}"
+                 data-amount="${escapeHtml(expense.amount)}"
                  class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
                 <div class="flex items-center gap-3">
                     <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
-                        ${categoryInitial}
+                        ${escapeHtml(categoryInitial)}
                     </div>
                     <div>
                         <p class="expense-category-val font-bold text-slate-800 text-sm capitalize">
-                            <span class="category-name">${categoryLabel}</span>${offlineBadge}
+                            <span class="category-name">${escapeHtml(categoryLabel)}</span>${offlineBadge}
                         </p>
-                        <p class="expense-desc-val text-xs text-slate-500">${expense.description || 'No description provided'}</p>
+                        <p class="expense-desc-val text-xs text-slate-500">${escapeHtml(expense.description || 'No description provided')}</p>
                     </div>
                 </div>
                 <div class="text-right">
@@ -4033,27 +4044,27 @@
                 const formattedPaid = amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const formattedBalance = balanceOwed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 
-                const receiptTag = income.receipt_id ? `<span class="text-[10px] text-slate-500 font-mono ml-1.5">#${income.receipt_id}</span>` : '';
+                const receiptTag = income.receipt_id ? `<span class="text-[10px] text-slate-500 font-mono ml-1.5">#${escapeHtml(income.receipt_id)}</span>` : '';
                 const balanceHtml = balanceOwed > 0
                     ? `<p class="text-[10px] text-red-600 font-medium">Balance Owed: ₦${formattedBalance}</p>`
                     : '';
 
-                const settleButton = balanceOwed > 0 ? `<button type="button" data-settle-income-id="${income.local_id ?? income.server_id ?? income.id ?? ''}" class="btn-settle-debt inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-300 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
+                const settleButton = balanceOwed > 0 ? `<button type="button" data-settle-income-id="${escapeHtml(income.local_id ?? income.server_id ?? income.id ?? '')}" class="btn-settle-debt inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-300 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
                     <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg> Settle Debt
                 </button>` : '';
-                const deleteButton = showDelete ? `<button type="button" data-delete-income-id="${income.local_id || ''}" class="btn-delete-income inline-flex items-center gap-1 text-[10px] uppercase font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded transition border border-rose-200 shadow-sm" aria-label="Delete sale">
+                const deleteButton = showDelete ? `<button type="button" data-delete-income-id="${escapeHtml(income.local_id || '')}" class="btn-delete-income inline-flex items-center gap-1 text-[10px] uppercase font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded transition border border-rose-200 shadow-sm" aria-label="Delete sale">
                     <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg> Delete sale
                 </button>` : '';
 
                 return `
-                <div data-income-local-id="${income.local_id || ''}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
+                <div data-income-local-id="${escapeHtml(income.local_id || '')}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-lg"><svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 13h.01"/><path d="M2 10h18"/></svg></div>
                         <div>
                             <p class="font-bold text-slate-800 text-sm capitalize flex items-center">
-                                ${desc} ${offlineBadge}
+                                ${escapeHtml(desc)} ${offlineBadge}
                             </p>
-                            <p class="text-xs text-slate-500">Customer: ${income.customer_name || 'Walk-in'} ${receiptTag}</p>
+                            <p class="text-xs text-slate-500">Customer: ${escapeHtml(income.customer_name || 'Walk-in')} ${receiptTag}</p>
                             <div class="mt-1"><span class="text-[10px] ${paymentState.badgeClass} px-2 py-0.5 rounded font-bold">${paymentState.status}</span></div>
                             ${balanceHtml}
                         </div>
@@ -4841,8 +4852,8 @@
                     const status = out ? 'Out of stock' : low ? 'Low stock' : 'Active';
                     const statusClass = out ? 'out' : low ? 'low' : '';
                     const stock = tracked ? `${product.stock} in stock` : 'Not tracked';
-                    return `<tr data-inventory-row data-search="${product.item_name.toLowerCase()}">
-                        <td class="font-semibold">${product.item_name}</td>
+                    return `<tr data-inventory-row data-search="${escapeHtml(product.item_name.toLowerCase())}">
+                        <td class="font-semibold">${escapeHtml(product.item_name)}</td>
                         <td><span class="inventory-status ${statusClass}">${status}</span></td>
                         <td>${stock}</td>
                         <td class="font-semibold">₦${Number(product.price).toLocaleString('en-NG')}</td>
@@ -4942,7 +4953,7 @@
                 if (!manageList) return;
                 manageList.innerHTML = inventoryPresets.map(p => `
                     <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-xs" data-manage-id="${p.id}">
-                        <span class="flex-1 font-semibold text-slate-800 truncate">${p.item_name}</span>
+                        <span class="flex-1 font-semibold text-slate-800 truncate">${escapeHtml(p.item_name)}</span>
                         <span class="text-emerald-600 font-bold whitespace-nowrap">₦${p.price.toLocaleString()}</span>
                         <span class="text-slate-500 whitespace-nowrap w-12 text-center">${p.track_stock ? `${p.stock} pcs` : 'untracked'}</span>
                         <button type="button" class="btn-edit-preset text-indigo-600 hover:text-indigo-800 font-bold transition" data-id="${p.id}">Edit</button>
@@ -5272,7 +5283,7 @@
                         <summary class="p-4 flex items-center justify-between cursor-pointer list-none outline-none">
                             <div class="flex items-center gap-2">
                                 <svg class="w-4 h-4 text-slate-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-                                <span class="font-bold text-slate-800 text-sm">${key}</span>
+                                <span class="font-bold text-slate-800 text-sm">${escapeHtml(key)}</span>
                                 <span class="text-[10px] bg-gray-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">${g.items.length} tx</span>
                             </div>
                             <span class="font-bold text-indigo-600">₦${g.salesVolume.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
@@ -5281,11 +5292,11 @@
                             ${g.items.map(item => {
                                 const finalPaid = parseFloat(item.amount_paid ?? item.total_value ?? item.amount ?? 0);
                                 const title = item.description || item.item_sold || 'Income';
-                                const receiptBadge = item.receipt_id ? `<span class="text-[9px] text-slate-500 font-mono ml-1">#${item.receipt_id}</span>` : '';
+                                const receiptBadge = item.receipt_id ? `<span class="text-[9px] text-slate-500 font-mono ml-1">#${escapeHtml(item.receipt_id)}</span>` : '';
                                 return `
                                 <div class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
                                     <div>
-                                        <p class="font-semibold text-slate-700">${title}</p>
+                                        <p class="font-semibold text-slate-700">${escapeHtml(title)}</p>
                                         <p class="text-[10px] text-slate-500">${receiptBadge}</p>
                                     </div>
                                     <div class="text-right">
@@ -5662,10 +5673,10 @@
                     // Logo Container Image vs Letter Initial
                     if (logoContainer) {
                         if (profile.logo_url) {
-                            logoContainer.innerHTML = `<img id="card-logo-img" src="${profile.logo_url}" alt="Logo" class="w-full h-full object-cover">`;
+                            logoContainer.innerHTML = `<img id="card-logo-img" src="${escapeHtml(profile.logo_url)}" alt="Logo" class="w-full h-full object-cover">`;
                         } else {
                             const initChar = (profile.company_name || 'B').trim().charAt(0).toUpperCase();
-                            logoContainer.innerHTML = `<span id="card-logo-initial">${initChar}</span>`;
+                            logoContainer.innerHTML = `<span id="card-logo-initial">${escapeHtml(initChar)}</span>`;
                         }
                     }
 

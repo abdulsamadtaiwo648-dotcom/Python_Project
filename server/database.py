@@ -620,3 +620,18 @@ def init_db():
             db.commit()
     except Exception as repair_error:
         print(f"Storefront slug repair note: {repair_error}", flush=True)
+
+    # Failed sign-in counters for the user login form. Rows are keyed by a
+    # keyed hash of the email so raw addresses are not stored here. The id
+    # column exists because the PostgreSQL wrapper appends RETURNING id.
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_login_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fingerprint TEXT UNIQUE NOT NULL,
+                attempts INTEGER NOT NULL,
+                window_started TEXT NOT NULL,
+                blocked_until TEXT
+            )
+        """)
+        db.commit()

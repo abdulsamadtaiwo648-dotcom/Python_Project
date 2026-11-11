@@ -245,7 +245,7 @@
       btn.innerText = "Sending code…";
 
       try {
-        const res = await fetch("/api/forgot-password/request", {
+        const res = await csrfFetch("/api/forgot-password/request", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email })
@@ -281,7 +281,7 @@
       btn.innerText = "Updating Password…";
 
       try {
-        const res = await fetch("/api/forgot-password/reset", {
+        const res = await csrfFetch("/api/forgot-password/reset", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, code, password })

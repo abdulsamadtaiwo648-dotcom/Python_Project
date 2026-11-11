@@ -6,6 +6,7 @@ import json, logging, time, uuid
 from ..app import (
     app,
     GENERIC_RESET_MESSAGE,
+    clear_login_failures,
     complete_login,
     get_current_user_id,
     get_db,
@@ -13,6 +14,8 @@ from ..app import (
     record_user_login,
     is_unique_violation,
     is_valid_password,
+    login_locked_until,
+    record_login_failure,
     send_and_store_otp,
     verify_otp,
 )
@@ -212,11 +215,16 @@ def login():
             return response
 
         try:
+            if login_locked_until(email):
+                flash("Too many sign-in attempts. Please wait 15 minutes or reset your password.", "danger")
+                return render_template("login.html"), 429
             with get_db() as db:
                 user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
                 if not user or not user["password"] or not check_password_hash(user["password"], password):
                     if user:
                         record_user_activity(db, user["id"], "sign_in_failed", "Unsuccessful sign-in attempt")
+                        db.commit()
+                    record_login_failure(email)
                     flash("Invalid email or password. Please try again.", "danger")
                     return render_template("login.html")
                 if user["account_status"] != "active":
@@ -225,7 +233,8 @@ def login():
                     return render_template("login.html")
                 record_user_login(db, user["id"])
                 complete_login(user["id"])
-                return redirect("/dashboard")
+            clear_login_failures(email)
+            return redirect("/dashboard")
         except Exception as e:
             logging.error(f"Login error for '{email}': {e}", exc_info=True)
             flash("An unexpected error occurred. Please try again.", "danger")
@@ -238,7 +247,7 @@ def login():
 def prevent_login_page_from_being_cached(response):
     # Back/forward navigation must re-check the current session instead of
     # restoring a stale login form from the browser cache after sign-in.
-    if request.path == "/login":
+    if request.path in ("/login", "/register"):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
@@ -340,6 +349,7 @@ def forgot_password_reset():
                 record_user_activity(db, user["id"], "password_changed", "Password was changed through account recovery")
                 record_user_login(db, user["id"])
                 complete_login(user["id"])
+        clear_login_failures(email)
 
         return jsonify({"status": "ok", "message": "Password updated successfully!", "redirect": "/dashboard"})
     except Exception as e:

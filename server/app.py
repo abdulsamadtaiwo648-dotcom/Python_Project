@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 import html
 import calendar
@@ -48,8 +49,15 @@ app = Flask(
 _secret_key = os.environ.get("SECRET_KEY")
 _is_hosted = bool(os.environ.get("DATABASE_URL") or os.environ.get("RENDER"))
 if not _secret_key:
-    _secret_key = "solobiz_production_secret_key_987456123_ultra_safe"
-    logging.warning("SECRET_KEY environment variable is not set; using fallback production key.")
+    if _is_hosted:
+        # Never fall back to a known key in production: anyone who knows it can
+        # forge a session cookie for any account.
+        raise RuntimeError("Set the SECRET_KEY environment variable before starting SoloBiz.")
+    _secret_key = secrets.token_urlsafe(48)
+    logging.warning(
+        "SECRET_KEY is not set; using a random development key. "
+        "Sessions will not survive a restart."
+    )
 app.secret_key = _secret_key
 app.permanent_session_lifetime = timedelta(days=30)
 
@@ -168,10 +176,6 @@ def inject_csrf_token():
 def enforce_csrf():
     if request.method in ("GET", "HEAD", "OPTIONS"):
         ensure_csrf_token()
-        return None
-    # Exempt public auth entrypoints from hard CSRF failure so users are never locked out
-    exempt_paths = ("/login", "/register")
-    if request.path in exempt_paths or request.path.startswith("/api/register/") or request.path.startswith("/api/forgot-password/"):
         return None
     if not csrf_token_valid():
         if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
@@ -311,6 +315,67 @@ def verify_otp(email, purpose, code, consume=True):
             db.execute("DELETE FROM otp_codes WHERE email = ? AND purpose = ?", (email, purpose))
             db.commit()
         return item, None
+
+
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_WINDOW = timedelta(minutes=15)
+LOGIN_LOCKOUT = timedelta(minutes=15)
+
+
+def _login_fingerprint(email):
+    normalized = (email or "").strip().lower().encode("utf-8")
+    return hmac.new(str(app.secret_key).encode("utf-8"), normalized, hashlib.sha256).hexdigest()
+
+
+def login_locked_until(email):
+    """Return when the sign-in lockout for this email ends, or None."""
+    with get_db() as db:
+        row = db.execute(
+            "SELECT blocked_until FROM user_login_attempts WHERE fingerprint = ?",
+            (_login_fingerprint(email),),
+        ).fetchone()
+    if not row or not row["blocked_until"]:
+        return None
+    until = parse_otp_datetime(row["blocked_until"])
+    return until if until > utcnow() else None
+
+
+def record_login_failure(email):
+    fingerprint = _login_fingerprint(email)
+    now = utcnow()
+    with get_db() as db:
+        row = db.execute(
+            "SELECT attempts, window_started FROM user_login_attempts WHERE fingerprint = ?",
+            (fingerprint,),
+        ).fetchone()
+        started = parse_otp_datetime(row["window_started"]) if row else None
+        if not row or now - started >= LOGIN_WINDOW:
+            attempts, started = 1, now
+        else:
+            attempts = int(row["attempts"]) + 1
+        blocked_until = (now + LOGIN_LOCKOUT).isoformat() if attempts >= LOGIN_MAX_ATTEMPTS else None
+        if row:
+            db.execute(
+                "UPDATE user_login_attempts SET attempts = ?, window_started = ?, blocked_until = ? "
+                "WHERE fingerprint = ?",
+                (attempts, started.isoformat(), blocked_until, fingerprint),
+            )
+        else:
+            db.execute(
+                "INSERT INTO user_login_attempts (fingerprint, attempts, window_started, blocked_until) "
+                "VALUES (?, ?, ?, ?)",
+                (fingerprint, attempts, started.isoformat(), blocked_until),
+            )
+        db.commit()
+
+
+def clear_login_failures(email):
+    with get_db() as db:
+        db.execute(
+            "DELETE FROM user_login_attempts WHERE fingerprint = ?",
+            (_login_fingerprint(email),),
+        )
+        db.commit()
 
 
 def otp_delivery_message(email, is_live, code):
