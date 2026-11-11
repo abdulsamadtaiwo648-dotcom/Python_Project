@@ -146,11 +146,7 @@
             #dashboard-navigation {
                 display: none !important;
             }
-            #tab-expenses-content:not(.hidden),
-            #tab-income-content:not(.hidden) {
-                display: block;
-            }
-            #tab-income-content:not(.hidden) > #sales-main-view {
+            #tab-expenses-content:not(.hidden) {
                 display: block;
             }
             .desktop-content {
@@ -261,28 +257,15 @@
             #network-status-banner { margin-bottom: 16px; }
 
             /* Tab sections — 2-col grid inside the content panel */
-            #tab-expenses-content:not(.hidden),
-            #tab-income-content:not(.hidden) {
+            #tab-expenses-content:not(.hidden) {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 align-items: start;
                 gap: 24px;
             }
-            #tab-expenses-content:not(.hidden) > *,
-            #tab-income-content:not(.hidden) > * { min-width: 0; }
+            #tab-expenses-content:not(.hidden) > * { min-width: 0; }
             #tab-expenses-content:not(.hidden) > #search-report-results,
             #tab-expenses-content:not(.hidden) > #transaction-list { grid-column: 1 / -1; }
-            #tab-income-content:not(.hidden) > #sales-main-view,
-            #tab-income-content:not(.hidden) > #income-list { grid-column: 1 / -1; }
-            #tab-income-content:not(.hidden) > #sales-main-view {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 24px;
-            }
-            #sales-main-view > div:first-child { grid-column: 1 / -1; }
-            #sales-main-view > div:nth-child(2),
-            #sales-main-view > div:nth-child(3) { min-width: 0; }
-            #sales-main-view > div:nth-child(3) { grid-column: 1 / -1; }
 
             #tab-analytics-content,
             #tab-profile-content { max-width: 100%; }
@@ -311,15 +294,12 @@
 
         /* Compact layout: preserve every control while reducing visual weight. */
         .tab-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
-        #sales-main-view.space-y-6 > :not([hidden]) ~ :not([hidden]),
         #analytics-view.space-y-6 > :not([hidden]) ~ :not([hidden]) {
             --tw-space-y-reverse: 0;
             margin-top: 1rem;
             margin-bottom: 0;
         }
         #tab-expenses-content > .bg-white,
-        #tab-income-content > #sales-main-view > .bg-white,
-        #tab-income-content > .bg-white,
         #tab-analytics-content .mock-chart-card,
         #tab-analytics-content > #analytics-view > .bg-white,
         #tab-profile-content > .bg-white {
@@ -327,18 +307,7 @@
             border-radius: 15px;
             box-shadow: 0 1px 2px rgba(15,23,42,.04);
         }
-        #tab-expenses-content:not(.hidden),
-        #tab-income-content:not(.hidden) { column-gap: 14px; row-gap: 14px; }
-        #tab-income-content:not(.hidden) > #sales-main-view {
-            column-gap: 14px;
-            row-gap: 14px;
-        }
-        #tab-income-content #sales-main-view > div:first-child {
-            padding: 16px;
-            border-radius: 15px;
-        }
-        #tab-income-content #sales-main-view > div:first-child .big-total-value { font-size: clamp(1.65rem, 5vw, 2.2rem); }
-        @media (min-width: 1024px) { #sales-main-view > #sale-entry-card { grid-column:1 / -1; width:100%; max-width:900px; justify-self:center; } }
+        #tab-expenses-content:not(.hidden) { column-gap: 14px; row-gap: 14px; }
         @media (min-width: 1024px) {
             #tab-expenses-content:not(.hidden) { grid-template-columns: minmax(0, 1fr); max-width:1000px; margin-inline:auto; }
             #tab-expenses-content > #expense-entry-card { width:100%; max-width:900px; justify-self:center; }
@@ -347,7 +316,6 @@
         #tab-analytics-content canvas { height: 220px; }
         #tab-profile-content #digital-business-card { padding: 22px; border-radius: 20px; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
         #tab-expenses-content h3,
-        #tab-income-content h3,
         #tab-analytics-content h2,
         #tab-analytics-content h3,
         #tab-profile-content h3 { letter-spacing: -.01em; }
@@ -356,8 +324,7 @@
             .desktop-sidebar { width: 220px; padding: 20px 12px; }
             .desktop-content { padding: 22px 26px; }
             #tab-expenses-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
-            #tab-income-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
-            #sales-main-view.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+            #tab-income-content.space-y-6 > :not([hidden]) ~ :not([hidden]) {
                 margin-top: 0;
             }
         }
@@ -365,8 +332,6 @@
             .desktop-dashboard-shell { padding-right: 10px; padding-left: 10px; }
             .desktop-content { padding: 10px 0 16px; }
             #tab-expenses-content > .bg-white,
-            #tab-income-content > #sales-main-view > .bg-white,
-            #tab-income-content > .bg-white,
             #tab-profile-content > .bg-white { padding: 14px; }
             #tab-analytics-content .analytics-tab-btn { font-size: .78rem; }
         }
@@ -385,27 +350,6 @@
             #mobile-bottom-nav { bottom:0 !important; }
         }
         #budget-summary-fill { transition:width .25s ease, background-color .25s ease; }
-        /* Inventory table layout. */
-        #tab-inventory-content .inventory-toolbar { margin-bottom: 18px; }
-        #tab-inventory-content .inventory-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
-        #tab-inventory-content table { width: 100%; border-collapse: collapse; text-align: left; }
-        #tab-inventory-content th { padding: 13px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: .68rem; font-weight: 700; white-space: nowrap; }
-        #tab-inventory-content td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: .84rem; }
-        #tab-inventory-content tbody tr:last-child td { border-bottom: 0; }
-        #tab-inventory-content td:last-child { color:#4338ca; }
-        #tab-inventory-content .inventory-status { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: .68rem; font-weight: 700; }
-        #tab-inventory-content .inventory-status.low { background: #fef3c7; color: #b45309; }
-        #tab-inventory-content .inventory-status.out { background: #fee2e2; color: #b91c1c; }
-        #tab-inventory-content .inventory-search { max-width: 300px; border-color: #cbd5e1; }
-        @media (max-width: 1023px) { #tab-inventory-content .inventory-toolbar { align-items: stretch; flex-direction: column; } }
-        @media (max-width: 600px) {
-            #tab-inventory-content th, #tab-inventory-content td { padding: 10px 9px; font-size: .72rem; }
-            #tab-inventory-content th { font-size: .6rem; }
-            #tab-inventory-content .inventory-status { padding: 3px 7px; font-size: .62rem; }
-            #tab-inventory-content .inventory-search { max-width: none; width: 100%; flex:1; min-width:0; }
-            #tab-inventory-content .inventory-toolbar > .flex { width:100%; }
-        }
-
 </style>
     <link rel="stylesheet" href="/static/solobiz-ui.css">
 </head>
@@ -890,28 +834,18 @@
         <!-- ========================================================= -->
         <!-- INVENTORY: stock management                              -->
         <!-- ========================================================= -->
-        <section id="tab-inventory-content" class="tab-content space-y-6 {% if active_tab != 'inventory' %}hidden{% endif %}">
-            <div class="inventory-toolbar flex items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-900">Inventory</h2>
-                    <p class="text-xs text-slate-500 mt-1">Your products, prices, and available stock.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input id="inventory-search" type="search" class="inventory-search w-56 border rounded-xl bg-white px-3 py-2.5 text-sm" placeholder="Search products" aria-label="Search inventory products">
-                    <button type="button" id="btn-manage-presets" aria-controls="manage-presets-panel" aria-expanded="false" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-lg font-bold transition">+ Add product</button>
-                </div>
+        <section id="tab-inventory-content" class="tab-content page-stack {% if active_tab != 'inventory' %}hidden{% endif %}" aria-labelledby="inventory-title">
+            <div class="page-head">
+                <h2 class="page-title" id="inventory-title">Inventory</h2>
+                <button type="button" id="btn-manage-presets" class="sb-btn sb-btn-primary">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                    Add product
+                </button>
             </div>
-            <div id="push-settings" class="hidden rounded-2xl border border-slate-200 bg-white p-4 flex flex-wrap items-center gap-3">
-                <svg class="w-5 h-5 flex-shrink-0 text-indigo-600" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                <div class="flex-1 min-w-[12rem]">
-                    <p class="text-sm font-bold text-slate-900">Stock alert notifications</p>
-                    <p id="push-status" class="text-xs text-slate-500 mt-0.5" aria-live="polite">Get a notification on this device when a product runs low or sells out, even when SoloBiz is closed.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" id="push-test" class="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Send test</button>
-                    <button type="button" id="push-toggle" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60">Turn on</button>
-                </div>
-            </div>
+            <label class="sb-search">
+                <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input id="inventory-search" type="search" class="inventory-search" placeholder="Search products" aria-label="Search inventory products">
+            </label>
             <div id="inventory-stock-alert" class="hidden rounded-2xl border border-rose-200 bg-rose-50 p-4" role="alert" aria-live="polite">
                 <div class="flex items-start gap-3">
                     <svg class="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
@@ -922,174 +856,139 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-0 overflow-hidden">
-                <div class="inventory-table-wrap border-0 rounded-none">
+            <div id="push-settings" class="hidden sb-panel flex flex-wrap items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-indigo-600" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <div class="flex-1 min-w-[12rem]">
+                    <p class="text-sm font-bold text-slate-900">Stock alert notifications</p>
+                    <p id="push-status" class="text-xs text-slate-500 mt-0.5" aria-live="polite">Get a notification on this device when a product runs low or sells out, even when SoloBiz is closed.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" id="push-test" class="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Send test</button>
+                    <button type="button" id="push-toggle" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60">Turn on</button>
+                </div>
+            </div>
+            <div class="sb-list-card">
+                <div class="inventory-table-wrap">
                     <table>
-                        <thead><tr><th>Product name</th><th>Status</th><th>Stock info</th><th>Price</th></tr></thead>
+                        <thead><tr><th>Product</th><th>Status</th><th>Stock</th><th>Price</th></tr></thead>
                         <tbody id="presets-grid">
-                            <tr><td colspan="4" class="text-center text-slate-500 py-8">No inventory items yet.</td></tr>
+                            <tr><td colspan="4" class="text-center text-slate-500 py-8">No products yet.</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <div id="manage-presets-panel" class="hidden border-t border-slate-200 p-4 sm:p-5">
-                    <h3 class="text-sm font-bold text-slate-800 mb-3">Add or manage products</h3>
-                    <form id="add-preset-form" class="grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_7rem_5rem_6rem_auto] gap-2 items-end mb-2">
-                        <div class="col-span-2 sm:col-span-1">
-                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Item Name</label>
-                            <input type="text" id="preset-item-name" required placeholder="e.g. DLNZ Hoodie" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Price (₦)</label>
-                            <input type="text" inputmode="numeric" id="preset-price" required placeholder="5,000" class="currency-input w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Stock</label>
-                            <input type="number" id="preset-stock" min="0" value="0" placeholder="0" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label for="preset-low-stock" class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1" title="You'll be alerted when stock falls to this number or below">Alert at</label>
-                            <input type="number" id="preset-low-stock" min="0" step="1" value="3" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-describedby="preset-low-stock-help">
-                        </div>
-                        <fieldset class="col-span-2 sm:col-span-4 grid grid-cols-2 gap-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-2">
-                            <legend class="px-1 text-[10px] uppercase font-bold text-indigo-700 tracking-wider">Bulk sale (optional)</legend>
-                            <div>
-                                <label for="preset-bulk-quantity" class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Pieces per bulk</label>
-                                <input type="number" id="preset-bulk-quantity" min="2" step="1" placeholder="e.g. 5" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label for="preset-bulk-price" class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Bulk price (₦)</label>
-                                <input type="text" inputmode="numeric" id="preset-bulk-price" placeholder="10,000" class="currency-input w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                        </fieldset>
-                        <button type="submit" class="col-span-2 sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm whitespace-nowrap">Save product</button>
-                    </form>
-                    <p class="mobile-secondary-copy text-[10px] text-slate-500 mb-3">Starting stock is tracked and reduced when a sale is saved. Use 0 for a product without stock tracking. <span id="preset-low-stock-help">“Alert at” warns you when stock falls to that number or below.</span> A bulk price is only used when you tick “Sell as bulk” on a sale line, so selling several pieces normally still uses the piece price.</p>
-                    <div id="presets-manage-list" class="space-y-1.5 max-h-64 overflow-y-auto"></div>
-                </div>
             </div>
+            <p class="page-note">Tap a product to edit its price, stock, bulk price or low-stock alert.</p>
         </section>
 
         <!-- ========================================================= -->
         <!-- TAB 2: SALES / INCOME CONTENT                             -->
         <!-- ========================================================= -->
-        <section id="tab-income-content" class="tab-content space-y-6 {% if active_tab != 'income' %}hidden{% endif %}">
-            <div class="flex items-center justify-between gap-3">
-                <div><h2 class="text-lg font-bold text-slate-900">Sales</h2><p class="mt-1 text-sm text-slate-500">Your recorded sales and payments.</p></div>
-                <button type="button" id="btn-new-sale" class="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Add sale</button>
+        <section id="tab-income-content" class="tab-content page-stack {% if active_tab != 'income' %}hidden{% endif %}" aria-labelledby="sales-title">
+            <div class="page-head">
+                <h2 class="page-title" id="sales-title">Sales</h2>
+                <button type="button" id="btn-new-sale" class="sb-btn sb-btn-primary">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                    New sale
+                </button>
             </div>
-            
-            <div id="sales-main-view" class="space-y-6">
-                <!-- Sales Summary Card -->
-                <div class="hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-2xl shadow-sm p-5 text-white text-center overflow-hidden relative">
-                    <p class="hidden text-xs text-emerald-100 font-semibold uppercase tracking-wider mb-1">Total Sales & Income</p>
-                    <h2 class="big-total-value text-white" id="total-income-amount">₦0.00</h2>
-                    <p class="text-xs text-emerald-100/90 mt-2 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span> Auto-saved locally &amp; synced to cloud</p>
-                </div>
 
-            <!-- Log Sale Form -->
-            <div id="sale-entry-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
-            <div id="sale-entry-card" class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
-                <div class="mb-4 flex items-center justify-between"><h3 id="sale-modal-title" class="font-bold text-slate-800">Add a sale</h3><button type="button" data-close-entry="sale-entry-modal" class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100" aria-label="Close">Close</button></div>
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg> Log New Sale / Revenue
-                    </h3>
-                    <!-- Orphaned Add Item Button Removed -->
-                </div>
-                <form id="add-income-form" class="space-y-3">
-                    <div>
-                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
-                            <label for="sales-inventory-select" class="block text-[10px] uppercase font-bold tracking-wider text-slate-600 mb-2">Add from inventory</label>
-                            <div class="flex gap-2">
-                                <select id="sales-inventory-select" class="min-w-0 flex-1 border border-slate-200 rounded-lg bg-white px-3 py-2.5 text-sm text-slate-700">
+            <div id="sales-main-view" class="page-stack">
+                <!-- Kept for the sales script; totals live on Home and Reports. -->
+                <p id="total-income-amount" class="hidden" aria-hidden="true">₦0.00</p>
+
+                <!-- New sale: a full-screen sheet on phones -->
+                <div id="sale-entry-modal" class="hidden sb-modal" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
+                    <div id="sale-entry-card" class="sb-sheet">
+                        <div class="sb-sheet-head">
+                            <h3 id="sale-modal-title" class="sb-sheet-title">New sale</h3>
+                            <button type="button" data-close-entry="sale-entry-modal" class="sb-icon-btn" aria-label="Close"><svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+                        </div>
+                        <form id="add-income-form" class="sb-sheet-body" novalidate>
+                            <div class="sb-field">
+                                <label for="sales-inventory-select">Add a product</label>
+                                <select id="sales-inventory-select">
                                     <option value="">Choose a product</option>
                                 </select>
+                                <p id="sales-inventory-hint" class="sb-help">Choose a product to add it to the sale.</p>
                             </div>
-                            <p id="sales-inventory-hint" class="mobile-secondary-copy text-[10px] text-slate-500 mt-2">Selecting a product fills its name and unit price. Set the quantity in the sale row.</p>
-                        </div>
-                    </div>
-                    <div>
-                        <input type="text" id="income-customer-name" placeholder="Customer Name (Optional)" 
-                            class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
-                    </div>
-                    <div>
-                        <div class="flex items-center justify-between gap-2 mb-2">
-                            <label class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Sale items</label>
-                            <button type="button" id="add-manual-sale-item" class="text-xs font-bold text-emerald-700 hover:text-emerald-800">+ Add a new item</button>
-                        </div>
-                        <div id="manual-sale-items" class="space-y-2"></div>
-                        <p class="mobile-secondary-copy text-[10px] text-slate-500 mt-2">Add each product, its unit price, and quantity. Inventory items selected above are included too.</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="relative">
-                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Total Value</label>
-                            <span class="absolute left-2.5 bottom-2.5 text-slate-500 font-bold text-sm">₦</span>
-                            <input type="text" inputmode="numeric" id="income-total-value" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" readonly required>
-                        </div>
-                        <div class="relative">
-                            <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Amount Paid</label>
-                            <span class="absolute left-2.5 bottom-2.5 text-slate-500 font-bold text-sm">₦</span>
-                            <input type="text" inputmode="numeric" id="income-amount-paid" class="currency-input w-full border border-slate-200 rounded-lg py-2.5 pr-2 pl-7 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0" required>
-                        </div>
-                    </div>
-                    <div>
-                        <label for="sale-payment-mode" class="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-2">Payment method</label>
-                        <div class="relative">
-                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                            <select id="sale-payment-mode" class="w-full appearance-none border border-slate-200 rounded-xl bg-white py-3 pl-10 pr-10 text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition" aria-label="Payment method">
-                                <option value="Cash">Cash</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="POS">POS</option>
-                            </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                        </div>
-                    </div>
 
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl hover:bg-indigo-700 transition shadow-sm flex items-center justify-center gap-2 mt-4">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Transaction
+                            <div class="sale-items-head">
+                                <span>Items</span>
+                                <button type="button" id="add-manual-sale-item" class="sb-link">+ Item not in inventory</button>
+                            </div>
+                            <div id="manual-sale-items" class="sale-lines-edit"></div>
+
+                            <div class="sb-field">
+                                <label for="income-customer-name">Customer <span class="sb-optional">(optional)</span></label>
+                                <input type="text" id="income-customer-name" placeholder="Walk-in customer" autocomplete="off">
+                            </div>
+
+                            <div class="sb-field-row">
+                                <div class="sb-field">
+                                    <label for="income-total-value">Total</label>
+                                    <div class="sb-money"><span aria-hidden="true">₦</span><input type="text" inputmode="numeric" id="income-total-value" class="currency-input" placeholder="0" readonly required></div>
+                                </div>
+                                <div class="sb-field">
+                                    <label for="income-amount-paid">Amount paid</label>
+                                    <div class="sb-money"><span aria-hidden="true">₦</span><input type="text" inputmode="numeric" id="income-amount-paid" class="currency-input" placeholder="0" required></div>
+                                </div>
+                            </div>
+
+                            <div class="sb-field">
+                                <label for="sale-payment-mode">Payment method</label>
+                                <select id="sale-payment-mode">
+                                    <option value="Cash">Cash</option>
+                                    <option value="Transfer">Transfer</option>
+                                    <option value="POS">POS</option>
+                                </select>
+                            </div>
+
+                            <div class="sb-sheet-foot">
+                                <button type="submit" class="sb-btn sb-btn-primary sb-btn-block">Save sale</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="list-toolbar">
+                    <button type="button" id="sales-filter-toggle" class="sb-chip" aria-expanded="false" aria-controls="sales-filter-panel">
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                        Filter <span id="sales-filter-count" class="sb-chip-count hidden">0</span>
                     </button>
-                </form>
-            </div>
-            </div>
+                    <p id="sales-filter-summary" class="list-toolbar-text" aria-live="polite">All sales</p>
+                    <button id="sales-clear-filters" type="button" class="hidden sb-link">Clear</button>
+                </div>
 
-            <section class="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Filter sales history">
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <label class="text-xs font-semibold text-slate-600">Product bought
-                        <select id="sales-product-filter" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
-                            <option value="">All products</option>
-                        </select>
-                    </label>
-                    <label class="text-xs font-semibold text-slate-600">Payment status
-                        <select id="sales-payment-filter" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
-                            <option value="">Any payment status</option>
-                            <option value="paid">Fully paid</option>
-                            <option value="partial">Part-paid</option>
-                            <option value="unpaid">Unpaid</option>
-                        </select>
-                    </label>
-                    <label class="text-xs font-semibold text-slate-600">Minimum sale (₦)
-                        <input id="sales-min-total" type="number" min="0" step="0.01" inputmode="decimal" placeholder="No minimum" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700">
-                    </label>
-                    <label class="text-xs font-semibold text-slate-600">Maximum sale (₦)
-                        <input id="sales-max-total" type="number" min="0" step="0.01" inputmode="decimal" placeholder="No maximum" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700">
-                    </label>
-                </div>
-                <div class="mt-3 flex items-center justify-between gap-3">
-                    <p id="sales-filter-summary" class="text-xs text-slate-500" aria-live="polite">All sales</p>
-                    <button id="sales-clear-filters" type="button" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800">Clear filters</button>
-                </div>
-            </section>
+                <section id="sales-filter-panel" class="sb-panel filter-panel" aria-label="Filter sales">
+                    <div class="filter-grid">
+                        <div class="sb-field">
+                            <label for="sales-product-filter">Product</label>
+                            <select id="sales-product-filter"><option value="">All products</option></select>
+                        </div>
+                        <div class="sb-field">
+                            <label for="sales-payment-filter">Payment</label>
+                            <select id="sales-payment-filter">
+                                <option value="">Any</option>
+                                <option value="paid">Paid in full</option>
+                                <option value="partial">Part-paid</option>
+                                <option value="unpaid">Unpaid</option>
+                            </select>
+                        </div>
+                        <div class="sb-field">
+                            <label for="sales-min-total">Sale total from (₦)</label>
+                            <input id="sales-min-total" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Any">
+                        </div>
+                        <div class="sb-field">
+                            <label for="sales-max-total">Sale total up to (₦)</label>
+                            <input id="sales-max-total" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Any">
+                        </div>
+                    </div>
+                </section>
 
-            <!-- Income History List -->
-            <div>
-                <h3 class="font-bold text-slate-800 mb-3 flex items-center justify-between">
-                    <span>Sales History</span>
-                </h3>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="income-list">
-                    <p class="text-center text-slate-500 py-8 text-sm" id="no-income-msg">No sales recorded yet.</p>
+                <div id="income-list" class="sale-list" aria-live="polite">
+                    <p class="list-empty" id="no-income-msg">No sales recorded yet.</p>
                 </div>
             </div>
-            </div> <!-- Close sales-main-view -->
         </section>
 
         <!-- ========================================================= -->
@@ -1375,53 +1274,57 @@
         </div>
     </div>
 
-    <div id="inventory-edit-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="inventory-edit-title" aria-describedby="inventory-edit-description">
-        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100" style="max-height:90vh; overflow-y:auto">
-            <div class="flex items-start justify-between gap-4 mb-5">
+    <div id="inventory-edit-modal" class="hidden sb-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-edit-title" aria-describedby="inventory-edit-description">
+        <div class="sb-sheet">
+            <div class="sb-sheet-head">
                 <div>
-                    <p class="text-[10px] uppercase tracking-[0.2em] font-black text-indigo-600">Inventory</p>
-                    <h3 id="inventory-edit-title" class="text-xl font-black text-slate-900 mt-1">Edit product</h3>
-                    <p id="inventory-edit-description" class="text-xs text-slate-500 mt-1">Update the name, price, bulk price, or available stock.</p>
+                    <h3 id="inventory-edit-title" class="sb-sheet-title">Edit product</h3>
+                    <p id="inventory-edit-description" class="sb-sheet-sub">Price, stock, bulk price and low-stock alert.</p>
                 </div>
-                <button type="button" id="close-inventory-edit" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-lg leading-none" aria-label="Close">×</button>
+                <button type="button" id="close-inventory-edit" class="sb-icon-btn" aria-label="Close">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                </button>
             </div>
-            <form id="inventory-edit-form" class="space-y-4">
+            <form id="inventory-edit-form" class="sb-sheet-body" novalidate>
                 <input type="hidden" id="inventory-edit-id">
-                <div>
-                    <label for="inventory-edit-name" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Product name</label>
-                    <input id="inventory-edit-name" type="text" maxlength="120" required class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="sb-field">
+                    <label for="inventory-edit-name">Product name</label>
+                    <input id="inventory-edit-name" type="text" maxlength="120" required placeholder="e.g. Jogger">
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label for="inventory-edit-price" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Unit price (₦)</label>
-                        <input id="inventory-edit-price" type="number" min="0.01" step="0.01" required class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="sb-field-row">
+                    <div class="sb-field">
+                        <label for="inventory-edit-price">Price per piece (₦)</label>
+                        <input id="inventory-edit-price" type="number" inputmode="decimal" min="0.01" step="0.01" required placeholder="3000">
                     </div>
-                    <div>
-                        <label for="inventory-edit-stock" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Units in stock</label>
-                        <input id="inventory-edit-stock" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <div class="sb-field">
+                        <label for="inventory-edit-stock" id="inventory-edit-stock-label">Units in stock</label>
+                        <input id="inventory-edit-stock" type="number" inputmode="numeric" min="0" step="1" required>
                     </div>
                 </div>
-                <div>
-                    <label for="inventory-edit-low-stock" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Low-stock alert at</label>
-                    <input id="inventory-edit-low-stock" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-describedby="inventory-edit-low-stock-help">
-                    <p id="inventory-edit-low-stock-help" class="mt-1 text-[10px] text-slate-500">You'll be alerted when stock falls to this number or below. Use 0 to be alerted only when it runs out.</p>
+                <div class="sb-field">
+                    <label for="inventory-edit-low-stock">Low-stock alert at</label>
+                    <input id="inventory-edit-low-stock" type="number" inputmode="numeric" min="0" step="1" required aria-describedby="inventory-edit-low-stock-help">
+                    <p id="inventory-edit-low-stock-help" class="sb-help">You'll be alerted when stock falls to this number or below. Use 0 to be alerted only when it runs out.</p>
                 </div>
-                <fieldset class="grid grid-cols-2 gap-3 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-3">
-                    <legend class="px-1 text-[10px] uppercase tracking-wider font-black text-indigo-700">Bulk sale (optional)</legend>
-                    <div>
-                        <label for="inventory-edit-bulk-quantity" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Pieces per bulk</label>
-                        <input id="inventory-edit-bulk-quantity" type="number" min="2" step="1" placeholder="e.g. 5" class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <fieldset class="sb-fieldset">
+                    <legend>Bulk price <span>(optional)</span></legend>
+                    <div class="sb-field-row">
+                        <div class="sb-field">
+                            <label for="inventory-edit-bulk-quantity">Pieces per bulk</label>
+                            <input id="inventory-edit-bulk-quantity" type="number" inputmode="numeric" min="2" step="1" placeholder="e.g. 5">
+                        </div>
+                        <div class="sb-field">
+                            <label for="inventory-edit-bulk-price">Bulk price (₦)</label>
+                            <input id="inventory-edit-bulk-price" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="e.g. 10000">
+                        </div>
                     </div>
-                    <div>
-                        <label for="inventory-edit-bulk-price" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Bulk price (₦)</label>
-                        <input id="inventory-edit-bulk-price" type="number" min="0.01" step="0.01" placeholder="10000" class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <p class="col-span-2 text-[10px] text-slate-500">Leave both empty to sell by the piece only.</p>
+                    <p class="sb-help">Only used when you tick "Sell as bulk" on a sale. Leave both empty to sell by the piece only.</p>
                 </fieldset>
-                <p id="inventory-edit-error" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700" role="alert"></p>
-                <div class="flex gap-3 pt-1">
-                    <button type="button" id="cancel-inventory-edit" class="flex-1 rounded-xl bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200">Cancel</button>
-                    <button type="submit" id="save-inventory-edit" class="flex-1 rounded-xl bg-indigo-600 py-3 text-xs font-black text-white hover:bg-indigo-700 shadow-md">Save changes</button>
+                <p id="inventory-edit-error" class="hidden sb-error" role="alert"></p>
+                <div class="sb-sheet-foot">
+                    <button type="button" id="delete-inventory-from-edit" class="sb-btn sb-btn-danger-text">Delete</button>
+                    <button type="button" id="cancel-inventory-edit" class="sb-btn sb-btn-secondary">Cancel</button>
+                    <button type="submit" id="save-inventory-edit" class="sb-btn sb-btn-primary">Save changes</button>
                 </div>
             </form>
         </div>
@@ -1714,11 +1617,20 @@
         let syncInProgress = false;
         let syncQueued = false;
 
+        // The sync message only appears when something needs the user's
+        // attention: while offline or with changes waiting, and once more to
+        // confirm when those changes have synced. Routine syncs stay silent.
+        let networkNeedsAttention = false;
         function updateNetworkStatus(online, message) {
             const banner = document.getElementById('network-status-banner');
             const text = document.getElementById('network-status-text');
             const retry = document.getElementById('retry-sync-button');
             if (!banner || !text) return;
+            if (online && !networkNeedsAttention) {
+                banner.classList.add('hidden');
+                return;
+            }
+            networkNeedsAttention = !online;
             banner.classList.remove('hidden', 'bg-amber-50', 'border-amber-200', 'text-amber-300', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
             if (online) {
                 banner.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
@@ -4045,9 +3957,10 @@
                     return;
                 }
 
-                const totalValue = parseFloat(income.total_value ?? income.amount ?? 0);
-                const currentPaid = parseFloat(income.amount_paid ?? income.amount ?? 0);
-                const balance = Math.max(totalValue - currentPaid, 0);
+                // A payment covers the whole receipt: its balance is what every
+                // item on it still owes.
+                const group = await getLocalSaleGroup(income);
+                const balance = group.reduce((sum, item) => sum + getReceiptPaymentState(item).balanceOwed, 0);
                 if (balance <= 0) {
                     await renderIncomeListUI();
                     return;
@@ -4062,7 +3975,7 @@
                 const errorEl = document.getElementById('settle-debt-error');
                 const modal = document.getElementById('settle-debt-modal');
 
-                if (descriptionEl) descriptionEl.textContent = `${income.description || 'Sale'} · ${income.customer_name || 'Walk-in Customer'}`;
+                if (descriptionEl) descriptionEl.textContent = `${income.customer_name || 'Walk-in customer'} · ${group.length} item${group.length === 1 ? '' : 's'}`;
                 if (balanceEl) balanceEl.textContent = `₦${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 if (afterEl) afterEl.textContent = `₦${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 if (amountEl) {
@@ -4145,54 +4058,64 @@
                 return Math.max(totalValue - updatedPaid, 0);
             }
 
-            function renderIncomeItemHTML(income, showDelete = true) {
-                const offlineBadge = !income.synced ? `<span class="text-[9px] font-semibold bg-amber-100 text-amber-300 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
-                const paymentState = getReceiptPaymentState(income);
-                const totalValue = paymentState.totalValue;
-                const amountPaid = paymentState.amountPaid;
-                const balanceOwed = paymentState.balanceOwed;
-                const itemDescription = income.description || income.item_sold || 'Income';
-                const desc = saleLineTitle(income, itemDescription);
+            // "2026-11-11 09:07 PM" (server) or an ISO date (saved offline) -> "11 Nov, 9:07 PM"
+            function formatSaleDate(value) {
+                const text = String(value || '');
+                const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i);
+                let date = null;
+                if (match) {
+                    let hour = Number(match[4]);
+                    if (match[6]) hour = (hour % 12) + (/pm/i.test(match[6]) ? 12 : 0);
+                    date = /Z|[+-]\d{2}:?\d{2}$/.test(text) ? new Date(text) : new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), hour, Number(match[5]));
+                } else if (text) {
+                    date = new Date(text);
+                }
+                if (!date || Number.isNaN(date.getTime())) return text;
+                return date.toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+            }
 
-                const formattedTotal = totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                const formattedPaid = amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                const formattedBalance = balanceOwed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                
-                const receiptTag = income.receipt_id ? `<span class="text-[10px] text-slate-500 font-mono ml-1.5">#${escapeHtml(income.receipt_id)}</span>` : '';
-                const balanceHtml = balanceOwed > 0
-                    ? `<p class="text-[10px] text-red-600 font-medium">Balance Owed: ₦${formattedBalance}</p>`
-                    : '';
+            const SALE_STATUS = {
+                paid: { label: 'Paid', className: 'sale-badge-paid' },
+                partial: { label: 'Part-paid', className: 'sale-badge-partial' },
+                unpaid: { label: 'Unpaid', className: 'sale-badge-unpaid' }
+            };
+            const money = value => '₦' + Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-                const settleButton = balanceOwed > 0 ? `<button type="button" data-settle-income-id="${escapeHtml(income.local_id ?? income.server_id ?? income.id ?? '')}" class="btn-settle-debt inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-300 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition border border-amber-200 shadow-sm">
-                    <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg> Settle Debt
-                </button>` : '';
-                const deleteButton = showDelete ? `<button type="button" data-delete-income-id="${escapeHtml(income.local_id || '')}" class="btn-delete-income inline-flex items-center gap-1 text-[10px] uppercase font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded transition border border-rose-200 shadow-sm" aria-label="Delete sale">
-                    <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg> Delete sale
-                </button>` : '';
-
+            // One card per receipt: customer, time, each item, total and actions.
+            function renderSaleGroupHTML(items) {
+                const first = items[0];
+                const total = items.reduce((sum, item) => sum + (Number(item.total_value ?? item.amount ?? 0) || 0), 0);
+                const paid = items.reduce((sum, item) => sum + (Number(item.amount_paid ?? item.amount ?? 0) || 0), 0);
+                const owed = Math.max(total - paid, 0);
+                const status = owed <= 0 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+                const owingLine = items.find(item => getReceiptPaymentState(item).balanceOwed > 0);
+                const unsynced = items.some(item => !item.synced);
+                const meta = [formatSaleDate(first.date), first.payment_mode || 'Cash', first.receipt_id ? `#${first.receipt_id}` : '']
+                    .filter(Boolean).map(escapeHtml).join(' · ');
+                const lines = items.map(item => `
+                        <li><span>${escapeHtml(saleLineTitle(item, item.description || item.item_sold || 'Item'))}</span><span>${money(item.total_value ?? item.amount ?? 0)}</span></li>`).join('');
+                const receiptId = escapeHtml(first.local_id ?? '');
                 return `
-                <div data-income-local-id="${escapeHtml(income.local_id || '')}" class="flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-lg"><svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 13h.01"/><path d="M2 10h18"/></svg></div>
-                        <div>
-                            <p class="font-bold text-slate-800 text-sm capitalize flex items-center">
-                                ${escapeHtml(desc)} ${offlineBadge}
-                            </p>
-                            <p class="text-xs text-slate-500">Customer: ${escapeHtml(income.customer_name || 'Walk-in')} ${receiptTag}</p>
-                            <div class="mt-1"><span class="text-[10px] ${paymentState.badgeClass} px-2 py-0.5 rounded font-bold">${paymentState.status}</span></div>
-                            ${balanceHtml}
+                <article class="sale-card" data-income-local-id="${receiptId}">
+                    <div class="sale-card-top">
+                        <div class="min-w-0">
+                            <p class="sale-customer">${escapeHtml(first.customer_name || 'Walk-in customer')}${unsynced ? ' <span class="sale-offline">Not synced</span>' : ''}</p>
+                            <p class="sale-meta">${meta}</p>
+                        </div>
+                        <div class="sale-total">
+                            <p>${money(total)}</p>
+                            <span class="sale-badge ${SALE_STATUS[status].className}">${SALE_STATUS[status].label}</span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="font-bold text-emerald-600 text-sm mb-1">₦${formattedPaid} <span class="text-[10px] text-slate-500 font-normal block">of ₦${formattedTotal}</span></p>
-                        <div class="space-y-2">${settleButton}
-                            <button type="button" onclick="generatePDFReceipt(${income.local_id})" class="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded transition border border-emerald-200 shadow-sm">
-                                <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg> Receipt
-                            </button>
-                            ${deleteButton}
-                        </div>
+                    <ul class="sale-items">${lines}
+                    </ul>
+                    ${owed > 0 ? `<p class="sale-owed">${money(owed)} still owed · ${money(paid)} paid</p>` : ''}
+                    <div class="sale-actions">
+                        ${owingLine ? `<button type="button" data-settle-income-id="${escapeHtml(owingLine.local_id ?? owingLine.server_id ?? owingLine.id ?? '')}" class="btn-settle-debt sb-btn sb-btn-small sb-btn-warn">Record payment</button>` : ''}
+                        <button type="button" onclick="generatePDFReceipt(${Number(first.local_id) || 0})" class="sb-btn sb-btn-small sb-btn-secondary">Receipt</button>
+                        <button type="button" data-delete-income-id="${receiptId}" class="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale">Delete</button>
                     </div>
-                </div>`;
+                </article>`;
             }
 
             function salesFilterGroups(items) {
@@ -4258,17 +4181,26 @@
                 clearSalesFilters?.classList.toggle('hidden', !filteredSales.filtered);
                 let totalIncome = 0;
 
+                const activeFilters = ['sales-product-filter', 'sales-payment-filter', 'sales-min-total', 'sales-max-total']
+                    .filter(id => (document.getElementById(id)?.value || '') !== '').length;
+                const filterCount = document.getElementById('sales-filter-count');
+                if (filterCount) {
+                    filterCount.textContent = String(activeFilters);
+                    filterCount.classList.toggle('hidden', activeFilters === 0);
+                }
+
                 if (filteredSales.items.length === 0) {
-                    listContainer.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">${incomeItems.length === 0 ? 'No sales recorded yet.' : 'No sales match these filters.'}</p>`;
+                    listContainer.innerHTML = `<p class="list-empty">${incomeItems.length === 0 ? 'No sales yet. Tap “New sale” to record one.' : 'No sales match these filters.'}</p>`;
                 } else {
-                    const renderedSaleGroups = new Set();
-                    listContainer.innerHTML = filteredSales.items.slice().reverse().map(item => {
+                    // Newest receipt first; items keep their order inside a receipt.
+                    const groups = new Map();
+                    filteredSales.items.slice().reverse().forEach(item => {
                         totalIncome += parseFloat(item.amount_paid ?? item.amount ?? 0);
-                        const groupKey = incomeSaleGroupKey(item);
-                        const showDelete = !renderedSaleGroups.has(groupKey);
-                        renderedSaleGroups.add(groupKey);
-                        return renderIncomeItemHTML(item, showDelete);
-                    }).join('');
+                        const key = incomeSaleGroupKey(item);
+                        if (!groups.has(key)) groups.set(key, []);
+                        groups.get(key).unshift(item);
+                    });
+                    listContainer.innerHTML = [...groups.values()].map(renderSaleGroupHTML).join('');
                 }
 
                 if (totalIncomeEl) {
@@ -4284,6 +4216,12 @@
             });
             ['sales-min-total', 'sales-max-total'].forEach(id => {
                 document.getElementById(id)?.addEventListener('input', renderIncomeListUI);
+            });
+            document.getElementById('sales-filter-toggle')?.addEventListener('click', event => {
+                const panel = document.getElementById('sales-filter-panel');
+                const open = !panel.classList.contains('is-open');
+                panel.classList.toggle('is-open', open);
+                event.currentTarget.setAttribute('aria-expanded', String(open));
             });
             document.getElementById('sales-clear-filters')?.addEventListener('click', () => {
                 document.getElementById('sales-product-filter').value = '';
@@ -4507,8 +4445,23 @@
                 }
 
                 try {
-                    const newBalance = await settleDebtForIncome(settleTargetIncomeId, settleDebtAmount?.value || '');
-                    alert(`Payment recorded. New balance: ₦${newBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+                    const amount = Number.parseFloat(String(settleDebtAmount?.value || '').replace(/,/g, ''));
+                    if (!Number.isFinite(amount) || amount <= 0 || amount > settleTargetBalance + 0.001) {
+                        throw new Error(`Enter an amount between ₦0.01 and ${money(settleTargetBalance)}.`);
+                    }
+                    // Pay off the receipt's items in order until the amount is used up.
+                    const target = await findLocalIncomeRecord(settleTargetIncomeId);
+                    let remaining = amount;
+                    for (const item of await getLocalSaleGroup(target)) {
+                        const owed = getReceiptPaymentState(item).balanceOwed;
+                        if (remaining <= 0.001 || owed <= 0) continue;
+                        const part = Math.min(remaining, owed);
+                        await settleDebtForIncome(item.local_id, String(Math.round(part * 100) / 100));
+                        remaining -= part;
+                    }
+                    const stillOwed = (await getLocalSaleGroup(target)).reduce((sum, item) => sum + getReceiptPaymentState(item).balanceOwed, 0);
+                    closeSettleDebtModal();
+                    showToast(stillOwed > 0.001 ? `Payment recorded. ${money(stillOwed)} still owed.` : 'Payment recorded. This sale is now paid in full.');
                 } catch (error) {
                     if (settleDebtError) {
                         settleDebtError.textContent = error.message || 'Could not record payment.';
@@ -4599,7 +4552,7 @@
                                     incomeSubmitInProgress = false;
                                     if (submitButton) {
                                         submitButton.disabled = false;
-                                        submitButton.textContent = 'Save Transaction';
+                                        submitButton.textContent = 'Save sale';
                                     }
                                     return;
                                 }
@@ -4677,7 +4630,7 @@
                             incomeSubmitInProgress = false;
                             if (submitButton) {
                                 submitButton.disabled = false;
-                                submitButton.textContent = 'Save Transaction';
+                                submitButton.textContent = 'Save sale';
                             }
                             return;
                         }
@@ -4687,7 +4640,7 @@
                     incomeSubmitInProgress = false;
                     if (submitButton) {
                         submitButton.disabled = false;
-                        submitButton.textContent = 'Save Transaction';
+                        submitButton.textContent = 'Save sale';
                     }
                 });
             }
@@ -4772,8 +4725,11 @@
                 const row = document.createElement('div');
                 row.dataset.manualSaleRow = 'true';
                 if (preset) row.dataset.presetId = String(preset.id);
-                row.className = 'grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_8rem_6rem_auto] gap-2 items-end rounded-xl border border-slate-200 p-2';
-                row.innerHTML = '<label class="col-span-2 sm:col-span-1 text-[10px] uppercase font-bold tracking-wide text-slate-500">Product name<input data-manual-name type="text" maxlength="120" placeholder="e.g. Custom gift wrap" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500"><span data-price-label>Unit price (₦)</span><input data-manual-price type="number" min="0.01" step="0.01" placeholder="0.00" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500"><span data-quantity-label>Quantity</span><input data-manual-quantity type="number" min="1" max="10000" step="1" value="1" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><button type="button" data-remove-manual-item class="col-span-2 sm:col-span-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">Remove item</button>';
+                row.className = 'sale-line';
+                row.innerHTML = '<label class="sale-line-name"><span>Product</span><input data-manual-name type="text" maxlength="120" placeholder="Item name"></label>'
+                    + '<label><span data-price-label>Unit price (₦)</span><input data-manual-price type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0"></label>'
+                    + '<label><span data-quantity-label>Quantity</span><input data-manual-quantity type="number" inputmode="numeric" min="1" max="10000" step="1" value="1"></label>'
+                    + '<button type="button" data-remove-manual-item class="sale-line-remove" aria-label="Remove item"><svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
                 if (preset) {
                     const nameInput = row.querySelector('[data-manual-name]');
                     const priceInput = row.querySelector('[data-manual-price]');
@@ -4781,10 +4737,10 @@
                     nameInput.readOnly = true;
                     nameInput.setAttribute('aria-label', `Inventory product: ${preset.item_name}`);
                     priceInput.readOnly = true;
-                    row.classList.add('bg-emerald-50/30');
+                    row.classList.add('sale-line-inventory');
                     const source = document.createElement('span');
                     source.dataset.rowSource = 'true';
-                    source.className = 'col-span-2 text-[10px] text-emerald-700';
+                    source.className = 'sale-line-source';
                     source.style.gridColumn = '1 / -1';
                     row.append(source);
                     syncRowBulkToggle(row, preset);
@@ -4804,7 +4760,7 @@
                 if (!toggle) {
                     toggle = document.createElement('label');
                     toggle.dataset.bulkToggleWrap = 'true';
-                    toggle.className = 'flex items-center gap-2 text-xs font-semibold text-indigo-700 cursor-pointer select-none';
+                    toggle.className = 'sale-line-bulk';
                     toggle.style.gridColumn = '1 / -1';
                     toggle.innerHTML = '<input type="checkbox" data-bulk-toggle class="w-4 h-4 accent-indigo-600"><span data-bulk-toggle-text></span>';
                     row.insertBefore(toggle, row.querySelector('[data-row-source]'));
@@ -4859,7 +4815,6 @@
             });
             addManualSaleItemRow();
             const presetsGrid = document.getElementById('presets-grid');
-            const managePanel = document.getElementById('manage-presets-panel');
             const manageList = document.getElementById('presets-manage-list');
             const inventoryCacheKey = `solobiz_inventory_presets_${CURRENT_USER_ID}`;
             const inventoryEditModal = document.getElementById('inventory-edit-modal');
@@ -4941,7 +4896,6 @@
 
             function closeInventoryEditModal() {
                 inventoryEditModal?.classList.add('hidden');
-                inventoryEditModal?.classList.remove('flex');
                 inventoryEditForm?.reset();
                 inventoryEditError?.classList.add('hidden');
                 if (inventoryEditTrigger?.isConnected) inventoryEditTrigger.focus();
@@ -4961,8 +4915,40 @@
                 return { bulk_quantity, bulk_price, error: null };
             }
 
+            // One dialog adds and edits products. openInventoryAddModal() adds one.
+            function setProductDialogMode(adding) {
+                document.getElementById('inventory-edit-title').textContent = adding ? 'Add product' : 'Edit product';
+                document.getElementById('inventory-edit-description').textContent = adding
+                    ? 'Name, price and how many you have.'
+                    : 'Price, stock, bulk price and low-stock alert.';
+                document.getElementById('inventory-edit-stock-label').textContent = adding ? 'Starting stock' : 'Units in stock';
+                document.getElementById('save-inventory-edit').textContent = adding ? 'Add product' : 'Save changes';
+                document.getElementById('delete-inventory-from-edit').classList.toggle('hidden', adding);
+            }
+            function openInventoryAddModal() {
+                inventoryEditTrigger = document.activeElement;
+                inventoryEditForm?.reset();
+                document.getElementById('inventory-edit-id').value = '';
+                document.getElementById('inventory-edit-stock').value = '0';
+                document.getElementById('inventory-edit-low-stock').value = '3';
+                setProductDialogMode(true);
+                inventoryEditError?.classList.add('hidden');
+                inventoryEditModal?.classList.remove('hidden');
+                document.getElementById('inventory-edit-name').focus();
+            }
+            document.getElementById('btn-manage-presets')?.addEventListener('click', openInventoryAddModal);
+            document.getElementById('delete-inventory-from-edit')?.addEventListener('click', () => {
+                const id = Number(document.getElementById('inventory-edit-id').value);
+                const preset = inventoryPresets.find(item => item.id === id);
+                if (!preset) return;
+                const trigger = inventoryEditTrigger;
+                closeInventoryEditModal();
+                openInventoryDeleteModal(preset, trigger);
+            });
+
             function openInventoryEditModal(preset) {
                 inventoryEditTrigger = document.activeElement;
+                setProductDialogMode(false);
                 document.getElementById('inventory-edit-id').value = String(preset.id);
                 document.getElementById('inventory-edit-name').value = preset.item_name;
                 document.getElementById('inventory-edit-price').value = String(preset.price);
@@ -4972,7 +4958,6 @@
                 document.getElementById('inventory-edit-bulk-price').value = preset.bulk_price ? String(preset.bulk_price) : '';
                 inventoryEditError?.classList.add('hidden');
                 inventoryEditModal?.classList.remove('hidden');
-                inventoryEditModal?.classList.add('flex');
                 document.getElementById('inventory-edit-name').focus();
             }
 
@@ -4987,7 +4972,9 @@
 
             inventoryEditForm?.addEventListener('submit', async event => {
                 event.preventDefault();
-                const id = Number(document.getElementById('inventory-edit-id').value);
+                const rawId = document.getElementById('inventory-edit-id').value;
+                const adding = rawId === '';
+                const id = Number(rawId);
                 const item_name = document.getElementById('inventory-edit-name').value.trim();
                 const price = Number(document.getElementById('inventory-edit-price').value);
                 const stock = Number(document.getElementById('inventory-edit-stock').value);
@@ -5015,17 +5002,17 @@
                 submitButton.disabled = true;
                 submitButton.textContent = 'Saving…';
                 try {
-                    const response = await authenticatedFetch(`/api/inventory-presets/${id}`, {
-                        method: 'PUT',
+                    const response = await authenticatedFetch(adding ? '/api/inventory-presets' : `/api/inventory-presets/${id}`, {
+                        method: adding ? 'POST' : 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ item_name, price, stock, low_stock_threshold, bulk_quantity: bulk.bulk_quantity, bulk_price: bulk.bulk_price })
                     });
                     const result = await response.json();
                     if (!response.ok || result.status !== 'success') {
-                        throw new Error(result.message || 'Could not update product.');
+                        throw new Error(result.message || (adding ? 'Could not add product.' : 'Could not update product.'));
                     }
-
-                    inventoryPresets = inventoryPresets.map(item => item.id === id ? result.preset : item);
+                    if (adding) inventoryPresets.push(result.preset);
+                    else inventoryPresets = inventoryPresets.map(item => item.id === id ? result.preset : item);
                     manualSaleItems?.querySelectorAll(`[data-preset-id="${id}"]`).forEach(row => {
                         row.querySelector('[data-manual-name]').value = result.preset.item_name;
                         syncRowBulkToggle(row, result.preset);
@@ -5037,11 +5024,11 @@
                     updateSaleTotals();
                     closeInventoryEditModal();
                 } catch (error) {
-                    inventoryEditError.textContent = error.message || 'Could not update product. Try again.';
+                    inventoryEditError.textContent = error.message || 'Could not save this product. Try again.';
                     inventoryEditError.classList.remove('hidden');
                 } finally {
                     submitButton.disabled = false;
-                    submitButton.textContent = 'Save changes';
+                    submitButton.textContent = adding ? 'Add product' : 'Save changes';
                 }
             });
 
@@ -5072,13 +5059,6 @@
                 event.currentTarget.dataset.touched = 'true';
             });
 
-            // Toggle manage panel
-            document.getElementById('btn-manage-presets')?.addEventListener('click', event => {
-                managePanel.classList.toggle('hidden');
-                const isOpen = !managePanel.classList.contains('hidden');
-                event.currentTarget.setAttribute('aria-expanded', String(isOpen));
-                event.currentTarget.textContent = isOpen ? 'Close' : '+ Add product';
-            });
 
             // Render the inventory list
             function renderPresetsGrid() {
@@ -5090,7 +5070,7 @@
                     const stock = level === 'untracked'
                         ? 'Not tracked'
                         : `${product.stock} in stock<span class="block text-[10px] text-slate-500">Alert at ${lowStockThreshold(product)}</span>`;
-                    return `<tr data-inventory-row data-search="${escapeHtml(product.item_name.toLowerCase())}">
+                    return `<tr data-inventory-row data-product-id="${product.id}" tabindex="0" aria-label="Edit ${escapeHtml(product.item_name)}" data-search="${escapeHtml(product.item_name.toLowerCase())}">
                         <td class="font-semibold">${escapeHtml(product.item_name)}</td>
                         <td><span class="inventory-status ${statusClass}">${status}</span></td>
                         <td>${stock}</td>
@@ -5318,6 +5298,18 @@
                     }
                 });
             }
+
+            // Tapping a product (or pressing Enter on it) opens it for editing.
+            function openProductFromRow(event) {
+                const row = event.target.closest('tr[data-product-id]');
+                if (!row) return;
+                if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+                if (event.type === 'keydown') event.preventDefault();
+                const preset = inventoryPresets.find(item => String(item.id) === row.dataset.productId);
+                if (preset) openInventoryEditModal(preset);
+            }
+            presetsGrid?.addEventListener('click', openProductFromRow);
+            presetsGrid?.addEventListener('keydown', openProductFromRow);
 
             function filterInventoryRows() {
                 const query = (document.getElementById('inventory-search')?.value || '').trim().toLowerCase();
