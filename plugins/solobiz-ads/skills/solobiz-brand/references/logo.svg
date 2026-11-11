@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="sbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Background Badge Container -->
+  <rect x="6" y="6" width="108" height="108" rx="28" fill="url(#sbGrad)" stroke="#1E40AF" stroke-width="2" filter="url(#dropShadow)"/>
+  <!-- SB Monogram Text -->
+  <text x="60" y="78" font-family="'Inter', 'Arial Black', sans-serif" font-size="64" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="-3" filter="url(#dropShadow)">SB</text>
+</svg>

@@ -1,0 +1,17 @@
+{
+  "name": "solobiz",
+  "description": "SoloBiz internal Claude plugins.",
+  "owner": {
+    "name": "SoloBiz"
+  },
+  "plugins": [
+    {
+      "name": "solobiz-ads",
+      "source": "./plugins/solobiz-ads",
+      "description": "SoloBiz customization of the Arcads ads plugin: brand brief, approved claims, audience, visual identity and ready-made ad angles for SoloBiz, the pocket CFO for independent vendors.",
+      "version": "0.1.0",
+      "category": "creative",
+      "keywords": ["solobiz", "arcads", "ads", "brand"]
+    }
+  ]
+}

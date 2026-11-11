@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "solobiz": {
+      "source": {
+        "source": "github",
+        "repo": "abdulsamadtaiwo648-dotcom/Python_Project"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "solobiz-ads@solobiz": true
+  }
+}

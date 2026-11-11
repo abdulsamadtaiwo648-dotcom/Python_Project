@@ -1,0 +1,9 @@
+{
+  "name": "solobiz-ads",
+  "description": "SoloBiz customization of the Arcads ads plugin: brand brief, approved claims, audience, visual identity and ready-made ad angles for SoloBiz, the pocket CFO for independent vendors. Requires the Arcads plugin (arcads) for generation.",
+  "version": "0.1.0",
+  "author": {
+    "name": "SoloBiz"
+  },
+  "keywords": ["solobiz", "arcads", "ads", "ad-creative", "brand", "vendors", "nigeria"]
+}
