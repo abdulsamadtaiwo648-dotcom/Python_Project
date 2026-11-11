@@ -62,37 +62,6 @@ app.secret_key = _secret_key
 app.permanent_session_lifetime = timedelta(days=30)
 
 from .database import get_db, init_db
-from .extensions import community_db
-from sqlalchemy.engine import make_url
-
-# The community models share the configured SQLite/Postgres database used by
-# the rest of SoloBiz. Existing application tables continue using DBWrapper.
-_community_database_url = os.environ.get("DATABASE_URL")
-if _community_database_url:
-    # Parse the URL instead of relying on a string prefix: managed database
-    # providers may supply `postgres://`, `postgresql://`, or an explicit
-    # `postgresql+psycopg://` driver. This app installs psycopg2-binary.
-    _community_database_url = make_url(_community_database_url.strip())
-    if _community_database_url.get_backend_name() in {"postgres", "postgresql"}:
-        _community_database_url = _community_database_url.set(
-            drivername="postgresql+psycopg2"
-        )
-    app.config["SQLALCHEMY_DATABASE_URI"] = _community_database_url
-else:
-    _community_sqlite_path = os.environ.get(
-        "SQLITE_DATABASE_PATH",
-        os.path.join(os.path.dirname(__file__), "solobiz.db"),
-    )
-    if _community_sqlite_path == ":memory:":
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    else:
-        _community_sqlite_path = os.path.abspath(_community_sqlite_path).replace("\\", "/")
-        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{_community_sqlite_path}"
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-            "connect_args": {"check_same_thread": False, "timeout": 30}
-        }
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-community_db.init_app(app)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
@@ -390,10 +359,6 @@ def otp_delivery_message(email, is_live, code):
 
 init_db()
 
-from .models import CommunityVote, MarketMood, SabiPlugRecommendation, SabiPlugRequest, StreetTip  # noqa: E402,F401
-
-with app.app_context():
-    community_db.create_all()
 
 
 # ==========================================

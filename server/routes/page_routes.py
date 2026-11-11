@@ -111,6 +111,12 @@ def profile_page():
     return render_dashboard_page("profile")
 
 
+@app.route("/reports")
+def reports_page():
+    """All-time totals and trends; its own tab in the phone bottom bar."""
+    return render_dashboard_page("reports")
+
+
 @app.route("/dashboard/<section>")
 def legacy_dashboard_section(section):
     if section not in {"expenses", "sales", "inventory", "analytics", "budget", "profile"}:
@@ -125,7 +131,7 @@ def render_dashboard_page(section):
     if not user_id:
         return redirect("/login")
 
-    if section not in {"dashboard", "expenses", "sales", "inventory", "budget", "profile"}:
+    if section not in {"dashboard", "reports", "expenses", "sales", "inventory", "budget", "profile"}:
         return render_template("404.html"), 404
 
     active_tab = "income" if section == "sales" else section
