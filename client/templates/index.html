@@ -975,6 +975,17 @@
                     <button type="button" id="btn-manage-presets" aria-controls="manage-presets-panel" aria-expanded="false" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-lg font-bold transition">+ Add product</button>
                 </div>
             </div>
+            <div id="push-settings" class="hidden rounded-2xl border border-slate-200 bg-white p-4 flex flex-wrap items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-indigo-600" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <div class="flex-1 min-w-[12rem]">
+                    <p class="text-sm font-bold text-slate-900">Stock alert notifications</p>
+                    <p id="push-status" class="text-xs text-slate-500 mt-0.5" aria-live="polite">Get a notification on this device when a product runs low or sells out, even when SoloBiz is closed.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" id="push-test" class="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Send test</button>
+                    <button type="button" id="push-toggle" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60">Turn on</button>
+                </div>
+            </div>
             <div id="inventory-stock-alert" class="hidden rounded-2xl border border-rose-200 bg-rose-50 p-4" role="alert" aria-live="polite">
                 <div class="flex items-start gap-3">
                     <svg class="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
@@ -1654,7 +1665,12 @@
         }
 
         // Small notice that appears above the page and fades out on its own.
-        function showToast(message, tone = 'info') {
+        const recentToasts = new Map();
+        function showToast(message, tone = 'info', key = message) {
+            // The same alert can arrive from this page and from a push message.
+            const now = Date.now();
+            if (recentToasts.has(key) && now - recentToasts.get(key) < 20000) return;
+            recentToasts.set(key, now);
             let region = document.getElementById('toast-region');
             if (!region) {
                 region = document.createElement('div');
@@ -5177,6 +5193,131 @@
                 document.getElementById('inventory-edit-stock')?.select();
             });
 
+            // ---------------------------------------------------------
+            // Push notifications for stock alerts (per device)
+            // ---------------------------------------------------------
+            const pushCard = document.getElementById('push-settings');
+            const pushStatus = document.getElementById('push-status');
+            const pushToggle = document.getElementById('push-toggle');
+            const pushTest = document.getElementById('push-test');
+            let pushPublicKey = null;
+
+            function urlBase64ToUint8Array(value) {
+                const padded = (value + '='.repeat((4 - value.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+                return Uint8Array.from(atob(padded), char => char.charCodeAt(0));
+            }
+            function setPushState(state, message) {
+                if (!pushCard) return;
+                pushCard.dataset.state = state;
+                if (message) pushStatus.textContent = message;
+                pushToggle.classList.toggle('hidden', state === 'unsupported' || state === 'blocked');
+                pushToggle.textContent = state === 'on' ? 'Turn off' : 'Turn on';
+                pushToggle.className = state === 'on'
+                    ? 'rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60'
+                    : 'rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60';
+                pushTest.classList.toggle('hidden', state !== 'on');
+            }
+            async function postPush(path, body) {
+                const response = await authenticatedFetch(path, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body || {})
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || result.status !== 'success') throw new Error(result.message || 'Request failed.');
+                return result;
+            }
+            async function initPushSettings() {
+                if (!pushCard) return;
+                let config;
+                try {
+                    config = await (await authenticatedFetch('/api/push/config')).json();
+                } catch (_) { return; }
+                if (!config?.enabled) return;  // not configured on the server
+                pushPublicKey = config.public_key;
+                pushCard.classList.remove('hidden');
+                if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+                    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+                    setPushState('unsupported', isIos
+                        ? 'On iPhone or iPad, add SoloBiz to your Home Screen (Share → Add to Home Screen), open it from there, then turn notifications on.'
+                        : "This browser can't receive notifications. Try Chrome, Edge, Firefox or Safari.");
+                    return;
+                }
+                if (Notification.permission === 'denied') {
+                    setPushState('blocked', 'Notifications are blocked for SoloBiz. Allow them in your browser\'s site settings, then reload this page.');
+                    return;
+                }
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription && Notification.permission === 'granted') {
+                        // Re-register so the server knows this device belongs to the signed-in account.
+                        await postPush('/api/push/subscribe', { subscription: subscription.toJSON() });
+                        setPushState('on', 'On for this device. You\'ll be notified when a product runs low or sells out.');
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Could not check notification status:', error);
+                }
+                setPushState('off', 'Get a notification on this device when a product runs low or sells out, even when SoloBiz is closed.');
+            }
+            pushToggle?.addEventListener('click', async () => {
+                pushToggle.disabled = true;
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const existing = await registration.pushManager.getSubscription();
+                    if (pushCard.dataset.state === 'on') {
+                        if (existing) {
+                            await postPush('/api/push/unsubscribe', { endpoint: existing.endpoint });
+                            await existing.unsubscribe();
+                        }
+                        setPushState('off', 'Notifications are off for this device.');
+                        return;
+                    }
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') {
+                        setPushState(permission === 'denied' ? 'blocked' : 'off', permission === 'denied'
+                            ? 'Notifications are blocked for SoloBiz. Allow them in your browser\'s site settings, then reload this page.'
+                            : 'Notifications were not turned on.');
+                        return;
+                    }
+                    const subscription = existing || await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(pushPublicKey)
+                    });
+                    await postPush('/api/push/subscribe', { subscription: subscription.toJSON() });
+                    setPushState('on', 'On for this device. You\'ll be notified when a product runs low or sells out.');
+                    showToast('Stock alert notifications are on for this device.', 'info');
+                } catch (error) {
+                    console.error('Could not change notification setting:', error);
+                    const browserRefused = ['AbortError', 'NotAllowedError', 'InvalidStateError'].includes(error?.name);
+                    setPushState(pushCard.dataset.state === 'on' ? 'on' : 'off', browserRefused
+                        ? "Your browser couldn't set up notifications. Make sure notifications are allowed for this site, you're online, and try again."
+                        : `Couldn't change notifications: ${error.message || 'please try again.'}`);
+                } finally {
+                    pushToggle.disabled = false;
+                }
+            });
+            pushTest?.addEventListener('click', async () => {
+                pushTest.disabled = true;
+                try {
+                    await postPush('/api/push/test');
+                    pushStatus.textContent = 'Test sent. It can take a few seconds to arrive. If SoloBiz is open in front, it shows here instead.';
+                } catch (error) {
+                    pushStatus.textContent = error.message;
+                } finally {
+                    pushTest.disabled = false;
+                }
+            });
+            // Alerts pushed while SoloBiz is open and in front arrive as an in-page notice.
+            navigator.serviceWorker?.addEventListener('message', event => {
+                if (event.data?.type !== 'PUSH_ALERT') return;
+                const tone = /^Out of stock/.test(event.data.title || '') ? 'danger' : 'warning';
+                showToast(`${event.data.title}. ${event.data.body}`, tone, event.data.tag || event.data.title);
+                loadPresets();
+            });
+            initPushSettings();
+
             // After a sale, tell the user about products that just became low or ran out.
             function alertNewlyLowStock(levelsBefore) {
                 inventoryPresets.forEach(product => {
@@ -5184,9 +5325,9 @@
                     const after = stockLevel(product);
                     if (after === before || !before) return;
                     if (after === 'out') {
-                        showToast(`${product.item_name} is now out of stock. Restock it from Inventory.`, 'danger');
+                        showToast(`${product.item_name} is now out of stock. Restock it from Inventory.`, 'danger', `stock-${product.id}`);
                     } else if (after === 'low' && before === 'ok') {
-                        showToast(`${product.item_name} is running low: ${product.stock} left.`, 'warning');
+                        showToast(`${product.item_name} is running low: ${product.stock} left.`, 'warning', `stock-${product.id}`);
                     }
                 });
             }

@@ -96,7 +96,7 @@ community_db.init_app(app)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20261001.1")
+APP_VERSION = os.environ.get("APP_VERSION", "20261111.1")
 
 # Session / Cookie hardening
 _secure_cookie = os.environ.get("SESSION_COOKIE_SECURE")

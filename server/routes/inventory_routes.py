@@ -2,6 +2,7 @@
 
 from flask import jsonify, request
 import math
+from .. import push
 from ..app import (
     app,
     get_current_user_id,
@@ -214,6 +215,11 @@ def api_preset_decrement_stock(preset_id):
             new_stock = current_stock - 1
             db.execute("UPDATE inventory_presets SET stock = ? WHERE id = ? AND user_id = ?", (new_stock, preset_id, user_id))
             db.commit()
+            product = dict(row)
+            push.send_to_user(user_id, push.low_stock_notifications([{
+                "id": preset_id, "item_name": product["item_name"], "before": current_stock, "after": new_stock,
+                "threshold": product.get("low_stock_threshold") if product.get("low_stock_threshold") is not None else 3,
+            }]))
             return jsonify({"status": "success", "stock": new_stock}), 200
         else:
             return jsonify({"status": "warning", "message": "Out of stock", "stock": 0}), 200

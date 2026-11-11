@@ -1,7 +1,7 @@
 """Route modules for the SoloBiz web application."""
 
 from . import auth_routes, expense_routes, inventory_routes, misc_routes
-from . import floor_routes, page_routes, profile_routes, sales_routes
+from . import floor_routes, page_routes, profile_routes, push_routes, sales_routes
 
 __all__ = [
     "auth_routes",
@@ -11,5 +11,6 @@ __all__ = [
     "misc_routes",
     "page_routes",
     "profile_routes",
+    "push_routes",
     "sales_routes",
 ]

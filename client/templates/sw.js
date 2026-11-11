@@ -130,3 +130,48 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+// ---------------------------------------------------------------------------
+// Push notifications (stock alerts)
+// ---------------------------------------------------------------------------
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (_) { data = { body: event.data?.text() || '' }; }
+  const title = data.title || 'SoloBiz';
+  const options = {
+    body: data.body || '',
+    tag: data.tag || 'solobiz-alert',
+    renotify: true,
+    icon: '/static/favicon.png',
+    badge: '/static/favicon.png',
+    data: { url: data.url || '/inventory' }
+  };
+
+  event.waitUntil((async () => {
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const focused = windows.find((client) => client.focused && client.visibilityState === 'visible');
+    if (focused) {
+      // SoloBiz is open and in front: show the alert inside the page instead
+      // of a system notification on top of it.
+      focused.postMessage({ type: 'PUSH_ALERT', title, body: options.body, tag: options.tag });
+      return;
+    }
+    await self.registration.showNotification(title, options);
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/inventory', self.location.origin);
+  if (target.origin !== self.location.origin) return;
+  event.waitUntil((async () => {
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
+    if (existing) {
+      await existing.focus();
+      if ('navigate' in existing) return existing.navigate(target.href);
+      return undefined;
+    }
+    return clients.openWindow(target.href);
+  })());
+});

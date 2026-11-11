@@ -243,7 +243,26 @@ def init_admin_db():
                     )
         db.commit()
 
+def init_push_subscriptions_table():
+    """Browser push subscriptions: one row per device that turned on alerts.
+    Created before the account-deletion triggers that clean it up."""
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                endpoint TEXT UNIQUE NOT NULL,
+                p256dh TEXT NOT NULL,
+                auth TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id)")
+        db.commit()
+
+
 def init_db():
+    init_push_subscriptions_table()
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:
         # PostgreSQL Cloud Migration & Table Initialization
@@ -394,6 +413,7 @@ def init_db():
                         DELETE FROM business_profiles WHERE user_id = OLD.id;
                         DELETE FROM inventory_presets WHERE user_id = OLD.id;
                         DELETE FROM user_activity_logs WHERE user_id = OLD.id;
+                        DELETE FROM push_subscriptions WHERE user_id = OLD.id;
                         DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                         RETURN OLD;
                     END;
@@ -591,6 +611,7 @@ def init_db():
                     DELETE FROM business_profiles WHERE user_id = OLD.id;
                     DELETE FROM inventory_presets WHERE user_id = OLD.id;
                     DELETE FROM user_activity_logs WHERE user_id = OLD.id;
+                    DELETE FROM push_subscriptions WHERE user_id = OLD.id;
                     DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                 END
             """)

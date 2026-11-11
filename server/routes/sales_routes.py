@@ -3,6 +3,7 @@
 from datetime import datetime
 from flask import jsonify, request
 import logging, math, time
+from .. import push
 from ..app import (
     app,
     get_current_user_id,
@@ -278,6 +279,7 @@ def api_checkout():
 
             lines = []
             units_by_product = {}
+            products_by_id = {}
             for item in parsed_items:
                 if item["preset_id"] is None:
                     price = item["requested_price"]
@@ -286,13 +288,15 @@ def api_checkout():
                                   "bundle_count": None, "bundle_size": None})
                     continue
                 row = db.execute(
-                    "SELECT id, item_name, price, stock, track_stock, bulk_quantity, bulk_price "
+                    "SELECT id, item_name, price, stock, track_stock, bulk_quantity, bulk_price, "
+                    "COALESCE(low_stock_threshold, 3) AS low_stock_threshold "
                     "FROM inventory_presets WHERE id = ? AND user_id = ?",
                     (item["preset_id"], user_id)
                 ).fetchone()
                 if not row:
                     raise ValueError("A product in this cart no longer exists. Refresh inventory and try again.")
                 product = dict(row)
+                products_by_id[product["id"]] = product
                 if item["sale_type"] == "bulk":
                     bundle_size = int(product.get("bulk_quantity") or 0)
                     if bundle_size < 2 or product.get("bulk_price") is None:
@@ -366,6 +370,18 @@ def api_checkout():
             db.commit()
     except ValueError as error:
         return jsonify({"status": "error", "message": str(error)}), 409
+
+    # Push a notification for every product this sale made low or sold out.
+    push.send_to_user(user_id, push.low_stock_notifications(
+        {
+            "id": preset_id,
+            "item_name": products_by_id[int(preset_id)]["item_name"],
+            "before": int(products_by_id[int(preset_id)]["stock"] or 0),
+            "after": stock,
+            "threshold": products_by_id[int(preset_id)]["low_stock_threshold"],
+        }
+        for preset_id, stock in updated_stock.items()
+    ))
 
     return jsonify({"status": "success", "message": "Sale recorded successfully.", "receipt_id": receipt_id, "items": saved_items, "stock": updated_stock}), 201
 

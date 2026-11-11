@@ -4,3 +4,4 @@ gunicorn==23.0.0
 psycopg2-binary==2.9.10
 requests==2.34.2
 resend==2.47.0
+pywebpush==2.0.3

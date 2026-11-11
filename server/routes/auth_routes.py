@@ -256,6 +256,11 @@ def prevent_login_page_from_being_cached(response):
 
 @app.route("/logout")
 def logout():
+    from .push_routes import remove_session_push_subscription
+    try:
+        remove_session_push_subscription()
+    except Exception:
+        logging.exception("Could not remove this device's push subscription on sign-out")
     session.clear()
     resp = make_response(redirect("/login"))
     resp.delete_cookie(app.config.get("SESSION_COOKIE_NAME", "session"))
