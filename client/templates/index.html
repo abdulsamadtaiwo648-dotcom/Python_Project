@@ -2336,9 +2336,50 @@
             renderCategoryBudgets().catch(error => console.warn('Could not load category budgets:', error));
         });
 
-        async function syncIncomeFromServer() {
+        // Several parts of the page start a server sync on load. Running two at
+        // once let both see an empty local store and save the same records
+        // twice, which doubled totals. Each sync now runs one at a time.
+        function singleFlight(task) {
+            let running = null;
+            return function (...args) {
+                if (!running) running = Promise.resolve(task.apply(this, args)).finally(() => { running = null; });
+                return running;
+            };
+        }
+
+        // Remove extra local copies of the same server record (left by the old
+        // double sync on some devices). Keeps the first copy of each.
+        async function removeDuplicateServerRecords(storeName, serverIdOf) {
+            const db = await openIndexedDB();
+            const records = await new Promise((resolve, reject) => {
+                const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e.target.error);
+            });
+            const seen = new Set();
+            const extras = [];
+            records.forEach(record => {
+                const serverId = serverIdOf(record);
+                if (serverId == null || record.local_id == null) return;
+                const key = String(serverId);
+                if (seen.has(key)) extras.push(record.local_id);
+                else seen.add(key);
+            });
+            if (!extras.length) return 0;
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                extras.forEach(id => store.delete(id));
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+            return extras.length;
+        }
+
+        const syncIncomeFromServer = singleFlight(async function syncIncomeFromServerOnce() {
             if (!navigator.onLine) return;
             try {
+                await removeDuplicateServerRecords(INCOME_STORE, record => record.server_id);
                 const response = await authenticatedFetch('/api/income');
                 if (!response.ok) return;
                 const result = await response.json();
@@ -2428,11 +2469,12 @@
             } catch (err) {
                 console.warn('Could not sync income from server:', err);
             }
-        }
+        });
 
-        async function syncExpensesFromServer() {
+        const syncExpensesFromServer = singleFlight(async function syncExpensesFromServerOnce() {
             if (!navigator.onLine) return;
             try {
+                await removeDuplicateServerRecords(STORE_NAME, record => record.server_id ?? record.id);
                 const response = await authenticatedFetch('/api/expenses');
                 if (!response.ok) return;
                 const result = await response.json();
@@ -2547,7 +2589,7 @@
             } catch (err) {
                 console.warn('Could not sync expenses from server:', err);
             }
-        }
+        });
 
         // -------------------------------------------------------------
         // BACKGROUND NETWORK RECONNECTION LISTENER

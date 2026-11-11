@@ -670,3 +670,13 @@ def init_db():
             )
         """)
         db.commit()
+
+    # The Floor (community feature) was removed; drop its tables and data.
+    # Children before parents so foreign keys never block the drop.
+    for table in ("community_vote", "sabi_plug_recommendation", "sabi_plug_request", "street_tip", "market_mood"):
+        try:
+            with get_db() as db:
+                db.execute(f"DROP TABLE IF EXISTS {table}")
+                db.commit()
+        except Exception as drop_error:
+            logging.warning("Could not drop removed Floor table %s: %s", table, drop_error)
