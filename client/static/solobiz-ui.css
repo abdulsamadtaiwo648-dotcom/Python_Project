@@ -156,17 +156,9 @@ body.app-shell > header button:hover {
 .desktop-content .shadow-sm:not(button):not(a),
 .desktop-content .shadow-md:not(button):not(a) {
   border-color: #e7ebf2;
-  box-shadow: 0 2px 5px rgba(15, 23, 42, .04), 0 10px 26px rgba(15, 23, 42, .06) !important;
-  transition: box-shadow .18s ease, transform .18s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05) !important;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .desktop-content .shadow-sm:not(button):not(a):hover,
-  .desktop-content .shadow-md:not(button):not(a):hover {
-    box-shadow: 0 4px 10px rgba(15, 23, 42, .05), 0 16px 34px rgba(15, 23, 42, .09) !important;
-    transform: translateY(-1px);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -176,3 +168,247 @@ body.app-shell > header button:hover {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* ==========================================================================
+   App shell and dashboard (phone first)
+   One spacing scale (4 / 8 / 12 / 16 / 24), one card style, sentence-case
+   labels, and colour only where it carries meaning (money in, out, owed).
+   ========================================================================== */
+:root {
+  --sb-radius: 16px;
+  --sb-radius-sm: 12px;
+  --sb-gap: 12px;
+  --sb-text-2: #475569;
+}
+
+/* Buttons */
+.sb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: var(--sb-radius-sm);
+  font-size: .9rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.sb-btn svg { width: 18px; height: 18px; }
+.sb-btn-primary { background: var(--sb-brand); color: #fff; }
+.sb-btn-primary:hover { background: var(--sb-brand-hover); }
+.sb-btn-secondary { background: #fff; color: var(--sb-ink); border: 1px solid var(--sb-line); }
+.sb-btn-secondary:hover { border-color: #cbd5e1; background: #f8fafc; }
+.sb-btn:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(79, 70, 229, .25); }
+
+/* Segmented control (period picker) */
+.sb-segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--sb-radius-sm);
+  background: #eceef3;
+}
+.sb-segmented button {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: .82rem;
+  font-weight: 600;
+}
+.sb-segmented button.bg-white { box-shadow: 0 1px 2px rgba(15, 23, 42, .1); }
+.sb-visually-suppressed { display: none !important; }
+
+/* Dashboard blocks stack with one consistent gap */
+#tab-dashboard-content:not(.hidden),
+#daily-business-checkin:not(.hidden),
+#cfo-dashboard:not(.hidden),
+#dashboard-insights:not(.hidden) {
+  display: block;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 0 var(--sb-gap);
+}
+
+.dash-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px 6px;
+}
+.dash-date { font-size: .82rem; color: var(--sb-muted); }
+.dash-title {
+  margin-top: 2px;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--sb-ink);
+}
+.dash-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.dash-card {
+  background: var(--sb-surface);
+  border: 1px solid var(--sb-line);
+  border-radius: var(--sb-radius);
+  padding: 16px;
+}
+.dash-card-title { font-size: .95rem; font-weight: 700; color: var(--sb-ink); }
+.dash-card-headrow { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dash-card-hint { font-size: .78rem; color: var(--sb-muted); margin-top: 2px; }
+.dash-subtitle { font-size: .82rem; font-weight: 600; color: var(--sb-text-2); margin-bottom: 8px; }
+.dash-note { margin-top: 10px; font-size: .75rem; color: var(--sb-muted); }
+
+/* Label / value pairs */
+.dash-figures {
+  display: grid;
+  gap: 1px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: var(--sb-radius-sm);
+  background: var(--sb-line);
+  border: 1px solid var(--sb-line);
+}
+.dash-figures > div { background: #fff; padding: 10px 12px; min-width: 0; }
+.dash-figures dt { font-size: .75rem; color: var(--sb-muted); }
+.dash-figures dd {
+  margin-top: 2px;
+  font-size: clamp(.95rem, 4.2vw, 1.2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Phones: one row per figure (label left, amount right) so amounts never cut off */
+.dash-figures-3 { grid-template-columns: 1fr; }
+.dash-figures-3 > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 14px; }
+.dash-figures-3 dt { font-size: .85rem; color: var(--sb-text-2); }
+.dash-figures-3 dd { margin-top: 0; font-size: 1.05rem; }
+@media (min-width: 640px) {
+  .dash-figures-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dash-figures-3 > div { display: block; padding: 12px 14px; }
+  .dash-figures-3 dt { font-size: .75rem; color: var(--sb-muted); }
+  .dash-figures-3 dd { margin-top: 2px; font-size: clamp(.95rem, 4.2vw, 1.2rem); }
+}
+.dash-figures-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dash-figures-5 > div:last-child { grid-column: 1 / -1; }
+
+/* Net cash flow headline */
+.dash-net { margin-top: 12px; }
+.dash-net-label { font-size: .8rem; color: var(--sb-muted); }
+.dash-net-value {
+  font-size: clamp(1.7rem, 8vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -.025em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.dash-net-note { font-size: .75rem; color: var(--sb-muted); }
+
+/* Needs attention rows: the whole row is the link */
+.dash-attention { margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f5f9; }
+.dash-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: var(--sb-radius-sm);
+  text-decoration: none;
+}
+.dash-row + .dash-row { margin-top: 8px; }
+.dash-row.hidden { display: none; }
+.dash-row-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; }
+.dash-row-icon svg { width: 18px; height: 18px; }
+.dash-row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; font-size: .8rem; }
+.dash-row-text strong { font-size: .9rem; font-weight: 600; }
+.dash-row-text > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-row-chevron { width: 18px; height: 18px; flex-shrink: 0; opacity: .6; }
+.dash-row-warn { background: #fffbeb; color: #92400e; }
+.dash-row-warn .dash-row-icon { background: #fef3c7; }
+.dash-row-danger { background: #fff1f2; color: #9f1239; }
+.dash-row-danger .dash-row-icon { background: #ffe4e6; }
+.dash-row:hover { filter: brightness(.98); }
+.dash-clear { font-size: .85rem; color: var(--sb-muted); padding: 4px 0; }
+
+/* Trends */
+.dash-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 2px 10px;
+}
+.dash-section-title { font-size: 1.05rem; font-weight: 700; color: var(--sb-ink); }
+.dash-insights > .dash-card + .dash-trend-grid,
+.dash-trend-grid > .dash-card + .dash-card { margin-top: var(--sb-gap); }
+.dash-trend-grid { margin-top: var(--sb-gap); }
+.dash-legend { display: flex; gap: 12px; font-size: .75rem; color: var(--sb-muted); }
+.dash-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dash-legend i { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+
+@media (min-width: 640px) {
+  .dash-head { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+  .dash-actions { display: flex; }
+  .dash-title { font-size: 1.65rem; }
+  .dash-card { padding: 20px; }
+  .dash-figures-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .dash-figures-5 > div:last-child { grid-column: auto; }
+  .dash-figures > div { padding: 12px 14px; }
+}
+@media (min-width: 1024px) {
+  :root { --sb-gap: 16px; }
+  .dash-trend-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: var(--sb-gap); align-items: start; }
+  .dash-trend-grid > .dash-card + .dash-card { margin-top: 0; }
+  /* Today and All time sit side by side on wide screens */
+  .desktop-content:has(#daily-business-checkin:not(.hidden)) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--sb-gap);
+    align-content: start;
+    max-width: 1072px;
+  }
+  .desktop-content:has(#daily-business-checkin:not(.hidden)) > * { grid-column: 1 / -1; }
+  .desktop-content:has(#daily-business-checkin:not(.hidden)) > #daily-business-checkin { grid-column: 1; }
+  .desktop-content:has(#daily-business-checkin:not(.hidden)) > #cfo-dashboard { grid-column: 2; }
+  .desktop-content > #daily-business-checkin,
+  .desktop-content > #cfo-dashboard { max-width: none; }
+}
+
+/* ==========================================================================
+   Header, install prompt and sync status
+   ========================================================================== */
+.sb-logout-label { display: none; }
+@media (min-width: 640px) { .sb-logout-label { display: inline; } }
+
+#pwa-install-banner { border-radius: var(--sb-radius); padding: 10px 12px; gap: 10px; }
+#pwa-install-banner #pwa-banner-icon { width: 36px; height: 36px; }
+#pwa-install-banner .sb-install-dismiss {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 8px;
+  color: #c7d2fe;
+}
+#pwa-install-banner .sb-install-dismiss:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+
+/* Sync status floats under the header instead of pushing the page down */
+#network-status-banner {
+  position: fixed;
+  top: calc(var(--app-header-height, 60px) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  margin: 0 !important;
+  padding: 8px 12px;
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, .12);
+}
+#network-status-banner.hidden { display: none; }
+
+.dash-card > .dash-figures:first-child { margin-top: 0; }

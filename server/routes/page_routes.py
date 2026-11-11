@@ -134,6 +134,7 @@ def render_dashboard_page(section):
     total_sales = 0.0
     total_expenses = 0.0
     total_outstanding = 0.0
+    # Dashboard "All time" totals match what the page script recalculates.
     current_month = datetime.now(timezone.utc).strftime("%Y-%m")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     today_collected = 0.0
@@ -162,8 +163,8 @@ def render_dashboard_page(section):
 
             try:
                 row = db.execute(
-                    "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ? AND date LIKE ?",
-                    (user_id, current_month + "%")
+                    "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
+                    (user_id,)
                 ).fetchone()
                 if row and row["total"] is not None:
                     total_sales = float(row["total"])
@@ -172,8 +173,8 @@ def render_dashboard_page(section):
 
             try:
                 row = db.execute(
-                    "SELECT SUM(amount) AS total FROM expenses WHERE user_id = ? AND date LIKE ?",
-                    (user_id, current_month + "%")
+                    "SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?",
+                    (user_id,)
                 ).fetchone()
                 if row and row["total"] is not None:
                     total_expenses = float(row["total"])
@@ -182,8 +183,8 @@ def render_dashboard_page(section):
 
             try:
                 row = db.execute(
-                    "SELECT SUM(CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) THEN COALESCE(total_value, 0) - COALESCE(amount_paid, 0) ELSE 0 END) AS total FROM income WHERE user_id = ? AND date LIKE ?",
-                    (user_id, current_month + "%")
+                    "SELECT SUM(CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) THEN COALESCE(total_value, 0) - COALESCE(amount_paid, 0) ELSE 0 END) AS total FROM income WHERE user_id = ?",
+                    (user_id,)
                 ).fetchone()
                 if row and row["total"] is not None:
                     total_outstanding = float(row["total"])

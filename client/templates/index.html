@@ -257,18 +257,6 @@
                 grid-row: unset;
             }
 
-            /* Greeting card in content area */
-
-            /* CFO stat cards */
-            #cfo-dashboard { margin-bottom: 24px; }
-            #cfo-dashboard #top-sales,
-            #cfo-dashboard #top-expenses,
-            #cfo-dashboard #top-profit { font-size: 1.4rem; }
-            #cfo-dashboard p { font-size: 0.72rem; }
-            #cfo-dashboard > div:first-child {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
             /* Network status */
             #network-status-banner { margin-bottom: 16px; }
 
@@ -329,15 +317,6 @@
             margin-top: 1rem;
             margin-bottom: 0;
         }
-        #cfo-dashboard { margin-bottom: 14px; }
-        #cfo-dashboard > div:first-child { gap: 8px; margin-bottom: 8px; }
-        #cfo-dashboard > div:first-child > div,
-        #cfo-dashboard > div:nth-child(2) > div { padding: 11px 14px; border-radius: 14px; box-shadow: none; }
-        #cfo-dashboard #top-sales,
-        #cfo-dashboard #top-expenses,
-        #cfo-dashboard #top-profit { font-size: clamp(1rem, 2vw, 1.25rem); }
-        #tab-dashboard-content { max-width: 980px; }
-        #tab-dashboard-content > section,
         #tab-expenses-content > .bg-white,
         #tab-income-content > #sales-main-view > .bg-white,
         #tab-income-content > .bg-white,
@@ -376,8 +355,6 @@
             .desktop-dashboard-shell { max-width: 1360px; }
             .desktop-sidebar { width: 220px; padding: 20px 12px; }
             .desktop-content { padding: 22px 26px; }
-            #tab-dashboard-content { max-width: 900px; }
-            #tab-dashboard-content > section { padding: 18px; }
             #tab-expenses-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
             #tab-income-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
             #sales-main-view.space-y-6 > :not([hidden]) ~ :not([hidden]) {
@@ -387,11 +364,6 @@
         @media (max-width: 1023px) {
             .desktop-dashboard-shell { padding-right: 10px; padding-left: 10px; }
             .desktop-content { padding: 10px 0 16px; }
-            #cfo-dashboard { margin-bottom: 10px; }
-            #cfo-dashboard > div:first-child { gap: 7px; margin-bottom: 7px; }
-            #cfo-dashboard > div:first-child > div,
-            #cfo-dashboard > div:nth-child(2) > div { padding: 10px 11px; }
-            #tab-dashboard-content > section,
             #tab-expenses-content > .bg-white,
             #tab-income-content > #sales-main-view > .bg-white,
             #tab-income-content > .bg-white,
@@ -400,7 +372,6 @@
         }
         @media (max-width: 639px) {
             .mobile-secondary-copy { display: none !important; }
-            #tab-dashboard-content > section { padding: 12px; }
             #budget-heading { font-size: .95rem; }
             #budget-insight {
                 font-size: .9rem !important;
@@ -435,35 +406,7 @@
             #tab-inventory-content .inventory-toolbar > .flex { width:100%; }
         }
 
-        /* Give the dashboard summary a consistent width and roomier cards. */
-        #tab-dashboard-content,
-        #cfo-dashboard,
-        #daily-business-checkin,
-        #dashboard-insights {
-            max-width: 1080px;
-            width: 100%;
-        }
-        #cfo-dashboard { margin-top: 18px; margin-bottom: 22px; }
-        #cfo-dashboard > div:first-child {
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-            gap: 14px;
-            margin-bottom: 14px;
-        }
-        #cfo-dashboard > div:first-child > div {
-            min-height: 126px;
-            padding: 18px;
-            gap: 9px;
-        }
-        #cfo-dashboard > div:nth-child(2) > div {
-            min-height: 78px;
-            padding: 16px 20px;
-        }
-        @media (max-width: 639px) {
-            #cfo-dashboard { margin-top: 14px; }
-            #cfo-dashboard > div:first-child > div { min-height: 112px; padding: 16px; }
-            #cfo-dashboard > div:nth-child(2) > div { padding: 14px 16px; }
-        }
-    </style>
+</style>
     <link rel="stylesheet" href="/static/solobiz-ui.css">
 </head>
 <body class="app-shell bg-gray-50 text-slate-800" style="padding-bottom: env(safe-area-inset-bottom)">
@@ -480,9 +423,9 @@
             </div>
             <!-- Right: Status + Logout -->
             <div class="flex items-center gap-2">
-                <button onclick="handleLogout()" type="button" class="text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer">
+                <button onclick="handleLogout()" type="button" aria-label="Sign out" class="text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-slate-200 hover:bg-slate-50 min-h-[40px] min-w-[40px] px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    <span>Logout</span>
+                    <span class="sb-logout-label">Sign out</span>
                 </button>
             </div>
         </div>
@@ -529,18 +472,21 @@
         <div class="desktop-content">
 
         <!-- PWA Mobile Install App Banner -->
-        <div id="pwa-install-banner" class="hidden mb-4 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-md flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
+        <div id="pwa-install-banner" class="hidden mb-3 bg-indigo-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-3 min-w-0">
                 <div id="pwa-banner-icon" class="w-10 h-10 rounded-xl overflow-hidden bg-indigo-500 flex-shrink-0 flex items-center justify-center">
                     <img id="pwa-banner-logo" src="/static/logo.svg" alt="App Icon" class="w-full h-full object-cover rounded-xl">
                 </div>
                 <div>
-                    <h3 id="pwa-banner-title" class="text-xs font-bold text-white">Install SoloBiz App</h3>
-                <p class="text-[10px] text-indigo-200">Offline access from your home screen.</p>
+                    <h3 id="pwa-banner-title" class="text-sm font-semibold text-white">Add SoloBiz to your phone</h3>
+                    <p class="text-xs text-indigo-200">Opens faster and works offline.</p>
                 </div>
             </div>
             <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Install
+                Install
+            </button>
+            <button type="button" id="btn-pwa-dismiss" class="sb-install-dismiss flex-shrink-0" aria-label="Not now">
+                <svg class="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>
             </button>
         </div>
 
@@ -549,182 +495,153 @@
             <button type="button" id="retry-sync-button" class="hidden rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wide">Retry sync</button>
         </div>
 
-        <section id="tab-dashboard-content" class="tab-content space-y-6 {% if active_tab != 'dashboard' %}hidden{% endif %}">
-            <div class="flex items-center justify-between gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7 sm:py-6">
+        <!-- Dashboard: greeting and the two things a trader does most -->
+        <section id="tab-dashboard-content" class="tab-content {% if active_tab != 'dashboard' %}hidden{% endif %}" aria-labelledby="dash-title">
+            <div class="dash-head">
                 <div class="min-w-0">
-                    <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                        <span class="h-1.5 w-1.5 rounded-full bg-indigo-600" aria-hidden="true"></span>
-                        Your business
-                    </p>
-                    <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">Welcome back, {{ username }}</h2>
-                    <p class="mt-1 text-sm leading-6 text-slate-500">A clear view of this month’s sales, expenses and cash flow.</p>
+                    <p class="dash-date" id="dash-date">{{ today }}</p>
+                    <h2 class="dash-title" id="dash-title"><span id="dash-greeting">Hello</span>, {{ username }}</h2>
                 </div>
-                <div class="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 sm:flex" aria-hidden="true">
-                    <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5h16.5A1.75 1.75 0 0 1 22 9.25v9A1.75 1.75 0 0 1 20.25 20h-16.5A1.75 1.75 0 0 1 2 18.25v-9A1.75 1.75 0 0 1 3.75 7.5Z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7.5V5.75A1.75 1.75 0 0 1 9.75 4h4.5A1.75 1.75 0 0 1 16 5.75V7.5M2 12h20m-13 0v1.5h6V12" />
-                    </svg>
+                <div class="dash-actions">
+                    <a href="/sales" data-dashboard-tab="income" data-open-new-sale class="sb-btn sb-btn-primary">
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                        New sale
+                    </a>
+                    <a href="/expenses" data-dashboard-tab="expenses" class="sb-btn sb-btn-secondary">Add expense</a>
                 </div>
             </div>
         </section>
 
-
-
-        <!-- CFO Dashboard Cards (This month) -->
-        <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab != 'dashboard' %}hidden{% endif %}">
-        <!-- Top row: Sales + Expenses side by side -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
-
-            <!-- Total Sales Card -->
-            <div class="bg-emerald-50 border border-emerald-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Sales collected</p>
-                </div>
-                <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-emerald-700/80 leading-tight">Payments received across all sales</p>
-            </div>
-
-            <!-- Total Expenses Card -->
-            <div class="bg-rose-50 border border-rose-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
-                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
-                </div>
-                <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-rose-700/80 leading-tight">Across all recorded expenses</p>
-            </div>
-            <div class="bg-amber-50 border border-amber-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <p class="text-[9px] sm:text-[10px] uppercase font-bold text-amber-700 tracking-wider leading-none">Outstanding</p>
-                <span class="stat-value text-amber-800" id="top-outstanding">₦{{ "{:,.2f}".format(total_outstanding or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-amber-700/80 leading-tight">Balance due across all sales</p>
-            </div>
-        </div>
-
-        <!-- Bottom row: Net Profit — full width so it has maximum space -->
-        <div class="mb-5 lg:col-span-2">
-            {% set np = net_profit or 0.0 %}
-            <div class="{% if np >= 0 %}bg-white border-indigo-100{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 min-w-0 overflow-hidden">
-                <div class="flex items-center gap-2 flex-shrink-0 min-w-0" style="max-width:55%">
-                    <span class="flex-shrink-0 {% if np >= 0 %}text-indigo-500{% else %}text-amber-500{% endif %}">
-                        {% if np >= 0 %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>{% else %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{% endif %}
-                    </span>
-                    <div class="min-w-0">
-                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-indigo-600{% else %}text-amber-400{% endif %} tracking-wider leading-none truncate">Net cash flow</p>
-                        <p class="text-[9px] {% if np >= 0 %}text-indigo-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">All payments received minus all expenses</p>
-                    </div>
-                </div>
-                <span class="stat-value {% if np >= 0 %}text-indigo-700{% else %}text-amber-600{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
-            </div>
-        </div>
-        </div> <!-- End cfo-dashboard -->
-
-        <section id="dashboard-insights" class="{% if active_tab != 'dashboard' %}hidden{% endif %} space-y-4" aria-labelledby="dashboard-insights-heading">
-            <div class="flex flex-wrap items-end justify-between gap-3">
+        <!-- Today, plus anything that needs the owner's attention -->
+        <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-card" aria-labelledby="daily-checkin-heading">
+            <h3 id="daily-checkin-heading" class="dash-card-title">Today</h3>
+            <dl class="dash-figures dash-figures-3">
                 <div>
-                    <h2 id="dashboard-insights-heading" class="text-base font-bold text-slate-900">Business analysis</h2>
-                    <p class="mt-1 text-xs text-slate-500">Review sales and expenses for the selected period.</p>
+                    <dt>Collected</dt>
+                    <dd id="daily-collected" class="text-emerald-700">₦{{ "{:,.2f}".format(today_collected) }}</dd>
                 </div>
-                <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Choose reporting period">
-                    <button type="button" data-period="daily" class="analytics-tab-btn rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm">Day</button>
-                    <button type="button" data-period="weekly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Week</button>
-                    <button type="button" data-period="monthly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Month</button>
-                    <button type="button" data-period="yearly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Year</button>
+                <div>
+                    <dt>Spent</dt>
+                    <dd id="daily-expenses" class="text-rose-700">₦{{ "{:,.2f}".format(today_expenses) }}</dd>
+                </div>
+                <div>
+                    <dt>Net</dt>
+                    <dd id="daily-net" class="{% if today_net >= 0 %}text-slate-900{% else %}text-amber-700{% endif %}">₦{{ "{:,.2f}".format(today_net) }}</dd>
+                </div>
+            </dl>
+
+            <div class="dash-attention" aria-live="polite">
+                <h4 class="dash-subtitle">Needs attention</h4>
+                <a id="daily-unpaid-alert" href="/sales" data-dashboard-tab="income" class="{% if outstanding_sale_count == 0 %}hidden {% endif %}dash-row dash-row-warn">
+                    <span class="dash-row-icon" aria-hidden="true"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                    <span class="dash-row-text">
+                        <strong><span id="daily-unpaid-count">{{ outstanding_sale_count }}</span> unpaid sale<span id="daily-unpaid-plural">{% if outstanding_sale_count != 1 %}s{% endif %}</span></strong>
+                        <span><span id="daily-unpaid-balance">₦{{ "{:,.2f}".format(total_unpaid_balance) }}</span> still owed to you</span>
+                    </span>
+                    <svg class="dash-row-chevron" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+                </a>
+                <a id="daily-stock-alert" href="/inventory" data-dashboard-tab="inventory" class="{% if not low_stock_items %}hidden {% endif %}dash-row dash-row-danger">
+                    <span class="dash-row-icon" aria-hidden="true"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/></svg></span>
+                    <span class="dash-row-text">
+                        <strong><span id="daily-stock-count">{{ low_stock_items|length }}</span> product<span id="daily-stock-plural">{% if low_stock_items|length != 1 %}s{% endif %}</span> low on stock</strong>
+                        <span id="daily-stock-items">{% for item in low_stock_items[:5] %}{{ item.item_name }} ({{ item.stock }}){% if not loop.last %}, {% endif %}{% endfor %}{% if low_stock_items|length > 5 %}, and {{ low_stock_items|length - 5 }} more{% endif %}</span>
+                    </span>
+                    <svg class="dash-row-chevron" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+                </a>
+                <p id="daily-checkin-clear" class="{% if outstanding_sale_count or low_stock_items %}hidden {% endif %}dash-clear">All clear: no unpaid sales or low stock.</p>
+            </div>
+        </section>
+
+        <!-- Running totals across every sale and expense -->
+        <div id="cfo-dashboard" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-card" role="region" aria-labelledby="cfo-heading">
+            {% set np = net_profit or 0.0 %}
+            <div class="dash-card-headrow">
+                <h3 id="cfo-heading" class="dash-card-title">All time</h3>
+                <span class="dash-card-hint">Every sale and expense recorded</span>
+            </div>
+            <div class="dash-net">
+                <p class="dash-net-label">Net cash flow</p>
+                <p id="top-profit" class="dash-net-value" style="color: {% if np < 0 %}#b45309{% else %}#3730a3{% endif %}">₦{{ "{:,.2f}".format(np) }}</p>
+                <p class="dash-net-note">Money collected minus money spent</p>
+            </div>
+            <dl class="dash-figures dash-figures-3">
+                <div>
+                    <dt>Collected</dt>
+                    <dd id="top-sales" class="text-emerald-700">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</dd>
+                </div>
+                <div>
+                    <dt>Expenses</dt>
+                    <dd id="top-expenses" class="text-rose-700">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</dd>
+                </div>
+                <div>
+                    <dt>Owed to you</dt>
+                    <dd id="top-outstanding" class="text-amber-700">₦{{ "{:,.2f}".format(total_outstanding or 0.0) }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Trends for a chosen period -->
+        <section id="dashboard-insights" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-insights" aria-labelledby="dashboard-insights-heading">
+            <div class="dash-section-head">
+                <h3 id="dashboard-insights-heading" class="dash-section-title">Trends</h3>
+                <div class="sb-segmented" role="group" aria-label="Choose reporting period">
+                    <button type="button" data-period="daily" class="analytics-tab-btn text-slate-500">Day</button>
+                    <button type="button" data-period="weekly" class="analytics-tab-btn bg-white shadow-sm text-slate-900">Week</button>
+                    <button type="button" data-period="monthly" class="analytics-tab-btn text-slate-500">Month</button>
+                    <button type="button" data-period="yearly" class="analytics-tab-btn text-slate-500">Year</button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Sales value</p>
-                    <p id="analytics-total-value" class="mt-1 text-base font-bold text-slate-900">₦0.00</p>
-                </article>
-                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Collected</p>
-                    <p id="analytics-cash-collected" class="mt-1 text-base font-bold text-emerald-700">₦0.00</p>
-                </article>
-                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Expenses</p>
-                    <p id="analytics-total-expenses" class="mt-1 text-base font-bold text-rose-700">₦0.00</p>
-                </article>
-                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Balance due</p>
-                    <p id="analytics-outstanding-balance" class="mt-1 text-base font-bold text-amber-700">₦0.00</p>
-                </article>
-                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Net cash flow</p>
-                    <p id="analytics-liquid-profit" class="mt-1 text-base font-bold text-emerald-700">₦0.00</p>
-                </article>
+            <div class="dash-card">
+                <dl class="dash-figures dash-figures-5">
+                    <div>
+                        <dt>Sales value</dt>
+                        <dd id="analytics-total-value" class="text-slate-900">₦0.00</dd>
+                    </div>
+                    <div>
+                        <dt>Collected</dt>
+                        <dd id="analytics-cash-collected" class="text-emerald-700">₦0.00</dd>
+                    </div>
+                    <div>
+                        <dt>Expenses</dt>
+                        <dd id="analytics-total-expenses" class="text-rose-700">₦0.00</dd>
+                    </div>
+                    <div>
+                        <dt>Owed</dt>
+                        <dd id="analytics-outstanding-balance" class="text-amber-700">₦0.00</dd>
+                    </div>
+                    <div>
+                        <dt>Net cash flow</dt>
+                        <dd id="analytics-liquid-profit" class="text-emerald-700">₦0.00</dd>
+                    </div>
+                </dl>
+                <p id="analytics-period-summary" class="dash-note">Totals for this week to date.</p>
+                <!-- Kept for the analytics script; unpaid sales already show under "Needs attention". -->
+                <p id="analytics-outstanding-alert" class="hidden sb-visually-suppressed" aria-hidden="true"></p>
             </div>
-            <p id="analytics-period-summary" class="-mt-2 text-[10px] text-slate-400">Analysis totals for today.</p>
-            <p id="analytics-outstanding-alert" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">Some sales still have an outstanding balance.</p>
 
-            <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
-                <section class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="analytics-trend-heading">
-                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="dash-trend-grid">
+                <section class="dash-card min-w-0" aria-labelledby="analytics-trend-heading">
+                    <div class="dash-card-headrow">
                         <div>
-                            <h3 id="analytics-trend-heading" class="text-sm font-bold text-slate-800">Sales and expenses</h3>
-                            <p id="analytics-period-label" class="mt-0.5 text-[11px] text-slate-500">By day</p>
+                            <h4 id="analytics-trend-heading" class="dash-card-title">Money in and out</h4>
+                            <p id="analytics-period-label" class="dash-card-hint">Per Week</p>
                         </div>
-                        <div class="flex items-center gap-3 text-[10px] font-medium text-slate-500" aria-label="Chart legend">
-                            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-indigo-600"></span>Sales collected</span>
-                            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-rose-500"></span>Expenses</span>
+                        <div class="dash-legend" aria-label="Chart legend">
+                            <span><i style="background:#4f46e5"></i>Collected</span>
+                            <span><i style="background:#f43f5e"></i>Expenses</span>
                         </div>
                     </div>
-                    <canvas id="analytics-trend-chart" class="block h-64 w-full" aria-label="Sales and expenses trend chart"></canvas>
+                    <canvas id="analytics-trend-chart" class="block h-56 w-full" aria-label="Collected and expenses chart"></canvas>
                     <p id="analytics-trend-summary" class="sr-only" aria-live="polite"></p>
                 </section>
-                <section class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="analytics-history-heading">
-                    <h3 id="analytics-history-heading" class="text-sm font-bold text-slate-800">Sales by period</h3>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Open a period to see its recorded sales.</p>
+                <section class="dash-card min-w-0" aria-labelledby="analytics-history-heading">
+                    <h4 id="analytics-history-heading" class="dash-card-title">Sales by period</h4>
+                    <p class="dash-card-hint">Tap a period to see its sales.</p>
                     <div id="analytics-grouped-list" class="mt-3 max-h-[340px] space-y-2 overflow-y-auto" aria-live="polite">
                         <p class="py-6 text-center text-sm text-slate-500">Loading sales…</p>
                     </div>
                 </section>
-            </div>
-        </section>
-
-        <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
-            <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                    <h2 id="daily-checkin-heading" class="text-base font-bold text-slate-900">Today at a glance</h2>
-                    <p class="mt-1 text-xs text-slate-500">A quick check of today’s money in and out.</p>
-                </div>
-                <span class="text-xs font-medium text-slate-500">{{ today }}</span>
-            </div>
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p class="text-xs font-medium text-slate-500">Collected today</p>
-                    <p id="daily-collected" class="mt-2 text-xl font-semibold tracking-tight text-emerald-700">₦{{ "{:,.2f}".format(today_collected) }}</p>
-                </article>
-                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p class="text-xs font-medium text-slate-500">Expenses today</p>
-                    <p id="daily-expenses" class="mt-2 text-xl font-semibold tracking-tight text-rose-700">₦{{ "{:,.2f}".format(today_expenses) }}</p>
-                </article>
-                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p class="text-xs font-medium text-slate-500">Net cash today</p>
-                    <p id="daily-net" class="mt-2 text-xl font-semibold tracking-tight {% if today_net >= 0 %}text-slate-900{% else %}text-amber-700{% endif %}">₦{{ "{:,.2f}".format(today_net) }}</p>
-                    <p class="mt-1 text-[11px] text-slate-500">Collected minus expenses</p>
-                </article>
-            </div>
-            <div class="mt-4 border-t border-slate-100 pt-4">
-                <h3 class="text-sm font-semibold text-slate-800">Needs attention</h3>
-                <div class="mt-2 space-y-2" aria-live="polite">
-                    <div id="daily-unpaid-alert" class="{% if outstanding_sale_count == 0 %}hidden{% endif %} flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-3">
-                        <p class="text-sm text-amber-900"><strong id="daily-unpaid-count">{{ outstanding_sale_count }}</strong> sale<span id="daily-unpaid-plural">{% if outstanding_sale_count != 1 %}s{% endif %}</span> with a balance to follow up · <strong id="daily-unpaid-balance">₦{{ "{:,.2f}".format(total_unpaid_balance) }}</strong> outstanding</p>
-                        <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-amber-900 underline underline-offset-2">Review sales</a>
-                    </div>
-                    <div id="daily-stock-alert" class="{% if not low_stock_items %}hidden{% endif %} flex flex-wrap items-start justify-between gap-3 rounded-xl bg-rose-50 px-3 py-3">
-                        <div class="text-sm text-rose-900"><strong id="daily-stock-count">{{ low_stock_items|length }}</strong> tracked item<span id="daily-stock-plural">{% if low_stock_items|length != 1 %}s{% endif %}</span> at or below the low-stock alert level
-                            <p id="daily-stock-items" class="mt-1 text-xs text-rose-800">{% for item in low_stock_items[:5] %}{{ item.item_name }} ({{ item.stock }}){% if not loop.last %}, {% endif %}{% endfor %}{% if low_stock_items|length > 5 %}, and {{ low_stock_items|length - 5 }} more{% endif %}</p>
-                        </div>
-                        <a href="/inventory" data-dashboard-tab="inventory" class="text-sm font-semibold text-rose-900 underline underline-offset-2">Review stock</a>
-                    </div>
-                    <p id="daily-checkin-clear" class="{% if outstanding_sale_count or low_stock_items %}hidden{% endif %} rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-600">Nothing needs attention based on your current sales and stock records.</p>
-                </div>
-            </div>
-            <div class="mt-4 flex flex-wrap gap-2">
-                <a href="/sales" data-dashboard-tab="income" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white no-underline hover:bg-indigo-700">Record a sale</a>
-                <a href="/expenses" data-dashboard-tab="expenses" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 no-underline hover:bg-slate-50">Record an expense</a>
             </div>
         </section>
 
@@ -1634,6 +1551,15 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const hour = now.getHours();
+            const greeting = document.getElementById('dash-greeting');
+            if (greeting) greeting.textContent = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+            const dateEl = document.getElementById('dash-date');
+            if (dateEl) dateEl.textContent = now.toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
+        });
 
         // Title for a sale line. `quantity` is always in pieces; bulk lines
         // also carry how many bundles were sold and the bundle size.
@@ -2924,10 +2850,10 @@
 
             let expSum = 0;
             try {
+                // All-time, like the dashboard's "All time" card.
                 const expenses = await getExpensesLocal();
-                const currentMonth = new Date().toISOString().slice(0, 7);
                 expSum = (expenses || []).reduce((total, item) => {
-                    if (item && !item.pending_delete && (!item.date || String(item.date).slice(0, 7) === currentMonth)) {
+                    if (item && !item.pending_delete) {
                         total += parseFloat(item.amount || 0);
                     }
                     return total;
@@ -3520,6 +3446,7 @@
                     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                     event.preventDefault();
                     switchDashboardPage(link.dataset.dashboardTab);
+                    if (link.hasAttribute('data-open-new-sale')) document.getElementById('btn-new-sale')?.click();
                 });
             });
             window.addEventListener('popstate', () => switchDashboardPage(dashboardTabFromLocation(), false));
@@ -5497,7 +5424,7 @@
             });
 
             const analyticsTabs = document.querySelectorAll('.analytics-tab-btn');
-            let activeAnalyticsPeriod = 'daily';
+            let activeAnalyticsPeriod = 'weekly';
             analyticsTabs.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const period = e.currentTarget.dataset.period;
@@ -5507,8 +5434,8 @@
                         t.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
                         t.classList.add('text-slate-500');
                     });
-                    e.target.classList.remove('text-slate-500');
-                    e.target.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                    e.currentTarget.classList.remove('text-slate-500');
+                    e.currentTarget.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
                     renderAnalytics(period);
                 });
             });
@@ -5705,14 +5632,7 @@
                     elProfit.classList.toggle('text-emerald-700', liquidProfit >= 0);
                 }
 
-                if (elOutstandingAlert && elOutstandingBalance) {
-                    if (outstandingBalance > 0) {
-                        elOutstandingAlert.classList.remove('hidden');
-                        elOutstandingBalance.textContent = f(outstandingBalance);
-                    } else {
-                        elOutstandingAlert.classList.add('hidden');
-                    }
-                }
+                if (elOutstandingBalance) elOutstandingBalance.textContent = f(outstandingBalance);
 
                 // Render List
                 const listEl = document.getElementById('analytics-grouped-list');
@@ -5763,6 +5683,10 @@
                     `;
                 }).join('');
             }
+
+            // The background sync code (outside this handler) refreshes the page
+            // through these after it pulls new data from the server.
+            Object.assign(window, { calculateDashboard, renderAnalytics, renderIncomeListUI, loadPresets });
 
             // Initial calculations and renders
             renderIncomeListUI();
@@ -5868,9 +5792,7 @@
                         if (expensesEl) expensesEl.textContent = fmt(filteredExpenseTotal);
                         if (netProfitEl) {
                             netProfitEl.textContent = fmt(netProfit);
-                            netProfitEl.className   = netProfit < 0
-                                ? 'text-sm font-extrabold text-rose-700 mt-0.5'
-                                : 'text-sm font-extrabold text-indigo-800 mt-0.5';
+                            netProfitEl.style.color = netProfit < 0 ? '#b45309' : '#3730a3';
                         }
                     };
                 }).catch(err => console.warn('recalculateDashboard error:', err));
@@ -6437,11 +6359,24 @@
         let deferredPrompt;
         const installBanner = document.getElementById('pwa-install-banner');
         const installBtn = document.getElementById('btn-pwa-install');
+        // "Not now" hides the prompt for two weeks on this device.
+        const INSTALL_DISMISS_KEY = 'solobiz_install_dismissed_at';
+        function installDismissed() {
+            try { return Date.now() - Number(localStorage.getItem(INSTALL_DISMISS_KEY) || 0) < 14 * 24 * 60 * 60 * 1000; }
+            catch (_) { return false; }
+        }
+        function showInstallBanner() {
+            if (installBanner && !installDismissed()) installBanner.classList.remove('hidden');
+        }
+        document.getElementById('btn-pwa-dismiss')?.addEventListener('click', () => {
+            try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (_) {}
+            installBanner?.classList.add('hidden');
+        });
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            if (installBanner) installBanner.classList.remove('hidden');
+            showInstallBanner();
         });
 
         if (installBtn) {
@@ -6461,9 +6396,7 @@
         // Show install prompt helper on iOS devices if not running as standalone app
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-        if (isIOS && !isStandalone && installBanner) {
-            installBanner.classList.remove('hidden');
-        }
+        if (isIOS && !isStandalone) showInstallBanner();
     })();
     </script>
 
