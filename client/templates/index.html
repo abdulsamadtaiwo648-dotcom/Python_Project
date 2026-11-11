@@ -2275,7 +2275,26 @@
             renderCategoryBudgets().catch(error => console.warn('Could not load category budgets:', error));
         });
 
-        async function syncIncomeFromServer() {
+        // Several startup paths (initial load, pending sync, reconnect) call
+        // the server pulls below at the same time. Run one pull at a time so
+        // concurrent calls don't each insert the same server rows locally.
+        const inFlightServerSyncs = new Map();
+        function runSingleFlight(key, task) {
+            if (!inFlightServerSyncs.has(key)) {
+                inFlightServerSyncs.set(key, task().finally(() => inFlightServerSyncs.delete(key)));
+            }
+            return inFlightServerSyncs.get(key);
+        }
+
+        function syncIncomeFromServer() {
+            return runSingleFlight('income', pullIncomeFromServer);
+        }
+
+        function syncExpensesFromServer() {
+            return runSingleFlight('expenses', pullExpensesFromServer);
+        }
+
+        async function pullIncomeFromServer() {
             if (!navigator.onLine) return;
             try {
                 const response = await authenticatedFetch('/api/income');
@@ -2363,7 +2382,7 @@
             }
         }
 
-        async function syncExpensesFromServer() {
+        async function pullExpensesFromServer() {
             if (!navigator.onLine) return;
             try {
                 const response = await authenticatedFetch('/api/expenses');
