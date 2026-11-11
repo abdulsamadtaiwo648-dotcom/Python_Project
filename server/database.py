@@ -346,6 +346,8 @@ def init_db():
             # Optional bulk pricing: `bulk_price` buys `bulk_quantity` units.
             "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS bulk_quantity INTEGER",
             "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS bulk_price NUMERIC",
+            # Stock at or below this level triggers a low-stock alert.
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS low_stock_threshold INTEGER NOT NULL DEFAULT 3",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS sale_type TEXT NOT NULL DEFAULT 'unit'",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_count INTEGER",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_size INTEGER",
@@ -550,6 +552,7 @@ def init_db():
                 ("inventory_presets", "track_stock", "INTEGER NOT NULL DEFAULT 0"),
                 ("inventory_presets", "bulk_quantity", "INTEGER"),
                 ("inventory_presets", "bulk_price", "REAL"),
+                ("inventory_presets", "low_stock_threshold", "INTEGER NOT NULL DEFAULT 3"),
                 ("income", "sale_type", "TEXT NOT NULL DEFAULT 'unit'"),
                 ("income", "bundle_count", "INTEGER"),
                 ("income", "bundle_size", "INTEGER"),

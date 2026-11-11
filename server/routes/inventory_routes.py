@@ -51,6 +51,26 @@ def parse_bulk_pricing(data, existing=None):
     return int(quantity_value), price, None
 
 
+DEFAULT_LOW_STOCK_THRESHOLD = 3
+
+
+def parse_low_stock_threshold(data, existing=None):
+    """Return (threshold, error). Stock at or below the threshold is "low"."""
+    if "low_stock_threshold" in data and data["low_stock_threshold"] not in (None, ""):
+        raw = data["low_stock_threshold"]
+    elif existing is not None and dict(existing).get("low_stock_threshold") is not None:
+        return int(dict(existing)["low_stock_threshold"]), None
+    else:
+        return DEFAULT_LOW_STOCK_THRESHOLD, None
+    try:
+        value = float(str(raw).replace(",", ""))
+    except (TypeError, ValueError):
+        value = -1
+    if not math.isfinite(value) or not value.is_integer() or not 0 <= value <= 10000:
+        return None, "Low-stock alert level must be a whole number from 0 to 10,000."
+    return int(value), None
+
+
 def serialize_preset(row):
     item = dict(row)
     bulk_quantity = item.get("bulk_quantity")
@@ -64,6 +84,8 @@ def serialize_preset(row):
         "track_stock": bool(item.get("track_stock", 0)),
         "bulk_quantity": int(bulk_quantity) if has_bulk else None,
         "bulk_price": float(bulk_price) if has_bulk else None,
+        "low_stock_threshold": int(item["low_stock_threshold"])
+        if item.get("low_stock_threshold") is not None else DEFAULT_LOW_STOCK_THRESHOLD,
     }
 
 
@@ -97,6 +119,9 @@ def api_inventory_presets():
         bulk_quantity, bulk_price, bulk_error = parse_bulk_pricing(data)
         if bulk_error:
             return jsonify({"status": "error", "message": bulk_error}), 400
+        threshold, threshold_error = parse_low_stock_threshold(data)
+        if threshold_error:
+            return jsonify({"status": "error", "message": threshold_error}), 400
 
         with get_db() as db:
             count = db.execute("SELECT COUNT(*) as cnt FROM inventory_presets WHERE user_id = ?", (user_id,)).fetchone()
@@ -104,15 +129,17 @@ def api_inventory_presets():
                 return jsonify({"status": "error", "message": "Maximum 10 presets allowed."}), 400
 
             cursor = db.execute(
-                "INSERT INTO inventory_presets (user_id, item_name, price, stock, track_stock, bulk_quantity, bulk_price) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (user_id, item_name, price, stock, 1 if stock > 0 else 0, bulk_quantity, bulk_price)
+                "INSERT INTO inventory_presets "
+                "(user_id, item_name, price, stock, track_stock, bulk_quantity, bulk_price, low_stock_threshold) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (user_id, item_name, price, stock, 1 if stock > 0 else 0, bulk_quantity, bulk_price, threshold)
             )
             record_user_activity(db, user_id, "inventory_item_created", "Added an inventory item")
             db.commit()
         return jsonify({"status": "success", "preset": {
             "id": cursor.lastrowid, "item_name": item_name, "price": price, "stock": stock,
             "track_stock": stock > 0, "bulk_quantity": bulk_quantity, "bulk_price": bulk_price,
+            "low_stock_threshold": threshold,
         }}), 201
 
 
@@ -151,18 +178,23 @@ def api_inventory_preset_detail(preset_id):
             bulk_quantity, bulk_price, bulk_error = parse_bulk_pricing(data, existing)
             if bulk_error:
                 return jsonify({"status": "error", "message": bulk_error}), 400
+            threshold, threshold_error = parse_low_stock_threshold(data, existing)
+            if threshold_error:
+                return jsonify({"status": "error", "message": threshold_error}), 400
 
             track_stock = stock > 0 or bool(dict(existing).get("track_stock", 0))
             db.execute(
                 "UPDATE inventory_presets SET item_name = ?, price = ?, stock = ?, track_stock = ?, "
-                "bulk_quantity = ?, bulk_price = ? WHERE id = ? AND user_id = ?",
-                (item_name, price, stock, 1 if track_stock else 0, bulk_quantity, bulk_price, preset_id, user_id)
+                "bulk_quantity = ?, bulk_price = ?, low_stock_threshold = ? WHERE id = ? AND user_id = ?",
+                (item_name, price, stock, 1 if track_stock else 0, bulk_quantity, bulk_price, threshold,
+                 preset_id, user_id)
             )
             record_user_activity(db, user_id, "inventory_item_updated", "Updated an inventory item")
             db.commit()
             return jsonify({"status": "success", "preset": {
                 "id": preset_id, "item_name": item_name, "price": price, "stock": stock,
                 "track_stock": track_stock, "bulk_quantity": bulk_quantity, "bulk_price": bulk_price,
+                "low_stock_threshold": threshold,
             }}), 200
 
 

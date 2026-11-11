@@ -214,8 +214,10 @@ def render_dashboard_page(section):
                 outstanding_sale_count = int(row["sale_count"] or 0)
                 total_unpaid_balance = float(row["balance"] or 0)
                 low_stock_items = db.execute(
-                    "SELECT item_name, stock FROM inventory_presets "
-                    "WHERE user_id = ? AND track_stock = 1 AND COALESCE(stock, 0) <= 3 "
+                    "SELECT item_name, stock, COALESCE(low_stock_threshold, 3) AS low_stock_threshold "
+                    "FROM inventory_presets "
+                    "WHERE user_id = ? AND track_stock = 1 "
+                    "AND COALESCE(stock, 0) <= COALESCE(low_stock_threshold, 3) "
                     "ORDER BY stock ASC, item_name ASC",
                     (user_id,),
                 ).fetchall() or []

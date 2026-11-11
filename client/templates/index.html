@@ -509,6 +509,7 @@
             <a id="btn-tab-inventory" data-dashboard-tab="inventory" href="/inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'inventory' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/><path d="M9 12v4M15 12v4"/></svg>
                 <span>Inventory</span>
+                <span data-low-stock-badge class="{% if not low_stock_items %}hidden {% endif %}ml-auto min-w-[1.25rem] rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white" aria-label="{{ low_stock_items|length }} products low on stock">{{ low_stock_items|length }}</span>
             </a>
             <a id="btn-tab-income" data-dashboard-tab="income" href="/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
@@ -713,7 +714,7 @@
                         <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-amber-900 underline underline-offset-2">Review sales</a>
                     </div>
                     <div id="daily-stock-alert" class="{% if not low_stock_items %}hidden{% endif %} flex flex-wrap items-start justify-between gap-3 rounded-xl bg-rose-50 px-3 py-3">
-                        <div class="text-sm text-rose-900"><strong id="daily-stock-count">{{ low_stock_items|length }}</strong> tracked item<span id="daily-stock-plural">{% if low_stock_items|length != 1 %}s{% endif %}</span> at 3 units or fewer
+                        <div class="text-sm text-rose-900"><strong id="daily-stock-count">{{ low_stock_items|length }}</strong> tracked item<span id="daily-stock-plural">{% if low_stock_items|length != 1 %}s{% endif %}</span> at or below the low-stock alert level
                             <p id="daily-stock-items" class="mt-1 text-xs text-rose-800">{% for item in low_stock_items[:5] %}{{ item.item_name }} ({{ item.stock }}){% if not loop.last %}, {% endif %}{% endfor %}{% if low_stock_items|length > 5 %}, and {{ low_stock_items|length - 5 }} more{% endif %}</p>
                         </div>
                         <a href="/inventory" data-dashboard-tab="inventory" class="text-sm font-semibold text-rose-900 underline underline-offset-2">Review stock</a>
@@ -974,6 +975,16 @@
                     <button type="button" id="btn-manage-presets" aria-controls="manage-presets-panel" aria-expanded="false" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-lg font-bold transition">+ Add product</button>
                 </div>
             </div>
+            <div id="inventory-stock-alert" class="hidden rounded-2xl border border-rose-200 bg-rose-50 p-4" role="alert" aria-live="polite">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+                    <div class="flex-1 min-w-0">
+                        <p id="inventory-stock-alert-title" class="text-sm font-bold text-rose-900"></p>
+                        <p class="text-xs text-rose-800 mt-0.5">Restock these products so you don't miss sales. Change a product's alert level from Edit.</p>
+                        <ul id="inventory-stock-alert-list" class="mt-3 space-y-2"></ul>
+                    </div>
+                </div>
+            </div>
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-0 overflow-hidden">
                 <div class="inventory-table-wrap border-0 rounded-none">
                     <table>
@@ -985,7 +996,7 @@
                 </div>
                 <div id="manage-presets-panel" class="hidden border-t border-slate-200 p-4 sm:p-5">
                     <h3 class="text-sm font-bold text-slate-800 mb-3">Add or manage products</h3>
-                    <form id="add-preset-form" class="grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_7rem_5rem_auto] gap-2 items-end mb-2">
+                    <form id="add-preset-form" class="grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_7rem_5rem_6rem_auto] gap-2 items-end mb-2">
                         <div class="col-span-2 sm:col-span-1">
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Item Name</label>
                             <input type="text" id="preset-item-name" required placeholder="e.g. DLNZ Hoodie" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -998,7 +1009,11 @@
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Stock</label>
                             <input type="number" id="preset-stock" min="0" value="0" placeholder="0" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
-                        <fieldset class="col-span-2 sm:col-span-3 grid grid-cols-2 gap-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-2">
+                        <div>
+                            <label for="preset-low-stock" class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1" title="You'll be alerted when stock falls to this number or below">Alert at</label>
+                            <input type="number" id="preset-low-stock" min="0" step="1" value="3" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-describedby="preset-low-stock-help">
+                        </div>
+                        <fieldset class="col-span-2 sm:col-span-4 grid grid-cols-2 gap-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-2">
                             <legend class="px-1 text-[10px] uppercase font-bold text-indigo-700 tracking-wider">Bulk sale (optional)</legend>
                             <div>
                                 <label for="preset-bulk-quantity" class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Pieces per bulk</label>
@@ -1011,7 +1026,7 @@
                         </fieldset>
                         <button type="submit" class="col-span-2 sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm whitespace-nowrap">Save product</button>
                     </form>
-                    <p class="mobile-secondary-copy text-[10px] text-slate-500 mb-3">Starting stock is tracked and reduced when a sale is saved. Use 0 for a product without stock tracking. A bulk price is only used when you tick “Sell as bulk” on a sale line, so selling several pieces normally still uses the piece price.</p>
+                    <p class="mobile-secondary-copy text-[10px] text-slate-500 mb-3">Starting stock is tracked and reduced when a sale is saved. Use 0 for a product without stock tracking. <span id="preset-low-stock-help">“Alert at” warns you when stock falls to that number or below.</span> A bulk price is only used when you tick “Sell as bulk” on a sale line, so selling several pieces normally still uses the piece price.</p>
                     <div id="presets-manage-list" class="space-y-1.5 max-h-64 overflow-y-auto"></div>
                 </div>
             </div>
@@ -1449,6 +1464,11 @@
                         <input id="inventory-edit-stock" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
+                <div>
+                    <label for="inventory-edit-low-stock" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Low-stock alert at</label>
+                    <input id="inventory-edit-low-stock" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-describedby="inventory-edit-low-stock-help">
+                    <p id="inventory-edit-low-stock-help" class="mt-1 text-[10px] text-slate-500">You'll be alerted when stock falls to this number or below. Use 0 to be alerted only when it runs out.</p>
+                </div>
                 <fieldset class="grid grid-cols-2 gap-3 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-3">
                     <legend class="px-1 text-[10px] uppercase tracking-wider font-black text-indigo-700">Bulk sale (optional)</legend>
                     <div>
@@ -1616,6 +1636,45 @@
             }
             return Number(item?.quantity) > 1 ? `${item.quantity} x ${baseTitle}` : baseTitle;
         }
+        // Low-stock alerts: a tracked product is "low" at or below its alert
+        // level (default 3) and "out" when nothing is left.
+        function lowStockThreshold(product) {
+            const value = Number(product?.low_stock_threshold);
+            return Number.isInteger(value) && value >= 0 ? value : 3;
+        }
+        function stockLevel(product) {
+            if (!product?.track_stock) return 'untracked';
+            const stock = Number(product.stock || 0);
+            if (stock <= 0) return 'out';
+            return stock <= lowStockThreshold(product) ? 'low' : 'ok';
+        }
+        function needsRestock(product) {
+            const level = stockLevel(product);
+            return level === 'low' || level === 'out';
+        }
+
+        // Small notice that appears above the page and fades out on its own.
+        function showToast(message, tone = 'info') {
+            let region = document.getElementById('toast-region');
+            if (!region) {
+                region = document.createElement('div');
+                region.id = 'toast-region';
+                region.setAttribute('role', 'status');
+                region.setAttribute('aria-live', 'polite');
+                region.className = 'fixed inset-x-4 bottom-24 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96 z-[70] flex flex-col gap-2 pointer-events-none';
+                document.body.append(region);
+            }
+            const toneClass = tone === 'danger'
+                ? 'border-rose-200 bg-rose-50 text-rose-900'
+                : tone === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-slate-200 bg-white text-slate-800';
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg transition-opacity duration-300 ${toneClass}`;
+            toast.textContent = message;
+            region.append(toast);
+            setTimeout(() => { toast.style.opacity = '0'; }, 6000);
+            setTimeout(() => toast.remove(), 6400);
+        }
+
         function formatBulkOffer(product) {
             if (!product?.bulk_quantity || !product?.bulk_price) return '';
             return `${product.bulk_quantity} for ₦${Number(product.bulk_price).toLocaleString('en-NG')}`;
@@ -4498,6 +4557,7 @@
                     }
 
                     incomeSubmitInProgress = true;
+                    const stockLevelsBefore = new Map(inventoryPresets.map(product => [product.id, stockLevel(product)]));
                     const submitButton = addIncomeForm.querySelector('button[type="submit"]');
                     if (submitButton) {
                         submitButton.disabled = true;
@@ -4599,6 +4659,7 @@
                             saveInventoryCache();
                             renderPresetsGrid();
                             renderManageList();
+                            alertNewlyLowStock(stockLevelsBefore);
                             addIncomeForm.reset();
                             resetManualSaleItems();
                             const paidField = document.getElementById('income-amount-paid');
@@ -4903,6 +4964,7 @@
                 document.getElementById('inventory-edit-name').value = preset.item_name;
                 document.getElementById('inventory-edit-price').value = String(preset.price);
                 document.getElementById('inventory-edit-stock').value = String(preset.stock);
+                document.getElementById('inventory-edit-low-stock').value = String(lowStockThreshold(preset));
                 document.getElementById('inventory-edit-bulk-quantity').value = preset.bulk_quantity ? String(preset.bulk_quantity) : '';
                 document.getElementById('inventory-edit-bulk-price').value = preset.bulk_price ? String(preset.bulk_price) : '';
                 inventoryEditError?.classList.add('hidden');
@@ -4934,6 +4996,12 @@
                     inventoryEditError.classList.remove('hidden');
                     return;
                 }
+                const low_stock_threshold = Number(document.getElementById('inventory-edit-low-stock').value);
+                if (!Number.isInteger(low_stock_threshold) || low_stock_threshold < 0) {
+                    inventoryEditError.textContent = 'Enter a whole number of 0 or more for the low-stock alert.';
+                    inventoryEditError.classList.remove('hidden');
+                    return;
+                }
                 const bulk = readBulkFields('inventory-edit-bulk-quantity', 'inventory-edit-bulk-price');
                 if (bulk.error) {
                     inventoryEditError.textContent = bulk.error;
@@ -4947,7 +5015,7 @@
                     const response = await authenticatedFetch(`/api/inventory-presets/${id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ item_name, price, stock, bulk_quantity: bulk.bulk_quantity, bulk_price: bulk.bulk_price })
+                        body: JSON.stringify({ item_name, price, stock, low_stock_threshold, bulk_quantity: bulk.bulk_quantity, bulk_price: bulk.bulk_price })
                     });
                     const result = await response.json();
                     if (!response.ok || result.status !== 'success') {
@@ -5013,12 +5081,12 @@
             function renderPresetsGrid() {
                 if (!presetsGrid) return;
                 const rows = inventoryPresets.map(product => {
-                    const tracked = Boolean(product.track_stock);
-                    const out = tracked && product.stock <= 0;
-                    const low = tracked && product.stock > 0 && product.stock <= 3;
-                    const status = out ? 'Out of stock' : low ? 'Low stock' : 'Active';
-                    const statusClass = out ? 'out' : low ? 'low' : '';
-                    const stock = tracked ? `${product.stock} in stock` : 'Not tracked';
+                    const level = stockLevel(product);
+                    const status = level === 'out' ? 'Out of stock' : level === 'low' ? 'Low stock' : 'Active';
+                    const statusClass = level === 'out' ? 'out' : level === 'low' ? 'low' : '';
+                    const stock = level === 'untracked'
+                        ? 'Not tracked'
+                        : `${product.stock} in stock<span class="block text-[10px] text-slate-500">Alert at ${lowStockThreshold(product)}</span>`;
                     return `<tr data-inventory-row data-search="${escapeHtml(product.item_name.toLowerCase())}">
                         <td class="font-semibold">${escapeHtml(product.item_name)}</td>
                         <td><span class="inventory-status ${statusClass}">${status}</span></td>
@@ -5033,8 +5101,9 @@
                     filterInventoryRows();
                 }
                 const lowStock = inventoryPresets
-                    .filter(product => Boolean(product.track_stock) && Number(product.stock || 0) <= 3)
+                    .filter(needsRestock)
                     .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
+                renderLowStockAlerts(lowStock);
                 const stockAlert = document.getElementById('daily-stock-alert');
                 stockAlert?.classList.toggle('hidden', lowStock.length === 0);
                 const stockCount = document.getElementById('daily-stock-count');
@@ -5053,6 +5122,73 @@
                     clearNotice.classList.toggle('hidden', lowStock.length > 0 || !unpaidAlert.classList.contains('hidden'));
                 }
                 renderInventorySalesPicker();
+            }
+
+            // Inventory banner and the count badges on the Inventory menu links.
+            function renderLowStockAlerts(lowStock) {
+                document.querySelectorAll('[data-low-stock-badge]').forEach(badge => {
+                    badge.textContent = String(lowStock.length);
+                    badge.setAttribute('aria-label', `${lowStock.length} product${lowStock.length === 1 ? '' : 's'} low on stock`);
+                    badge.classList.toggle('hidden', lowStock.length === 0);
+                });
+                const banner = document.getElementById('inventory-stock-alert');
+                const list = document.getElementById('inventory-stock-alert-list');
+                const title = document.getElementById('inventory-stock-alert-title');
+                if (!banner || !list || !title) return;
+                banner.classList.toggle('hidden', lowStock.length === 0);
+                const outCount = lowStock.filter(product => stockLevel(product) === 'out').length;
+                const lowCount = lowStock.length - outCount;
+                const parts = [];
+                if (outCount) parts.push(`${outCount} out of stock`);
+                if (lowCount) parts.push(`${lowCount} running low`);
+                title.textContent = `${lowStock.length} product${lowStock.length === 1 ? ' needs' : 's need'} restocking: ${parts.join(', ')}`;
+                list.replaceChildren(...lowStock.map(product => {
+                    const out = stockLevel(product) === 'out';
+                    const item = document.createElement('li');
+                    item.className = 'flex items-center justify-between gap-3 rounded-xl bg-white/80 border border-rose-100 px-3 py-2';
+                    const text = document.createElement('div');
+                    text.className = 'min-w-0';
+                    const name = document.createElement('p');
+                    name.className = 'text-sm font-semibold text-slate-900 truncate';
+                    name.textContent = product.item_name;
+                    const detail = document.createElement('p');
+                    detail.className = `text-xs ${out ? 'text-rose-700 font-semibold' : 'text-amber-700'}`;
+                    detail.textContent = out
+                        ? 'Out of stock'
+                        : `${product.stock} left · alert at ${lowStockThreshold(product)}`;
+                    text.append(name, detail);
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.restockId = String(product.id);
+                    button.className = 'flex-shrink-0 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700';
+                    button.textContent = 'Restock';
+                    button.setAttribute('aria-label', `Restock ${product.item_name}`);
+                    item.append(text, button);
+                    return item;
+                }));
+            }
+            document.getElementById('inventory-stock-alert-list')?.addEventListener('click', event => {
+                const button = event.target.closest('[data-restock-id]');
+                if (!button) return;
+                const preset = inventoryPresets.find(item => String(item.id) === button.dataset.restockId);
+                if (!preset) return;
+                openInventoryEditModal(preset);
+                document.getElementById('inventory-edit-stock')?.focus();
+                document.getElementById('inventory-edit-stock')?.select();
+            });
+
+            // After a sale, tell the user about products that just became low or ran out.
+            function alertNewlyLowStock(levelsBefore) {
+                inventoryPresets.forEach(product => {
+                    const before = levelsBefore.get(product.id);
+                    const after = stockLevel(product);
+                    if (after === before || !before) return;
+                    if (after === 'out') {
+                        showToast(`${product.item_name} is now out of stock. Restock it from Inventory.`, 'danger');
+                    } else if (after === 'low' && before === 'ok') {
+                        showToast(`${product.item_name} is running low: ${product.stock} left.`, 'warning');
+                    }
+                });
             }
 
             function filterInventoryRows() {
@@ -5159,12 +5295,18 @@
                 if (!item_name || isNaN(price) || price <= 0) return;
                 const bulk = readBulkFields('preset-bulk-quantity', 'preset-bulk-price');
                 if (bulk.error) { alert(bulk.error); return; }
+                const rawThreshold = (document.getElementById('preset-low-stock')?.value || '').trim();
+                const low_stock_threshold = rawThreshold === '' ? 3 : Number(rawThreshold);
+                if (!Number.isInteger(low_stock_threshold) || low_stock_threshold < 0) {
+                    alert('Enter a whole number of 0 or more for the low-stock alert.');
+                    return;
+                }
 
                 try {
                     const res = await authenticatedFetch('/api/inventory-presets', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ item_name, price, stock, bulk_quantity: bulk.bulk_quantity, bulk_price: bulk.bulk_price })
+                        body: JSON.stringify({ item_name, price, stock, low_stock_threshold, bulk_quantity: bulk.bulk_quantity, bulk_price: bulk.bulk_price })
                     });
                     const data = await res.json();
                     if (data.status === 'success') {
@@ -6196,7 +6338,10 @@
     <span class="text-[10px] font-bold">Expenses</span>
   </a>
   <a href="/inventory" data-dashboard-tab="inventory" data-mobile-tab="inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-3 gap-0.5 {% if active_tab == 'inventory' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
-    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/><path d="M9 12v4M15 12v4"/></svg>
+    <span class="relative">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/><path d="M9 12v4M15 12v4"/></svg>
+      <span data-low-stock-badge class="{% if not low_stock_items %}hidden {% endif %}absolute -top-1.5 -right-2.5 min-w-[1rem] rounded-full bg-rose-600 px-1 py-0.5 text-center text-[9px] font-bold leading-none text-white" aria-label="{{ low_stock_items|length }} products low on stock">{{ low_stock_items|length }}</span>
+    </span>
     <span class="text-[10px] font-bold">Inventory</span>
   </a>
   <a href="/sales" data-dashboard-tab="income" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn flex-1 flex flex-col items-center py-3 gap-0.5 {% if active_tab == 'income' %}text-indigo-600{% else %}text-slate-400{% endif %}" style="text-decoration:none">
