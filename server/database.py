@@ -343,6 +343,12 @@ def init_db():
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS unit_price NUMERIC NOT NULL DEFAULT 0",
             "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS track_stock INTEGER NOT NULL DEFAULT 0",
             "UPDATE inventory_presets SET track_stock = 1 WHERE stock > 0 AND track_stock = 0",
+            # Optional bulk pricing: `bulk_price` buys `bulk_quantity` units.
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS bulk_quantity INTEGER",
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS bulk_price NUMERIC",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS sale_type TEXT NOT NULL DEFAULT 'unit'",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_count INTEGER",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_size INTEGER",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_policy TEXT",
@@ -542,6 +548,11 @@ def init_db():
                 ("income", "quantity", "INTEGER NOT NULL DEFAULT 1"),
                 ("income", "unit_price", "REAL NOT NULL DEFAULT 0"),
                 ("inventory_presets", "track_stock", "INTEGER NOT NULL DEFAULT 0"),
+                ("inventory_presets", "bulk_quantity", "INTEGER"),
+                ("inventory_presets", "bulk_price", "REAL"),
+                ("income", "sale_type", "TEXT NOT NULL DEFAULT 'unit'"),
+                ("income", "bundle_count", "INTEGER"),
+                ("income", "bundle_size", "INTEGER"),
             ]:
                 try:
                     db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")

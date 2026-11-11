@@ -998,9 +998,20 @@
                             <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Stock</label>
                             <input type="number" id="preset-stock" min="0" value="0" placeholder="0" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
+                        <fieldset class="col-span-2 sm:col-span-3 grid grid-cols-2 gap-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-2">
+                            <legend class="px-1 text-[10px] uppercase font-bold text-indigo-700 tracking-wider">Bulk sale (optional)</legend>
+                            <div>
+                                <label for="preset-bulk-quantity" class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Pieces per bulk</label>
+                                <input type="number" id="preset-bulk-quantity" min="2" step="1" placeholder="e.g. 5" class="w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="preset-bulk-price" class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Bulk price (₦)</label>
+                                <input type="text" inputmode="numeric" id="preset-bulk-price" placeholder="10,000" class="currency-input w-full border border-slate-200 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </fieldset>
                         <button type="submit" class="col-span-2 sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm whitespace-nowrap">Save product</button>
                     </form>
-                    <p class="mobile-secondary-copy text-[10px] text-slate-500 mb-3">Starting stock is tracked and reduced when a sale is saved. Use 0 for a product without stock tracking.</p>
+                    <p class="mobile-secondary-copy text-[10px] text-slate-500 mb-3">Starting stock is tracked and reduced when a sale is saved. Use 0 for a product without stock tracking. A bulk price is only used when you tick “Sell as bulk” on a sale line, so selling several pieces normally still uses the piece price.</p>
                     <div id="presets-manage-list" class="space-y-1.5 max-h-64 overflow-y-auto"></div>
                 </div>
             </div>
@@ -1418,7 +1429,7 @@
                 <div>
                     <p class="text-[10px] uppercase tracking-[0.2em] font-black text-indigo-600">Inventory</p>
                     <h3 id="inventory-edit-title" class="text-xl font-black text-slate-900 mt-1">Edit product</h3>
-                    <p id="inventory-edit-description" class="text-xs text-slate-500 mt-1">Update the name, price, or available stock.</p>
+                    <p id="inventory-edit-description" class="text-xs text-slate-500 mt-1">Update the name, price, bulk price, or available stock.</p>
                 </div>
                 <button type="button" id="close-inventory-edit" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-lg leading-none" aria-label="Close">×</button>
             </div>
@@ -1438,6 +1449,18 @@
                         <input id="inventory-edit-stock" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
+                <fieldset class="grid grid-cols-2 gap-3 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-3">
+                    <legend class="px-1 text-[10px] uppercase tracking-wider font-black text-indigo-700">Bulk sale (optional)</legend>
+                    <div>
+                        <label for="inventory-edit-bulk-quantity" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Pieces per bulk</label>
+                        <input id="inventory-edit-bulk-quantity" type="number" min="2" step="1" placeholder="e.g. 5" class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="inventory-edit-bulk-price" class="block text-[10px] uppercase tracking-wider font-black text-slate-500 mb-1.5">Bulk price (₦)</label>
+                        <input id="inventory-edit-bulk-price" type="number" min="0.01" step="0.01" placeholder="10000" class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <p class="col-span-2 text-[10px] text-slate-500">Leave both empty to sell by the piece only.</p>
+                </fieldset>
                 <p id="inventory-edit-error" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700" role="alert"></p>
                 <div class="flex gap-3 pt-1">
                     <button type="button" id="cancel-inventory-edit" class="flex-1 rounded-xl bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200">Cancel</button>
@@ -1579,6 +1602,23 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        // Title for a sale line. `quantity` is always in pieces; bulk lines
+        // also carry how many bundles were sold and the bundle size.
+        function isBulkSaleLine(item) {
+            return item?.sale_type === 'bulk' && Number(item.bundle_count) > 0;
+        }
+        function saleLineTitle(item, baseTitle) {
+            if (isBulkSaleLine(item)) {
+                const size = Number(item.bundle_size) || Math.round(Number(item.quantity) / Number(item.bundle_count)) || 0;
+                return `${item.bundle_count} bulk x ${baseTitle} (${size} pcs each)`;
+            }
+            return Number(item?.quantity) > 1 ? `${item.quantity} x ${baseTitle}` : baseTitle;
+        }
+        function formatBulkOffer(product) {
+            if (!product?.bulk_quantity || !product?.bulk_price) return '';
+            return `${product.bulk_quantity} for ₦${Number(product.bulk_price).toLocaleString('en-NG')}`;
         }
         const DB_NAME = 'SoloBizDB_user_' + CURRENT_USER_ID;
         const DB_VERSION = 5;
@@ -2318,6 +2358,9 @@
                                 record.inventory_item_id = item.inventory_item_id ?? record.inventory_item_id;
                                 record.quantity = Number(item.quantity || record.quantity || 0);
                                 record.unit_price = Number(item.unit_price || record.unit_price || 0);
+                                record.sale_type = item.sale_type || record.sale_type || 'unit';
+                                record.bundle_count = item.bundle_count ?? record.bundle_count ?? null;
+                                record.bundle_size = item.bundle_size ?? record.bundle_size ?? null;
                                 record.synced = true;
                                 await new Promise((resolve, reject) => {
                                     const updateTx = db.transaction(INCOME_STORE, 'readwrite');
@@ -2341,6 +2384,9 @@
                                 inventory_item_id: item.inventory_item_id ?? null,
                                 quantity: Number(item.quantity || 0),
                                 unit_price: Number(item.unit_price || 0),
+                                sale_type: item.sale_type || 'unit',
+                                bundle_count: item.bundle_count ?? null,
+                                bundle_size: item.bundle_size ?? null,
                                 synced: true,
                                 server_id: item.id
                             };
@@ -2613,13 +2659,19 @@
                                         customer_name: item.customer_name || 'Walk-in Customer',
                                         amount_paid: checkoutLines.reduce((sum, line) => sum + Number(line.amount_paid || 0), 0),
                                         payment_mode: item.payment_mode || 'Cash',
-                                        items: checkoutLines.map(line => ({
+                                        items: checkoutLines.map(line => isBulkSaleLine(line) ? {
+                                            checkout_line_id: line.checkout_line_id,
+                                            inventory_item_id: line.inventory_item_id,
+                                            sale_type: 'bulk',
+                                            unit_price: Number(line.total_value) / Number(line.bundle_count),
+                                            quantity: Number(line.bundle_count)
+                                        } : {
                                             checkout_line_id: line.checkout_line_id,
                                             inventory_item_id: line.inventory_item_id,
                                             item_name: line.inventory_item_id == null ? line.description : null,
                                             unit_price: line.unit_price,
                                             quantity: line.quantity || 1
-                                        }))
+                                        })
                                     })
                                 });
                                 const checkoutData = await checkoutResponse.json();
@@ -3711,7 +3763,7 @@
                         }
                         doc.setTextColor(30, 41, 59);
                         const itemTitle = item.description || item.item_sold || 'Goods / Services';
-                        const title = Number(item.quantity) > 1 ? `${item.quantity} x ${itemTitle}` : itemTitle;
+                        const title = saleLineTitle(item, itemTitle);
                         const amt   = parseFloat(item.total_value ?? item.amount ?? 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
                         const splitTitle = doc.splitTextToSize(title, 38)[0];
                         doc.text(splitTitle, metaLeft, y + 5);
@@ -4038,7 +4090,7 @@
                 const amountPaid = paymentState.amountPaid;
                 const balanceOwed = paymentState.balanceOwed;
                 const itemDescription = income.description || income.item_sold || 'Income';
-                const desc = Number(income.quantity) > 1 ? `${income.quantity} x ${itemDescription}` : itemDescription;
+                const desc = saleLineTitle(income, itemDescription);
 
                 const formattedTotal = totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const formattedPaid = amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -4425,12 +4477,16 @@
                     const hasPartialManualRow = manualRows.some(row => !row.name || !Number.isFinite(row.unit_price) || row.unit_price <= 0 || !Number.isInteger(row.quantity) || row.quantity < 1 || row.quantity > 10000);
                     const saleItems = manualRows.map((item, index) => ({
                         ...item,
-                        cart_id: item.preset_id == null ? `manual-${index}-${item.name}` : `inventory-${item.preset_id}`
+                        cart_id: item.preset_id == null ? `manual-${index}-${item.name}` : `inventory-${item.preset_id}-${item.sale_type}-${index}`
                     }));
                     const total_value = saleItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-                    const overStock = saleItems.some(item => {
-                        const preset = item.preset_id == null ? null : inventoryPresets.find(product => product.id === item.preset_id);
-                        return preset?.track_stock && item.quantity > preset.stock;
+                    const unitsByProduct = new Map();
+                    saleItems.forEach(item => {
+                        if (item.preset_id != null) unitsByProduct.set(item.preset_id, (unitsByProduct.get(item.preset_id) || 0) + item.units);
+                    });
+                    const overStock = [...unitsByProduct].some(([presetId, units]) => {
+                        const preset = findPreset(presetId);
+                        return preset?.track_stock && units > preset.stock;
                     });
                     const amount_paid = parseFloat((document.getElementById('income-amount-paid')?.value || '').replace(/,/g, ''));
                     const payment_mode = document.getElementById('sale-payment-mode')?.value || 'Cash';
@@ -4455,10 +4511,16 @@
                             checkout_line_id: window.crypto?.randomUUID?.() || `${checkoutId}-${item.cart_id}`,
                             inventory_item_id: item.preset_id ?? null,
                             ...(item.preset_id == null ? { item_name: item.name } : {}),
+                            ...(item.sale_type === 'bulk' ? { sale_type: 'bulk' } : {}),
                             unit_price: item.unit_price,
-                            quantity: item.quantity
+                            quantity: item.quantity,
+                            units: item.units,
+                            bundle_size: item.bundle_size
                         }));
-                        const payload = { checkout_id: checkoutId, receipt_id: receiptId, customer_name, amount_paid, payment_mode, items: checkoutLines };
+                        const payload = {
+                            checkout_id: checkoutId, receipt_id: receiptId, customer_name, amount_paid, payment_mode,
+                            items: checkoutLines.map(({ units, bundle_size, ...line }) => line)
+                        };
                         let checkoutResult = null;
 
                         if (navigator.onLine) {
@@ -4504,8 +4566,12 @@
                                     checkout_id: checkoutId,
                                     checkout_line_id: line.checkout_line_id,
                                     inventory_item_id: line.inventory_item_id,
-                                    quantity: line.quantity,
-                                    unit_price: lineTotal / line.quantity,
+                                    // Stored in pieces so stock is restored correctly on delete.
+                                    quantity: Number(saved?.quantity ?? line.units),
+                                    unit_price: lineTotal / line.units,
+                                    sale_type: line.sale_type === 'bulk' ? 'bulk' : 'unit',
+                                    bundle_count: line.sale_type === 'bulk' ? line.quantity : null,
+                                    bundle_size: line.sale_type === 'bulk' ? line.bundle_size : null,
                                     payment_mode,
                                     date: saved?.date || new Date().toISOString(),
                                     synced: Boolean(checkoutResult),
@@ -4527,7 +4593,7 @@
                             } else {
                                 saleItems.forEach(cartItem => {
                                     const product = inventoryPresets.find(item => item.id === cartItem.preset_id);
-                                    if (product?.track_stock) product.stock = Math.max(0, product.stock - cartItem.quantity);
+                                    if (product?.track_stock) product.stock = Math.max(0, product.stock - cartItem.units);
                                 });
                             }
                             saveInventoryCache();
@@ -4567,6 +4633,23 @@
             // =========================================================
             let inventoryPresets = [];
             const manualSaleItems = document.getElementById('manual-sale-items');
+            function findPreset(id) {
+                return id == null ? null : inventoryPresets.find(item => item.id === Number(id)) || null;
+            }
+            function rowSaleType(row) {
+                return row?.dataset.saleType === 'bulk' ? 'bulk' : 'unit';
+            }
+            function rowBundleSize(row) {
+                const preset = findPreset(row?.dataset.presetId);
+                return rowSaleType(row) === 'bulk' && preset?.bulk_quantity ? Number(preset.bulk_quantity) : 1;
+            }
+            // Pieces of a product already in the cart, optionally ignoring one row.
+            function cartUnitsForProduct(presetId, exceptRow = null) {
+                if (!manualSaleItems) return 0;
+                return [...manualSaleItems.querySelectorAll('[data-manual-sale-row]')]
+                    .filter(row => row !== exceptRow && Number(row.dataset.presetId) === Number(presetId))
+                    .reduce((sum, row) => sum + (Number(row.querySelector('[data-manual-quantity]').value) || 0) * rowBundleSize(row), 0);
+            }
             function getManualSaleItems() {
                 if (!manualSaleItems) return [];
                 return [...manualSaleItems.querySelectorAll('[data-manual-sale-row]')]
@@ -4574,16 +4657,48 @@
                         const nameInput = row.querySelector('[data-manual-name]');
                         const priceInput = row.querySelector('[data-manual-price]');
                         const quantityInput = row.querySelector('[data-manual-quantity]');
+                        const quantity = Number(quantityInput.value);
+                        const bundleSize = rowBundleSize(row);
                         return {
                             name: nameInput.value.trim(),
+                            // For a bulk line the price is per bundle and the
+                            // quantity counts bundles; `units` is always pieces.
                             unit_price: Number(priceInput.value),
-                            quantity: Number(quantityInput.value),
+                            quantity,
+                            sale_type: rowSaleType(row),
+                            bundle_size: rowSaleType(row) === 'bulk' ? bundleSize : null,
+                            units: quantity * bundleSize,
                             preset_id: row.dataset.presetId ? Number(row.dataset.presetId) : null,
                             started: Boolean(nameInput.value.trim() || priceInput.value || quantityInput.value !== '1')
                         };
                     })
                     .filter(item => item.started)
                     .map(({ started, ...item }) => item);
+            }
+            // Largest quantity this row may hold without overselling stock.
+            function rowQuantityLimit(row) {
+                const preset = findPreset(row?.dataset.presetId);
+                if (!preset?.track_stock) return 10000;
+                const available = Math.max(0, Number(preset.stock) - cartUnitsForProduct(preset.id, row));
+                return Math.min(10000, Math.floor(available / rowBundleSize(row)));
+            }
+            function applyRowSaleType(row) {
+                const preset = findPreset(row.dataset.presetId);
+                if (!preset) return;
+                const isBulk = rowSaleType(row) === 'bulk';
+                const priceInput = row.querySelector('[data-manual-price]');
+                const quantityInput = row.querySelector('[data-manual-quantity]');
+                priceInput.value = String(isBulk ? preset.bulk_price : preset.price);
+                priceInput.setAttribute('aria-label', isBulk ? `Bulk price for ${preset.bulk_quantity} ${preset.item_name}` : `Unit price for ${preset.item_name}`);
+                row.querySelector('[data-price-label]').textContent = isBulk ? 'Bulk price (₦)' : 'Unit price (₦)';
+                row.querySelector('[data-quantity-label]').textContent = isBulk ? `Bulks of ${preset.bulk_quantity}` : 'Quantity';
+                const source = row.querySelector('[data-row-source]');
+                if (source) source.textContent = isBulk
+                    ? `Bulk sale · ${formatBulkOffer(preset)} · each bulk takes ${preset.bulk_quantity} from stock`
+                    : 'Inventory item · unit price synced';
+                const limit = rowQuantityLimit(row);
+                quantityInput.max = String(Math.max(limit, 1));
+                if (Number(quantityInput.value) > limit) quantityInput.value = String(Math.max(limit, 1));
             }
             function addManualSaleItemRow(preset = null) {
                 if (!manualSaleItems || manualSaleItems.children.length >= 50) {
@@ -4594,27 +4709,44 @@
                 row.dataset.manualSaleRow = 'true';
                 if (preset) row.dataset.presetId = String(preset.id);
                 row.className = 'grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_8rem_6rem_auto] gap-2 items-end rounded-xl border border-slate-200 p-2';
-                row.innerHTML = '<label class="col-span-2 sm:col-span-1 text-[10px] uppercase font-bold tracking-wide text-slate-500">Product name<input data-manual-name type="text" maxlength="120" placeholder="e.g. Custom gift wrap" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500">Unit price (₦)<input data-manual-price type="number" min="0.01" step="0.01" placeholder="0.00" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500">Quantity<input data-manual-quantity type="number" min="1" max="10000" step="1" value="1" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><button type="button" data-remove-manual-item class="col-span-2 sm:col-span-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">Remove item</button>';
+                row.innerHTML = '<label class="col-span-2 sm:col-span-1 text-[10px] uppercase font-bold tracking-wide text-slate-500">Product name<input data-manual-name type="text" maxlength="120" placeholder="e.g. Custom gift wrap" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500"><span data-price-label>Unit price (₦)</span><input data-manual-price type="number" min="0.01" step="0.01" placeholder="0.00" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><label class="text-[10px] uppercase font-bold tracking-wide text-slate-500"><span data-quantity-label>Quantity</span><input data-manual-quantity type="number" min="1" max="10000" step="1" value="1" class="mt-1 w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"></label><button type="button" data-remove-manual-item class="col-span-2 sm:col-span-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">Remove item</button>';
                 if (preset) {
                     const nameInput = row.querySelector('[data-manual-name]');
                     const priceInput = row.querySelector('[data-manual-price]');
-                    const quantityInput = row.querySelector('[data-manual-quantity]');
                     nameInput.value = preset.item_name;
                     nameInput.readOnly = true;
                     nameInput.setAttribute('aria-label', `Inventory product: ${preset.item_name}`);
-                    priceInput.value = String(preset.price);
                     priceInput.readOnly = true;
-                    priceInput.setAttribute('aria-label', `Unit price for ${preset.item_name}`);
-                    if (preset.track_stock) quantityInput.max = String(preset.stock);
                     row.classList.add('bg-emerald-50/30');
                     const source = document.createElement('span');
+                    source.dataset.rowSource = 'true';
                     source.className = 'col-span-2 text-[10px] text-emerald-700';
                     source.style.gridColumn = '1 / -1';
-                    source.textContent = 'Inventory item · unit price synced';
                     row.append(source);
+                    syncRowBulkToggle(row, preset);
                 }
                 manualSaleItems.append(row);
+                if (preset) applyRowSaleType(row);
                 return row;
+            }
+            // Show the "Bulk sale" switch only for products that have a bulk price.
+            function syncRowBulkToggle(row, preset) {
+                let toggle = row.querySelector('[data-bulk-toggle-wrap]');
+                if (!preset?.bulk_quantity || !preset?.bulk_price) {
+                    toggle?.remove();
+                    row.dataset.saleType = 'unit';
+                    return;
+                }
+                if (!toggle) {
+                    toggle = document.createElement('label');
+                    toggle.dataset.bulkToggleWrap = 'true';
+                    toggle.className = 'flex items-center gap-2 text-xs font-semibold text-indigo-700 cursor-pointer select-none';
+                    toggle.style.gridColumn = '1 / -1';
+                    toggle.innerHTML = '<input type="checkbox" data-bulk-toggle class="w-4 h-4 accent-indigo-600"><span data-bulk-toggle-text></span>';
+                    row.insertBefore(toggle, row.querySelector('[data-row-source]'));
+                }
+                toggle.querySelector('[data-bulk-toggle]').checked = rowSaleType(row) === 'bulk';
+                toggle.querySelector('[data-bulk-toggle-text]').textContent = `Sell as bulk (${formatBulkOffer(preset)})`;
             }
             function resetManualSaleItems() {
                 if (!manualSaleItems) return;
@@ -4622,15 +4754,35 @@
                 addManualSaleItemRow();
                 updateSaleTotals();
             }
-            document.getElementById('add-manual-sale-item')?.addEventListener('click', addManualSaleItemRow);
+            document.getElementById('add-manual-sale-item')?.addEventListener('click', () => addManualSaleItemRow());
+            manualSaleItems?.addEventListener('change', event => {
+                const toggle = event.target.closest('[data-bulk-toggle]');
+                if (!toggle) return;
+                const row = toggle.closest('[data-manual-sale-row]');
+                const preset = findPreset(row?.dataset.presetId);
+                row.dataset.saleType = toggle.checked ? 'bulk' : 'unit';
+                if (toggle.checked) row.querySelector('[data-manual-quantity]').value = '1';
+                if (rowQuantityLimit(row) < 1) {
+                    alert(toggle.checked
+                        ? `Not enough ${preset.item_name} in stock for a bulk of ${preset.bulk_quantity}.`
+                        : `No more ${preset.item_name} available.`);
+                    toggle.checked = !toggle.checked;
+                    row.dataset.saleType = toggle.checked ? 'bulk' : 'unit';
+                }
+                applyRowSaleType(row);
+                updateSaleTotals();
+            });
             manualSaleItems?.addEventListener('input', event => {
                 const quantityInput = event.target.closest('[data-manual-quantity]');
                 if (quantityInput) {
                     const row = quantityInput.closest('[data-manual-sale-row]');
-                    const preset = row?.dataset.presetId ? inventoryPresets.find(item => item.id === Number(row.dataset.presetId)) : null;
-                    if (preset?.track_stock && Number(quantityInput.value) > preset.stock) {
-                        quantityInput.value = String(preset.stock);
-                        alert(`Only ${preset.stock} ${preset.item_name} available.`);
+                    const preset = findPreset(row?.dataset.presetId);
+                    const limit = rowQuantityLimit(row);
+                    if (preset?.track_stock && Number(quantityInput.value) > limit) {
+                        quantityInput.value = String(limit);
+                        alert(rowSaleType(row) === 'bulk'
+                            ? `Only ${limit} bulk(s) of ${preset.bulk_quantity} ${preset.item_name} available.`
+                            : `Only ${limit} ${preset.item_name} available.`);
                     }
                 }
                 updateSaleTotals();
@@ -4732,12 +4884,27 @@
                 inventoryEditTrigger = null;
             }
 
+            // Read an optional bulk quantity/price pair. Both empty means no bulk price.
+            function readBulkFields(quantityId, priceId) {
+                const rawQuantity = (document.getElementById(quantityId)?.value || '').trim();
+                const rawPrice = (document.getElementById(priceId)?.value || '').replace(/,/g, '').trim();
+                if (!rawQuantity && !rawPrice) return { bulk_quantity: null, bulk_price: null, error: null };
+                const bulk_quantity = Number(rawQuantity);
+                const bulk_price = Number(rawPrice);
+                if (!Number.isInteger(bulk_quantity) || bulk_quantity < 2 || !Number.isFinite(bulk_price) || bulk_price <= 0) {
+                    return { error: 'For a bulk sale, enter how many pieces make one bulk (2 or more) and the bulk price. Leave both empty to sell by the piece only.' };
+                }
+                return { bulk_quantity, bulk_price, error: null };
+            }
+
             function openInventoryEditModal(preset) {
                 inventoryEditTrigger = document.activeElement;
                 document.getElementById('inventory-edit-id').value = String(preset.id);
                 document.getElementById('inventory-edit-name').value = preset.item_name;
                 document.getElementById('inventory-edit-price').value = String(preset.price);
                 document.getElementById('inventory-edit-stock').value = String(preset.stock);
+                document.getElementById('inventory-edit-bulk-quantity').value = preset.bulk_quantity ? String(preset.bulk_quantity) : '';
+                document.getElementById('inventory-edit-bulk-price').value = preset.bulk_price ? String(preset.bulk_price) : '';
                 inventoryEditError?.classList.add('hidden');
                 inventoryEditModal?.classList.remove('hidden');
                 inventoryEditModal?.classList.add('flex');
@@ -4767,6 +4934,12 @@
                     inventoryEditError.classList.remove('hidden');
                     return;
                 }
+                const bulk = readBulkFields('inventory-edit-bulk-quantity', 'inventory-edit-bulk-price');
+                if (bulk.error) {
+                    inventoryEditError.textContent = bulk.error;
+                    inventoryEditError.classList.remove('hidden');
+                    return;
+                }
 
                 submitButton.disabled = true;
                 submitButton.textContent = 'Saving…';
@@ -4774,7 +4947,7 @@
                     const response = await authenticatedFetch(`/api/inventory-presets/${id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ item_name, price, stock })
+                        body: JSON.stringify({ item_name, price, stock, bulk_quantity: bulk.bulk_quantity, bulk_price: bulk.bulk_price })
                     });
                     const result = await response.json();
                     if (!response.ok || result.status !== 'success') {
@@ -4784,14 +4957,8 @@
                     inventoryPresets = inventoryPresets.map(item => item.id === id ? result.preset : item);
                     manualSaleItems?.querySelectorAll(`[data-preset-id="${id}"]`).forEach(row => {
                         row.querySelector('[data-manual-name]').value = result.preset.item_name;
-                        row.querySelector('[data-manual-price]').value = String(result.preset.price);
-                        const quantity = row.querySelector('[data-manual-quantity]');
-                        if (result.preset.track_stock) {
-                            quantity.max = String(result.preset.stock);
-                            if (Number(quantity.value) > result.preset.stock) quantity.value = String(result.preset.stock);
-                        } else {
-                            quantity.max = '10000';
-                        }
+                        syncRowBulkToggle(row, result.preset);
+                        applyRowSaleType(row);
                     });
                     saveInventoryCache();
                     renderPresetsGrid();
@@ -4856,7 +5023,7 @@
                         <td class="font-semibold">${escapeHtml(product.item_name)}</td>
                         <td><span class="inventory-status ${statusClass}">${status}</span></td>
                         <td>${stock}</td>
-                        <td class="font-semibold">₦${Number(product.price).toLocaleString('en-NG')}</td>
+                        <td class="font-semibold">₦${Number(product.price).toLocaleString('en-NG')}${formatBulkOffer(product) ? `<span class="block text-[10px] font-semibold text-indigo-600">Bulk: ${escapeHtml(formatBulkOffer(product))}</span>` : ''}</td>
                     </tr>`;
                 }).join('');
                 if (inventoryPresets.length === 0) {
@@ -4911,9 +5078,9 @@
                 const selected = select.value;
                 select.replaceChildren(new Option('Choose a product', ''));
                 inventoryPresets.forEach(product => {
-                    const existingLine = getManualSaleItems().find(line => line.preset_id === product.id);
-                    const remaining = product.track_stock ? Math.max(0, product.stock - (existingLine?.quantity || 0)) : null;
-                    const option = new Option(`${product.item_name} · ₦${Number(product.price).toLocaleString('en-NG')}${remaining === null ? '' : ` · ${remaining} left`}`, String(product.id));
+                    const remaining = product.track_stock ? Math.max(0, product.stock - cartUnitsForProduct(product.id)) : null;
+                    const bulkOffer = formatBulkOffer(product);
+                    const option = new Option(`${product.item_name} · ₦${Number(product.price).toLocaleString('en-NG')}${bulkOffer ? ` · bulk ${bulkOffer}` : ''}${remaining === null ? '' : ` · ${remaining} left`}`, String(product.id));
                     option.disabled = remaining === 0;
                     select.add(option);
                 });
@@ -4927,11 +5094,12 @@
                 const select = document.getElementById('sales-inventory-select');
                 const preset = inventoryPresets.find(product => String(product.id) === select?.value);
                 if (!preset) return;
+                // Choosing a product adds a piece to its normal (non-bulk) line.
                 const row = [...(manualSaleItems?.querySelectorAll('[data-manual-sale-row]') || [])]
-                    .find(item => Number(item.dataset.presetId) === preset.id);
+                    .find(item => Number(item.dataset.presetId) === preset.id && rowSaleType(item) !== 'bulk');
                 const quantityInput = row?.querySelector('[data-manual-quantity]');
                 const currentQuantity = Number(quantityInput?.value || 0);
-                if (preset.track_stock && currentQuantity >= preset.stock) {
+                if (preset.track_stock && cartUnitsForProduct(preset.id) >= preset.stock) {
                     alert(`Only ${preset.stock} ${preset.item_name} available.`);
                     select.value = '';
                     return;
@@ -4954,7 +5122,7 @@
                 manageList.innerHTML = inventoryPresets.map(p => `
                     <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-xs" data-manage-id="${p.id}">
                         <span class="flex-1 font-semibold text-slate-800 truncate">${escapeHtml(p.item_name)}</span>
-                        <span class="text-emerald-600 font-bold whitespace-nowrap">₦${p.price.toLocaleString()}</span>
+                        <span class="text-emerald-600 font-bold whitespace-nowrap">₦${p.price.toLocaleString()}${formatBulkOffer(p) ? `<span class="block text-[10px] text-indigo-600">bulk ${escapeHtml(formatBulkOffer(p))}</span>` : ''}</span>
                         <span class="text-slate-500 whitespace-nowrap w-12 text-center">${p.track_stock ? `${p.stock} pcs` : 'untracked'}</span>
                         <button type="button" class="btn-edit-preset text-indigo-600 hover:text-indigo-800 font-bold transition" data-id="${p.id}">Edit</button>
                         <button type="button" class="btn-delete-preset text-red-400 hover:text-red-600 font-bold transition" data-id="${p.id}">✕</button>
@@ -4989,12 +5157,14 @@
                 const price = parseFloat((document.getElementById('preset-price').value || '').replace(/,/g, ''));
                 const stock = parseInt(document.getElementById('preset-stock').value || '0', 10);
                 if (!item_name || isNaN(price) || price <= 0) return;
+                const bulk = readBulkFields('preset-bulk-quantity', 'preset-bulk-price');
+                if (bulk.error) { alert(bulk.error); return; }
 
                 try {
                     const res = await authenticatedFetch('/api/inventory-presets', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ item_name, price, stock })
+                        body: JSON.stringify({ item_name, price, stock, bulk_quantity: bulk.bulk_quantity, bulk_price: bulk.bulk_price })
                     });
                     const data = await res.json();
                     if (data.status === 'success') {
@@ -5291,7 +5461,7 @@
                         <div class="px-4 pb-4 pt-1 space-y-2 bg-white">
                             ${g.items.map(item => {
                                 const finalPaid = parseFloat(item.amount_paid ?? item.total_value ?? item.amount ?? 0);
-                                const title = item.description || item.item_sold || 'Income';
+                                const title = saleLineTitle(item, item.description || item.item_sold || 'Income');
                                 const receiptBadge = item.receipt_id ? `<span class="text-[9px] text-slate-500 font-mono ml-1">#${escapeHtml(item.receipt_id)}</span>` : '';
                                 return `
                                 <div class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">

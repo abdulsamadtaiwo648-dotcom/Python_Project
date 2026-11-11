@@ -9,6 +9,63 @@ from ..app import (
     record_user_activity,
 )
 
+BULK_ERROR = (
+    "Bulk sale needs a bundle size of at least 2 units and a bundle price "
+    "greater than zero. Leave both empty to sell this product by the piece only."
+)
+
+
+def _is_blank(value):
+    return value is None or str(value).strip() in ("", "0")
+
+
+def parse_bulk_pricing(data, existing=None):
+    """Return (bulk_quantity, bulk_price, error).
+
+    Bulk pricing is optional: `bulk_price` is the price for a bundle of
+    `bulk_quantity` units. It is only applied to a sale when the seller marks
+    that sale line as a bulk sale; buying many pieces never switches to it.
+    On update, fields left out of the payload keep their current values.
+    """
+    existing = dict(existing or {})
+    raw_quantity = data["bulk_quantity"] if "bulk_quantity" in data else existing.get("bulk_quantity")
+    raw_price = data["bulk_price"] if "bulk_price" in data else existing.get("bulk_price")
+
+    if _is_blank(raw_quantity) and _is_blank(raw_price):
+        return None, None, None
+    if _is_blank(raw_quantity) or _is_blank(raw_price):
+        return None, None, BULK_ERROR
+    try:
+        quantity_value = float(str(raw_quantity).replace(",", ""))
+        price = float(str(raw_price).replace(",", ""))
+    except (TypeError, ValueError):
+        return None, None, BULK_ERROR
+    if (
+        not math.isfinite(quantity_value)
+        or not quantity_value.is_integer()
+        or not 2 <= quantity_value <= 10000
+        or not math.isfinite(price)
+        or price <= 0
+    ):
+        return None, None, BULK_ERROR
+    return int(quantity_value), price, None
+
+
+def serialize_preset(row):
+    item = dict(row)
+    bulk_quantity = item.get("bulk_quantity")
+    bulk_price = item.get("bulk_price")
+    has_bulk = bool(bulk_quantity) and bulk_price is not None and float(bulk_price) > 0
+    return {
+        "id": item["id"],
+        "item_name": item["item_name"],
+        "price": float(item["price"]),
+        "stock": int(item["stock"] or 0),
+        "track_stock": bool(item.get("track_stock", 0)),
+        "bulk_quantity": int(bulk_quantity) if has_bulk else None,
+        "bulk_price": float(bulk_price) if has_bulk else None,
+    }
+
 
 @app.route("/api/inventory-presets", methods=["GET", "POST"])
 def api_inventory_presets():
@@ -19,7 +76,7 @@ def api_inventory_presets():
     if request.method == "GET":
         with get_db() as db:
             rows = db.execute("SELECT * FROM inventory_presets WHERE user_id = ? ORDER BY id ASC", (user_id,)).fetchall()
-            presets = [{"id": dict(r)["id"], "item_name": dict(r)["item_name"], "price": float(dict(r)["price"]), "stock": int(dict(r)["stock"]), "track_stock": bool(dict(r).get("track_stock", 0))} for r in rows]
+            presets = [serialize_preset(r) for r in rows]
         return jsonify({"status": "success", "presets": presets}), 200
 
     elif request.method == "POST":
@@ -37,18 +94,26 @@ def api_inventory_presets():
         if not item_name or not math.isfinite(price) or price <= 0 or stock < 0:
             return jsonify({"status": "error", "message": "Item name and a positive price are required."}), 400
 
+        bulk_quantity, bulk_price, bulk_error = parse_bulk_pricing(data)
+        if bulk_error:
+            return jsonify({"status": "error", "message": bulk_error}), 400
+
         with get_db() as db:
             count = db.execute("SELECT COUNT(*) as cnt FROM inventory_presets WHERE user_id = ?", (user_id,)).fetchone()
             if int(dict(count)["cnt"]) >= 10:
                 return jsonify({"status": "error", "message": "Maximum 10 presets allowed."}), 400
 
             cursor = db.execute(
-                "INSERT INTO inventory_presets (user_id, item_name, price, stock, track_stock) VALUES (?, ?, ?, ?, ?)",
-                (user_id, item_name, price, stock, 1 if stock > 0 else 0)
+                "INSERT INTO inventory_presets (user_id, item_name, price, stock, track_stock, bulk_quantity, bulk_price) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (user_id, item_name, price, stock, 1 if stock > 0 else 0, bulk_quantity, bulk_price)
             )
             record_user_activity(db, user_id, "inventory_item_created", "Added an inventory item")
             db.commit()
-        return jsonify({"status": "success", "preset": {"id": cursor.lastrowid, "item_name": item_name, "price": price, "stock": stock, "track_stock": stock > 0}}), 201
+        return jsonify({"status": "success", "preset": {
+            "id": cursor.lastrowid, "item_name": item_name, "price": price, "stock": stock,
+            "track_stock": stock > 0, "bulk_quantity": bulk_quantity, "bulk_price": bulk_price,
+        }}), 201
 
 
 @app.route("/api/inventory-presets/<int:preset_id>", methods=["PUT", "DELETE"])
@@ -83,13 +148,22 @@ def api_inventory_preset_detail(preset_id):
             if not item_name or not math.isfinite(price) or price <= 0 or stock < 0:
                 return jsonify({"status": "error", "message": "Item name and a positive price are required."}), 400
 
+            bulk_quantity, bulk_price, bulk_error = parse_bulk_pricing(data, existing)
+            if bulk_error:
+                return jsonify({"status": "error", "message": bulk_error}), 400
+
+            track_stock = stock > 0 or bool(dict(existing).get("track_stock", 0))
             db.execute(
-                "UPDATE inventory_presets SET item_name = ?, price = ?, stock = ?, track_stock = ? WHERE id = ? AND user_id = ?",
-                (item_name, price, stock, 1 if stock > 0 or bool(dict(existing).get("track_stock", 0)) else 0, preset_id, user_id)
+                "UPDATE inventory_presets SET item_name = ?, price = ?, stock = ?, track_stock = ?, "
+                "bulk_quantity = ?, bulk_price = ? WHERE id = ? AND user_id = ?",
+                (item_name, price, stock, 1 if track_stock else 0, bulk_quantity, bulk_price, preset_id, user_id)
             )
             record_user_activity(db, user_id, "inventory_item_updated", "Updated an inventory item")
             db.commit()
-            return jsonify({"status": "success", "preset": {"id": preset_id, "item_name": item_name, "price": price, "stock": stock, "track_stock": stock > 0 or bool(dict(existing).get("track_stock", 0))}}), 200
+            return jsonify({"status": "success", "preset": {
+                "id": preset_id, "item_name": item_name, "price": price, "stock": stock,
+                "track_stock": track_stock, "bulk_quantity": bulk_quantity, "bulk_price": bulk_price,
+            }}), 200
 
 
 @app.route("/api/inventory-presets/<int:preset_id>/decrement", methods=["POST"])
