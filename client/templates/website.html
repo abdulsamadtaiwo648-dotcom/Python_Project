@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ name }}{% if site.tagline %} — {{ site.tagline }}{% endif %}</title>
   <meta name="description" content="{{ meta_description }}">
-  {% if preview %}<meta name="robots" content="noindex">{% else %}<link rel="canonical" href="{{ site_url }}/">{% endif %}
+  {% if preview %}<meta name="robots" content="noindex">{% else %}<link rel="canonical" href="{{ site_url }}">{% endif %}
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{ name }}">
   <meta property="og:title" content="{{ name }}">
   <meta property="og:description" content="{{ meta_description }}">
-  <meta property="og:url" content="{{ site_url }}/">
-  {% if site.cover_url or site.logo_url %}<meta property="og:image" content="{{ site_url }}{{ site.cover_url or site.logo_url }}">{% endif %}
+  <meta property="og:url" content="{{ site_url }}">
+  {% if site.cover_url or site.logo_url %}<meta property="og:image" content="{{ media_origin }}{{ site.cover_url or site.logo_url }}">{% endif %}
   <meta name="theme-color" content="{{ palette.brand }}">
   {% if site.logo_url %}<link rel="icon" href="{{ site.logo_url }}">{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">

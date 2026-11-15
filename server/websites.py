@@ -8,6 +8,10 @@ Configuration (environment):
   SITE_BASE_DOMAIN  domain the subdomains hang off (default "solobiz.dev").
                     May include a port for local testing ("localhost:5000").
   SITE_URL_SCHEME   scheme used in public links (default "https").
+  SITE_SUBDOMAINS   set to "1" once wildcard DNS and HTTPS for the base domain
+                    are live. Until then owners are given the address
+                    https://<base>/site/<slug>, which needs no DNS. Both
+                    addresses always serve a published site.
 """
 
 import hashlib
@@ -82,9 +86,23 @@ def site_label_for_host(host):
     return None if label in RESERVED_SLUGS else label
 
 
+def subdomains_enabled():
+    return (os.environ.get("SITE_SUBDOMAINS") or "").strip().lower() in ("1", "true", "yes")
+
+
+def main_origin():
+    scheme = (os.environ.get("SITE_URL_SCHEME") or "https").strip()
+    return f"{scheme}://{base_domain()}"
+
+
+def website_address(slug):
+    """The address shown to owners, without the scheme."""
+    return f"{slug}.{base_domain()}" if subdomains_enabled() else f"{base_domain()}/site/{slug}"
+
+
 def website_url(slug):
     scheme = (os.environ.get("SITE_URL_SCHEME") or "https").strip()
-    return f"{scheme}://{slug}.{base_domain()}"
+    return f"{scheme}://{website_address(slug)}"
 
 
 def is_valid_slug(slug):

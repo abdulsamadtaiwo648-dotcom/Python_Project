@@ -15,6 +15,12 @@ def host(slug):
     return f"http://{slug}.solobiz.dev"
 
 
+@pytest.fixture(autouse=True)
+def subdomains_on(monkeypatch):
+    """Most tests cover subdomain mode; the /site/ tests switch it off."""
+    monkeypatch.setenv("SITE_SUBDOMAINS", "1")
+
+
 @pytest.fixture
 def headers(signed_in):
     return {"X-CSRFToken": signed_in[1]}
@@ -359,3 +365,34 @@ def test_brand_colours_stay_readable():
     assert light["on_brand"] == "#0f172a" and light["ink"] != "#fde047"
     dark = websites.brand_palette("#1E3A8A")
     assert dark["on_brand"] == "#ffffff" and dark["ink"] == "#1e3a8a"
+
+
+# --- Free address: solobiz.dev/site/<slug> -----------------------------------
+
+def test_site_is_served_under_the_main_domain(client, signed_in, headers, monkeypatch):
+    monkeypatch.delenv("SITE_SUBDOMAINS")
+    make_profile(signed_in[0])
+    add_product(client, headers, "Jogger", 3000)
+    assert draft(client)["address"] == "solobiz.dev/site/dlnz"
+    assert client.get("/site/dlnz").status_code == 404           # not published yet
+
+    published = client.post("/api/website/publish", headers=headers).get_json()["website"]
+    assert published["url"] == "https://solobiz.dev/site/dlnz"
+
+    page = client.get("/site/dlnz")
+    html = page.get_data(as_text=True)
+    assert page.status_code == 200 and "Jogger" in html and "₦3,000" in html
+    assert '<link rel="canonical" href="https://solobiz.dev/site/dlnz">' in html
+    assert client.get("/site/DLNZ").status_code == 200           # case-insensitive
+    assert client.get("/", base_url=host("dlnz")).status_code == 200   # subdomain still answers
+
+    client.post("/api/website/unpublish", headers=headers)
+    assert client.get("/site/dlnz").status_code == 404
+
+
+def test_unknown_or_other_paths_under_site(client):
+    response = client.get("/site/nobody-here")
+    assert response.status_code == 404 and "no website here" in response.get_data(as_text=True)
+    assert client.get("/site/admin").status_code == 404
+    # The path form does not exist on business subdomains.
+    assert client.get("/site/dlnz", base_url=host("dlnz")).status_code == 404

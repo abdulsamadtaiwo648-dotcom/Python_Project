@@ -57,6 +57,8 @@ def _site_context(content, user_id, slug, preview=False):
         "whatsapp_digits": whatsapp,
         "has_contact": any(content.get(k) for k in ("phone", "whatsapp", "email", "instagram", "address", "hours")),
         "site_url": websites.website_url(slug),
+        # Images are addressed from the host that serves them.
+        "media_origin": websites.website_url(slug) if websites.subdomains_enabled() else websites.main_origin(),
         "meta_description": description,
         "preview": preview,
         "naira": websites.format_naira,
@@ -84,11 +86,12 @@ def route_business_subdomain():
     if not site:
         return _site_not_found()
 
+    own_origin = f"{request.scheme}://{request.host}"
     if path == "/robots.txt":
-        return Response(f"User-agent: *\nAllow: /\n\nSitemap: {websites.website_url(site['slug'])}/sitemap.xml\n", mimetype="text/plain")
+        return Response(f"User-agent: *\nAllow: /\n\nSitemap: {own_origin}/sitemap.xml\n", mimetype="text/plain")
     if path == "/sitemap.xml":
         xml = ('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-               f"  <url><loc>{websites.website_url(site['slug'])}/</loc></url>\n</urlset>")
+               f"  <url><loc>{own_origin}/</loc></url>\n</urlset>")
         return Response(xml, mimetype="application/xml")
     if path != "/":
         return _site_not_found()
@@ -103,6 +106,23 @@ def route_business_subdomain():
 
 
 app.before_request_funcs.setdefault(None, []).insert(0, route_business_subdomain)
+
+
+@app.route("/site/<slug>")
+def website_by_path(slug):
+    """The same published website at https://<base>/site/<slug>.
+
+    Needs no DNS, so it works before (and after) subdomains are switched on.
+    """
+    with get_db() as db:
+        site = websites.find_published_site(db, slug.lower())
+    if not site:
+        return _site_not_found()
+    response = app.make_response(render_template(
+        "website.html", **_site_context(site["content"], site["user_id"], site["slug"])
+    ))
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +194,7 @@ def _state(db, user_id):
         "exists": bool(site),
         "content": content,
         "slug": slug,
-        "address": f"{slug}.{websites.base_domain()}",
+        "address": websites.website_address(slug),
         "url": websites.website_url(slug),
         "is_published": published,
         "published_at": (site or {}).get("published_at") or "",

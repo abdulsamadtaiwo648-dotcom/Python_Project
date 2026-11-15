@@ -2,7 +2,13 @@
 
 Owners build a website from **More → Website** in the dashboard: pick a layout
 (Product Store or Service Business), fill in public details, preview, publish.
-The site is then served at `https://<slug>.solobiz.dev`.
+A published site is served at two addresses:
+
+- `https://solobiz.dev/site/<slug>` — works immediately, no DNS needed. This
+  is the address owners are shown by default.
+- `https://<slug>.solobiz.dev` — needs the one-time wildcard DNS setup below.
+  Set `SITE_SUBDOMAINS=1` once that is live and owners are shown this
+  address instead. The `/site/` address keeps working either way.
 
 ## How it works
 
@@ -31,12 +37,20 @@ The site is then served at `https://<slug>.solobiz.dev`.
 | --- | --- | --- |
 | `SITE_BASE_DOMAIN` | `solobiz.dev` | Domain the subdomains hang off |
 | `SITE_URL_SCHEME` | `https` | Scheme used in links shown to owners |
+| `SITE_SUBDOMAINS` | off | Set to `1` after wildcard DNS and HTTPS are live, to show owners `<slug>.solobiz.dev` |
 
-Nothing needs setting in production if the domain is `solobiz.dev`. For local
-testing: `SITE_BASE_DOMAIN=localhost:5000 SITE_URL_SCHEME=http`, then open
-`http://<slug>.localhost:5000` (browsers resolve `*.localhost` by themselves).
+Nothing needs setting in production to use the `/site/` addresses. For local
+testing of subdomains: `SITE_BASE_DOMAIN=localhost:5000 SITE_URL_SCHEME=http
+SITE_SUBDOMAINS=1`, then open `http://<slug>.localhost:5000` (browsers
+resolve `*.localhost` by themselves).
 
-## One-time DNS and HTTPS setup (Render)
+## One-time DNS and HTTPS setup for subdomains (Render, optional)
+
+Status when this was written: the main service (`solobiz`) is on Render's
+free plan with `solobiz.dev` and `www.solobiz.dev` attached. Adding
+`*.solobiz.dev` was refused with "a payment method is required to add more
+than 2 custom domains", so subdomains wait until a card is added in Render
+Billing. Until then use the `/site/` addresses.
 
 Publishing needs no per-business DNS. It needs one wildcard, set up once.
 These steps are written from Render's wildcard custom domain feature as
@@ -59,6 +73,7 @@ Render dashboard, which shows them when you add the domain.
    the dashboard.
 3. Wait for Render to show the domain as verified and the certificate as
    issued.
+4. Set `SITE_SUBDOMAINS=1` on the service so owners are shown the subdomain.
 
 Notes:
 
