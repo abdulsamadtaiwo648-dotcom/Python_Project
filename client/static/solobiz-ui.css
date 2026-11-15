@@ -678,3 +678,79 @@ body.app-shell > header button:hover {
   #tab-inventory-content tbody tr[data-inventory-row] td:nth-child(4) { grid-area: price; text-align: right; }
   #tab-inventory-content tbody tr[data-inventory-row]:hover { background: #f8fafc; }
 }
+
+/* ==========================================================================
+   Expenses, Budget, Profile
+   ========================================================================== */
+.page-sub { font-size: .82rem; color: var(--sb-muted); margin-top: 2px; }
+.sb-field textarea {
+  width: 100%; min-height: 84px; padding: 10px 12px; resize: vertical;
+  border: 1px solid #cbd5e1; border-radius: var(--sb-radius-sm); font-size: 1rem; color: var(--sb-ink); background: #fff;
+}
+.sb-field textarea:focus { outline: 0; border-color: var(--sb-brand); box-shadow: 0 0 0 3px rgba(79, 70, 229, .14); }
+.sb-field .custom-select-button { min-height: 46px; font-size: 1rem; font-weight: 500; border-color: #cbd5e1; box-shadow: none; }
+.sb-success { border: 1px solid #a7f3d0; background: #ecfdf5; color: #047857; border-radius: var(--sb-radius-sm); padding: 10px 12px; font-size: .85rem; font-weight: 600; margin-bottom: 12px; }
+.sb-success.hidden { display: none; }
+.sb-sheet-compact .sb-sheet-body { gap: 16px; }
+@media (min-width: 640px) { .sb-sheet-compact { max-width: 460px; } }
+.filter-grid-2 { grid-template-columns: 1fr 1fr !important; }
+.filter-result { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #f1f5f9; font-size: .85rem; color: var(--sb-text-2); }
+.filter-result.hidden { display: none; }
+.filter-result p:last-child { font-weight: 600; color: var(--sb-ink); }
+
+/* Expense rows: tap to edit */
+#transaction-list .expense-card {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9; cursor: pointer;
+}
+#transaction-list .expense-card:last-child { border-bottom: 0; }
+#transaction-list .expense-card:hover { background: #f8fafc; }
+#transaction-list .expense-card:focus-visible { outline: 2px solid var(--sb-brand); outline-offset: -2px; }
+.expense-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #eef2ff; color: #4338ca; font-weight: 700; }
+.expense-text { flex: 1; min-width: 0; }
+.expense-category-val { font-size: .95rem; font-weight: 600; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expense-desc-val { font-size: .8rem; color: var(--sb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expense-amount-val { font-size: .95rem; font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sync-badge { margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: #fef3c7; color: #92400e; font-size: .68rem; font-weight: 600; vertical-align: middle; }
+#search-report-results { border-radius: var(--sb-radius); }
+
+/* Budget */
+.budget-month-pick input { min-height: 42px; padding: 0 10px; border: 1px solid var(--sb-line); border-radius: var(--sb-radius-sm); background: #fff; font-size: .9rem; color: var(--sb-ink); }
+.budget-summary-title { font-size: 1rem; font-weight: 700; color: var(--sb-ink); }
+.budget-percent { flex-shrink: 0; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: .85rem; font-weight: 700; }
+.budget-track { margin-top: 12px; height: 10px; overflow: hidden; border-radius: 999px; background: #eef2f7; }
+#budget-insight:not(.hidden) { margin: 0 !important; }
+.budget-form { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px 0 16px; }
+.budget-form .sb-btn { width: 100%; }
+@media (min-width: 640px) { .budget-form { grid-template-columns: 1fr 1fr auto; align-items: end; } .budget-form .sb-btn { width: auto; } }
+.budget-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* Profile */
+.profile-panel { padding: 16px; }
+.profile-form { display: flex; flex-direction: column; gap: 14px; }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-actions .sb-btn { flex: 1 1 140px; }
+.sb-field-row-stack { grid-template-columns: 1fr; }
+@media (min-width: 640px) { .sb-field-row-stack { grid-template-columns: 1fr 1fr; } }
+.sb-file { font-size: .85rem; color: var(--sb-text-2); }
+.sb-file::file-selector-button {
+  margin-right: 12px; min-height: 40px; padding: 0 14px; border: 1px solid var(--sb-line); border-radius: 10px;
+  background: #fff; color: var(--sb-ink); font-weight: 600; cursor: pointer;
+}
+.biz-card-v2 { background: #fff; border: 1px solid var(--sb-line); border-radius: var(--sb-radius); padding: 18px; }
+.biz-card-v2 #card-top-accent { height: 5px; }
+.shop-link { padding: 12px; border: 1px solid var(--sb-line); border-radius: var(--sb-radius-sm); background: #f8fafc; }
+.shop-link-label { font-size: .75rem; color: var(--sb-muted); }
+.shop-link-url { font-size: .85rem; font-weight: 600; color: var(--sb-ink); }
+.receipt-preview-label { font-size: .82rem; font-weight: 600; color: var(--sb-text-2); margin-bottom: 10px; }
+.receipt-preview-paper { max-width: 340px; margin: 0 auto; padding: 16px; border: 1px dashed #cbd5e1; border-radius: var(--sb-radius-sm); background: #fffefb; text-align: center; color: var(--sb-text-2); font-size: .82rem; }
+.receipt-preview-paper h4 { font-size: 1.05rem; font-weight: 700; color: var(--sb-ink); margin-bottom: 2px; }
+.receipt-preview-row { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
+.receipt-preview-row span:last-child { color: #047857; font-weight: 600; }
+.receipt-preview-thanks { margin-top: 6px; font-size: .75rem; color: var(--sb-muted); text-align: left; }
+#budget-month-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+/* Short forms rise from the bottom on phones instead of filling the screen */
+@media (max-width: 639px) {
+  .sb-sheet-compact { height: auto; max-height: 92%; border-radius: 20px 20px 0 0; }
+  .sb-sheet-compact .sb-sheet-foot { margin-top: 4px; }
+}

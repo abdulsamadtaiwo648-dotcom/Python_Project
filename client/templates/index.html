@@ -146,9 +146,6 @@
             #dashboard-navigation {
                 display: none !important;
             }
-            #tab-expenses-content:not(.hidden) {
-                display: block;
-            }
             .desktop-content {
                 padding: 14px 0 20px;
             }
@@ -256,17 +253,6 @@
             /* Network status */
             #network-status-banner { margin-bottom: 16px; }
 
-            /* Tab sections — 2-col grid inside the content panel */
-            #tab-expenses-content:not(.hidden) {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                align-items: start;
-                gap: 24px;
-            }
-            #tab-expenses-content:not(.hidden) > * { min-width: 0; }
-            #tab-expenses-content:not(.hidden) > #search-report-results,
-            #tab-expenses-content:not(.hidden) > #transaction-list { grid-column: 1 / -1; }
-
             #tab-analytics-content,
             #tab-profile-content { max-width: 100%; }
 
@@ -274,9 +260,6 @@
             .desktop-content select,
             .desktop-content .custom-select-button { min-height: 44px; }
 
-            #digital-business-card { padding: 32px; }
-            #profile-view-mode,
-            #profile-edit-mode { max-width: 860px; }
         }
         #mobile-more-menu { position:absolute; right:.5rem; bottom:calc(100% + 10px); }
         /* Keep the app bar visible while the dashboard content scrolls. */
@@ -299,22 +282,14 @@
             margin-top: 1rem;
             margin-bottom: 0;
         }
-        #tab-expenses-content > .bg-white,
         #tab-analytics-content .mock-chart-card,
-        #tab-analytics-content > #analytics-view > .bg-white,
-        #tab-profile-content > .bg-white {
+        #tab-analytics-content > #analytics-view > .bg-white {
             padding: 16px;
             border-radius: 15px;
             box-shadow: 0 1px 2px rgba(15,23,42,.04);
         }
-        #tab-expenses-content:not(.hidden) { column-gap: 14px; row-gap: 14px; }
-        @media (min-width: 1024px) {
-            #tab-expenses-content:not(.hidden) { grid-template-columns: minmax(0, 1fr); max-width:1000px; margin-inline:auto; }
-            #tab-expenses-content > #expense-entry-card { width:100%; max-width:900px; justify-self:center; }
-        }
         #tab-analytics-content .analytics-tab-btn { padding-top: .55rem; padding-bottom: .55rem; }
         #tab-analytics-content canvas { height: 220px; }
-        #tab-profile-content #digital-business-card { padding: 22px; border-radius: 20px; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
         #tab-expenses-content h3,
         #tab-analytics-content h2,
         #tab-analytics-content h3,
@@ -331,20 +306,10 @@
         @media (max-width: 1023px) {
             .desktop-dashboard-shell { padding-right: 10px; padding-left: 10px; }
             .desktop-content { padding: 10px 0 16px; }
-            #tab-expenses-content > .bg-white,
-            #tab-profile-content > .bg-white { padding: 14px; }
             #tab-analytics-content .analytics-tab-btn { font-size: .78rem; }
         }
         @media (max-width: 639px) {
             .mobile-secondary-copy { display: none !important; }
-            #budget-heading { font-size: .95rem; }
-            #budget-insight {
-                font-size: .9rem !important;
-                line-height: 1.35 !important;
-                padding: 10px 12px !important;
-                margin-bottom: 10px !important;
-                border-radius: 12px !important;
-            }
         }
         @media (max-width: 1023px) {
             #mobile-bottom-nav { bottom:0 !important; }
@@ -598,57 +563,61 @@
             </div>
         </section>
 
-        <section id="tab-budget-content" class="tab-content space-y-6 {% if active_tab != 'budget' %}hidden{% endif %}">
-            <!-- Monthly category budgets are stored locally for offline use. -->
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5" aria-labelledby="budget-heading">
-                <div class="flex items-center justify-between gap-3">
+        <section id="tab-budget-content" class="tab-content page-stack {% if active_tab != 'budget' %}hidden{% endif %}" aria-labelledby="budget-heading">
+            <!-- Monthly category budgets are stored on this device for offline use. -->
+            <div class="page-head">
+                <div>
+                    <h2 class="page-title" id="budget-heading">Budget</h2>
+                    <p id="budget-month-label" class="page-sub">This month</p>
+                </div>
+                <label class="budget-month-pick">
+                    <span class="sr-only">Month</span>
+                    <input id="budget-month" type="month" aria-label="Budget month">
+                </label>
+                <!-- Budget is its own page, so its form is always shown. -->
+                <button id="btn-toggle-budget-details" type="button" class="hidden" aria-hidden="true" tabindex="-1">Manage budget</button>
+            </div>
+
+            <div id="budget-summary-card" class="sb-panel">
+                <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <h3 id="budget-heading" class="font-bold text-slate-800">Monthly budget</h3>
-                        <p id="budget-month-label" class="text-[11px] text-slate-500 mt-0.5">This month</p>
+                        <p id="budget-summary-total" class="budget-summary-title">No budget limits set</p>
+                        <p id="budget-summary-copy" class="sb-help">Set category limits to track spending here.</p>
                     </div>
-                    <button id="btn-toggle-budget-details" type="button" aria-expanded="false" aria-controls="budget-details" class="shrink-0 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100">Manage budget</button>
+                    <span id="budget-summary-percent" class="budget-percent">0%</span>
                 </div>
-                <div id="budget-summary-card" class="mt-3 rounded-xl bg-slate-50 px-3 py-3">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="min-w-0">
-                            <p id="budget-summary-total" class="text-sm font-bold text-slate-800">No budget limits set</p>
-                            <p id="budget-summary-copy" class="mt-0.5 text-[11px] text-slate-500">Set category limits to track spending here.</p>
-                        </div>
-                        <span id="budget-summary-percent" class="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600">0%</span>
-                    </div>
-                    <div id="budget-summary-track" class="mt-3 h-2 overflow-hidden rounded-full bg-white" role="progressbar" aria-label="Monthly budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div id="budget-summary-fill" class="h-full w-0 rounded-full bg-indigo-600"></div>
-                    </div>
+                <div id="budget-summary-track" class="budget-track" role="progressbar" aria-label="Monthly budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="budget-summary-fill" class="h-full w-0 rounded-full bg-indigo-600"></div>
                 </div>
-                <div id="budget-details" class="hidden mt-4 border-t border-slate-100 pt-4">
-                    <div class="mb-4 flex items-center justify-between gap-3">
-                        <p class="text-xs font-semibold text-slate-600">Review or update category limits</p>
-                        <label class="text-[11px] font-semibold text-slate-500">Month
-                            <input id="budget-month" type="month" class="mt-1 block rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </label>
-                    </div>
-                    <form id="budget-form" class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end mb-4">
-                        <label class="text-xs font-semibold text-slate-600">Category
-                            <select id="budget-category" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div id="budget-insight" class="hidden" aria-live="polite"></div>
+
+            <div id="budget-details" class="sb-panel">
+                <h3 class="dash-card-title">Category limits</h3>
+                <form id="budget-form" class="budget-form">
+                    <div class="sb-field">
+                        <label for="budget-category">Category</label>
+                        <select id="budget-category" required >
                                 <option value="" disabled selected>Select a category</option>
                                 <option value="Inventory & Materials">Inventory &amp; Materials</option>
                                 <option value="Delivery & Logistics">Delivery &amp; Logistics</option>
                                 <option value="Fuel & Electricity">Fuel &amp; Electricity</option>
                                 <option value="Data & Airtime">Data &amp; Airtime</option>
+                                <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                                 <option value="Others">Others</option>
                             </select>
-                        </label>
-                        <label class="text-xs font-semibold text-slate-600">Monthly limit (₦)
-                            <input id="budget-amount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="e.g. 50000" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </label>
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg px-5 py-2.5 text-sm transition">Save budget</button>
-                    </form>
-                    <div id="budget-insight" class="hidden mb-4 rounded-xl px-4 py-3 text-sm" aria-live="polite"></div>
-                    <div id="budget-progress-list" class="space-y-3" aria-live="polite">
-                        <p class="text-sm text-slate-500">Loading budgets…</p>
                     </div>
+                    <div class="sb-field">
+                        <label for="budget-amount">Monthly limit (₦)</label>
+                        <input id="budget-amount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="e.g. 50000" required>
+                    </div>
+                    <button type="submit" class="sb-btn sb-btn-primary">Save limit</button>
+                </form>
+                <div id="budget-progress-list" class="budget-list" aria-live="polite">
+                    <p class="sb-help">Loading budgets…</p>
                 </div>
-            </section>
+            </div>
         </section>
 
 
@@ -656,106 +625,87 @@
         <!-- ========================================================= -->
         <!-- TAB 1: EXPENSES CONTENT                                    -->
         <!-- ========================================================= -->
-        <section id="tab-expenses-content" class="tab-content space-y-6 {% if active_tab != 'expenses' %}hidden{% endif %}">
-            <div class="flex items-center justify-between gap-3">
-                <div><h2 class="text-lg font-bold text-slate-900">Expenses</h2><p class="mt-1 text-sm text-slate-500">Your recorded expenses.</p></div>
-                <button type="button" id="btn-new-expense" class="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">Add expense</button>
+        <section id="tab-expenses-content" class="tab-content page-stack {% if active_tab != 'expenses' %}hidden{% endif %}" aria-labelledby="expenses-title">
+            <div class="page-head">
+                <h2 class="page-title" id="expenses-title">Expenses</h2>
+                <button type="button" id="btn-new-expense" class="sb-btn sb-btn-primary">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                    Add expense
+                </button>
             </div>
 
-            <!-- Dashboard owns the overall total; this page stays focused on transaction history. -->
-            <div class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-5 text-center overflow-hidden">
-                <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Total Expenses</p>
-                <h2 class="big-total-value text-slate-900" id="main-dashboard-total" data-total="{{ total }}">₦{{ "{:,.2f}".format(total) }}</h2>
-                {% if searching %}
-                    <a href="/" class="inline-block mt-4 text-sm text-slate-600 bg-slate-100 hover:bg-gray-200 px-4 py-2 rounded-full font-semibold transition">← Clear Search</a>
-                {% endif %}
-            </div>
+            <!-- Kept for the page script; totals live on Home and Reports. -->
+            <p class="hidden" id="main-dashboard-total" data-total="{{ total }}" aria-hidden="true">₦{{ "{:,.2f}".format(total) }}</p>
 
-            <!-- Add Expense Form -->
-            <div id="expense-entry-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
-            <div id="expense-entry-card" class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
-                <div class="mb-4 flex items-center justify-between"><h3 id="expense-modal-title" class="font-bold text-slate-800">Add an expense</h3><button type="button" data-close-entry="expense-entry-modal" class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100" aria-label="Close">Close</button></div>
-                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Log New Expense
-                </h3>
-                <form id="expense-form" method="POST" action="/add" class="space-y-3">
-                    <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">₦</span>
-                        <input type="text" inputmode="numeric" name="amount" placeholder="Amount (e.g. 5000)" required 
-                            class="currency-input w-full border border-slate-200 rounded-lg py-3 pr-3 pl-8 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            <!-- Add expense: a full-screen sheet on phones -->
+            <div id="expense-entry-modal" class="hidden sb-modal" role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
+                <div id="expense-entry-card" class="sb-sheet sb-sheet-compact">
+                    <div class="sb-sheet-head">
+                        <h3 id="expense-modal-title" class="sb-sheet-title">Add expense</h3>
+                        <button type="button" data-close-entry="expense-entry-modal" class="sb-icon-btn" aria-label="Close"><svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
                     </div>
-
-                    <div>
-                        <label for="expense-category" class="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-2">Expense category</label>
-                        <div class="relative">
-                            <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M2 7h20"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C10 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C14 2 12 7 12 7Z"/></svg>
-                            <select id="expense-category" name="category" required class="w-full appearance-none border border-slate-200 rounded-xl bg-white py-3 pl-10 pr-10 text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition">
-                                <option value="" disabled selected>Select a category</option>
+                    <form id="expense-form" method="POST" action="/add" class="sb-sheet-body">
+                        <div class="sb-field">
+                            <label for="expense-amount">Amount</label>
+                            <div class="sb-money"><span aria-hidden="true">₦</span><input type="text" inputmode="numeric" id="expense-amount" name="amount" placeholder="0" required class="currency-input"></div>
+                        </div>
+                        <div class="sb-field">
+                            <label for="expense-category">Category</label>
+                            <select id="expense-category" name="category" required>
+                                <option value="" disabled selected>Choose a category</option>
                                 <option value="Inventory & Materials">Inventory &amp; Materials</option>
                                 <option value="Delivery & Logistics">Delivery &amp; Logistics</option>
                                 <option value="Fuel & Electricity">Fuel &amp; Electricity</option>
-                                <option value="Others">Others</option>
                                 <option value="Data & Airtime">Data &amp; Airtime</option>
                                 <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
+                                <option value="Others">Others</option>
                             </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
-                    </div>
-
-                    <input type="text" name="description" placeholder="What did you pay for?" required 
-                        class="w-full border border-slate-200 rounded-lg p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                    
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition shadow-sm flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save Expense
-                    </button>
-                </form>
-            </div>
-            </div>
-
-            <!-- Transaction Filter Bar -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg> Filter Transactions</h3>
-                    <button type="button" id="btn-clear-filters" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
+                        <div class="sb-field">
+                            <label for="expense-description">What was it for?</label>
+                            <input type="text" id="expense-description" name="description" placeholder="e.g. Generator fuel" required>
+                        </div>
+                        <div class="sb-sheet-foot">
+                            <button type="submit" class="sb-btn sb-btn-primary sb-btn-block">Save expense</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Category</label>
-                        <div class="relative">
-                            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500">⌕</span>
-                            <select id="filter-category" class="w-full appearance-none border border-slate-200 rounded-2xl p-3 pl-8 pr-9 text-sm font-semibold text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
-                            <option value="">All Categories</option>
+            </div>
+
+            <div class="list-toolbar">
+                <button type="button" id="expense-filter-toggle" class="sb-chip" aria-expanded="false" aria-controls="expense-filter-panel">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                    Filter <span id="expense-filter-count" class="sb-chip-count hidden">0</span>
+                </button>
+                <p id="expense-list-summary" class="list-toolbar-text" aria-live="polite"></p>
+                <button type="button" id="btn-clear-filters" class="hidden sb-link">Clear</button>
+            </div>
+
+            <section id="expense-filter-panel" class="sb-panel filter-panel" aria-label="Filter expenses">
+                <div class="filter-grid filter-grid-2">
+                    <div class="sb-field">
+                        <label for="filter-category">Category</label>
+                        <select id="filter-category">
+                            <option value="">All categories</option>
                             <option value="Inventory &amp; Materials">Inventory &amp; Materials</option>
                             <option value="Delivery &amp; Logistics">Delivery &amp; Logistics</option>
                             <option value="Fuel &amp; Electricity">Fuel &amp; Electricity</option>
                             <option value="Data &amp; Airtime">Data &amp; Airtime</option>
                             <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
                             <option value="Others">Others</option>
-                            </select>
-                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">⌄</span>
-                        </div>
+                        </select>
                     </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Exact Amount (₦)</label>
-                        <input type="number" id="filter-amount-exact" min="0" step="any" placeholder="e.g. 5000"
-                            class="w-full border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <div class="sb-field">
+                        <label for="filter-amount-exact">Exact amount (₦)</label>
+                        <input type="number" id="filter-amount-exact" min="0" step="any" inputmode="decimal" placeholder="Any">
                     </div>
                 </div>
-                <!-- Live filter result summary -->
-                <div id="filter-result-banner" class="hidden mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-[10px] uppercase font-bold text-indigo-600 tracking-wider" id="filter-result-label">Filtered Total</p>
-                        <p class="text-lg font-extrabold text-indigo-800" id="filter-result-total">₦0.00</p>
-                    </div>
-                    <p class="text-xs text-indigo-400 font-medium" id="filter-match-count">0 results</p>
+                <div id="filter-result-banner" class="hidden filter-result">
+                    <p id="filter-result-label">Filtered</p>
+                    <p><span id="filter-result-total">₦0.00</span> · <span id="filter-match-count">0 results</span></p>
                 </div>
-            </div>
+            </section>
 
-            <!-- ===================================================== -->
-            <!-- ISOLATED CALCULATION REPORT                           -->
-            <!-- Only visible when the /search route returns results.  -->
-            <!-- Never touches dashboard IDs — fully self-contained.   -->
-            <!-- ===================================================== -->
             {% if searching %}
             <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 space-y-4" id="search-report-results">
 
@@ -791,44 +741,24 @@
             </div>
             {% endif %}
 
-            <!-- Transaction List -->
-            <div>
-                <h3 class="font-bold text-slate-800 mb-3 flex items-center justify-between">
-                    <span>Recent Transactions</span>
-                </h3>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="transaction-list">
-                    {% if expenses|length == 0 %}
-                        <p class="text-center text-slate-500 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>
-                    {% else %}
-                        {% for item in expenses %}
-                        <div data-server-id="{{ item.id }}"
-                             data-category="{{ item.category }}"
-                             data-amount="{{ item.amount }}"
-                             class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
-                            <div class="flex items-center gap-3">
-                                <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
-                                    {{ item.category[0]|upper }}
-                                </div>
-                                <div>
-                                    <p class="expense-category-val font-bold text-slate-800 text-sm capitalize">{{ item.category }}</p>
-                                    <p class="expense-desc-val text-xs text-slate-500">{{ item.description }}</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="expense-amount-val font-bold text-slate-900 text-sm mb-1">₦{{ "{:,.2f}".format(item.amount) }}</p>
-                                <div class="flex gap-2 justify-end">
-                                    <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">Edit</button>
-                                    <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Del</button>
-                                </div>
-                            </div>
+            <div class="sb-list-card" id="transaction-list">
+                {% if expenses|length == 0 %}
+                    <p class="list-empty" id="no-expenses-msg">No expenses yet. Tap “Add expense” to record one.</p>
+                {% else %}
+                    {% for item in expenses %}
+                    <div data-server-id="{{ item.id }}" data-category="{{ item.category }}" data-amount="{{ item.amount }}" tabindex="0" role="button" aria-label="Edit expense: {{ item.category }}, ₦{{ "{:,.2f}".format(item.amount) }}" class="expense-card">
+                        <div class="category-icon-val expense-icon" aria-hidden="true">{{ item.category[0]|upper }}</div>
+                        <div class="expense-text">
+                            <p class="expense-category-val"><span class="category-name">{{ item.category }}</span></p>
+                            <p class="expense-desc-val">{{ item.description }}</p>
                         </div>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-                <!-- Empty state when filters yield no matches -->
-                <p class="hidden text-center text-slate-500 py-6 text-sm" id="filter-no-match">No transactions match your filter.</p>
+                        <p class="expense-amount-val">₦{{ "{:,.2f}".format(item.amount) }}</p>
+                    </div>
+                    {% endfor %}
+                {% endif %}
             </div>
-
+            <p class="hidden list-empty" id="filter-no-match">No expenses match your filter.</p>
+            <p class="page-note">Tap an expense to change or delete it.</p>
         </section>
 
         <!-- ========================================================= -->
@@ -994,21 +924,26 @@
         <!-- ========================================================= -->
         <!-- TAB 3: BUSINESS PROFILE CONTENT                           -->
         <!-- ========================================================= -->
-        <section id="tab-profile-content" class="tab-content space-y-6 {% if active_tab != 'profile' %}hidden{% endif %}">
-            
-            <!-- Brand Setup Card -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <div class="flex items-center gap-3 mb-4">
+        <section id="tab-profile-content" class="tab-content page-stack {% if active_tab != 'profile' %}hidden{% endif %}" aria-labelledby="profile-title">
+            <div class="page-head">
+                <div>
+                    <h2 class="page-title" id="profile-title">Profile</h2>
+                    <p class="page-sub">Your business details for receipts and your shop link.</p>
+                </div>
+            </div>
+
+            <!-- Business details -->
+            <div class="sb-panel profile-panel">
+                <div class="hidden">
                     <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800">Business Brand Setup</h3>
-                        <p class="text-xs text-slate-500">Appears on your WhatsApp receipts</p>
+                        <h3>Business details</h3>
                     </div>
                 </div>
 
-                <div id="profile-status-msg" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <div id="profile-status-msg" class="hidden sb-success">
                     Business Profile saved successfully!
                 </div>
 
@@ -1018,7 +953,7 @@
                     <!-- ══════════════════════════════════════════════════════ -->
                     <!-- HIGH-END BRANDED BUSINESS CARD                         -->
                     <!-- ══════════════════════════════════════════════════════ -->
-                    <div id="digital-business-card" class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
+                    <div id="digital-business-card" class="biz-card-v2 relative overflow-hidden flex flex-col justify-between space-y-4">
 
                         <!-- Top Brand Color Accent Line -->
                         <div id="card-top-accent" class="absolute top-0 left-0 right-0 h-2" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }};"></div>
@@ -1038,8 +973,8 @@
                                     <svg class="w-4 h-4 text-indigo-600 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                                 </h2>
                                 <p id="profile-verification-status" class="text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 mt-0.5">
-                                    <span class="w-1.5 h-1.5 rounded-full {% if profile and profile.company_name %}bg-emerald-500 animate-pulse{% else %}bg-amber-500{% endif %}"></span>
-                                    {% if profile and profile.company_name %}Verified Vendor Profile{% else %}Profile required for receipts{% endif %}
+                                    <span class="w-1.5 h-1.5 rounded-full {% if profile and profile.company_name %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
+                                    {% if profile and profile.company_name %}Ready for receipts{% else %}Add your details to send receipts{% endif %}
                                 </p>
                             </div>
                         </div>
@@ -1073,18 +1008,18 @@
                         </div>
 
                         <!-- Digital Storefront Link Badge -->
-                        <div id="card-storefront-badge" class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-3.5 flex items-center justify-between gap-2 shadow-inner">
+                        <div id="card-storefront-badge" class="shop-link flex items-center justify-between gap-2">
                             <div class="min-w-0 flex-1">
-                                <p class="text-[9px] uppercase font-bold text-indigo-300 tracking-wider">Public Digital Storefront</p>
-                                <p class="text-xs font-mono font-bold text-white truncate" id="card-store-url">
+                                <p class="shop-link-label">Your shop link</p>
+                                <p class="shop-link-url truncate" id="card-store-url">
                                     solobiz.dev/store/{{ profile.store_slug if profile and profile.store_slug else 'your-store' }}
                                 </p>
                             </div>
                             <div class="flex items-center gap-1.5 flex-shrink-0">
-                                <button onclick="copyStorefrontLink()" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
+                                <button onclick="copyStorefrontLink()" type="button" class="sb-btn sb-btn-small sb-btn-primary">
                                     <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="13" height="13" x="8" y="8" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg> Copy
                                 </button>
-                                <a id="card-store-visit-btn" href="/store/{{ profile.store_slug if profile and profile.store_slug else '' }}" target="_blank" class="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+                                <a id="card-store-visit-btn" href="/store/{{ profile.store_slug if profile and profile.store_slug else '' }}" target="_blank" rel="noopener" class="sb-btn sb-btn-small sb-btn-secondary">
                                     <svg class="w-3 h-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg> Visit
                                 </a>
                             </div>
@@ -1100,36 +1035,36 @@
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <button onclick="shareBusinessCard()" type="button" class="flex-1 flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 px-3 rounded-2xl shadow-md transition-all text-xs cursor-pointer">
+                    <div class="profile-actions">
+                        <button onclick="shareBusinessCard()" type="button" class="sb-btn sb-btn-primary flex-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
                             <span>Share</span>
                         </button>
 
-                        <button onclick="downloadBusinessCard()" type="button" class="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-3 px-3 rounded-2xl shadow-md transition-all text-xs border border-slate-200 cursor-pointer">
+                        <button onclick="downloadBusinessCard()" type="button" class="sb-btn sb-btn-secondary flex-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             <span>Download</span>
                         </button>
 
-                        <button type="button" id="btn-edit-profile" class="flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 font-bold py-3 px-3 rounded-2xl transition-all border border-indigo-200 text-xs cursor-pointer">
+                        <button type="button" id="btn-edit-profile" class="sb-btn sb-btn-secondary flex-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            <span>Edit Profile</span>
+                            <span>Edit details</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Edit Mode Container -->
                 <div id="profile-edit-mode" class="hidden">
-                    <form id="profile-form" class="space-y-4" enctype="multipart/form-data" novalidate>
+                    <form id="profile-form" class="profile-form" enctype="multipart/form-data" novalidate>
                         <p id="profile-required-error" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700" role="alert"></p>
                         <div id="profile-change-lock" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3" role="status" aria-live="polite">
                             <p id="profile-change-window-copy" class="text-xs leading-relaxed text-amber-900"></p>
                         </div>
                         <p id="profile-request-feedback" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status" aria-live="polite"></p>
                         {% if profile %}
-                        <div>
-                            <label for="profile-change-reason" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Reason for profile change *</label>
-                            <select name="profile_change_reason" id="profile-change-reason" required class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="sb-field">
+                            <label for="profile-change-reason">Why are you changing your details?</label>
+                            <select name="profile_change_reason" id="profile-change-reason" required>
                                 <option value="">Choose a reason</option>
                                 <option value="business_rebrand">Business rebrand</option>
                                 <option value="contact_update">Contact information update</option>
@@ -1138,96 +1073,80 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
-                        <div id="profile-change-other-wrap" class="hidden">
-                            <label for="profile-change-note" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Brief reason *</label>
-                            <input type="text" name="profile_change_note" id="profile-change-note" maxlength="100" placeholder="Add a short explanation" class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div id="profile-change-other-wrap" class="hidden sb-field">
+                            <label for="profile-change-note">Short reason</label>
+                            <input type="text" name="profile_change_note" id="profile-change-note" maxlength="100" placeholder="Add a short explanation">
                         </div>
                         {% endif %}
                         
                         <!-- Company Name -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Company / Brand Name *</label>
-                            <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Aisha Wears" required value="{{ profile.company_name if profile else '' }}"
-                                class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <div class="sb-field">
+                            <label for="profile-company-name">Business name</label>
+                            <input type="text" name="company_name" id="profile-company-name" placeholder="e.g. Aisha Wears" required value="{{ profile.company_name if profile else '' }}">
                         </div>
 
                         <!-- Phone & WhatsApp -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Business Phone *</label>
-                                <input type="tel" name="business_phone" id="profile-business-phone" placeholder="+2348012345678" value="{{ profile.business_phone if profile else '' }}" required
-                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" >
+                        <div class="sb-field-row sb-field-row-stack">
+                            <div class="sb-field">
+                                <label for="profile-business-phone">Phone number</label>
+                                <input type="tel" name="business_phone" id="profile-business-phone" placeholder="+2348012345678" value="{{ profile.business_phone if profile else '' }}" required >
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">WhatsApp Chat</label>
-                                <input type="tel" name="whatsapp_number" id="profile-whatsapp-number" placeholder="+2348012345678" value="{{ profile.whatsapp_number if profile else '' }}"
-                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <div class="sb-field">
+                                <label for="profile-whatsapp-number">WhatsApp number <span class="sb-optional">(optional)</span></label>
+                                <input type="tel" name="whatsapp_number" id="profile-whatsapp-number" placeholder="+2348012345678" value="{{ profile.whatsapp_number if profile else '' }}">
                             </div>
                         </div>
 
                         <!-- Instagram & Address -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Instagram Handle</label>
-                                <input type="text" name="instagram_handle" id="profile-instagram-handle" placeholder="@aisha_wears" value="{{ profile.instagram_handle if profile else '' }}"
-                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <div class="sb-field-row sb-field-row-stack">
+                            <div class="sb-field">
+                                <label for="profile-instagram-handle">Instagram <span class="sb-optional">(optional)</span></label>
+                                <input type="text" name="instagram_handle" id="profile-instagram-handle" placeholder="@aisha_wears" value="{{ profile.instagram_handle if profile else '' }}">
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Business Address *</label>
-                                <input type="text" name="business_address" id="profile-business-address" placeholder="12 Market St, Lagos" value="{{ profile.business_address if profile else '' }}" required
-                                    class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <div class="sb-field">
+                                <label for="profile-business-address">Address</label>
+                                <input type="text" name="business_address" id="profile-business-address" placeholder="12 Market St, Lagos" value="{{ profile.business_address if profile else '' }}" required>
                             </div>
                         </div>
 
                         <!-- Store Policy -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Store Terms / Policy (Receipts & Storefront)</label>
-                            <textarea name="store_policy" id="profile-store-policy" rows="2" placeholder="e.g. No refunds after 24 hours. Thanks for choosing us!"
-                                class="w-full border border-slate-200 rounded-xl p-3 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">{{ profile.store_policy if profile else '' }}</textarea>
+                        <div class="sb-field">
+                            <label for="profile-store-policy">Note on receipts and shop page <span class="sb-optional">(optional)</span></label>
+                            <textarea name="store_policy" id="profile-store-policy" rows="2" placeholder="e.g. No refunds after 24 hours. Thanks for choosing us!">{{ profile.store_policy if profile else '' }}</textarea>
                         </div>
 
                         <!-- Removed Brand Color Theme Preset Palette per user request -->
                         <input type="hidden" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}">
 
                         <!-- Business Logo File Upload -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Business Logo Image</label>
+                        <div class="sb-field">
+                            <label for="profile-logo-file">Logo <span class="sb-optional">(optional, up to 2 MB)</span></label>
                             <input type="file" name="logo" id="profile-logo-file" accept=".jpg, .jpeg, .png, image/jpeg, image/png"
                                 onchange="if(this.files[0].size > 2097152){ alert('Image is too large. Max size is 2MB.'); this.value=''; }"
-                                class="w-full text-xs text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                                class="sb-file">
                         </div>
 
-                        <div class="flex gap-2 pt-2">
-                            <button type="button" id="btn-cancel-profile" class="flex-1 bg-slate-100 hover:bg-gray-200 text-slate-700 font-bold py-3.5 rounded-2xl transition text-xs cursor-pointer">
+                        <div class="profile-actions">
+                            <button type="button" id="btn-cancel-profile" class="sb-btn sb-btn-secondary flex-1">
                                 Cancel
                             </button>
-                            <button type="submit" id="btn-save-profile" class="flex-1 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-3.5 rounded-2xl transition shadow-md text-xs cursor-pointer">
-                                Save Profile
+                            <button type="submit" id="btn-save-profile" class="sb-btn sb-btn-primary flex-1">
+                                Save details
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Receipt Preview Card -->
-            <div class="bg-white text-white rounded-2xl p-5 shadow-lg space-y-3">
-                <div class="flex justify-between items-center border-b border-slate-200 pb-3">
-                    <span class="text-xs text-indigo-400 font-bold uppercase tracking-wider">Receipt Preview</span>
-                    <span class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded">WhatsApp Ready</span>
-                </div>
-
-                <div class="space-y-1 text-center py-2">
-                    <h4 class="font-bold text-lg text-white" id="preview-company-name">Your Company Name</h4>
-                    <p class="text-xs text-slate-500" id="preview-business-phone">+234 000 000 0000</p>
-                    <p class="text-xs text-slate-500" id="preview-business-address">Business Address Preview</p>
-                </div>
-
-                <div class="border-t border-dashed border-slate-200 pt-3 text-xs text-slate-500 space-y-1">
-                    <div class="flex justify-between">
-                        <span>Sample Receipt</span>
-                        <span class="text-emerald-400 font-semibold">PAID</span>
-                    </div>
-                    <p class="text-[11px] text-slate-500">Thank you for your business!</p>
+            <!-- Receipt preview -->
+            <div class="sb-panel receipt-preview" aria-label="Receipt preview">
+                <p class="receipt-preview-label">How your receipt header looks</p>
+                <div class="receipt-preview-paper">
+                    <h4 id="preview-company-name">Your business name</h4>
+                    <p id="preview-business-phone">+234 000 000 0000</p>
+                    <p id="preview-business-address">Business address</p>
+                    <div class="receipt-preview-row"><span>Sample item</span><span>Paid</span></div>
+                    <p class="receipt-preview-thanks">Thank you for your business!</p>
                 </div>
             </div>
 
@@ -1237,38 +1156,38 @@
     </main>
 
     <!-- Edit Modal Dialog -->
-    <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 class="font-bold text-slate-800 mb-4 text-lg">Edit Expense</h3>
-            <form id="edit-expense-form" class="space-y-3">
+    <div id="edit-modal" class="hidden sb-modal" role="dialog" aria-modal="true" aria-labelledby="edit-expense-title">
+        <div class="sb-sheet sb-sheet-compact">
+            <div class="sb-sheet-head">
+                <h3 id="edit-expense-title" class="sb-sheet-title">Edit expense</h3>
+                <button type="button" id="close-edit-modal-x" class="sb-icon-btn" aria-label="Close"><svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            </div>
+            <form id="edit-expense-form" class="sb-sheet-body">
                 <input type="hidden" id="edit-local-id">
                 <input type="hidden" id="edit-server-id">
-                
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Amount</label>
-                    <input type="number" step="any" id="edit-amount" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="sb-field">
+                    <label for="edit-amount">Amount</label>
+                    <div class="sb-money"><span aria-hidden="true">₦</span><input type="number" inputmode="decimal" step="any" id="edit-amount" required></div>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
-                    <select id="edit-category" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="Inventory & Materials">Inventory & Materials</option>
-                        <option value="Delivery & Logistics">Delivery & Logistics</option>
-                        <option value="Fuel & Electricity">Fuel & Electricity</option>
-                        <option value="Others">Others</option>
-                        <option value="Data & Airtime">Data & Airtime</option>
+                <div class="sb-field">
+                    <label for="edit-category">Category</label>
+                    <select id="edit-category" required>
+                        <option value="Inventory & Materials">Inventory &amp; Materials</option>
+                        <option value="Delivery & Logistics">Delivery &amp; Logistics</option>
+                        <option value="Fuel & Electricity">Fuel &amp; Electricity</option>
+                        <option value="Data & Airtime">Data &amp; Airtime</option>
                         <option value="Owner's Draw (Personal)">Owner's Draw (Personal)</option>
+                        <option value="Others">Others</option>
                     </select>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Description</label>
-                    <input type="text" id="edit-description" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="sb-field">
+                    <label for="edit-description">What was it for?</label>
+                    <input type="text" id="edit-description" required>
                 </div>
-
-                <div class="flex gap-2 justify-end pt-3">
-                    <button type="button" id="close-edit-modal" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow">Save Changes</button>
+                <div class="sb-sheet-foot">
+                    <button type="button" id="delete-expense-from-edit" class="sb-btn sb-btn-danger-text">Delete</button>
+                    <button type="button" id="close-edit-modal" class="sb-btn sb-btn-secondary">Cancel</button>
+                    <button type="submit" class="sb-btn sb-btn-primary">Save changes</button>
                 </div>
             </form>
         </div>
@@ -2947,7 +2866,7 @@
                     }
                     const badge = catElem.querySelector('.sync-badge');
                     if (!updateObj.synced && !badge) {
-                        catElem.insertAdjacentHTML('beforeend', `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-300 px-1.5 py-0.5 rounded ml-1">Offline</span>`);
+                        catElem.insertAdjacentHTML('beforeend', `<span class="sync-badge">Not synced</span>`);
                     } else if (updateObj.synced && badge) {
                         badge.remove();
                     }
@@ -3055,33 +2974,30 @@
             const localIdAttr = expense.local_id ? `data-local-id="${escapeHtml(expense.local_id)}"` : '';
             const serverId = expense.server_id || expense.id || '';
             const serverIdAttr = serverId ? `data-server-id="${escapeHtml(serverId)}"` : '';
-            const offlineBadge = !expense.synced ? `<span class="sync-badge text-[9px] font-semibold bg-amber-100 text-amber-300 px-1.5 py-0.5 rounded ml-1">Offline</span>` : '';
+            const offlineBadge = !expense.synced ? `<span class="sync-badge">Not synced</span>` : '';
             const categoryLabel = (expense.category || 'Other').toString();
 
             return `
-            <div ${localIdAttr} ${serverIdAttr}
-                 data-category="${escapeHtml(categoryLabel)}"
-                 data-amount="${escapeHtml(expense.amount)}"
-                 class="expense-card flex justify-between items-center p-4 border-b border-gray-50 hover:bg-slate-50 transition">
-                <div class="flex items-center gap-3">
-                    <div class="category-icon-val w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
-                        ${escapeHtml(categoryInitial)}
-                    </div>
-                    <div>
-                        <p class="expense-category-val font-bold text-slate-800 text-sm capitalize">
-                            <span class="category-name">${escapeHtml(categoryLabel)}</span>${offlineBadge}
-                        </p>
-                        <p class="expense-desc-val text-xs text-slate-500">${escapeHtml(expense.description || 'No description provided')}</p>
-                    </div>
+            <div ${localIdAttr} ${serverIdAttr} data-category="${escapeHtml(categoryLabel)}" data-amount="${escapeHtml(expense.amount)}"
+                 tabindex="0" role="button" aria-label="Edit expense: ${escapeHtml(categoryLabel)}, ₦${formattedAmount}" class="expense-card">
+                <div class="category-icon-val expense-icon" aria-hidden="true">${escapeHtml(categoryInitial)}</div>
+                <div class="expense-text">
+                    <p class="expense-category-val"><span class="category-name">${escapeHtml(categoryLabel)}</span>${offlineBadge}</p>
+                    <p class="expense-desc-val">${escapeHtml(expense.description || 'No description')}</p>
                 </div>
-                <div class="text-right">
-                    <p class="expense-amount-val font-bold text-slate-900 text-sm mb-1">₦${formattedAmount}</p>
-                    <div class="flex gap-2 justify-end">
-                        <button type="button" class="btn-edit text-[10px] uppercase tracking-wide font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">Edit</button>
-                        <button type="button" class="btn-delete text-[10px] uppercase tracking-wide font-bold text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100">Del</button>
-                    </div>
-                </div>
+                <p class="expense-amount-val">₦${formattedAmount}</p>
             </div>`;
+        }
+
+        // "4 expenses" / "Showing 2 of 4" next to the Filter button.
+        function updateExpenseSummary() {
+            const summary = document.getElementById('expense-list-summary');
+            if (!summary) return;
+            const cards = [...document.querySelectorAll('#transaction-list .expense-card')];
+            const shown = cards.filter(card => card.style.display !== 'none').length;
+            summary.textContent = shown === cards.length
+                ? `${cards.length} expense${cards.length === 1 ? '' : 's'}`
+                : `Showing ${shown} of ${cards.length}`;
         }
 
         function renderTransactionItem(expense) {
@@ -3091,6 +3007,7 @@
             const emptyMsg = document.getElementById('no-expenses-msg');
             if (emptyMsg) emptyMsg.remove();
             listContainer.insertAdjacentHTML('afterbegin', buildExpenseItemHTML(expense));
+            updateExpenseSummary();
         }
 
         async function renderExpenseListFromIndexedDB() {
@@ -3102,8 +3019,9 @@
                 const visible = (expenses || []).filter(item => !item.pending_delete);
                 listContainer.innerHTML = visible.length
                     ? visible.slice().reverse().map(buildExpenseItemHTML).join('')
-                    : '<p class="text-center text-slate-500 py-8 text-sm" id="no-expenses-msg">No expenses recorded yet.</p>';
+                    : '<p class="list-empty" id="no-expenses-msg">No expenses yet. Tap “Add expense” to record one.</p>';
                 recalculateTotalFromUI();
+                updateExpenseSummary();
                 await renderCategoryBudgets();
             } catch (err) {
                 console.warn('Could not render expense list from IndexedDB:', err);
@@ -3248,18 +3166,19 @@
             // Delegate Edit and Delete Button Clicks on Transaction List
             const listContainer = document.getElementById('transaction-list');
             if (listContainer) {
-                listContainer.addEventListener('click', (event) => {
+                const openExpenseFromRow = (event) => {
                     const card = event.target.closest('.expense-card');
                     if (!card) return;
+                    if (event.type === 'keydown') {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                    }
 
                     const localId = card.getAttribute('data-local-id') || null;
                     const serverId = card.getAttribute('data-server-id') || null;
 
-                    if (event.target.classList.contains('btn-delete')) {
-                        if (confirm('Are you sure you want to delete this expense?')) {
-                            deleteExpense(localId, serverId);
-                        }
-                    } else if (event.target.classList.contains('btn-edit')) {
+                    // Tapping an expense opens it for editing (Delete is in the dialog).
+                    {
                         // Open edit modal with prefilled data
                         const catElem = card.querySelector('.expense-category-val .category-name');
                         const descElem = card.querySelector('.expense-desc-val');
@@ -3277,9 +3196,11 @@
 
                         const modal = document.getElementById('edit-modal');
                         modal.classList.remove('hidden');
-                        modal.classList.add('flex');
+                        document.getElementById('edit-amount')?.focus();
                     }
-                });
+                };
+                listContainer.addEventListener('click', openExpenseFromRow);
+                listContainer.addEventListener('keydown', openExpenseFromRow);
             }
 
             // Edit Modal Close & Submit Handlers
@@ -3287,12 +3208,19 @@
             const editModal = document.getElementById('edit-modal');
             const editForm = document.getElementById('edit-expense-form');
 
-            if (closeModalBtn) {
-                closeModalBtn.addEventListener('click', () => {
-                    editModal.classList.add('hidden');
-                    editModal.classList.remove('flex');
-                });
-            }
+            const closeEditModal = () => editModal?.classList.add('hidden');
+            closeModalBtn?.addEventListener('click', closeEditModal);
+            document.getElementById('close-edit-modal-x')?.addEventListener('click', closeEditModal);
+            editModal?.addEventListener('click', event => { if (event.target === editModal) closeEditModal(); });
+            editModal?.addEventListener('keydown', event => { if (event.key === 'Escape') closeEditModal(); });
+            document.getElementById('delete-expense-from-edit')?.addEventListener('click', async () => {
+                if (!confirm('Delete this expense? This cannot be undone.')) return;
+                const localId = document.getElementById('edit-local-id').value || null;
+                const serverId = document.getElementById('edit-server-id').value || null;
+                closeEditModal();
+                await deleteExpense(localId, serverId);
+                updateExpenseSummary();
+            });
 
             if (editForm) {
                 editForm.addEventListener('submit', async (e) => {
@@ -5807,8 +5735,15 @@
                 // Toggle "no match" empty state
                 if (noMatch) noMatch.classList.toggle('hidden', visibleCount > 0 || !isFiltered);
 
-                // Toggle clear button
+                // Toggle clear button, active-filter count and the list summary
                 if (clearBtn) clearBtn.classList.toggle('hidden', !isFiltered);
+                const activeCount = (categoryVal !== '' ? 1 : 0) + (exactAmount !== null ? 1 : 0);
+                const countEl = document.getElementById('expense-filter-count');
+                if (countEl) {
+                    countEl.textContent = String(activeCount);
+                    countEl.classList.toggle('hidden', activeCount === 0);
+                }
+                updateExpenseSummary();
 
                 // Update filter result banner
                 const banner      = document.getElementById('filter-result-banner');
@@ -5872,6 +5807,13 @@
             const filterAmountExact = document.getElementById('filter-amount-exact');
             const clearFiltersBtn   = document.getElementById('btn-clear-filters');
 
+            document.getElementById('expense-filter-toggle')?.addEventListener('click', event => {
+                const panel = document.getElementById('expense-filter-panel');
+                const open = !panel.classList.contains('is-open');
+                panel.classList.toggle('is-open', open);
+                event.currentTarget.setAttribute('aria-expanded', String(open));
+            });
+            updateExpenseSummary();
             if (filterCategory)    filterCategory.addEventListener('change', applyTransactionFilter);
             if (filterAmountExact) filterAmountExact.addEventListener('input', applyTransactionFilter);
 
@@ -6033,8 +5975,8 @@
                 const verificationStatus = document.getElementById('profile-verification-status');
                 if (verificationStatus) {
                     verificationStatus.innerHTML = profile && String(profile.company_name || '').trim()
-                        ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Verified Vendor Profile'
-                        : '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Profile required for receipts';
+                        ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ready for receipts'
+                        : '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Add your details to send receipts';
                 }
 
                 // Form Inputs
@@ -6127,7 +6069,7 @@
 
                     if (pComp) pComp.textContent = profile.company_name;
                     if (pPhone) pPhone.textContent = profile.business_phone || '+234 000 000 0000';
-                    if (pAddr) pAddr.textContent = profile.business_address || 'Business Address Preview';
+                    if (pAddr) pAddr.textContent = profile.business_address || 'Business address';
 
                     // ── Dynamic App Branding: Profile UI populated ──────
                     toggleProfileMode('view');
@@ -6218,7 +6160,7 @@
                     const saveBtn = document.getElementById('btn-save-profile');
                     if (saveBtn) {
                         saveBtn.disabled = true;
-                        saveBtn.innerHTML = 'Requesting Code...';
+                        saveBtn.innerHTML = 'Sending code…';
                     }
 
                     try {
@@ -6243,7 +6185,7 @@
                     } finally {
                         if (saveBtn) {
                             saveBtn.disabled = false;
-                            saveBtn.innerHTML = 'Save Profile';
+                            saveBtn.innerHTML = 'Save details';
                         }
                     }
                 });
@@ -6276,7 +6218,7 @@
             document.getElementById('btn-profile-resend-code')?.addEventListener('click', async (event) => {
                 const resendBtn = event.currentTarget;
                 if (!pendingProfileFormData) {
-                    showOtpFeedback('Close this window and select Save Profile to request a new code.');
+                    showOtpFeedback('Close this window and select Save details to request a new code.');
                     return;
                 }
                 resendBtn.disabled = true;
