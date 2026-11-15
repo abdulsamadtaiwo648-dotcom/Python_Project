@@ -754,3 +754,6 @@ body.app-shell > header button:hover {
   .sb-sheet-compact { height: auto; max-height: 92%; border-radius: 20px 20px 0 0; }
   .sb-sheet-compact .sb-sheet-foot { margin-top: 4px; }
 }
+.website-promo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #c7d2fe; border-radius: var(--sb-radius-sm); background: #eef2ff; color: #3730a3; font-size: .82rem; text-decoration: none; }
+.website-promo strong { font-size: .9rem; }
+.website-promo:hover { background: #e0e7ff; }

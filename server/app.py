@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from flask import (Flask, Response, jsonify, make_response, redirect,
+from flask import (Flask, Response, g, jsonify, make_response, redirect,
                    render_template, request, send_from_directory, session,
                    flash)
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -112,6 +112,9 @@ def is_unique_violation(exc):
 
 
 def ensure_csrf_token():
+    # Business websites on their own subdomains are public and cookie-free.
+    if g.get("site_label"):
+        return ""
     token = session.get("csrf_token")
     if not token:
         token = secrets.token_urlsafe(32)
@@ -520,6 +523,8 @@ GENERIC_RESET_MESSAGE = "If an account exists for that email, we sent a verifica
 # ==========================================
 @app.errorhandler(404)
 def handle_404(e):
+    if g.get("site_label"):
+        return render_template("site_404.html"), 404
     if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
         return jsonify({"status": "error", "message": "The requested resource was not found."}), 404
     return render_template("404.html"), 404

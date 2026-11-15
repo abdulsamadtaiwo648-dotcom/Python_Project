@@ -261,8 +261,44 @@ def init_push_subscriptions_table():
         db.commit()
 
 
+def init_website_tables():
+    """Business websites (one per account) and the images they use.
+
+    Images live in the database because the host's disk is wiped on deploy.
+    Created before the account-deletion triggers that clean them up."""
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS business_websites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT UNIQUE NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                draft TEXT NOT NULL,
+                published TEXT,
+                is_published INTEGER NOT NULL DEFAULT 0,
+                published_at TEXT,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS website_media (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                content_type TEXT NOT NULL,
+                data %s NOT NULL,
+                size INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """ % ("BYTEA" if db.is_postgres else "BLOB")
+        )
+        db.execute("CREATE INDEX IF NOT EXISTS idx_website_media_user ON website_media (user_id)")
+        db.commit()
+
+
 def init_db():
     init_push_subscriptions_table()
+    init_website_tables()
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:
         # PostgreSQL Cloud Migration & Table Initialization
@@ -367,6 +403,9 @@ def init_db():
             "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS bulk_price NUMERIC",
             # Stock at or below this level triggers a low-stock alert.
             "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS low_stock_threshold INTEGER NOT NULL DEFAULT 3",
+            # Public website: which products show, and an optional photo.
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS show_on_website INTEGER NOT NULL DEFAULT 1",
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS image_url TEXT",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS sale_type TEXT NOT NULL DEFAULT 'unit'",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_count INTEGER",
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_size INTEGER",
@@ -414,6 +453,8 @@ def init_db():
                         DELETE FROM inventory_presets WHERE user_id = OLD.id;
                         DELETE FROM user_activity_logs WHERE user_id = OLD.id;
                         DELETE FROM push_subscriptions WHERE user_id = OLD.id;
+                        DELETE FROM business_websites WHERE user_id = OLD.id;
+                        DELETE FROM website_media WHERE user_id = OLD.id;
                         DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                         RETURN OLD;
                     END;
@@ -573,6 +614,8 @@ def init_db():
                 ("inventory_presets", "bulk_quantity", "INTEGER"),
                 ("inventory_presets", "bulk_price", "REAL"),
                 ("inventory_presets", "low_stock_threshold", "INTEGER NOT NULL DEFAULT 3"),
+                ("inventory_presets", "show_on_website", "INTEGER NOT NULL DEFAULT 1"),
+                ("inventory_presets", "image_url", "TEXT"),
                 ("income", "sale_type", "TEXT NOT NULL DEFAULT 'unit'"),
                 ("income", "bundle_count", "INTEGER"),
                 ("income", "bundle_size", "INTEGER"),
@@ -612,6 +655,8 @@ def init_db():
                     DELETE FROM inventory_presets WHERE user_id = OLD.id;
                     DELETE FROM user_activity_logs WHERE user_id = OLD.id;
                     DELETE FROM push_subscriptions WHERE user_id = OLD.id;
+                    DELETE FROM business_websites WHERE user_id = OLD.id;
+                    DELETE FROM website_media WHERE user_id = OLD.id;
                     DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                 END
             """)
