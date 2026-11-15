@@ -129,7 +129,7 @@ def test_successful_login_resets_failure_count(client, user):
     for _ in range(4):
         _login(client, user[1], "WrongPass1")
     assert _login(client, user[1], PASSWORD).status_code == 302
-    client.get("/logout")
+    client.post("/logout", data={"csrf_token": csrf_token(client)})
     for _ in range(4):
         _login(client, user[1], "WrongPass1")
     assert _login(client, user[1], PASSWORD).status_code == 302

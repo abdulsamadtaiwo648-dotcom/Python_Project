@@ -1,27 +1,21 @@
 import hashlib
 import hmac
 import html
-import calendar
-import json
 import logging
-import math
 import os
 import re
 import secrets
 import smtplib
 import sqlite3
-import time
-import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from flask import (Flask, Response, g, jsonify, make_response, redirect,
-                   render_template, request, send_from_directory, session,
+from flask import (Flask, g, jsonify, redirect,
+                   render_template, request, session,
                    flash)
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import RequestEntityTooLarge
-from werkzeug.utils import secure_filename
 
 try:
     import resend
@@ -84,7 +78,6 @@ BRAND_COLOR_PATTERN = re.compile(r"^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
 OTP_TTL_MINUTES = 15
 OTP_RESEND_SECONDS = 30
 OTP_MAX_ATTEMPTS = 5
-ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
 # ==========================================
@@ -191,26 +184,31 @@ def sanitize_logo_url(value):
         return ""
     if url.startswith("/static/uploads/logos/") and ".." not in url:
         return url
+    if re.match(r"^/media/[A-Za-z0-9_-]{16,40}$", url):
+        return url
     if url.startswith("https://") and " " not in url:
         return url
     return ""
 
 
 def save_uploaded_logo(file_storage, user_id):
-    filename = secure_filename(file_storage.filename or "")
-    ext = os.path.splitext(filename)[1].lower()
-    if ext not in ALLOWED_LOGO_EXTENSIONS:
-        return None, "Logo must be a PNG, JPG, WEBP, or GIF image."
-    file_storage.stream.seek(0, os.SEEK_END)
-    size = file_storage.stream.tell()
-    file_storage.stream.seek(0)
-    if size > MAX_LOGO_BYTES:
+    """Store a logo in the database (the host's disk is wiped on deploy)."""
+    from . import websites
+
+    data = file_storage.read(MAX_LOGO_BYTES + 1)
+    if len(data) > MAX_LOGO_BYTES:
         return None, "Logo must be smaller than 2MB."
-    folder = os.path.join(CLIENT_ROOT, "static", "uploads", "logos")
-    os.makedirs(folder, exist_ok=True)
-    stored_name = f"logo_{secure_filename(user_id)}_{int(time.time())}{ext}"
-    file_storage.save(os.path.join(folder, stored_name))
-    return f"/static/uploads/logos/{stored_name}", None
+    content_type = websites.sniff_image_type(data)
+    if not content_type:
+        return None, "Logo must be a PNG, JPG or WEBP image."
+    token = secrets.token_urlsafe(18)
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO website_media (user_id, token, content_type, data, size, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (str(user_id), token, content_type, data, len(data), websites.utcnow_iso()),
+        )
+        db.commit()
+    return f"/media/{token}", None
 
 
 def parse_otp_datetime(value):

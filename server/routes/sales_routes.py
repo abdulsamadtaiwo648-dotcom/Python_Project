@@ -1,8 +1,8 @@
 """Sales Routes HTTP routes."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import jsonify, request
-import logging, math, time
+import logging, math, re, time
 from .. import push
 from ..app import (
     app,
@@ -63,7 +63,7 @@ def api_income():
         if not isinstance(data, dict):
             data = request.form.to_dict()
 
-        income_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        income_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
         receipt_id = data.get("receipt_id") or f"REC-{int(time.time())}"
         customer_name = str(data.get("customer_name", "Walk-in Customer")).strip() or "Walk-in Customer"
 
@@ -253,7 +253,7 @@ def api_checkout():
             return jsonify({"status": "error", "message": "A custom cart item needs a unit price."}), 400
         parsed_items.append({"preset_id": preset_id, "quantity": quantity, "line_id": line_id, "requested_price": requested_price, "item_name": item_name, "sale_type": sale_type})
 
-    sale_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+    sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
     receipt_id = str(data.get("receipt_id") or f"REC-{checkout_id[:12].upper()}").strip()
     try:
         with get_db() as db:
@@ -455,7 +455,9 @@ def sync_sales():
                 continue
             payment_mode = str(sale.get("payment_mode", "Cash")).strip()
             customer_name = str(sale.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
-            sale_date = sale.get("date") or datetime.now().strftime("%Y-%m-%d %I:%M %p")
+            sale_date = str(sale.get("date") or "")[:40]
+            if not re.match(r"^\d{4}-\d{2}-\d{2}([ T]|$)", sale_date):
+                sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
 
             try:

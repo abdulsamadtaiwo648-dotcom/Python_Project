@@ -181,7 +181,7 @@ def test_same_device_moves_to_newly_signed_in_account(client, app, headers, sign
 
 def test_sign_out_stops_this_device_getting_alerts(client, headers, signed_in, vapid):
     _subscribe(client, headers)
-    client.get("/logout")
+    client.post("/logout", headers=headers)
     with get_db() as db:
         row = db.execute("SELECT 1 FROM push_subscriptions WHERE user_id = ?", (signed_in[0],)).fetchone()
     assert row is None

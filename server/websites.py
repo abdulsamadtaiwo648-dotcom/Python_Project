@@ -256,7 +256,7 @@ def default_content(profile=None):
         "tagline": "",
         "about": "",
         "brand_color": profile.get("brand_color") if _COLOR_RE.match(profile.get("brand_color") or "") else "#4F46E5",
-        "logo_url": logo if logo.startswith("/static/uploads/logos/") else "",
+        "logo_url": logo if logo.startswith(("/static/uploads/logos/", "/media/")) else "",
         "cover_url": "",
         "phone": phone,
         "whatsapp": whatsapp,

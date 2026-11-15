@@ -710,40 +710,6 @@
                 </div>
             </section>
 
-            {% if searching %}
-            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 space-y-4" id="search-report-results">
-
-                <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="8" y2="14"/><line x1="16" y1="18" x2="8" y2="18"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/></svg> Calculation Report
-                        {% if search_term %}<span class="font-normal text-indigo-500 normal-case tracking-normal">for "{{ search_term }}"</span>{% endif %}
-                    </h3>
-                    <span class="text-xs text-indigo-400 font-medium">{{ search_results|length }} match{{ 'es' if search_results|length != 1 else '' }}</span>
-                </div>
-
-                <!-- Itemised matched transactions -->
-                <ul class="space-y-2" id="search-report-list">
-                    {% for item in search_results %}
-                        <li class="bg-white rounded-xl px-4 py-3 flex justify-between items-center shadow-sm border border-indigo-50">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-800">{{ item.category }}</p>
-                                <p class="text-xs text-slate-500">{{ item.date }}</p>
-                            </div>
-                            <span class="font-bold text-slate-900 text-sm">₦{{ "{:,.2f}".format(item.amount) }}</span>
-                        </li>
-                    {% else %}
-                        <li class="text-sm italic text-slate-500 py-2">No records match this calculation.</li>
-                    {% endfor %}
-                </ul>
-
-                <!-- Isolated subtotal — completely separate from any dashboard ID -->
-                <div class="border-t border-indigo-200 pt-4 flex justify-between items-center">
-                    <p class="text-sm font-semibold text-slate-600">Calculated Total:</p>
-                    <p class="text-2xl font-extrabold text-indigo-900" id="search-report-total">₦{{ "{:,.2f}".format(search_total) }}</p>
-                </div>
-
-            </div>
-            {% endif %}
 
             <div class="sb-list-card" id="transaction-list">
                 {% if expenses|length == 0 %}
@@ -1130,7 +1096,7 @@
                         <!-- Business Logo File Upload -->
                         <div class="sb-field">
                             <label for="profile-logo-file">Logo <span class="sb-optional">(optional, up to 2 MB)</span></label>
-                            <input type="file" name="logo" id="profile-logo-file" accept=".jpg, .jpeg, .png, image/jpeg, image/png"
+                            <input type="file" name="logo" id="profile-logo-file" accept=".jpg, .jpeg, .png, .webp, image/jpeg, image/png, image/webp"
                                 onchange="if(this.files[0].size > 2097152){ alert('Image is too large. Max size is 2MB.'); this.value=''; }"
                                 class="sb-file">
                         </div>
@@ -1401,6 +1367,30 @@
             if (dateEl) dateEl.textContent = now.toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
         });
 
+        // Record dates arrive as "2026-11-11 09:07 PM" (server, UTC) or as an
+        // ISO string (saved on the device). Read both the same way everywhere;
+        // `new Date("2026-11-11 09:07 PM")` is not valid in Safari.
+        function parseRecordDate(value) {
+            const text = String(value || '');
+            const match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?)?/i);
+            if (!match) return null;
+            let date;
+            if (/Z|[+-]\d{2}:?\d{2}$/.test(text)) {
+                date = new Date(text);
+            } else {
+                let hour = Number(match[4] || 0);
+                if (match[6]) hour = (hour % 12) + (/pm/i.test(match[6]) ? 12 : 0);
+                date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), hour, Number(match[5] || 0)));
+            }
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        // "2026-11-11" in the user's own time zone.
+        function localDateKey(date) {
+            if (!date) return '';
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+        const recordDayKey = value => localDateKey(parseRecordDate(value));
+
         // Title for a sale line. `quantity` is always in pieces; bulk lines
         // also carry how many bundles were sold and the bundle size.
         function isBulkSaleLine(item) {
@@ -1513,11 +1503,18 @@
             }
         })();
 
-        function handleLogout() {
+        async function handleLogout() {
+            // Sign out on the server first (a POST with the CSRF token), then
+            // clear this device. Offline, the device is still cleared.
+            try {
+                await fetch('/logout', { method: 'POST', headers: { 'X-CSRFToken': CSRF_TOKEN }, redirect: 'manual' });
+            } catch (error) {
+                console.warn('Could not reach the server to sign out:', error);
+            }
             navigator.serviceWorker?.controller?.postMessage({ type: 'CLEAR_PRIVATE_OFFLINE_SHELL' });
             localStorage.clear();
             sessionStorage.clear();
-            window.location.href = "/logout";
+            window.location.href = "/login";
         }
 
         async function authenticatedFetch(url, options = {}) {
@@ -1710,7 +1707,7 @@
                     getIncomeLocal(),
                     getExpensesLocal()
                 ]);
-                const todayKey = new Date().toISOString().slice(0, 10);
+                const todayKey = localDateKey(new Date());
                 let collected = 0;
                 let expenses = 0;
                 let unpaid = 0;
@@ -1719,7 +1716,7 @@
                     if (item.pending_delete) return;
                     const total = Number(item.total_value ?? item.amount ?? 0) || 0;
                     const paid = Number(item.amount_paid ?? item.amount ?? 0) || 0;
-                    if ((item.date || '').startsWith(todayKey)) collected += paid;
+                    if (recordDayKey(item.date) === todayKey) collected += paid;
                     const balance = Math.max(0, total - paid);
                     if (balance > 0) {
                         unpaid += balance;
@@ -1727,7 +1724,7 @@
                     }
                 });
                 (expenseItems || []).forEach(item => {
-                    if (item.pending_delete || !(item.date || '').startsWith(todayKey)) return;
+                    if (item.pending_delete || recordDayKey(item.date) !== todayKey) return;
                     expenses += Number(item.amount || 0) || 0;
                 });
                 const format = value => '₦' + value.toLocaleString('en-NG', {
@@ -2035,8 +2032,8 @@
 
             expenses.forEach(expense => {
                 if (expense.pending_delete || expense.category === "Owner's Draw (Personal)") return;
-                const date = new Date(expense.date);
-                if (!Number.isFinite(date.getTime()) || date < monthStart || date >= nextMonth) return;
+                const date = parseRecordDate(expense.date);
+                if (!date || date < monthStart || date >= nextMonth) return;
                 spendByCategory.set(expense.category, (spendByCategory.get(expense.category) || 0) + Number(expense.amount || 0));
             });
 
@@ -3368,15 +3365,15 @@
             // Main dashboard totals cover all recorded transactions. Analysis uses its selected period.
             // -------------------------------------------------------------
             function currentReportPeriodContains(dateValue, period) {
-                const dateKey = String(dateValue || '').slice(0, 10);
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return false;
-                const todayKey = new Date().toISOString().slice(0, 10);
+                const dateKey = recordDayKey(dateValue);
+                if (!dateKey) return false;
+                const today = new Date();
+                const todayKey = localDateKey(today);
                 if (dateKey > todayKey) return false;
                 if (period === 'daily') return dateKey === todayKey;
                 if (period === 'weekly') {
-                    const weekStart = new Date(`${todayKey}T00:00:00Z`);
-                    weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
-                    return dateKey >= weekStart.toISOString().slice(0, 10);
+                    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+                    return dateKey >= localDateKey(weekStart);
                 }
                 if (period === 'yearly') return dateKey.slice(0, 4) === todayKey.slice(0, 4);
                 return dateKey.slice(0, 7) === todayKey.slice(0, 7);
@@ -3529,7 +3526,7 @@
                     const customerName    = saleRecord.customer_name || 'Valued Customer';
                     const receiptId       = saleRecord.receipt_id   || `REC-${String(saleLocalId).padStart(5,'0')}`;
                     
-                    const dateObj         = saleRecord.date ? new Date(saleRecord.date) : new Date();
+                    const dateObj         = parseRecordDate(saleRecord.date) || new Date();
                     const dateStr         = dateObj.toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' });
                     const timeStr         = dateObj.toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
                     
@@ -3998,15 +3995,7 @@
             // "2026-11-11 09:07 PM" (server) or an ISO date (saved offline) -> "11 Nov, 9:07 PM"
             function formatSaleDate(value) {
                 const text = String(value || '');
-                const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i);
-                let date = null;
-                if (match) {
-                    let hour = Number(match[4]);
-                    if (match[6]) hour = (hour % 12) + (/pm/i.test(match[6]) ? 12 : 0);
-                    date = /Z|[+-]\d{2}:?\d{2}$/.test(text) ? new Date(text) : new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), hour, Number(match[5]));
-                } else if (text) {
-                    date = new Date(text);
-                }
+                const date = parseRecordDate(text);
                 if (!date || Number.isNaN(date.getTime())) return text;
                 return date.toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
             }
@@ -5510,7 +5499,7 @@
                 
                 // Helper to format date keys
                 const getPeriodKey = (dateStr) => {
-                    const d = new Date(dateStr);
+                    const d = parseRecordDate(dateStr) || new Date(NaN);
                     if (period === 'daily') return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
                     if (period === 'weekly') {
                         const first = d.getDate() - d.getDay();
@@ -5524,15 +5513,15 @@
 
                 const chartBuckets = new Map();
                 const addChartValue = (dateValue, series, amount) => {
-                    const date = new Date(dateValue);
-                    if (!Number.isFinite(date.getTime())) return;
+                    const date = parseRecordDate(dateValue);
+                    if (!date) return;
                     const bucketDate = new Date(date);
                     if (period === 'daily') bucketDate.setHours(0, 0, 0, 0);
                     else if (period === 'weekly') bucketDate.setDate(bucketDate.getDate() - bucketDate.getDay());
                     else if (period === 'monthly') bucketDate.setDate(1);
                     else if (period === 'yearly') { bucketDate.setMonth(0, 1); }
                     bucketDate.setHours(0, 0, 0, 0);
-                    const bucketKey = bucketDate.toISOString().slice(0, 10);
+                    const bucketKey = localDateKey(bucketDate);
                     if (!chartBuckets.has(bucketKey)) {
                         const labelOptions = period === 'yearly'
                             ? { year: 'numeric' }
@@ -5568,7 +5557,7 @@
                     
                     const key = getPeriodKey(item.date);
                     if (!groups[key]) groups[key] = { salesVolume: 0, items: [], sortDate: 0 };
-                    groups[key].sortDate = Math.max(groups[key].sortDate, new Date(item.date).getTime() || 0);
+                    groups[key].sortDate = Math.max(groups[key].sortDate, (parseRecordDate(item.date)?.getTime() || 0));
 
                     const tVal = parseFloat(item.total_value ?? item.amount ?? 0); // fallback for old records
                     const amtPaid = parseFloat(item.amount_paid ?? item.amount ?? 0);
