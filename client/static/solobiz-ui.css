@@ -939,3 +939,203 @@ body.app-shell > header button:hover {
   #budget-kpis .stat-value { font-size: 1.35rem; }
   #dashboard-bottom-grid, #daily-business-checkin { margin-bottom: 14px; }
 }
+
+/* ===== Dashboard: exact Figma values =====
+   Sidebar 248 wide, padding 20; nav items 10/12 padding, radius 10, 14px;
+   main padding 32, gap 24; page title 28 bold, subtitle 14; KPI cards padding
+   18, gap 8, radius 14 with 13px labels, 24px figures, 12px notes; panels
+   padding 20, radius 16. */
+@media (min-width: 1024px) {
+  .desktop-sidebar { width: 248px; padding: 20px; }
+  .desktop-sidebar .side-brand { padding: 0 0 18px; }
+  .desktop-sidebar .nav-group { margin: 20px 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: .12em; }
+  .desktop-sidebar .tab-btn { padding: 10px 12px; border-radius: 10px; font-size: 14px; gap: 12px; }
+  .desktop-content { padding: 32px; }
+  .desktop-content > #dashboard-bottom-grid,
+  .desktop-content > #daily-business-checkin { margin-bottom: 24px; }
+}
+#cfo-dashboard .page-head .page-title,
+#cfo-dashboard h2.page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#cfo-dashboard .page-sub { font-size: 14px; margin-top: 4px; }
+#cfo-dashboard .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#cfo-dashboard .grid { gap: 16px !important; }
+.kpi-card { padding: 18px !important; gap: 8px !important; border-radius: 14px !important; }
+.kpi-card .kpi-icon { width: 32px; height: 32px; border-radius: 10px; }
+.kpi-card > div > p { font-size: 13px !important; font-weight: 500 !important; text-transform: none !important; letter-spacing: 0 !important; color: #64748b !important; }
+.kpi-card .stat-value { font-size: 24px !important; line-height: 1.1 !important; }
+.kpi-card > p:last-child { font-size: 12px !important; }
+#cfo-dashboard .kpi-card .text-slate-500 { color: #64748b; }
+#dashboard-insights .dash-panel,
+#dashboard-recent-sales,
+#dashboard-low-stock,
+#daily-business-checkin { padding: 20px !important; border-radius: 16px !important; }
+#dashboard-insights .dash-panel { gap: 16px; }
+#dashboard-low-stock { width: 100%; }
+
+/* ===== Sales: exact Figma values =====
+   Page head as the dashboard; chips 7/14 padding, 8px gap, brand fill when
+   active; sale rows 12px vertical padding with a divider, name 14px, time
+   12px, amount 14px semibold; list panel padding 20, radius 16. */
+#tab-income-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-income-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-income-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#sales-quick-filters { gap: 8px; }
+.sales-quick-chip { padding: 7px 14px; min-height: 0; font-size: 13px; font-weight: 600; line-height: 1.2; }
+#tab-income-content .sale-list { display: grid; gap: 0; }
+#tab-income-content .sale-card {
+  border: 0; border-bottom: 1px solid var(--sb-line); border-radius: 0;
+  padding: 12px 0; background: transparent; box-shadow: none !important;
+}
+#tab-income-content .sale-card:last-child { border-bottom: 0; }
+#tab-income-content .sale-card-top strong,
+#tab-income-content .sale-card-top .font-bold { font-size: 14px; font-weight: 500; color: #0f172a; }
+#tab-income-content .sale-card-top .font-semibold { font-size: 14px; font-weight: 600; color: #0f172a; }
+#tab-income-content .sale-card .text-xs { font-size: 12px; color: #64748b; }
+
+/* ===== Inventory: exact Figma values =====
+   Product cards: 4 per row on desktop and 2 on phones, 16px gap (12px on
+   phones); each card 14px padding, 10px gap, 14px radius and a 1px line
+   border; name 14px semibold, meta 12px muted, status pill 4/10 padding.
+   The Table view is unchanged. */
+#tab-inventory-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-inventory-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-inventory-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+/* Summary counts were added in this design pass, not in the Figma frame */
+#inv-summary { display: none !important; }
+#inv-list-card:not(.inv-view-table) #presets-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 0;
+}
+#inv-list-card:not(.inv-view-table) #presets-grid tr {
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  padding: 14px; border: 1px solid var(--sb-line); border-radius: 14px; background: #fff;
+  box-shadow: none;
+}
+#inv-list-card:not(.inv-view-table) #presets-grid td { padding: 0 !important; border: 0 !important; font-size: 12px; color: #64748b; }
+#inv-list-card:not(.inv-view-table) #presets-grid td:first-child { font-size: 14px; font-weight: 600; color: #0f172a; }
+#inv-list-card:not(.inv-view-table) #presets-grid td:last-child { font-size: 14px; font-weight: 600; color: #0f172a; }
+#inv-list-card:not(.inv-view-table) .inventory-status {
+  display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; background: #eff6ff; color: #1d4ed8;
+}
+#inv-list-card:not(.inv-view-table) .inventory-status.low { background: #fffbeb; color: #b45309; }
+#inv-list-card:not(.inv-view-table) .inventory-status.out { background: #fff1f2; color: #be123c; }
+@media (max-width: 1023px) {
+  #inv-list-card:not(.inv-view-table) #presets-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
+
+/* ===== Expenses: exact Figma values =====
+   Header as the other pages; three KPI cards with 16px gap; list and
+   category panels 20px padding, 16px radius; the category panel is 380px
+   wide with 8px thin bars. */
+#tab-expenses-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-expenses-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-expenses-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#expense-kpis { gap: 16px; }
+#expense-kpis .kpi-card { padding: 18px; gap: 8px; border-radius: 14px; }
+#expense-kpis .kpi-card > p:first-child { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: #64748b; }
+#expense-kpis .stat-value { font-size: 24px; line-height: 1.1; }
+#expense-kpis .kpi-card > p:last-child { font-size: 12px; }
+@media (min-width: 1024px) {
+  #expense-layout { grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; }
+}
+#expense-breakdown { padding: 20px; border-radius: 16px; }
+#expense-breakdown-list { gap: 12px; }
+#expense-breakdown-list > li > div:first-child { font-size: 13px; }
+#expense-breakdown-list > li > div:last-child { height: 8px; }
+#expense-breakdown-list .text-xs { font-size: 12px; }
+
+/* ===== Budget: exact Figma values =====
+   Header as the other pages; three figure cards (18px padding, 8px gap,
+   14px radius); one Categories panel with 20px padding and 16px radius.
+   Each category is a plain row with its name, amount and a 10px bar with
+   6px radius; rows have no coloured boxes. Over-limit rows keep their
+   amber/rose text so the warning stays visible. */
+#tab-budget-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-budget-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-budget-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#budget-kpis { gap: 16px; }
+#budget-kpis > div { padding: 18px; gap: 8px; border-radius: 14px; }
+#budget-kpis > div > p:first-child { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: #64748b; }
+#budget-kpis .stat-value { font-size: 24px; line-height: 1.1; }
+#budget-kpis > div > p:last-child { font-size: 12px; }
+.budget-categories-panel {
+  padding: 20px; border-radius: 16px; border: 1px solid var(--sb-line);
+  background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); display: grid; gap: 12px;
+}
+.budget-categories-title { font-size: 15px; font-weight: 600; color: #0f172a; }
+#budget-progress-list { display: grid; gap: 16px; }
+#budget-progress-list > article {
+  background: transparent !important; border: 0 !important; border-radius: 0 !important;
+  padding: 0 !important; display: grid; gap: 8px;
+}
+#budget-progress-list > article h4 { font-size: 14px; font-weight: 600; color: #0f172a; }
+#budget-progress-list > article > div:first-child p { font-size: 13px; font-weight: 400; }
+#budget-progress-list .h-2\.5 { height: 10px !important; margin-top: 0 !important; border-radius: 6px; background: #e2e8f0 !important; }
+#budget-progress-list .h-2\.5 > div { border-radius: 6px; }
+
+/* ===== Profile: exact Figma values =====
+   Two columns: business details on the left (fluid) and the plan and
+   account cards in a 380px column on the right, both starting on the same
+   row. Panels have 20px padding and 16px radius. Header as the other pages. */
+#tab-profile-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-profile-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-profile-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+@media (min-width: 1024px) {
+  #tab-profile-content { display: grid !important; max-width: none !important; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  #tab-profile-content > .page-head { grid-column: 1 / -1; }
+  #tab-profile-content > .profile-panel { grid-column: 1; grid-row: 2; }
+  #tab-profile-content > #profile-account { grid-column: 2; grid-row: 2; grid-template-columns: minmax(0, 1fr); }
+  #tab-profile-content > *:not(.page-head):not(.profile-panel):not(#profile-account) { grid-column: 1 / -1; }
+}
+#tab-profile-content .profile-panel,
+#profile-account > div { padding: 20px !important; border-radius: 16px !important; }
+#profile-account > div:first-child { padding: 20px !important; }
+#profile-account > div:first-child p:first-child { font-size: 13px; }
+#profile-account > div:first-child p:nth-child(2) { font-size: 24px; font-weight: 700; }
+#profile-account > div:first-child p:last-child { font-size: 12px; }
+
+/* ===== Phone versions: exact Figma values (under 640px) =====
+   20px side margins and 16px gaps between sections; page titles 24px
+   with 13px subtitles; summary cards two across with 14px padding and
+   20px figures; the third Expenses card spans the full width. The app
+   header with sign-out is kept on phones. */
+@media (max-width: 639px) {
+  .desktop-content { padding: 16px 20px 24px !important; }
+  .page-stack:not(.hidden) { gap: 16px; }
+  .page-title { font-size: 24px !important; font-weight: 700; line-height: 1.2; }
+  .page-sub { font-size: 13px; }
+  .kpi-card { padding: 14px !important; }
+  .kpi-card .stat-value { font-size: 20px !important; }
+  #expense-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+  #expense-kpis > div:last-child { grid-column: 1 / -1; }
+  #budget-kpis { gap: 12px; }
+  #dashboard-bottom-grid { gap: 16px; }
+  #dashboard-bottom-grid > section { padding: 16px !important; }
+  .budget-categories-panel,
+  #expense-breakdown,
+  #tab-profile-content .profile-panel,
+  #profile-account > div { padding: 16px !important; }
+  #tab-profile-content { gap: 16px; }
+  #profile-account { gap: 12px; }
+}
+
+/* ===== Sign-in and register: exact Figma values =====
+   Brand panel 72px padding with a 60px headline and 20px text; form column
+   48px padding; form card 440px wide with a 34px title and 15px subtitle;
+   fields with 10px by 12px padding, 10px radius and 12px labels; buttons
+   12px radius. */
+@media (min-width: 960px) {
+  .login-brand { padding: 72px; gap: 24px; }
+  .login-brand > div > h2 { font-size: 60px !important; letter-spacing: -0.033em; line-height: 1.05; }
+  .login-brand > div > p { font-size: 20px !important; }
+  .login-main { padding: 48px; }
+}
+.login-card { max-width: 440px; gap: 18px; }
+.login-card h1 { font-size: 34px !important; letter-spacing: -0.03em; }
+.login-card > div > p { font-size: 15px !important; }
+.login-field label { font-size: 12px; font-weight: 600; }
+.login-field input { padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.login-submit { min-height: 48px; border-radius: 12px; font-size: 14px; }
+.reg-form input:not([type=checkbox]) { padding: 10px 12px !important; border-radius: 10px !important; font-size: 14px !important; }
+.reg-form label { font-size: 12px !important; font-weight: 600 !important; }
+.reg-form button[type=submit], .reg-form #btn-send-otp { border-radius: 12px !important; font-size: 14px !important; }
