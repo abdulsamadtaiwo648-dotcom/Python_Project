@@ -757,3 +757,47 @@ body.app-shell > header button:hover {
 .website-promo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #c7d2fe; border-radius: var(--sb-radius-sm); background: #eef2ff; color: #3730a3; font-size: .82rem; text-decoration: none; }
 .website-promo strong { font-size: .9rem; }
 .website-promo:hover { background: #e0e7ff; }
+
+/* ==========================================================================
+   Desktop shell: grouped sidebar, equal-height dashboard cards
+   ========================================================================== */
+@media (min-width: 1024px) {
+  .desktop-dashboard-shell { align-items: stretch; }
+  .desktop-sidebar {
+    display: flex; flex-direction: column; gap: 2px;
+    width: 232px; padding: 18px 12px 14px;
+    border-right: 1px solid var(--sb-line); background: #fff;
+    top: 62px; height: calc(100vh - 62px); overflow-y: auto;
+  }
+  .side-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; margin-bottom: 6px; border-bottom: 1px solid #f1f5f9; }
+  .side-brand img { border-radius: 9px; }
+  .side-brand-name { font-size: .95rem; font-weight: 700; color: var(--sb-ink); }
+  .side-brand-sub { font-size: .75rem; color: var(--sb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+  .nav-group { margin: 14px 10px 6px; font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; }
+  .desktop-sidebar .tab-btn { position: relative; min-height: 40px; padding: 9px 12px; border-radius: 10px; font-size: .9rem; font-weight: 500; color: #475569; }
+  .desktop-sidebar .tab-btn svg { width: 18px; height: 18px; }
+  .desktop-sidebar .tab-btn:hover { background: #f8fafc; color: var(--sb-ink); }
+  .desktop-sidebar .tab-btn[aria-current="page"] { background: #eef2ff; color: #4338ca; font-weight: 600; }
+  .desktop-sidebar .tab-btn[aria-current="page"]::before {
+    content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sb-brand);
+  }
+  .desktop-sidebar .tab-btn .low-stock-count { margin-left: auto; }
+  .side-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid #f1f5f9; }
+  .side-signout {
+    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 12px;
+    border: 0; border-radius: 10px; background: transparent; color: #64748b; font-size: .9rem; font-weight: 500; cursor: pointer;
+  }
+  .side-signout:hover { background: #fff1f2; color: #be123c; }
+  .side-signout svg { width: 18px; height: 18px; }
+
+  /* Dashboard: Today and All time fill the same height */
+  .desktop-content:has(#daily-business-checkin:not(.hidden)) { align-items: stretch; }
+  .desktop-content:has(#daily-business-checkin:not(.hidden)) > #daily-business-checkin,
+  .desktop-content:has(#daily-business-checkin:not(.hidden)) > #cfo-dashboard { display: flex; flex-direction: column; }
+  #cfo-dashboard .dash-figures { margin-top: auto; }
+  #cfo-dashboard .dash-net { margin-top: 14px; }
+}
+@media (min-width: 1024px) {
+  .desktop-sidebar > .side-brand .side-brand-name { font-size: .98rem; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--sb-ink); }
+  .desktop-sidebar > .side-brand .side-brand-sub { font-size: .78rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--sb-muted); }
+}
