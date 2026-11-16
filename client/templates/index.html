@@ -453,51 +453,41 @@
             </div>
         </section>
 
-        <!-- CFO Dashboard Cards (This month) -->
+        <!-- CFO Dashboard KPI cards (This month), Figma layout -->
         <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab != 'dashboard' %}hidden{% endif %}">
-        <!-- Top row: Sales + Expenses side by side -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
-
-            <!-- Total Sales Card -->
-            <div class="bg-emerald-50 border border-emerald-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-600 tracking-wider leading-none">Sales collected</p>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-5">
+            <div class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Sales collected</p>
                 </div>
-                <span class="stat-value text-emerald-800" id="top-sales">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-emerald-700/80 leading-tight">Payments received across all sales</p>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none text-slate-900 truncate" id="top-sales">₦{ "{:,.2f}".format(total_sales or 0.0) }</span>
+                <p class="text-xs leading-snug text-slate-500">Payments received across all sales</p>
             </div>
-
-            <!-- Total Expenses Card -->
-            <div class="bg-rose-50 border border-rose-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
-                    <p class="text-[9px] sm:text-[10px] uppercase font-bold text-rose-600 tracking-wider leading-none">Expenses</p>
+            <div class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Expenses</p>
                 </div>
-                <span class="stat-value text-rose-800" id="top-expenses">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-rose-700/80 leading-tight">Across all recorded expenses</p>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none text-slate-900 truncate" id="top-expenses">₦{ "{:,.2f}".format(total_expenses or 0.0) }</span>
+                <p class="text-xs leading-snug text-slate-500">Across all recorded expenses</p>
             </div>
-            <div class="bg-amber-50 border border-amber-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col gap-1 min-w-0">
-                <p class="text-[9px] sm:text-[10px] uppercase font-bold text-amber-700 tracking-wider leading-none">Outstanding</p>
-                <span class="stat-value text-amber-800" id="top-outstanding">₦{{ "{:,.2f}".format(total_outstanding or 0.0) }}</span>
-                <p class="dashboard-card-hint text-[10px] text-amber-700/80 leading-tight">Balance due across all sales</p>
+            <div class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Outstanding</p>
+                </div>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none text-slate-900 truncate" id="top-outstanding">₦{ "{:,.2f}".format(total_outstanding or 0.0) }</span>
+                <p class="text-xs leading-snug text-slate-500">Balance due across all sales</p>
             </div>
-        </div>
-
-        <!-- Bottom row: Net Profit — full width so it has maximum space -->
-        <div class="mb-5 lg:col-span-2">
             {% set np = net_profit or 0.0 %}
-            <div class="{% if np >= 0 %}bg-white border-blue-100{% else %}bg-amber-50 border-amber-200{% endif %} border p-3 sm:p-4 rounded-2xl shadow-sm flex items-center justify-between gap-2 min-w-0 overflow-hidden">
-                <div class="flex items-center gap-2 flex-shrink-0 min-w-0" style="max-width:55%">
-                    <span class="flex-shrink-0 {% if np >= 0 %}text-blue-500{% else %}text-amber-500{% endif %}">
-                        {% if np >= 0 %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>{% else %}<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{% endif %}
-                    </span>
-                    <div class="min-w-0">
-                        <p class="text-[9px] sm:text-[10px] uppercase font-bold {% if np >= 0 %}text-blue-600{% else %}text-amber-400{% endif %} tracking-wider leading-none truncate">Net cash flow</p>
-                        <p class="text-[9px] {% if np >= 0 %}text-blue-400{% else %}text-amber-400{% endif %} mt-0.5 truncate">All payments received minus all expenses</p>
-                    </div>
+            <div id="kpi-net-cash-flow" class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Net cash flow</p>
                 </div>
-                <span class="stat-value {% if np >= 0 %}text-blue-700{% else %}text-amber-600{% endif %} text-right flex-1 min-w-0" id="top-profit">₦{{ "{:,.2f}".format(np) }}</span>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none {% if np >= 0 %}text-blue-700{% else %}text-amber-600{% endif %} truncate" id="top-profit">₦{ "{:,.2f}".format(np) }</span>
+                <p class="text-xs leading-snug text-slate-500">All payments received minus all expenses</p>
             </div>
         </div>
         </div> <!-- End cfo-dashboard -->
@@ -1733,11 +1723,11 @@
             const npCard = topProfitEl ? topProfitEl.closest('[class*="rounded-2xl"]') : null;
             if (npCard) {
                 if (netProfit < 0) {
-                    npCard.classList.remove('bg-blue-50', 'border-blue-200');
+                    npCard.classList.remove('bg-white', 'border-slate-200');
                     npCard.classList.add('bg-amber-50', 'border-amber-200');
                 } else {
                     npCard.classList.remove('bg-amber-50', 'border-amber-200');
-                    npCard.classList.add('bg-blue-50', 'border-blue-200');
+                    npCard.classList.add('bg-white', 'border-slate-200');
                 }
             }
             refreshDailyBusinessCheckin();
