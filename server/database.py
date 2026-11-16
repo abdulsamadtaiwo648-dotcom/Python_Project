@@ -243,7 +243,62 @@ def init_admin_db():
                     )
         db.commit()
 
+def init_push_subscriptions_table():
+    """Browser push subscriptions: one row per device that turned on alerts.
+    Created before the account-deletion triggers that clean it up."""
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                endpoint TEXT UNIQUE NOT NULL,
+                p256dh TEXT NOT NULL,
+                auth TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id)")
+        db.commit()
+
+
+def init_website_tables():
+    """Business websites (one per account) and the images they use.
+
+    Images live in the database because the host's disk is wiped on deploy.
+    Created before the account-deletion triggers that clean them up."""
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS business_websites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT UNIQUE NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                draft TEXT NOT NULL,
+                published TEXT,
+                is_published INTEGER NOT NULL DEFAULT 0,
+                published_at TEXT,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS website_media (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                content_type TEXT NOT NULL,
+                data %s NOT NULL,
+                size INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """ % ("BYTEA" if db.is_postgres else "BLOB")
+        )
+        db.execute("CREATE INDEX IF NOT EXISTS idx_website_media_user ON website_media (user_id)")
+        db.commit()
+
+
 def init_db():
+    init_push_subscriptions_table()
+    init_website_tables()
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:
         # PostgreSQL Cloud Migration & Table Initialization
@@ -343,6 +398,17 @@ def init_db():
             "ALTER TABLE income ADD COLUMN IF NOT EXISTS unit_price NUMERIC NOT NULL DEFAULT 0",
             "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS track_stock INTEGER NOT NULL DEFAULT 0",
             "UPDATE inventory_presets SET track_stock = 1 WHERE stock > 0 AND track_stock = 0",
+            # Optional bulk pricing: `bulk_price` buys `bulk_quantity` units.
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS bulk_quantity INTEGER",
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS bulk_price NUMERIC",
+            # Stock at or below this level triggers a low-stock alert.
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS low_stock_threshold INTEGER NOT NULL DEFAULT 3",
+            # Public website: which products show, and an optional photo.
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS show_on_website INTEGER NOT NULL DEFAULT 1",
+            "ALTER TABLE inventory_presets ADD COLUMN IF NOT EXISTS image_url TEXT",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS sale_type TEXT NOT NULL DEFAULT 'unit'",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_count INTEGER",
+            "ALTER TABLE income ADD COLUMN IF NOT EXISTS bundle_size INTEGER",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT",
             "ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS store_policy TEXT",
@@ -386,6 +452,9 @@ def init_db():
                         DELETE FROM business_profiles WHERE user_id = OLD.id;
                         DELETE FROM inventory_presets WHERE user_id = OLD.id;
                         DELETE FROM user_activity_logs WHERE user_id = OLD.id;
+                        DELETE FROM push_subscriptions WHERE user_id = OLD.id;
+                        DELETE FROM business_websites WHERE user_id = OLD.id;
+                        DELETE FROM website_media WHERE user_id = OLD.id;
                         DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                         RETURN OLD;
                     END;
@@ -542,6 +611,14 @@ def init_db():
                 ("income", "quantity", "INTEGER NOT NULL DEFAULT 1"),
                 ("income", "unit_price", "REAL NOT NULL DEFAULT 0"),
                 ("inventory_presets", "track_stock", "INTEGER NOT NULL DEFAULT 0"),
+                ("inventory_presets", "bulk_quantity", "INTEGER"),
+                ("inventory_presets", "bulk_price", "REAL"),
+                ("inventory_presets", "low_stock_threshold", "INTEGER NOT NULL DEFAULT 3"),
+                ("inventory_presets", "show_on_website", "INTEGER NOT NULL DEFAULT 1"),
+                ("inventory_presets", "image_url", "TEXT"),
+                ("income", "sale_type", "TEXT NOT NULL DEFAULT 'unit'"),
+                ("income", "bundle_count", "INTEGER"),
+                ("income", "bundle_size", "INTEGER"),
             ]:
                 try:
                     db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
@@ -577,6 +654,9 @@ def init_db():
                     DELETE FROM business_profiles WHERE user_id = OLD.id;
                     DELETE FROM inventory_presets WHERE user_id = OLD.id;
                     DELETE FROM user_activity_logs WHERE user_id = OLD.id;
+                    DELETE FROM push_subscriptions WHERE user_id = OLD.id;
+                    DELETE FROM business_websites WHERE user_id = OLD.id;
+                    DELETE FROM website_media WHERE user_id = OLD.id;
                     DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                 END
             """)
@@ -620,3 +700,32 @@ def init_db():
             db.commit()
     except Exception as repair_error:
         print(f"Storefront slug repair note: {repair_error}", flush=True)
+
+    # Failed sign-in counters for the user login form. Rows are keyed by a
+    # keyed hash of the email so raw addresses are not stored here. The id
+    # column exists because the PostgreSQL wrapper appends RETURNING id.
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_login_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fingerprint TEXT UNIQUE NOT NULL,
+                attempts INTEGER NOT NULL,
+                window_started TEXT NOT NULL,
+                blocked_until TEXT
+            )
+        """)
+        db.commit()
+
+    # The Floor (community feature) was removed. Its tables are dropped only
+    # when DROP_FLOOR_TABLES=1, so an older release that still has the Floor
+    # pages keeps working while both versions share this database (blue-green
+    # deploys). Set the variable once the old release is retired.
+    if (os.environ.get("DROP_FLOOR_TABLES") or "").strip().lower() in ("1", "true", "yes"):
+        # Children before parents so foreign keys never block the drop.
+        for table in ("community_vote", "sabi_plug_recommendation", "sabi_plug_request", "street_tip", "market_mood"):
+            try:
+                with get_db() as db:
+                    db.execute(f"DROP TABLE IF EXISTS {table}")
+                    db.commit()
+            except Exception as drop_error:
+                logging.warning("Could not drop removed Floor table %s: %s", table, drop_error)

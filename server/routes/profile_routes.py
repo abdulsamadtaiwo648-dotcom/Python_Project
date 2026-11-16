@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from flask import Response, jsonify, render_template, request
-import calendar, re, uuid
+import calendar, html, re, uuid
 from ..app import (
     app,
     get_current_user_id,
@@ -82,10 +82,11 @@ def dynamic_business_avatar(store_slug):
             if profile["brand_color"]:
                 color_hex = profile["brand_color"].replace("#", "")
 
-    if len(color_hex) not in [3, 6]:
+    if not re.fullmatch(r"[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}", color_hex):
         color_hex = "4F46E5"
 
     initials = (company_name[:2] if len(company_name) >= 2 else (company_name[:1] or "B")).upper()
+    initials = html.escape(initials)
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="120" fill="#{color_hex}"/>
   <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="210">{initials}</text>
@@ -294,10 +295,10 @@ def api_business_profile():
                     record_user_activity(db, user_id, "profile_change_rejected", "Business profile change could not be verified against the last update date")
                 return jsonify({
                     "status": "error",
-                    "message": "We couldnâ€™t verify when this profile was last updated. Please contact our support team before making changes.",
+                    "message": "We couldn’t verify when this profile was last updated. Please contact our support team before making changes.",
                 }), 400
 
-        # OTP Validation â€” verify against the hashed code stored in otp_codes table
+        # OTP validation: verify against the hashed code stored in otp_codes table
         # A locked profile change is stored as a request in the activity log,
         # after identity verification, but the profile values remain unchanged.
 

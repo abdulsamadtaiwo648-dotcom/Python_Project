@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website — SoloBiz</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <meta name="theme-color" content="#4F46E5">
+    <script src="/static/tailwind.js"></script>
+    <script src="/static/shrink-image.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/solobiz-ui.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .wb-top { position: sticky; top: 0; z-index: 40; background: #fff; border-bottom: 1px solid var(--sb-line); }
+        .wb-top-row { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 56px; }
+        .wb-back { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 10px 0 4px; border-radius: 10px; color: var(--sb-text-2); font-weight: 600; font-size: .9rem; text-decoration: none; }
+        .wb-back:hover { background: #f1f5f9; }
+        .wb-top h1 { font-size: 1.1rem; font-weight: 700; color: var(--sb-ink); }
+        .wb-main { max-width: 760px; margin: 0 auto; padding: 16px 16px 120px; display: flex; flex-direction: column; gap: 14px; }
+        .wb-step-title { display: flex; align-items: baseline; gap: 8px; font-size: 1.02rem; font-weight: 700; color: var(--sb-ink); }
+        .wb-step-title span { font-size: .78rem; font-weight: 600; color: var(--sb-muted); }
+        .wb-step-sub { font-size: .82rem; color: var(--sb-muted); margin: 2px 0 14px; }
+        .wb-fields { display: flex; flex-direction: column; gap: 14px; }
+        .wb-public { display: inline-block; padding: 1px 7px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: .7rem; font-weight: 600; vertical-align: middle; }
+
+        /* status */
+        .wb-status-address { font-size: 1.05rem; font-weight: 700; color: var(--sb-ink); word-break: break-all; }
+        .wb-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .75rem; font-weight: 600; }
+        .wb-badge-off { background: #f1f5f9; color: #475569; }
+        .wb-badge-live { background: #ecfdf5; color: #047857; }
+        .wb-badge-changes { background: #fffbeb; color: #b45309; }
+        .wb-status-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+        /* layout picker */
+        .wb-layouts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .wb-layout { position: relative; display: block; padding: 12px; border: 2px solid var(--sb-line); border-radius: 14px; background: #fff; cursor: pointer; }
+        .wb-layout input { position: absolute; opacity: 0; }
+        .wb-layout:has(input:checked) { border-color: var(--sb-brand); background: #f8faff; }
+        .wb-layout:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(79, 70, 229, .25); }
+        .wb-layout strong { display: block; margin-top: 10px; font-size: .95rem; color: var(--sb-ink); }
+        .wb-layout p { font-size: .78rem; color: var(--sb-muted); line-height: 1.35; margin-top: 2px; }
+        .wb-wire { display: grid; gap: 4px; padding: 6px; border-radius: 8px; background: #f1f5f9; }
+        .wb-wire i { display: block; border-radius: 3px; background: #cbd5e1; }
+        .wb-wire .hero { height: 22px; background: #a5b4fc; }
+        .wb-wire .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+        .wb-wire .cards i { height: 26px; }
+        .wb-wire .rows { display: grid; gap: 4px; }
+        .wb-wire .rows i { height: 11px; }
+        .wb-wire .cta { height: 9px; width: 45%; background: #6366f1; }
+
+        /* images */
+        .wb-image-row { display: flex; align-items: center; gap: 12px; }
+        .wb-thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; border: 1px dashed #cbd5e1; background: #f8fafc center / cover no-repeat; display: grid; place-items: center; color: #94a3b8; font-size: .7rem; text-align: center; }
+        .wb-thumb.wide { width: 112px; }
+        .wb-thumb.has-image { border-style: solid; color: transparent; }
+        .wb-image-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+        .wb-color-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .wb-color-row input[type=color] { width: 52px; min-height: 46px; padding: 3px; }
+        .wb-swatch { width: 32px; height: 32px; border-radius: 999px; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1; }
+
+        /* content lists */
+        .wb-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .wb-item:last-child { border-bottom: 0; }
+        .wb-item-text { flex: 1; min-width: 0; }
+        .wb-item-text strong { display: block; font-size: .92rem; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .wb-item-text span { font-size: .8rem; color: var(--sb-muted); }
+        .wb-switch { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600; color: var(--sb-text-2); cursor: pointer; min-height: 40px; }
+        .wb-switch input { width: 20px; height: 20px; accent-color: var(--sb-brand); }
+        .wb-service { border: 1px solid var(--sb-line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .wb-service-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .wb-service-head span { font-size: .8rem; font-weight: 600; color: var(--sb-muted); }
+        .wb-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+        .wb-gallery-item { position: relative; aspect-ratio: 1; border-radius: 10px; background: #f1f5f9 center / cover no-repeat; }
+        .wb-gallery-item button { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 999px; background: rgba(15, 23, 42, .75); color: #fff; font-size: 1rem; line-height: 1; }
+
+        /* bottom bar */
+        .wb-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; background: #fff; border-top: 1px solid var(--sb-line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+        .wb-bar-row { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; align-items: center; }
+        .wb-bar-row .sb-btn { flex: 1; padding: 0 10px; }
+        .wb-bar-note { max-width: 760px; margin: 0 auto 8px; font-size: .78rem; color: var(--sb-muted); }
+        .wb-problems { border: 1px solid #fde68a; background: #fffbeb; color: #92400e; border-radius: 12px; padding: 12px 14px; font-size: .86rem; }
+        .wb-problems ul { margin-top: 6px; padding-left: 18px; list-style: disc; }
+
+        /* preview */
+        .wb-preview-body { flex: 1; display: flex; justify-content: center; background: #e2e8f0; padding: 12px; overflow: hidden; }
+        .wb-preview-body iframe { width: 100%; max-width: 390px; height: 100%; border: 0; border-radius: 18px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .2); }
+        #preview-modal .sb-sheet { height: 100%; }
+        @media (min-width: 640px) { #preview-modal .sb-sheet { max-width: 480px; height: min(92vh, 900px); max-height: none; } }
+    </style>
+</head>
+<body class="app-shell">
+    <header class="wb-top">
+        <div class="wb-top-row">
+            <a class="wb-back" href="/dashboard">
+                <svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m15 6-6 6 6 6"/></svg>
+                Back
+            </a>
+            <h1>Website</h1>
+        </div>
+    </header>
+
+    <main class="wb-main" id="wb-main" aria-busy="true">
+        <!-- Address and status -->
+        <section class="sb-panel" aria-labelledby="status-title">
+            <h2 id="status-title" class="sr-only">Website address and status</h2>
+            <p class="sb-help">Your website address</p>
+            <p class="wb-status-address" id="site-address">…</p>
+            <p style="margin-top:6px"><span id="site-badge" class="wb-badge wb-badge-off">Not published</span> <span id="site-badge-note" class="sb-help"></span></p>
+            <div class="wb-status-actions">
+                <button type="button" id="btn-copy" class="sb-btn sb-btn-small sb-btn-secondary hidden">Copy link</button>
+                <a id="btn-open" class="sb-btn sb-btn-small sb-btn-secondary hidden" target="_blank" rel="noopener">Open website</a>
+                <button type="button" id="btn-unpublish" class="sb-btn sb-btn-small sb-btn-danger-text hidden">Take offline</button>
+            </div>
+            <p class="sb-help" style="margin-top:10px">The address is set for you and stays the same. <span id="store-link-note"></span></p>
+        </section>
+
+        <!-- 1. Layout -->
+        <section class="sb-panel" aria-labelledby="step-layout">
+            <h2 class="wb-step-title" id="step-layout"><span>1</span> Choose a layout</h2>
+            <p class="wb-step-sub">Pick the one that fits your business. You can switch later.</p>
+            <div class="wb-layouts" role="radiogroup" aria-labelledby="step-layout">
+                <label class="wb-layout">
+                    <input type="radio" name="layout" value="product">
+                    <div class="wb-wire" aria-hidden="true"><i class="hero"></i><div class="cards"><i></i><i></i><i></i></div><div class="cards"><i></i><i></i><i></i></div></div>
+                    <strong>Product Store</strong>
+                    <p>For shops that sell items. Shows your products and prices from Inventory.</p>
+                </label>
+                <label class="wb-layout">
+                    <input type="radio" name="layout" value="service">
+                    <div class="wb-wire" aria-hidden="true"><i class="hero"></i><i class="cta"></i><div class="rows"><i></i><i></i><i></i></div></div>
+                    <strong>Service Business</strong>
+                    <p>For salons, tailors, repairs and more. Lists your services with a booking button.</p>
+                </label>
+            </div>
+        </section>
+
+        <!-- 2. Business details -->
+        <section class="sb-panel" aria-labelledby="step-details">
+            <h2 class="wb-step-title" id="step-details"><span>2</span> Business details</h2>
+            <p class="wb-step-sub">Everything you fill in here is shown on your public website. Leave a box empty to keep it off the site.</p>
+            <div class="wb-fields">
+                <div class="sb-field">
+                    <label for="f-display_name">Business name <span class="wb-public">Public</span></label>
+                    <input id="f-display_name" type="text" maxlength="80" data-field="display_name" autocomplete="organization">
+                </div>
+                <div class="sb-field">
+                    <label for="f-tagline">Short description <span class="sb-optional">(optional)</span></label>
+                    <input id="f-tagline" type="text" maxlength="160" data-field="tagline" placeholder="e.g. Streetwear made in Lagos">
+                    <p class="sb-help">One line under your name at the top of the site.</p>
+                </div>
+                <div class="sb-field">
+                    <label>Logo <span class="sb-optional">(optional)</span></label>
+                    <div class="wb-image-row">
+                        <div class="wb-thumb" id="thumb-logo_url">No logo</div>
+                        <div class="wb-image-buttons">
+                            <button type="button" class="sb-btn sb-btn-small sb-btn-secondary" data-upload="logo_url">Upload</button>
+                            <button type="button" class="sb-btn sb-btn-small sb-btn-secondary hidden" id="btn-use-profile-logo">Use profile logo</button>
+                            <button type="button" class="sb-btn sb-btn-small sb-btn-danger-text hidden" data-clear="logo_url">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="sb-field">
+                    <label>Cover photo <span class="sb-optional">(optional)</span></label>
+                    <div class="wb-image-row">
+                        <div class="wb-thumb wide" id="thumb-cover_url">No photo</div>
+                        <div class="wb-image-buttons">
+                            <button type="button" class="sb-btn sb-btn-small sb-btn-secondary" data-upload="cover_url">Upload</button>
+                            <button type="button" class="sb-btn sb-btn-small sb-btn-danger-text hidden" data-clear="cover_url">Remove</button>
+                        </div>
+                    </div>
+                    <p class="sb-help">A wide photo behind your name. Without one, the site uses a clean text header.</p>
+                </div>
+                <div class="sb-field">
+                    <label for="f-brand_color">Brand colour</label>
+                    <div class="wb-color-row">
+                        <input id="f-brand_color" type="color" data-field="brand_color" aria-label="Brand colour">
+                        <span id="swatches" style="display:flex;gap:8px;flex-wrap:wrap"></span>
+                    </div>
+                    <p class="sb-help">Used for buttons and accents. Text colour adjusts so it stays readable.</p>
+                </div>
+                <div class="sb-field">
+                    <label for="f-about">About your business <span class="sb-optional">(optional)</span></label>
+                    <textarea id="f-about" maxlength="1200" rows="4" data-field="about" placeholder="What you do, how long you've been doing it, what makes you different."></textarea>
+                </div>
+                <div class="sb-field-row sb-field-row-stack">
+                    <div class="sb-field">
+                        <label for="f-whatsapp">WhatsApp number <span class="sb-optional">(optional)</span></label>
+                        <input id="f-whatsapp" type="tel" inputmode="tel" data-field="whatsapp" placeholder="+2348012345678">
+                        <p class="sb-error hidden" data-error="whatsapp"></p>
+                    </div>
+                    <div class="sb-field">
+                        <label for="f-phone">Phone number <span class="sb-optional">(optional)</span></label>
+                        <input id="f-phone" type="tel" inputmode="tel" data-field="phone" placeholder="+2348012345678">
+                        <p class="sb-error hidden" data-error="phone"></p>
+                    </div>
+                </div>
+                <div class="sb-field-row sb-field-row-stack">
+                    <div class="sb-field">
+                        <label for="f-email">Email <span class="sb-optional">(optional)</span></label>
+                        <input id="f-email" type="email" data-field="email" placeholder="you@example.com">
+                        <p class="sb-error hidden" data-error="email"></p>
+                    </div>
+                    <div class="sb-field">
+                        <label for="f-instagram">Instagram <span class="sb-optional">(optional)</span></label>
+                        <input id="f-instagram" type="text" data-field="instagram" placeholder="aisha_wears">
+                    </div>
+                </div>
+                <div class="sb-field">
+                    <label for="f-address">Location <span class="sb-optional">(optional)</span></label>
+                    <input id="f-address" type="text" maxlength="200" data-field="address" placeholder="12 Market St, Lagos">
+                </div>
+                <div class="sb-field">
+                    <label for="f-hours">Opening hours <span class="sb-optional">(optional)</span></label>
+                    <textarea id="f-hours" maxlength="300" rows="2" data-field="hours" placeholder="Mon–Sat 9am–7pm"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Content -->
+        <section class="sb-panel" aria-labelledby="step-content">
+            <h2 class="wb-step-title" id="step-content"><span>3</span> <span id="content-title" style="font-size:inherit;color:inherit;font-weight:inherit">Products</span></h2>
+
+            <div id="content-product">
+                <p class="wb-step-sub">These come from your Inventory. Changes to products show on a live site straight away. <a class="sb-link" href="/inventory" style="padding:0">Manage products</a></p>
+                <div id="product-list"></div>
+            </div>
+
+            <div id="content-service" class="hidden">
+                <p class="wb-step-sub">List what you offer. Leave the price empty if you quote each customer.</p>
+                <div id="service-list" class="wb-fields"></div>
+                <p class="sb-error hidden" data-error="services" style="margin-top:10px"></p>
+                <button type="button" id="btn-add-service" class="sb-btn sb-btn-secondary" style="margin-top:12px;width:100%">+ Add a service</button>
+            </div>
+
+            <div style="margin-top:18px">
+                <p class="sb-field"><label><span id="gallery-label">Gallery</span> <span class="sb-optional">(optional, up to 12 photos)</span></label></p>
+                <div class="wb-gallery" id="gallery-list" style="margin-top:8px"></div>
+                <button type="button" id="btn-add-gallery" class="sb-btn sb-btn-small sb-btn-secondary" style="margin-top:8px">+ Add photo</button>
+            </div>
+        </section>
+
+        <!-- 4. Main action -->
+        <section class="sb-panel" aria-labelledby="step-action">
+            <h2 class="wb-step-title" id="step-action"><span>4</span> Main button</h2>
+            <p class="wb-step-sub">The one thing you want visitors to do. It stays in reach on phones.</p>
+            <div class="wb-fields">
+                <div class="sb-field">
+                    <label for="f-action-type">What should it do?</label>
+                    <select id="f-action-type">
+                        <option value="whatsapp">Open a WhatsApp chat</option>
+                        <option value="call">Call a phone number</option>
+                        <option value="link">Open a link (booking or quote form)</option>
+                    </select>
+                </div>
+                <div class="sb-field">
+                    <label for="f-action-value" id="action-value-label">WhatsApp number</label>
+                    <input id="f-action-value" type="text" placeholder="+2348012345678">
+                    <p class="sb-error hidden" data-error="action"></p>
+                </div>
+                <div class="sb-field">
+                    <label for="f-action-label">Button text <span class="sb-optional">(optional)</span></label>
+                    <input id="f-action-label" type="text" maxlength="30" placeholder="Chat on WhatsApp">
+                </div>
+            </div>
+        </section>
+
+        <div id="publish-problems" class="wb-problems hidden" role="alert"></div>
+    </main>
+
+    <div class="wb-bar">
+        <p class="wb-bar-note" id="save-note" aria-live="polite"></p>
+        <div class="wb-bar-row">
+            <button type="button" id="btn-save" class="sb-btn sb-btn-secondary">Save draft</button>
+            <button type="button" id="btn-preview" class="sb-btn sb-btn-secondary">Preview</button>
+            <button type="button" id="btn-publish" class="sb-btn sb-btn-primary">Publish</button>
+        </div>
+    </div>
+
+    <div id="preview-modal" class="hidden sb-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+        <div class="sb-sheet">
+            <div class="sb-sheet-head">
+                <div>
+                    <h3 id="preview-title" class="sb-sheet-title">Preview</h3>
+                    <p class="sb-sheet-sub">How your draft looks on a phone. Only you can see it. <a class="sb-link" style="padding:0" href="/website/preview" target="_blank" rel="noopener">Open full size</a></p>
+                </div>
+                <button type="button" id="btn-close-preview" class="sb-icon-btn" aria-label="Close preview">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                </button>
+            </div>
+            <div class="wb-preview-body"><iframe id="preview-frame" title="Website preview"></iframe></div>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" class="hidden">
+
+    <script>
+    (() => {
+        const CSRF_TOKEN = {{ csrf_token | tojson }};
+        const $ = id => document.getElementById(id);
+        const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const naira = value => '₦' + Number(value).toLocaleString('en-NG', { maximumFractionDigits: 2 });
+        const SWATCHES = ['#4F46E5', '#0F766E', '#BE185D', '#B45309', '#1D4ED8', '#15803D', '#7C3AED', '#0F172A'];
+        const ACTION_HINTS = {
+            whatsapp: { label: 'WhatsApp number', placeholder: '+2348012345678', text: 'Chat on WhatsApp' },
+            call: { label: 'Phone number', placeholder: '+2348012345678', text: 'Call us' },
+            link: { label: 'Link', placeholder: 'https://…', text: 'Request a quote' }
+        };
+
+        let site = null;       // server state
+        let content = null;    // the draft being edited
+        let dirty = false;
+        let busy = false;
+
+        async function api(path, options = {}) {
+            const headers = Object.assign({ 'X-CSRFToken': CSRF_TOKEN }, options.headers || {});
+            if (options.json !== undefined) {
+                headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(options.json);
+            }
+            const response = await fetch(path, Object.assign({}, options, { headers }));
+            if (response.status === 401) { window.location.href = '/login'; throw new Error('Signed out'); }
+            const data = await response.json().catch(() => ({}));
+            return { ok: response.ok, data };
+        }
+
+        function note(message, tone) {
+            const el = $('save-note');
+            el.textContent = message || '';
+            el.style.color = tone === 'error' ? '#be123c' : tone === 'ok' ? '#047857' : '';
+        }
+        function markDirty() {
+            dirty = true;
+            note('You have changes that are not saved yet.');
+        }
+
+        // ---------- render ----------
+        function renderStatus() {
+            $('site-address').textContent = site.address;
+            const badge = $('site-badge');
+            const live = site.is_published;
+            badge.className = 'wb-badge ' + (live ? (site.has_unpublished_changes ? 'wb-badge-changes' : 'wb-badge-live') : 'wb-badge-off');
+            badge.textContent = live ? (site.has_unpublished_changes ? 'Live · changes not published' : 'Live') : 'Not published';
+            $('site-badge-note').textContent = live
+                ? (site.has_unpublished_changes ? 'Visitors still see the last published version.' : '')
+                : 'Nobody can see your website until you publish.';
+            ['btn-copy', 'btn-open', 'btn-unpublish'].forEach(id => $(id).classList.toggle('hidden', !live));
+            $('btn-open').href = site.url;
+            $('btn-publish').textContent = live ? 'Publish changes' : 'Publish';
+            $('store-link-note').textContent = site.store_url ? 'Your shop link keeps working as before.' : '';
+        }
+
+        function setThumb(field) {
+            const thumb = $('thumb-' + field);
+            const url = content[field];
+            thumb.classList.toggle('has-image', Boolean(url));
+            thumb.style.backgroundImage = url ? `url("${url}")` : '';
+            document.querySelector(`[data-clear="${field}"]`).classList.toggle('hidden', !url);
+        }
+
+        function renderFields() {
+            document.querySelectorAll('[data-field]').forEach(input => { input.value = content[input.dataset.field] ?? ''; });
+            document.querySelectorAll('input[name=layout]').forEach(radio => { radio.checked = radio.value === content.layout; });
+            setThumb('logo_url'); setThumb('cover_url');
+            $('btn-use-profile-logo').classList.toggle('hidden', !site.profile_logo || content.logo_url === site.profile_logo);
+            $('f-action-type').value = content.action.type;
+            $('f-action-value').value = content.action.value || '';
+            $('f-action-label').value = content.action.label || '';
+            renderActionHints();
+            renderLayout();
+        }
+
+        function renderActionHints() {
+            const hint = ACTION_HINTS[content.action.type];
+            $('action-value-label').textContent = hint.label;
+            $('f-action-value').placeholder = hint.placeholder;
+            $('f-action-value').inputMode = content.action.type === 'link' ? 'url' : 'tel';
+            $('f-action-label').placeholder = hint.text;
+        }
+
+        function renderLayout() {
+            const product = content.layout === 'product';
+            $('content-title').textContent = product ? 'Products' : 'Services';
+            $('content-product').classList.toggle('hidden', !product);
+            $('content-service').classList.toggle('hidden', product);
+            $('gallery-label').textContent = product ? 'Gallery' : 'Photos of your work';
+            renderProducts(); renderServices(); renderGallery();
+        }
+
+        function renderProducts() {
+            const list = $('product-list');
+            if (!site.products.length) {
+                list.innerHTML = '<p class="list-empty" style="padding:16px 0">You have no products yet. <a class="sb-link" href="/inventory">Add products in Inventory</a></p>';
+                return;
+            }
+            list.innerHTML = site.products.map(product => `
+                <div class="wb-item" data-product="${product.id}">
+                    <button type="button" class="wb-thumb ${product.image_url ? 'has-image' : ''}" style="${product.image_url ? `background-image:url('${esc(product.image_url)}')` : ''}" data-product-image aria-label="${product.image_url ? 'Change' : 'Add'} photo for ${esc(product.name)}">Add photo</button>
+                    <div class="wb-item-text">
+                        <strong>${esc(product.name)}</strong>
+                        <span>${naira(product.price)}${product.sold_out ? ' · Sold out' : ''}</span>
+                    </div>
+                    <label class="wb-switch"><input type="checkbox" data-product-show ${product.show_on_website ? 'checked' : ''}> Show</label>
+                </div>`).join('');
+        }
+
+        function renderServices() {
+            const list = $('service-list');
+            if (!content.services.length) {
+                list.innerHTML = '<p class="sb-help">No services yet. Add your first one below.</p>';
+                return;
+            }
+            list.innerHTML = content.services.map((service, index) => `
+                <div class="wb-service" data-service="${index}">
+                    <div class="wb-service-head">
+                        <span>Service ${index + 1}</span>
+                        <div style="display:flex;gap:4px">
+                            <button type="button" class="sb-icon-btn" data-move="-1" aria-label="Move up" ${index === 0 ? 'disabled' : ''}><svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 15 6-6 6 6"/></svg></button>
+                            <button type="button" class="sb-icon-btn" data-move="1" aria-label="Move down" ${index === content.services.length - 1 ? 'disabled' : ''}><svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+                            <button type="button" class="sb-icon-btn" data-remove aria-label="Remove service"><svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+                        </div>
+                    </div>
+                    <div class="sb-field"><label>Name</label><input type="text" maxlength="80" data-key="name" value="${esc(service.name)}" placeholder="e.g. Knotless braids"></div>
+                    <div class="sb-field"><label>Short description <span class="sb-optional">(optional)</span></label><input type="text" maxlength="300" data-key="description" value="${esc(service.description)}"></div>
+                    <div class="sb-field-row">
+                        <div class="sb-field"><label>Price (₦) <span class="sb-optional">(optional)</span></label><input type="number" inputmode="decimal" min="0" step="any" data-key="price" value="${service.price ?? ''}" placeholder="Quote on request"></div>
+                        <div class="sb-field"><label>Photo <span class="sb-optional">(optional)</span></label>
+                            <div class="wb-image-row">
+                                <button type="button" class="wb-thumb ${service.image_url ? 'has-image' : ''}" style="width:46px;height:46px;${service.image_url ? `background-image:url('${esc(service.image_url)}')` : ''}" data-service-image aria-label="Add photo">+</button>
+                                ${service.image_url ? '<button type="button" class="sb-link" data-service-image-clear>Remove</button>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function renderGallery() {
+            $('gallery-list').innerHTML = content.gallery.map((url, index) => `
+                <div class="wb-gallery-item" style="background-image:url('${esc(url)}')"><button type="button" data-gallery-remove="${index}" aria-label="Remove photo ${index + 1}">×</button></div>`).join('');
+            $('btn-add-gallery').classList.toggle('hidden', content.gallery.length >= 12);
+        }
+
+        function showErrors(errors) {
+            document.querySelectorAll('[data-error]').forEach(el => {
+                const message = errors[el.dataset.error];
+                el.textContent = message || '';
+                el.classList.toggle('hidden', !message);
+            });
+            const others = Object.entries(errors).filter(([key]) => !document.querySelector(`[data-error="${key}"]`)).map(([, message]) => message);
+            return others;
+        }
+
+        function showProblems(title, problems) {
+            const box = $('publish-problems');
+            if (!problems || !problems.length) { box.classList.add('hidden'); return; }
+            box.innerHTML = `<strong>${esc(title)}</strong><ul>${problems.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`;
+            box.classList.remove('hidden');
+            box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+
+        // ---------- uploads ----------
+        function pickImage() {
+            return new Promise(resolve => {
+                const input = $('file-input');
+                input.value = '';
+                input.onchange = async () => {
+                    const original = input.files[0];
+                    if (!original) return resolve(null);
+                    note('Preparing photo…');
+                    const file = await window.shrinkImage(original);
+                    if (file.size > 2 * 1024 * 1024) { note('That image is still larger than 2 MB. Choose a smaller one.', 'error'); return resolve(null); }
+                    const form = new FormData();
+                    form.append('image', file);
+                    note('Uploading photo…');
+                    const { ok, data } = await api('/api/website/media', { method: 'POST', body: form });
+                    if (!ok) { note(data.message || 'Could not upload that image.', 'error'); return resolve(null); }
+                    note('Photo added.', 'ok');
+                    resolve(data.url);
+                };
+                input.click();
+            });
+        }
+
+        // ---------- save / publish ----------
+        async function saveDraft(quiet) {
+            const { ok, data } = await api('/api/website', { method: 'PUT', json: content });
+            if (!ok) { note(data.message || 'Could not save. Check your connection and try again.', 'error'); return false; }
+            site = data.website; content = site.content; dirty = false;
+            const others = showErrors(data.errors || {});
+            const hasErrors = Object.keys(data.errors || {}).length > 0;
+            renderStatus(); renderFields();
+            if (hasErrors) {
+                note('Saved, but some details need fixing (shown in red).', 'error');
+                if (others.length) showProblems('Please check:', others);
+                return false;
+            }
+            showProblems('', []);
+            if (!quiet) note('Draft saved. Publish when you are ready.', 'ok');
+            return true;
+        }
+
+        async function guarded(button, label, task) {
+            if (busy) return;                      // one action at a time: no double publish
+            busy = true;
+            const original = button.textContent;
+            button.disabled = true; button.textContent = label;
+            try { await task(); }
+            catch (error) { note('Something went wrong. Check your connection and try again.', 'error'); }
+            finally { busy = false; button.disabled = false; if (button.textContent === label) button.textContent = original; renderStatus(); }
+        }
+
+        $('btn-save').addEventListener('click', event => guarded(event.currentTarget, 'Saving…', () => saveDraft(false)));
+
+        $('btn-preview').addEventListener('click', event => guarded(event.currentTarget, 'Loading…', async () => {
+            if (dirty || !site.exists) await saveDraft(true);
+            $('preview-frame').src = '/website/preview?t=' + Date.now();
+            $('preview-modal').classList.remove('hidden');
+            $('btn-close-preview').focus();
+        }));
+        const closePreview = () => { $('preview-modal').classList.add('hidden'); $('preview-frame').src = 'about:blank'; };
+        $('btn-close-preview').addEventListener('click', closePreview);
+        $('preview-modal').addEventListener('click', event => { if (event.target === $('preview-modal')) closePreview(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') closePreview(); });
+
+        $('btn-publish').addEventListener('click', event => guarded(event.currentTarget, 'Publishing…', async () => {
+            if (!(await saveDraft(true))) return;
+            const { ok, data } = await api('/api/website/publish', { method: 'POST' });
+            if (!ok) {
+                showProblems(data.message || 'Your website is not ready to publish yet.', data.problems || []);
+                note('Not published yet. See what is missing above.', 'error');
+                return;
+            }
+            site = data.website; content = site.content;
+            renderStatus();
+            note(`Your website is live at ${site.address}`, 'ok');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }));
+
+        $('btn-unpublish').addEventListener('click', event => {
+            if (!confirm('Take your website offline? Visitors will see a "not found" page until you publish again. Your draft is kept.')) return;
+            guarded(event.currentTarget, 'Taking offline…', async () => {
+                const { ok, data } = await api('/api/website/unpublish', { method: 'POST' });
+                if (!ok) { note(data.message || 'Could not take the website offline.', 'error'); return; }
+                site = data.website; renderStatus(); note('Your website is offline.', 'ok');
+            });
+        });
+
+        $('btn-copy').addEventListener('click', async event => {
+            const button = event.currentTarget;
+            try { await navigator.clipboard.writeText(site.url); button.textContent = 'Copied'; }
+            catch (_) { window.prompt('Copy your website link:', site.url); }
+            setTimeout(() => { button.textContent = 'Copy link'; }, 1800);
+        });
+
+        // ---------- editing ----------
+        document.querySelectorAll('[data-field]').forEach(input => {
+            input.addEventListener('input', () => { content[input.dataset.field] = input.value; markDirty(); });
+        });
+        document.querySelectorAll('input[name=layout]').forEach(radio => {
+            radio.addEventListener('change', () => { content.layout = radio.value; markDirty(); renderLayout(); });
+        });
+        $('swatches').innerHTML = SWATCHES.map(color => `<button type="button" class="wb-swatch" style="background:${color}" data-swatch="${color}" aria-label="Use colour ${color}"></button>`).join('');
+        $('swatches').addEventListener('click', event => {
+            const swatch = event.target.closest('[data-swatch]');
+            if (!swatch) return;
+            content.brand_color = swatch.dataset.swatch; $('f-brand_color').value = content.brand_color; markDirty();
+        });
+        document.querySelectorAll('[data-upload]').forEach(button => button.addEventListener('click', async () => {
+            const url = await pickImage();
+            if (!url) return;
+            content[button.dataset.upload] = url; setThumb(button.dataset.upload); markDirty();
+            $('btn-use-profile-logo').classList.toggle('hidden', !site.profile_logo || content.logo_url === site.profile_logo);
+        }));
+        document.querySelectorAll('[data-clear]').forEach(button => button.addEventListener('click', () => {
+            content[button.dataset.clear] = ''; setThumb(button.dataset.clear); markDirty();
+            $('btn-use-profile-logo').classList.toggle('hidden', !site.profile_logo);
+        }));
+        $('btn-use-profile-logo').addEventListener('click', () => {
+            content.logo_url = site.profile_logo; setThumb('logo_url'); markDirty();
+            $('btn-use-profile-logo').classList.add('hidden');
+        });
+
+        $('f-action-type').addEventListener('change', event => { content.action.type = event.target.value; renderActionHints(); markDirty(); });
+        $('f-action-value').addEventListener('input', event => { content.action.value = event.target.value; markDirty(); });
+        $('f-action-label').addEventListener('input', event => { content.action.label = event.target.value; markDirty(); });
+
+        // products (saved straight away: they are live inventory data)
+        $('product-list').addEventListener('change', async event => {
+            const toggle = event.target.closest('[data-product-show]');
+            if (!toggle) return;
+            const id = toggle.closest('[data-product]').dataset.product;
+            const { ok, data } = await api(`/api/website/products/${id}`, { method: 'PUT', json: { show_on_website: toggle.checked } });
+            if (!ok) { toggle.checked = !toggle.checked; note(data.message || 'Could not update that product.', 'error'); return; }
+            site.products = data.website.products; site.publish_problems = data.website.publish_problems;
+            note(toggle.checked ? 'Product is shown on your website.' : 'Product is hidden from your website.', 'ok');
+        });
+        $('product-list').addEventListener('click', async event => {
+            const button = event.target.closest('[data-product-image]');
+            if (!button) return;
+            const id = button.closest('[data-product]').dataset.product;
+            const url = await pickImage();
+            if (!url) return;
+            const { ok, data } = await api(`/api/website/products/${id}`, { method: 'PUT', json: { image_url: url } });
+            if (!ok) { note(data.message || 'Could not save that photo.', 'error'); return; }
+            site.products = data.website.products; renderProducts();
+        });
+
+        // services
+        $('btn-add-service').addEventListener('click', () => {
+            if (content.services.length >= 30) { note('You can list up to 30 services.', 'error'); return; }
+            content.services.push({ name: '', description: '', price: null, image_url: '' });
+            markDirty(); renderServices();
+            $('service-list').querySelector('[data-service]:last-child [data-key="name"]').focus();
+        });
+        $('service-list').addEventListener('input', event => {
+            const input = event.target.closest('[data-key]');
+            if (!input) return;
+            const service = content.services[Number(input.closest('[data-service]').dataset.service)];
+            service[input.dataset.key] = input.dataset.key === 'price' ? (input.value === '' ? null : input.value) : input.value;
+            markDirty();
+        });
+        $('service-list').addEventListener('click', async event => {
+            const row = event.target.closest('[data-service]');
+            if (!row) return;
+            const index = Number(row.dataset.service);
+            const move = event.target.closest('[data-move]');
+            if (move) {
+                const target = index + Number(move.dataset.move);
+                if (target < 0 || target >= content.services.length) return;
+                [content.services[index], content.services[target]] = [content.services[target], content.services[index]];
+                markDirty(); renderServices();
+                $('service-list').querySelector(`[data-service="${target}"] [data-move="${move.dataset.move}"]`)?.focus();
+            } else if (event.target.closest('[data-remove]')) {
+                content.services.splice(index, 1); markDirty(); renderServices();
+            } else if (event.target.closest('[data-service-image-clear]')) {
+                content.services[index].image_url = ''; markDirty(); renderServices();
+            } else if (event.target.closest('[data-service-image]')) {
+                const url = await pickImage();
+                if (url) { content.services[index].image_url = url; markDirty(); renderServices(); }
+            }
+        });
+
+        // gallery
+        $('btn-add-gallery').addEventListener('click', async () => {
+            const url = await pickImage();
+            if (url) { content.gallery.push(url); markDirty(); renderGallery(); }
+        });
+        $('gallery-list').addEventListener('click', event => {
+            const button = event.target.closest('[data-gallery-remove]');
+            if (!button) return;
+            content.gallery.splice(Number(button.dataset.galleryRemove), 1); markDirty(); renderGallery();
+        });
+
+        window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+
+        // ---------- start ----------
+        (async () => {
+            try {
+                const { ok, data } = await api('/api/website');
+                if (!ok) throw new Error('load failed');
+                site = data.website; content = site.content;
+                renderStatus(); renderFields();
+                if (!site.exists) note('We filled in what SoloBiz already knows. Check it, then preview and publish.');
+            } catch (error) {
+                note('Could not load your website settings. Reload the page to try again.', 'error');
+            } finally {
+                $('wb-main').setAttribute('aria-busy', 'false');
+            }
+        })();
+    })();
+    </script>
+</body>
+</html>

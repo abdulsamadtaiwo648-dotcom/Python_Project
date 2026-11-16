@@ -1,4 +1,4 @@
-﻿"""Manual expense-flow check using an isolated temporary SQLite database."""
+"""Manual expense-flow check using an isolated temporary SQLite database."""
 
 import os
 import tempfile
@@ -14,7 +14,15 @@ try:
         os.environ["SQLITE_DATABASE_PATH"] = os.path.join(temp_directory, "solobiz.db")
 
         # Importing the application initializes its database in the temp directory.
-        from server.app import app
+        from server.app import app, get_db
+
+        # Sessions are checked against the users table, so the account must exist.
+        with get_db() as db:
+            db.execute(
+                "INSERT INTO users (id, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)",
+                ("user-123", "expense-flow@example.com", None, "Expense", "Check"),
+            )
+            db.commit()
 
         with app.test_client() as client:
             csrf_token = "local-expense-flow-check"

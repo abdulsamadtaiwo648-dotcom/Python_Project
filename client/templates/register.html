@@ -130,6 +130,13 @@
   </div>
 
   <script>
+    const CSRF_TOKEN = {{ csrf_token | tojson }};
+
+    function csrfFetch(url, options = {}) {
+      options.headers = Object.assign({ 'X-CSRFToken': CSRF_TOKEN }, options.headers || {});
+      return fetch(url, options);
+    }
+
     const step1Form = document.getElementById('step1-form');
     const step2Container = document.getElementById('step2-container');
     const step2Form = document.getElementById('step2-form');
@@ -215,7 +222,7 @@
       btn.innerHTML = `<span>Sending code...</span> <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
 
       try {
-        const res = await fetch('/api/register/request', {
+        const res = await csrfFetch('/api/register/request', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, first_name: firstName, last_name: lastName, password, confirm_password: confirmPassword, privacy_accepted: privacyAccepted })
@@ -262,7 +269,7 @@
       btn.innerHTML = `<span>Verifying...</span> <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
 
       try {
-        const res = await fetch('/api/register/verify', {
+        const res = await csrfFetch('/api/register/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, code })
@@ -296,7 +303,7 @@
       btnResend.innerText = "Sending…";
 
       try {
-        const res = await fetch('/api/register/resend', {
+        const res = await csrfFetch('/api/register/resend', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })

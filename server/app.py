@@ -1,26 +1,21 @@
+import hashlib
 import hmac
 import html
-import calendar
-import json
 import logging
-import math
 import os
 import re
 import secrets
 import smtplib
 import sqlite3
-import time
-import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from flask import (Flask, Response, jsonify, make_response, redirect,
-                   render_template, request, send_from_directory, session,
+from flask import (Flask, g, jsonify, redirect,
+                   render_template, request, session,
                    flash)
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import RequestEntityTooLarge
-from werkzeug.utils import secure_filename
 
 try:
     import resend
@@ -48,47 +43,23 @@ app = Flask(
 _secret_key = os.environ.get("SECRET_KEY")
 _is_hosted = bool(os.environ.get("DATABASE_URL") or os.environ.get("RENDER"))
 if not _secret_key:
-    _secret_key = "solobiz_production_secret_key_987456123_ultra_safe"
-    logging.warning("SECRET_KEY environment variable is not set; using fallback production key.")
+    if _is_hosted:
+        # Never fall back to a known key in production: anyone who knows it can
+        # forge a session cookie for any account.
+        raise RuntimeError("Set the SECRET_KEY environment variable before starting SoloBiz.")
+    _secret_key = secrets.token_urlsafe(48)
+    logging.warning(
+        "SECRET_KEY is not set; using a random development key. "
+        "Sessions will not survive a restart."
+    )
 app.secret_key = _secret_key
 app.permanent_session_lifetime = timedelta(days=30)
 
 from .database import get_db, init_db
-from .extensions import community_db
-from sqlalchemy.engine import make_url
-
-# The community models share the configured SQLite/Postgres database used by
-# the rest of SoloBiz. Existing application tables continue using DBWrapper.
-_community_database_url = os.environ.get("DATABASE_URL")
-if _community_database_url:
-    # Parse the URL instead of relying on a string prefix: managed database
-    # providers may supply `postgres://`, `postgresql://`, or an explicit
-    # `postgresql+psycopg://` driver. This app installs psycopg2-binary.
-    _community_database_url = make_url(_community_database_url.strip())
-    if _community_database_url.get_backend_name() in {"postgres", "postgresql"}:
-        _community_database_url = _community_database_url.set(
-            drivername="postgresql+psycopg2"
-        )
-    app.config["SQLALCHEMY_DATABASE_URI"] = _community_database_url
-else:
-    _community_sqlite_path = os.environ.get(
-        "SQLITE_DATABASE_PATH",
-        os.path.join(os.path.dirname(__file__), "solobiz.db"),
-    )
-    if _community_sqlite_path == ":memory:":
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    else:
-        _community_sqlite_path = os.path.abspath(_community_sqlite_path).replace("\\", "/")
-        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{_community_sqlite_path}"
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-            "connect_args": {"check_same_thread": False, "timeout": 30}
-        }
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-community_db.init_app(app)
 
 # Bump this when the offline shell or service worker changes. The value is
 # injected into /sw.js so browsers create a fresh cache during deployment.
-APP_VERSION = os.environ.get("APP_VERSION", "20261001.1")
+APP_VERSION = os.environ.get("APP_VERSION", "20261111.1")
 
 # Session / Cookie hardening
 _secure_cookie = os.environ.get("SESSION_COOKIE_SECURE")
@@ -107,7 +78,6 @@ BRAND_COLOR_PATTERN = re.compile(r"^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
 OTP_TTL_MINUTES = 15
 OTP_RESEND_SECONDS = 30
 OTP_MAX_ATTEMPTS = 5
-ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
 # ==========================================
@@ -135,6 +105,9 @@ def is_unique_violation(exc):
 
 
 def ensure_csrf_token():
+    # Business websites on their own subdomains are public and cookie-free.
+    if g.get("site_label"):
+        return ""
     token = session.get("csrf_token")
     if not token:
         token = secrets.token_urlsafe(32)
@@ -168,10 +141,6 @@ def inject_csrf_token():
 def enforce_csrf():
     if request.method in ("GET", "HEAD", "OPTIONS"):
         ensure_csrf_token()
-        return None
-    # Exempt public auth entrypoints from hard CSRF failure so users are never locked out
-    exempt_paths = ("/login", "/register")
-    if request.path in exempt_paths or request.path.startswith("/api/register/") or request.path.startswith("/api/forgot-password/"):
         return None
     if not csrf_token_valid():
         if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
@@ -215,26 +184,31 @@ def sanitize_logo_url(value):
         return ""
     if url.startswith("/static/uploads/logos/") and ".." not in url:
         return url
+    if re.match(r"^/media/[A-Za-z0-9_-]{16,40}$", url):
+        return url
     if url.startswith("https://") and " " not in url:
         return url
     return ""
 
 
 def save_uploaded_logo(file_storage, user_id):
-    filename = secure_filename(file_storage.filename or "")
-    ext = os.path.splitext(filename)[1].lower()
-    if ext not in ALLOWED_LOGO_EXTENSIONS:
-        return None, "Logo must be a PNG, JPG, WEBP, or GIF image."
-    file_storage.stream.seek(0, os.SEEK_END)
-    size = file_storage.stream.tell()
-    file_storage.stream.seek(0)
-    if size > MAX_LOGO_BYTES:
+    """Store a logo in the database (the host's disk is wiped on deploy)."""
+    from . import websites
+
+    data = file_storage.read(MAX_LOGO_BYTES + 1)
+    if len(data) > MAX_LOGO_BYTES:
         return None, "Logo must be smaller than 2MB."
-    folder = os.path.join(CLIENT_ROOT, "static", "uploads", "logos")
-    os.makedirs(folder, exist_ok=True)
-    stored_name = f"logo_{secure_filename(user_id)}_{int(time.time())}{ext}"
-    file_storage.save(os.path.join(folder, stored_name))
-    return f"/static/uploads/logos/{stored_name}", None
+    content_type = websites.sniff_image_type(data)
+    if not content_type:
+        return None, "Logo must be a PNG, JPG or WEBP image."
+    token = secrets.token_urlsafe(18)
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO website_media (user_id, token, content_type, data, size, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (str(user_id), token, content_type, data, len(data), websites.utcnow_iso()),
+        )
+        db.commit()
+    return f"/media/{token}", None
 
 
 def parse_otp_datetime(value):
@@ -313,6 +287,67 @@ def verify_otp(email, purpose, code, consume=True):
         return item, None
 
 
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_WINDOW = timedelta(minutes=15)
+LOGIN_LOCKOUT = timedelta(minutes=15)
+
+
+def _login_fingerprint(email):
+    normalized = (email or "").strip().lower().encode("utf-8")
+    return hmac.new(str(app.secret_key).encode("utf-8"), normalized, hashlib.sha256).hexdigest()
+
+
+def login_locked_until(email):
+    """Return when the sign-in lockout for this email ends, or None."""
+    with get_db() as db:
+        row = db.execute(
+            "SELECT blocked_until FROM user_login_attempts WHERE fingerprint = ?",
+            (_login_fingerprint(email),),
+        ).fetchone()
+    if not row or not row["blocked_until"]:
+        return None
+    until = parse_otp_datetime(row["blocked_until"])
+    return until if until > utcnow() else None
+
+
+def record_login_failure(email):
+    fingerprint = _login_fingerprint(email)
+    now = utcnow()
+    with get_db() as db:
+        row = db.execute(
+            "SELECT attempts, window_started FROM user_login_attempts WHERE fingerprint = ?",
+            (fingerprint,),
+        ).fetchone()
+        started = parse_otp_datetime(row["window_started"]) if row else None
+        if not row or now - started >= LOGIN_WINDOW:
+            attempts, started = 1, now
+        else:
+            attempts = int(row["attempts"]) + 1
+        blocked_until = (now + LOGIN_LOCKOUT).isoformat() if attempts >= LOGIN_MAX_ATTEMPTS else None
+        if row:
+            db.execute(
+                "UPDATE user_login_attempts SET attempts = ?, window_started = ?, blocked_until = ? "
+                "WHERE fingerprint = ?",
+                (attempts, started.isoformat(), blocked_until, fingerprint),
+            )
+        else:
+            db.execute(
+                "INSERT INTO user_login_attempts (fingerprint, attempts, window_started, blocked_until) "
+                "VALUES (?, ?, ?, ?)",
+                (fingerprint, attempts, started.isoformat(), blocked_until),
+            )
+        db.commit()
+
+
+def clear_login_failures(email):
+    with get_db() as db:
+        db.execute(
+            "DELETE FROM user_login_attempts WHERE fingerprint = ?",
+            (_login_fingerprint(email),),
+        )
+        db.commit()
+
+
 def otp_delivery_message(email, is_live, code):
     if is_live:
         return f"We sent a 6-digit PIN to {email}. Check your inbox or spam folder."
@@ -325,10 +360,6 @@ def otp_delivery_message(email, is_live, code):
 
 init_db()
 
-from .models import CommunityVote, MarketMood, SabiPlugRecommendation, SabiPlugRequest, StreetTip  # noqa: E402,F401
-
-with app.app_context():
-    community_db.create_all()
 
 
 # ==========================================
@@ -490,6 +521,8 @@ GENERIC_RESET_MESSAGE = "If an account exists for that email, we sent a verifica
 # ==========================================
 @app.errorhandler(404)
 def handle_404(e):
+    if g.get("site_label"):
+        return render_template("site_404.html"), 404
     if request.path.startswith("/api/") or request.is_json or request.headers.get("Accept") == "application/json":
         return jsonify({"status": "error", "message": "The requested resource was not found."}), 404
     return render_template("404.html"), 404

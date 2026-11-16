@@ -111,6 +111,12 @@ def profile_page():
     return render_dashboard_page("profile")
 
 
+@app.route("/reports")
+def reports_page():
+    """All-time totals and trends; its own tab in the phone bottom bar."""
+    return render_dashboard_page("reports")
+
+
 @app.route("/dashboard/<section>")
 def legacy_dashboard_section(section):
     if section not in {"expenses", "sales", "inventory", "analytics", "budget", "profile"}:
@@ -125,7 +131,7 @@ def render_dashboard_page(section):
     if not user_id:
         return redirect("/login")
 
-    if section not in {"dashboard", "expenses", "sales", "inventory", "budget", "profile"}:
+    if section not in {"dashboard", "reports", "expenses", "sales", "inventory", "budget", "profile"}:
         return render_template("404.html"), 404
 
     active_tab = "income" if section == "sales" else section
@@ -134,6 +140,7 @@ def render_dashboard_page(section):
     total_sales = 0.0
     total_expenses = 0.0
     total_outstanding = 0.0
+    # Dashboard "All time" totals match what the page script recalculates.
     current_month = datetime.now(timezone.utc).strftime("%Y-%m")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     today_collected = 0.0
@@ -162,8 +169,8 @@ def render_dashboard_page(section):
 
             try:
                 row = db.execute(
-                    "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ? AND date LIKE ?",
-                    (user_id, current_month + "%")
+                    "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
+                    (user_id,)
                 ).fetchone()
                 if row and row["total"] is not None:
                     total_sales = float(row["total"])
@@ -172,8 +179,8 @@ def render_dashboard_page(section):
 
             try:
                 row = db.execute(
-                    "SELECT SUM(amount) AS total FROM expenses WHERE user_id = ? AND date LIKE ?",
-                    (user_id, current_month + "%")
+                    "SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?",
+                    (user_id,)
                 ).fetchone()
                 if row and row["total"] is not None:
                     total_expenses = float(row["total"])
@@ -182,8 +189,8 @@ def render_dashboard_page(section):
 
             try:
                 row = db.execute(
-                    "SELECT SUM(CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) THEN COALESCE(total_value, 0) - COALESCE(amount_paid, 0) ELSE 0 END) AS total FROM income WHERE user_id = ? AND date LIKE ?",
-                    (user_id, current_month + "%")
+                    "SELECT SUM(CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) THEN COALESCE(total_value, 0) - COALESCE(amount_paid, 0) ELSE 0 END) AS total FROM income WHERE user_id = ?",
+                    (user_id,)
                 ).fetchone()
                 if row and row["total"] is not None:
                     total_outstanding = float(row["total"])
@@ -214,8 +221,10 @@ def render_dashboard_page(section):
                 outstanding_sale_count = int(row["sale_count"] or 0)
                 total_unpaid_balance = float(row["balance"] or 0)
                 low_stock_items = db.execute(
-                    "SELECT item_name, stock FROM inventory_presets "
-                    "WHERE user_id = ? AND track_stock = 1 AND COALESCE(stock, 0) <= 3 "
+                    "SELECT item_name, stock, COALESCE(low_stock_threshold, 3) AS low_stock_threshold "
+                    "FROM inventory_presets "
+                    "WHERE user_id = ? AND track_stock = 1 "
+                    "AND COALESCE(stock, 0) <= COALESCE(low_stock_threshold, 3) "
                     "ORDER BY stock ASC, item_name ASC",
                     (user_id,),
                 ).fetchall() or []

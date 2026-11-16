@@ -1,6 +1,6 @@
 """Expense Routes HTTP routes."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import flash, jsonify, redirect, render_template, request
 import math
 from ..app import (
@@ -65,7 +65,7 @@ def add_expense():
     if not category or not description:
         return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
 
-    expense_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+    expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
     with get_db() as db:
         cursor = db.execute(
             "INSERT INTO expenses (user_id, amount, category, description, date) VALUES (?, ?, ?, ?, ?)",
@@ -120,7 +120,7 @@ def api_expense_detail(expense_id):
         if not category or not description:
             return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
 
-        expense_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
         with get_db() as db:
             updated = db.execute(
                 "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
@@ -185,7 +185,7 @@ def edit_expense(expense_id):
             flash("Category and description are required.")
             return render_template("edit.html", item=item, index=expense_id)
 
-        expenses_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        expenses_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
         with get_db() as db:
             updated = db.execute(
                 "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
@@ -197,131 +197,3 @@ def edit_expense(expense_id):
         return redirect("/dashboard")
 
     return redirect("/dashboard")
-
-
-@app.route("/calculate", methods=["POST"])
-def calculate():
-    user_id = get_current_user_id()
-    if not user_id:
-        return redirect("/login")
-
-    calc_term = request.form.get("calc_term", "").strip()
-    calc_term_lower = calc_term.lower()
-    calc_type = request.form.get("calc_type", "")
-    items = []
-
-    with get_db() as db:
-        if calc_type == "amount":
-            try:
-                val = float(calc_term_lower)
-                items = db.execute("SELECT amount FROM expenses WHERE user_id = ? AND amount = ?", (user_id, val)).fetchall()
-            except ValueError:
-                items = []
-        elif calc_type == "category":
-            items = db.execute(
-                "SELECT amount FROM expenses WHERE user_id = ? AND LOWER(category) LIKE ?",
-                (user_id, f"%{calc_term_lower}%")
-            ).fetchall()
-        elif calc_type == "description":
-            items = db.execute(
-                "SELECT amount FROM expenses WHERE user_id = ? AND LOWER(description) LIKE ?",
-                (user_id, f"%{calc_term_lower}%")
-            ).fetchall()
-
-        user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
-        expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
-
-    calc_result = sum(float(row["amount"] or 0) for row in items)
-    total_expenses = sum(float(item["amount"] or 0) for item in expenses)
-    username = user["email"].split("@")[0].capitalize() if user and user["email"] else "Entrepreneur"
-
-    total_sales = 0.0
-    try:
-        with get_db() as db:
-            row = db.execute(
-                "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
-                (user_id,)
-            ).fetchone()
-            if row and row["total"] is not None:
-                total_sales = float(row["total"])
-    except Exception:
-        pass
-
-    return render_template(
-        "index.html",
-        expenses=expenses,
-        total=total_expenses,
-        total_sales=total_sales,
-        total_expenses=total_expenses,
-        net_profit=total_sales - total_expenses,
-        username=username,
-        calc_result=calc_result,
-        calc_term=calc_term
-    )
-
-
-@app.route("/search", methods=["POST"])
-def search():
-    user_id = get_current_user_id()
-    if not user_id:
-        return redirect("/login")
-
-    raw_search = request.form.get("search_term", "").strip()
-    search_term = raw_search.lower()
-    search_type = request.form.get("search_type", "")
-    search_results = []
-    display_term = raw_search
-
-    with get_db() as db:
-        all_expenses = db.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
-
-        if search_type == "amount":
-            try:
-                amount_val = float(search_term)
-                search_results = db.execute(
-                    "SELECT * FROM expenses WHERE user_id = ? AND amount = ?", (user_id, amount_val)
-                ).fetchall()
-                if search_results:
-                    display_term = f"â‚¦{amount_val:,.2f}"
-            except ValueError:
-                search_results = []
-        elif search_type == "category":
-            search_results = db.execute(
-                "SELECT * FROM expenses WHERE user_id = ? AND LOWER(category) LIKE ?",
-                (user_id, f"%{search_term}%")
-            ).fetchall()
-            if search_results:
-                display_term = search_results[0]["category"].capitalize()
-
-    global_total = sum(float(item["amount"] or 0) for item in all_expenses)
-    search_total = sum(float(item["amount"] or 0) for item in search_results)
-
-    username = "Entrepreneur"
-    total_sales = 0.0
-    try:
-        with get_db() as db:
-            user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
-            if user and user["email"]:
-                username = user["email"].split("@")[0].capitalize()
-            row = db.execute(
-                "SELECT SUM(COALESCE(amount_paid, 0)) AS total FROM income WHERE user_id = ?",
-                (user_id,)
-            ).fetchone()
-            if row and row["total"] is not None:
-                total_sales = float(row["total"])
-    except Exception:
-        pass
-
-    return render_template(
-        "index.html",
-        expenses=all_expenses,
-        total=global_total,
-        total_sales=total_sales,
-        total_expenses=global_total,
-        net_profit=total_sales - global_total,
-        username=username,
-        search_results=search_results,
-        search_total=search_total,
-        searching=True,
-        search_term=display_term
-    )

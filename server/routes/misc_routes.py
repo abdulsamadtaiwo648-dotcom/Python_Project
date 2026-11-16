@@ -1,14 +1,27 @@
-"""Misc Routes HTTP routes."""
+"""Operational routes."""
 
-from ..app import (
-    app,
-    get_db,
-)
+import logging
+import os
+
+from flask import jsonify
+
+from ..app import APP_VERSION, app, get_db
 
 
-@app.route("/user-count")
-def user_count():
-    with get_db() as db:
-        row = db.execute("SELECT COUNT(*) AS total FROM users").fetchone()
-        total = row["total"] if (isinstance(row, dict) or hasattr(row, "keys")) else (row[0] if row else 0)
-    return f"<h1>Total Registered Users: {total}</h1>"
+@app.route("/healthz")
+def health_check():
+    """Liveness and database check for the host's health checks and for
+    smoke tests before traffic is switched to a new release."""
+    try:
+        with get_db() as db:
+            db.execute("SELECT 1").fetchone()
+    except Exception:
+        logging.exception("Health check could not reach the database")
+        return jsonify({"status": "error", "database": "unreachable"}), 503
+    response = jsonify({
+        "status": "ok",
+        "version": APP_VERSION,
+        "commit": (os.environ.get("RENDER_GIT_COMMIT") or "")[:7],
+    })
+    response.headers["Cache-Control"] = "no-store"
+    return response

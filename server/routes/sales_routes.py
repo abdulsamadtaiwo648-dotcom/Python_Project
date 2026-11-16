@@ -1,14 +1,25 @@
 """Sales Routes HTTP routes."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import jsonify, request
-import logging, math, time
+import logging, math, re, time
+from .. import push
 from ..app import (
     app,
     get_current_user_id,
     get_db,
     record_user_activity,
 )
+
+
+def bulk_fields(item):
+    """Bulk-sale details for an income row; `quantity` is always in units."""
+    is_bulk = item.get("sale_type") == "bulk" and item.get("bundle_count")
+    return {
+        "sale_type": "bulk" if is_bulk else "unit",
+        "bundle_count": int(item["bundle_count"]) if is_bulk else None,
+        "bundle_size": int(item["bundle_size"]) if is_bulk and item.get("bundle_size") else None,
+    }
 
 
 @app.route("/api/income", methods=["GET", "POST"])
@@ -42,7 +53,8 @@ def api_income():
                     "checkout_line_id": item.get("checkout_line_id"),
                     "inventory_item_id": item.get("inventory_item_id"),
                     "quantity": int(item.get("quantity") or 1),
-                    "unit_price": float(item.get("unit_price") or 0)
+                    "unit_price": float(item.get("unit_price") or 0),
+                    **bulk_fields(item),
                 })
         return jsonify({"status": "success", "income": income_list}), 200
 
@@ -51,7 +63,7 @@ def api_income():
         if not isinstance(data, dict):
             data = request.form.to_dict()
 
-        income_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        income_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
         receipt_id = data.get("receipt_id") or f"REC-{int(time.time())}"
         customer_name = str(data.get("customer_name", "Walk-in Customer")).strip() or "Walk-in Customer"
 
@@ -216,6 +228,13 @@ def api_checkout():
         quantity = int(quantity_value)
         if (preset_id is not None and preset_id <= 0) or quantity <= 0 or quantity > 10000:
             return jsonify({"status": "error", "message": "Product quantity must be between 1 and 10,000."}), 400
+        # A line is only sold at the bulk price when the seller explicitly marks
+        # it as bulk; `quantity` then counts bundles rather than pieces.
+        sale_type = str(raw.get("sale_type") or "unit").strip().lower()
+        if sale_type not in ("unit", "bulk"):
+            return jsonify({"status": "error", "message": "Sale type must be unit or bulk."}), 400
+        if sale_type == "bulk" and preset_id is None:
+            return jsonify({"status": "error", "message": "Bulk sale is only available for inventory products with a bulk price."}), 400
         item_name = str(raw.get("item_name") or raw.get("description") or "").strip()
         if preset_id is None and (not item_name or len(item_name) > 120):
             return jsonify({"status": "error", "message": "A custom cart item needs a name no longer than 120 characters."}), 400
@@ -232,9 +251,9 @@ def api_checkout():
             return jsonify({"status": "error", "message": "Product price must be greater than zero."}), 400
         if preset_id is None and requested_price is None:
             return jsonify({"status": "error", "message": "A custom cart item needs a unit price."}), 400
-        parsed_items.append({"preset_id": preset_id, "quantity": quantity, "line_id": line_id, "requested_price": requested_price, "item_name": item_name})
+        parsed_items.append({"preset_id": preset_id, "quantity": quantity, "line_id": line_id, "requested_price": requested_price, "item_name": item_name, "sale_type": sale_type})
 
-    sale_date = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+    sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
     receipt_id = str(data.get("receipt_id") or f"REC-{checkout_id[:12].upper()}").strip()
     try:
         with get_db() as db:
@@ -254,37 +273,62 @@ def api_checkout():
                         existing_stock[str(preset_id)] = int(dict(stock_row)["stock"])
                 return jsonify({
                     "status": "success", "receipt_id": existing_items[0].get("receipt_id"),
-                    "items": [{"id": item["id"], "checkout_line_id": item.get("checkout_line_id"), "inventory_item_id": item.get("inventory_item_id"), "quantity": item.get("quantity", 1), "unit_price": float(item.get("unit_price") or 0), "total_value": float(item.get("total_value") or 0), "amount_paid": float(item.get("amount_paid") or 0)} for item in existing_items],
+                    "items": [{"id": item["id"], "checkout_line_id": item.get("checkout_line_id"), "inventory_item_id": item.get("inventory_item_id"), "quantity": item.get("quantity", 1), "unit_price": float(item.get("unit_price") or 0), "total_value": float(item.get("total_value") or 0), "amount_paid": float(item.get("amount_paid") or 0), **bulk_fields(item)} for item in existing_items],
                     "stock": existing_stock
                 }), 200
 
             lines = []
+            units_by_product = {}
+            products_by_id = {}
             for item in parsed_items:
                 if item["preset_id"] is None:
-                    lines.append({**item, "name": item["item_name"], "unit_price": item["requested_price"], "track_stock": False})
+                    price = item["requested_price"]
+                    lines.append({**item, "name": item["item_name"], "units": item["quantity"],
+                                  "line_total": price * item["quantity"], "track_stock": False,
+                                  "bundle_count": None, "bundle_size": None})
                     continue
                 row = db.execute(
-                    "SELECT id, item_name, price, stock, track_stock FROM inventory_presets WHERE id = ? AND user_id = ?",
+                    "SELECT id, item_name, price, stock, track_stock, bulk_quantity, bulk_price, "
+                    "COALESCE(low_stock_threshold, 3) AS low_stock_threshold "
+                    "FROM inventory_presets WHERE id = ? AND user_id = ?",
                     (item["preset_id"], user_id)
                 ).fetchone()
                 if not row:
                     raise ValueError("A product in this cart no longer exists. Refresh inventory and try again.")
                 product = dict(row)
-                unit_price = float(item["requested_price"] if item["requested_price"] is not None else product["price"])
-                if not math.isfinite(unit_price) or unit_price <= 0:
-                    raise ValueError(f"{product['item_name']} has an invalid price.")
-                if bool(product.get("track_stock")) and int(product.get("stock") or 0) < item["quantity"]:
+                products_by_id[product["id"]] = product
+                if item["sale_type"] == "bulk":
+                    bundle_size = int(product.get("bulk_quantity") or 0)
+                    if bundle_size < 2 or product.get("bulk_price") is None:
+                        raise ValueError(f"{product['item_name']} has no bulk price. Refresh inventory and try again.")
+                    bundle_price = float(item["requested_price"] if item["requested_price"] is not None else product["bulk_price"])
+                    if not math.isfinite(bundle_price) or bundle_price <= 0:
+                        raise ValueError(f"{product['item_name']} has an invalid bulk price.")
+                    units = item["quantity"] * bundle_size
+                    line_total = bundle_price * item["quantity"]
+                    bundle_count = item["quantity"]
+                else:
+                    unit_price = float(item["requested_price"] if item["requested_price"] is not None else product["price"])
+                    if not math.isfinite(unit_price) or unit_price <= 0:
+                        raise ValueError(f"{product['item_name']} has an invalid price.")
+                    units = item["quantity"]
+                    line_total = unit_price * units
+                    bundle_size = bundle_count = None
+                units_by_product[item["preset_id"]] = units_by_product.get(item["preset_id"], 0) + units
+                if bool(product.get("track_stock")) and int(product.get("stock") or 0) < units_by_product[item["preset_id"]]:
                     raise ValueError(f"Not enough stock for {product['item_name']}. Available: {int(product.get('stock') or 0)}.")
-                lines.append({**item, "name": product["item_name"], "unit_price": unit_price, "track_stock": bool(product.get("track_stock"))})
+                lines.append({**item, "name": product["item_name"], "units": units, "line_total": line_total,
+                              "track_stock": bool(product.get("track_stock")),
+                              "bundle_count": bundle_count, "bundle_size": bundle_size})
 
-            grand_total = sum(line["unit_price"] * line["quantity"] for line in lines)
+            grand_total = sum(line["line_total"] for line in lines)
             if not math.isfinite(grand_total) or grand_total <= 0 or amount_paid > grand_total:
                 raise ValueError("Amount paid cannot exceed the cart total.")
 
             quantities_by_product = {}
             for line in lines:
                 if line["track_stock"]:
-                    quantities_by_product[line["preset_id"]] = quantities_by_product.get(line["preset_id"], 0) + line["quantity"]
+                    quantities_by_product[line["preset_id"]] = quantities_by_product.get(line["preset_id"], 0) + line["units"]
             updated_stock = {}
             for preset_id, quantity in quantities_by_product.items():
                 update = db.execute(
@@ -299,27 +343,45 @@ def api_checkout():
             remaining_paid = amount_paid
             saved_items = []
             for line in lines:
-                line_total = line["unit_price"] * line["quantity"]
+                line_total = line["line_total"]
                 line_paid = min(remaining_paid, line_total)
                 remaining_paid -= line_paid
+                # `quantity` is stored in units so stock is restored correctly
+                # when a sale is deleted; bulk lines also keep their bundle count.
+                unit_price = line_total / line["units"]
                 cursor = db.execute(
                     """INSERT INTO income (
                         user_id, description, total_value, amount_paid, customer_name, payment_mode, date,
-                        receipt_id, checkout_id, checkout_line_id, inventory_item_id, quantity, unit_price
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        receipt_id, checkout_id, checkout_line_id, inventory_item_id, quantity, unit_price,
+                        sale_type, bundle_count, bundle_size
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (user_id, line["name"], line_total, line_paid, customer_name, payment_mode, sale_date,
-                     receipt_id, checkout_id, line["line_id"], line["preset_id"], line["quantity"], line["unit_price"])
+                     receipt_id, checkout_id, line["line_id"], line["preset_id"], line["units"], unit_price,
+                     line["sale_type"], line["bundle_count"], line["bundle_size"])
                 )
                 saved_items.append({
                     "id": cursor.lastrowid, "checkout_line_id": line["line_id"], "inventory_item_id": line["preset_id"],
-                    "description": line["name"], "quantity": line["quantity"], "unit_price": line["unit_price"],
+                    "description": line["name"], "quantity": line["units"], "unit_price": unit_price,
                     "total_value": line_total, "amount_paid": line_paid, "customer_name": customer_name,
-                    "payment_mode": payment_mode, "date": sale_date, "receipt_id": receipt_id, "checkout_id": checkout_id
+                    "payment_mode": payment_mode, "date": sale_date, "receipt_id": receipt_id, "checkout_id": checkout_id,
+                    "sale_type": line["sale_type"], "bundle_count": line["bundle_count"], "bundle_size": line["bundle_size"],
                 })
             record_user_activity(db, user_id, "sale_created", f"Recorded a sale with {len(saved_items)} item(s)")
             db.commit()
     except ValueError as error:
         return jsonify({"status": "error", "message": str(error)}), 409
+
+    # Push a notification for every product this sale made low or sold out.
+    push.send_to_user(user_id, push.low_stock_notifications(
+        {
+            "id": preset_id,
+            "item_name": products_by_id[int(preset_id)]["item_name"],
+            "before": int(products_by_id[int(preset_id)]["stock"] or 0),
+            "after": stock,
+            "threshold": products_by_id[int(preset_id)]["low_stock_threshold"],
+        }
+        for preset_id, stock in updated_stock.items()
+    ))
 
     return jsonify({"status": "success", "message": "Sale recorded successfully.", "receipt_id": receipt_id, "items": saved_items, "stock": updated_stock}), 201
 
@@ -393,7 +455,9 @@ def sync_sales():
                 continue
             payment_mode = str(sale.get("payment_mode", "Cash")).strip()
             customer_name = str(sale.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
-            sale_date = sale.get("date") or datetime.now().strftime("%Y-%m-%d %I:%M %p")
+            sale_date = str(sale.get("date") or "")[:40]
+            if not re.match(r"^\d{4}-\d{2}-\d{2}([ T]|$)", sale_date):
+                sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
 
             try:

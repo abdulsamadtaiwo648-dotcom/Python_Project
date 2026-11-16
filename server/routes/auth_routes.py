@@ -6,6 +6,7 @@ import json, logging, time, uuid
 from ..app import (
     app,
     GENERIC_RESET_MESSAGE,
+    clear_login_failures,
     complete_login,
     get_current_user_id,
     get_db,
@@ -13,6 +14,8 @@ from ..app import (
     record_user_login,
     is_unique_violation,
     is_valid_password,
+    login_locked_until,
+    record_login_failure,
     send_and_store_otp,
     verify_otp,
 )
@@ -22,10 +25,10 @@ from ..app import (
 def register():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "").strip()
+        password = request.form.get("password", "")
         first_name = request.form.get("first_name", "").strip()
         last_name = request.form.get("last_name", "").strip()
-        confirm_password = request.form.get("confirm_password", "").strip()
+        confirm_password = request.form.get("confirm_password", "")
         privacy_accepted = request.form.get("privacy_accepted") == "on"
         otp_code = request.form.get("otp_code", "").strip()
 
@@ -103,8 +106,8 @@ def register_api_request():
         email = (data.get("email") or "").strip().lower()
         first_name = (data.get("first_name") or "").strip()
         last_name = (data.get("last_name") or "").strip()
-        password = (data.get("password") or "").strip()
-        confirm_password = (data.get("confirm_password") or "").strip()
+        password = str(data.get("password") or "")
+        confirm_password = str(data.get("confirm_password") or "")
         privacy_accepted = data.get("privacy_accepted") is True
 
         if not email or not first_name or not last_name or not password or not confirm_password:
@@ -203,7 +206,7 @@ def login():
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "").strip()
+        password = request.form.get("password", "")
 
         if not email or not password:
             flash("Please enter both email and password.", "danger")
@@ -212,11 +215,22 @@ def login():
             return response
 
         try:
+            if login_locked_until(email):
+                flash("Too many sign-in attempts. Please wait 15 minutes or reset your password.", "danger")
+                return render_template("login.html"), 429
             with get_db() as db:
                 user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
-                if not user or not user["password"] or not check_password_hash(user["password"], password):
+                # Older accounts were saved with surrounding spaces removed,
+                # so a password typed with them is also tried without.
+                password_ok = bool(user and user["password"]) and (
+                    check_password_hash(user["password"], password)
+                    or (password != password.strip() and check_password_hash(user["password"], password.strip()))
+                )
+                if not password_ok:
                     if user:
                         record_user_activity(db, user["id"], "sign_in_failed", "Unsuccessful sign-in attempt")
+                        db.commit()
+                    record_login_failure(email)
                     flash("Invalid email or password. Please try again.", "danger")
                     return render_template("login.html")
                 if user["account_status"] != "active":
@@ -225,7 +239,8 @@ def login():
                     return render_template("login.html")
                 record_user_login(db, user["id"])
                 complete_login(user["id"])
-                return redirect("/dashboard")
+            clear_login_failures(email)
+            return redirect("/dashboard")
         except Exception as e:
             logging.error(f"Login error for '{email}': {e}", exc_info=True)
             flash("An unexpected error occurred. Please try again.", "danger")
@@ -238,15 +253,24 @@ def login():
 def prevent_login_page_from_being_cached(response):
     # Back/forward navigation must re-check the current session instead of
     # restoring a stale login form from the browser cache after sign-in.
-    if request.path == "/login":
+    if request.path in ("/login", "/register"):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
+    # Signing out changes state, so it must be a POST with the CSRF token;
+    # a plain link or image on another site can no longer sign a user out.
+    if request.method != "POST":
+        return redirect("/dashboard" if get_current_user_id() else "/login")
+    from .push_routes import remove_session_push_subscription
+    try:
+        remove_session_push_subscription()
+    except Exception:
+        logging.exception("Could not remove this device's push subscription on sign-out")
     session.clear()
     resp = make_response(redirect("/login"))
     resp.delete_cookie(app.config.get("SESSION_COOKIE_NAME", "session"))
@@ -302,7 +326,7 @@ def forgot_password_reset():
         data = request.get_json(force=True) or {}
         email = (data.get("email") or "").strip().lower()
         code = (data.get("code") or "").strip()
-        new_password = (data.get("password") or "").strip()
+        new_password = str(data.get("password") or "")
 
         if not email or not code or not new_password:
             if email:
@@ -321,7 +345,9 @@ def forgot_password_reset():
         with get_db() as db:
             user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
             if not user:
-                return jsonify({"status": "error", "message": "No account exists for this email. Please register first."}), 404
+                # Same answer as a missing code, so this cannot be used to
+                # find out which emails have accounts.
+                return jsonify({"status": "error", "message": "No pending verification found. Please request a new PIN."}), 400
 
         record, error = verify_otp(email, "reset", code, consume=True)
         if error:
@@ -340,6 +366,7 @@ def forgot_password_reset():
                 record_user_activity(db, user["id"], "password_changed", "Password was changed through account recovery")
                 record_user_login(db, user["id"])
                 complete_login(user["id"])
+        clear_login_failures(email)
 
         return jsonify({"status": "ok", "message": "Password updated successfully!", "redirect": "/dashboard"})
     except Exception as e:
