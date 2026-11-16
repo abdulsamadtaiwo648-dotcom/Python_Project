@@ -11,7 +11,17 @@ def _tables():
         return {row["name"] for row in db.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()}
 
 
-def test_startup_drops_floor_tables():
+def test_floor_tables_are_kept_until_the_flag_is_set(monkeypatch):
+    monkeypatch.delenv("DROP_FLOOR_TABLES", raising=False)
+    with get_db() as db:
+        db.execute("CREATE TABLE IF NOT EXISTS street_tip (id INTEGER PRIMARY KEY)")
+        db.commit()
+    init_db()
+    assert "street_tip" in _tables()        # an older release can still use it
+
+
+def test_startup_drops_floor_tables(monkeypatch):
+    monkeypatch.setenv("DROP_FLOOR_TABLES", "1")
     with get_db() as db:
         db.execute("CREATE TABLE IF NOT EXISTS sabi_plug_request (id INTEGER PRIMARY KEY, request_text TEXT)")
         db.execute(
@@ -33,3 +43,10 @@ def test_startup_drops_floor_tables():
 def test_floor_pages_are_gone(client, signed_in):
     assert client.get("/floor").status_code == 404
     assert "The Floor" not in client.get("/dashboard").get_data(as_text=True)
+
+
+def test_health_check(client):
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["status"] == "ok" and body["version"]
