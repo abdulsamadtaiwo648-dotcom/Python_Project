@@ -1022,3 +1022,24 @@ body.app-shell > header button:hover {
 @media (max-width: 1023px) {
   #inv-list-card:not(.inv-view-table) #presets-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
+
+/* ===== Expenses: exact Figma values =====
+   Header as the other pages; three KPI cards with 16px gap; list and
+   category panels 20px padding, 16px radius; the category panel is 380px
+   wide with 8px thin bars. */
+#tab-expenses-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-expenses-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-expenses-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#expense-kpis { gap: 16px; }
+#expense-kpis .kpi-card { padding: 18px; gap: 8px; border-radius: 14px; }
+#expense-kpis .kpi-card > p:first-child { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: #64748b; }
+#expense-kpis .stat-value { font-size: 24px; line-height: 1.1; }
+#expense-kpis .kpi-card > p:last-child { font-size: 12px; }
+@media (min-width: 1024px) {
+  #expense-layout { grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; }
+}
+#expense-breakdown { padding: 20px; border-radius: 16px; }
+#expense-breakdown-list { gap: 12px; }
+#expense-breakdown-list > li > div:first-child { font-size: 13px; }
+#expense-breakdown-list > li > div:last-child { height: 8px; }
+#expense-breakdown-list .text-xs { font-size: 12px; }
