@@ -1043,3 +1043,32 @@ body.app-shell > header button:hover {
 #expense-breakdown-list > li > div:first-child { font-size: 13px; }
 #expense-breakdown-list > li > div:last-child { height: 8px; }
 #expense-breakdown-list .text-xs { font-size: 12px; }
+
+/* ===== Budget: exact Figma values =====
+   Header as the other pages; three figure cards (18px padding, 8px gap,
+   14px radius); one Categories panel with 20px padding and 16px radius.
+   Each category is a plain row with its name, amount and a 10px bar with
+   6px radius; rows have no coloured boxes. Over-limit rows keep their
+   amber/rose text so the warning stays visible. */
+#tab-budget-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-budget-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-budget-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#budget-kpis { gap: 16px; }
+#budget-kpis > div { padding: 18px; gap: 8px; border-radius: 14px; }
+#budget-kpis > div > p:first-child { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: #64748b; }
+#budget-kpis .stat-value { font-size: 24px; line-height: 1.1; }
+#budget-kpis > div > p:last-child { font-size: 12px; }
+.budget-categories-panel {
+  padding: 20px; border-radius: 16px; border: 1px solid var(--sb-line);
+  background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); display: grid; gap: 12px;
+}
+.budget-categories-title { font-size: 15px; font-weight: 600; color: #0f172a; }
+#budget-progress-list { display: grid; gap: 16px; }
+#budget-progress-list > article {
+  background: transparent !important; border: 0 !important; border-radius: 0 !important;
+  padding: 0 !important; display: grid; gap: 8px;
+}
+#budget-progress-list > article h4 { font-size: 14px; font-weight: 600; color: #0f172a; }
+#budget-progress-list > article > div:first-child p { font-size: 13px; font-weight: 400; }
+#budget-progress-list .h-2\.5 { height: 10px !important; margin-top: 0 !important; border-radius: 6px; background: #e2e8f0 !important; }
+#budget-progress-list .h-2\.5 > div { border-radius: 6px; }
