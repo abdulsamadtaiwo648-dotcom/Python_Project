@@ -786,6 +786,8 @@
             </section>
 
 
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div class="min-w-0">
             <div class="sb-list-card" id="transaction-list">
                 {% if expenses|length == 0 %}
                     <p class="list-empty" id="no-expenses-msg">No expenses yet. Tap “Add expense” to record one.</p>
@@ -804,6 +806,17 @@
             </div>
             <p class="hidden list-empty" id="filter-no-match">No expenses match your filter.</p>
             <p class="page-note">Tap an expense to change or delete it.</p>
+            </div>
+
+            <!-- Category breakdown (Figma): share of spending by category -->
+            <aside id="expense-breakdown" class="dash-panel min-w-0 self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="expense-breakdown-heading">
+                <h3 id="expense-breakdown-heading" class="text-base font-bold text-slate-900">By category</h3>
+                <p class="mt-1 text-xs text-slate-500">Where this period’s expenses went.</p>
+                <ul id="expense-breakdown-list" class="mt-4 space-y-4">
+                    <li class="text-sm text-slate-500">No expenses yet.</li>
+                </ul>
+            </aside>
+            </div>
         </section>
 
         <!-- ========================================================= -->
@@ -3091,12 +3104,40 @@
             updateExpenseSummary();
         }
 
+        function renderExpenseBreakdown(items) {
+            const list = document.getElementById('expense-breakdown-list');
+            if (!list) return;
+            const totals = {};
+            for (const item of items || []) {
+                if (item.pending_delete) continue;
+                const key = (item.category || 'Other').trim() || 'Other';
+                totals[key] = (totals[key] || 0) + (Number(item.amount) || 0);
+            }
+            const rows = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+            const grand = rows.reduce((sum, [, value]) => sum + value, 0);
+            if (!rows.length || grand <= 0) {
+                list.innerHTML = '<li class="text-sm text-slate-500">No expenses yet.</li>';
+                return;
+            }
+            list.innerHTML = rows.map(([name, value]) => {
+                const share = Math.round((value / grand) * 100);
+                return `<li class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-3 text-sm">
+                        <span class="min-w-0 truncate font-medium text-slate-800">${escapeHtml(name)}</span>
+                        <span class="flex-shrink-0 font-semibold text-slate-900">₦${value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-xs font-medium text-slate-500">${share}%</span></span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" style="width:${share}%"></div></div>
+                </li>`;
+            }).join('');
+        }
+
         async function renderExpenseListFromIndexedDB() {
             const listContainer = document.getElementById('transaction-list');
             if (!listContainer) return;
 
             try {
                 const expenses = await getExpensesLocal();
+                renderExpenseBreakdown(expenses);
                 const visible = (expenses || []).filter(item => !item.pending_delete);
                 listContainer.innerHTML = visible.length
                     ? visible.slice().reverse().map(buildExpenseItemHTML).join('')
