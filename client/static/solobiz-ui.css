@@ -911,3 +911,31 @@ body.app-shell > header button:hover {
   border-bottom: 1px solid var(--sb-line) !important;
 }
 .inv-view-table #presets-grid tr:has(td[colspan]) td { text-align: center; }
+
+/* ---- Phone layouts (Figma phone screens) ----
+   Bottom tab bar, page headers and summary cards on small screens. */
+@media (max-width: 1023px) {
+  body.app-shell { padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+  #mobile-bottom-nav {
+    height: 72px;
+    padding-top: 6px;
+    box-shadow: 0 -10px 30px -22px rgba(15, 23, 42, .35);
+  }
+  #mobile-bottom-nav .mobile-nav-btn > span:first-child {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 30px; border-radius: 999px; transition: background-color .15s ease;
+  }
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] > span:first-child { background: #eff6ff; }
+}
+@media (max-width: 639px) {
+  .page-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .page-head > .sb-btn,
+  .page-head > a.sb-btn { width: 100%; justify-content: center; }
+  #inv-summary { gap: 10px; }
+  #inv-summary > div { padding: 12px; }
+  #inv-summary .stat-value { font-size: 1.35rem; }
+  #budget-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #budget-kpis > div:last-child { grid-column: 1 / -1; }
+  #budget-kpis .stat-value { font-size: 1.35rem; }
+  #dashboard-bottom-grid, #daily-business-checkin { margin-bottom: 14px; }
+}
