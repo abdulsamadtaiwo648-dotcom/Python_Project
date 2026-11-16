@@ -455,6 +455,16 @@
 
         <!-- CFO Dashboard KPI cards (This month), Figma layout -->
         <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab != 'dashboard' %}hidden{% endif %}">
+        <div class="page-head mb-4">
+            <div class="min-w-0">
+                <h2 class="page-title">Dashboard</h2>
+                <p class="page-sub">Here is how your business is doing today.</p>
+            </div>
+            <a href="/sales" data-dashboard-tab="income" class="sb-btn sb-btn-primary">
+                <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                New sale
+            </a>
+        </div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-5">
             <div class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
                 <div class="flex items-center gap-2.5">
@@ -556,6 +566,37 @@
             </div>
         </section>
 
+        <div id="dashboard-bottom-grid" class="{% if active_tab != 'dashboard' %}hidden{% endif %} mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section id="dashboard-recent-sales" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-recent-heading">
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <h3 id="dashboard-recent-heading" class="text-base font-bold text-slate-900">Recent sales</h3>
+                <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-blue-700 hover:text-blue-900">View all</a>
+            </div>
+            <ul id="dashboard-recent-list" class="divide-y divide-slate-100" aria-live="polite">
+                <li class="py-6 text-center text-sm text-slate-500">Loading sales…</li>
+            </ul>
+        </section>
+
+        <!-- Low stock (Figma layout): products at or below their alert level -->
+        <section id="dashboard-low-stock" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-low-heading">
+            <h3 id="dashboard-low-heading" class="text-base font-bold text-slate-900">Low stock</h3>
+            <p class="mt-1 text-xs text-slate-500">Restock before these run out.</p>
+            <ul class="mt-4 space-y-3">
+                {% for item in low_stock_items[:6] %}
+                <li class="flex items-center justify-between gap-3">
+                    <span class="min-w-0 truncate text-sm text-slate-800">{{ item.item_name }}</span>
+                    <span class="flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold {% if item.stock <= 0 %}bg-rose-50 text-rose-700{% else %}bg-amber-50 text-amber-700{% endif %}">{% if item.stock <= 0 %}Out of stock{% else %}{{ item.stock }} left{% endif %}</span>
+                </li>
+                {% else %}
+                <li class="rounded-xl bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">Nothing is running low.</li>
+                {% endfor %}
+            </ul>
+            {% if low_stock_items|length > 6 %}
+            <a href="/inventory" data-dashboard-tab="inventory" class="mt-4 inline-block text-sm font-semibold text-blue-700 hover:text-blue-900">View all {{ low_stock_items|length }} items</a>
+            {% endif %}
+        </section>
+        </div>
+
         <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-panel mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
             <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
                 <div>
@@ -616,6 +657,23 @@
                 <button id="btn-toggle-budget-details" type="button" class="hidden" aria-hidden="true" tabindex="-1">Manage budget</button>
             </div>
 
+            <div id="budget-kpis" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Monthly budget</p>
+                    <p id="kpi-budget-limit" class="stat-value mt-2 text-2xl text-slate-900">₦0.00</p>
+                    <p class="mt-1 text-xs text-slate-500">Total of your category limits</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Spent so far</p>
+                    <p id="kpi-budget-spent" class="stat-value mt-2 text-2xl text-slate-900">₦0.00</p>
+                    <p class="mt-1 text-xs text-slate-500">Expenses this month</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Remaining</p>
+                    <p id="kpi-budget-remaining" class="stat-value mt-2 text-2xl text-blue-700">₦0.00</p>
+                    <p class="mt-1 text-xs text-slate-500">Left before the limits are reached</p>
+                </div>
+            </div>
             <div id="budget-summary-card" class="sb-panel">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
@@ -745,6 +803,8 @@
             </section>
 
 
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div class="min-w-0">
             <div class="sb-list-card" id="transaction-list">
                 {% if expenses|length == 0 %}
                     <p class="list-empty" id="no-expenses-msg">No expenses yet. Tap “Add expense” to record one.</p>
@@ -763,6 +823,17 @@
             </div>
             <p class="hidden list-empty" id="filter-no-match">No expenses match your filter.</p>
             <p class="page-note">Tap an expense to change or delete it.</p>
+            </div>
+
+            <!-- Category breakdown (Figma): share of spending by category -->
+            <aside id="expense-breakdown" class="dash-panel min-w-0 self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="expense-breakdown-heading">
+                <h3 id="expense-breakdown-heading" class="text-base font-bold text-slate-900">By category</h3>
+                <p class="mt-1 text-xs text-slate-500">Where this period’s expenses went.</p>
+                <ul id="expense-breakdown-list" class="mt-4 space-y-4">
+                    <li class="text-sm text-slate-500">No expenses yet.</li>
+                </ul>
+            </aside>
+            </div>
         </section>
 
         <!-- ========================================================= -->
@@ -801,7 +872,28 @@
                     <button type="button" id="push-toggle" class="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-60">Turn on</button>
                 </div>
             </div>
-            <div class="sb-list-card">
+            <div id="inv-summary" class="grid grid-cols-3 gap-3">
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Products</p>
+                    <p id="inv-count" class="stat-value mt-1 text-2xl text-slate-900">0</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Low stock</p>
+                    <p id="inv-low" class="stat-value mt-1 text-2xl text-amber-700">0</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Out of stock</p>
+                    <p id="inv-out" class="stat-value mt-1 text-2xl text-rose-700">0</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-xs text-slate-500">Showing your products</p>
+                <div class="inline-flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Choose how to view products">
+                    <button type="button" data-inv-view="cards" aria-pressed="true" class="inv-view-btn is-active">Cards</button>
+                    <button type="button" data-inv-view="table" aria-pressed="false" class="inv-view-btn">Table</button>
+                </div>
+            </div>
+            <div class="sb-list-card" id="inv-list-card">
                 <div class="inventory-table-wrap">
                     <table>
                         <thead><tr><th>Product</th><th>Status</th><th>Stock</th><th>Price</th></tr></thead>
@@ -884,6 +976,12 @@
                     </div>
                 </div>
 
+                <div id="sales-quick-filters" class="flex flex-wrap gap-2" role="group" aria-label="Quick filters">
+                    <button type="button" data-sales-quick="all" aria-pressed="true" class="sales-quick-chip is-active">All sales</button>
+                    <button type="button" data-sales-quick="today" aria-pressed="false" class="sales-quick-chip">Today</button>
+                    <button type="button" data-sales-quick="bulk" aria-pressed="false" class="sales-quick-chip">Bulk sales</button>
+                </div>
+
                 <div class="list-toolbar">
                     <button type="button" id="sales-filter-toggle" class="sb-chip" aria-expanded="false" aria-controls="sales-filter-panel">
                         <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
@@ -933,6 +1031,21 @@
                 <div>
                     <h2 class="page-title" id="profile-title">Profile</h2>
                     <p class="page-sub">Your business details for receipts and your shop link.</p>
+                </div>
+            </div>
+
+            <!-- Account summary (Figma): plan and sign-out -->
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="rounded-2xl bg-gradient-to-br from-blue-700 to-blue-900 p-6 text-white shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-blue-200">Current plan</p>
+                    <p class="mt-2 text-2xl font-extrabold">Early access</p>
+                    <p class="mt-2 text-sm text-blue-100">Your records, sales and business page are all included while SoloBiz is in early access.</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Account</p>
+                    <p class="mt-2 text-base font-semibold text-slate-900">{{ username }}</p>
+                    <p class="mt-1 text-sm text-slate-500">Signed in on this device.</p>
+                    <button type="button" onclick="handleLogout()" class="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Sign out</button>
                 </div>
             </div>
 
@@ -2094,6 +2207,15 @@
                 return { ...budget, spent, limit, percent: limit > 0 ? spent / limit * 100 : 0 };
             }).sort((a, b) => b.percent - a.percent);
 
+            const kpiLimit = document.getElementById('kpi-budget-limit');
+            if (kpiLimit) {
+                const totalLimit = progress.reduce((sum, item) => sum + item.limit, 0);
+                const totalSpent = progress.reduce((sum, item) => sum + item.spent, 0);
+                kpiLimit.textContent = formatBudgetCurrency(totalLimit);
+                document.getElementById('kpi-budget-spent').textContent = formatBudgetCurrency(totalSpent);
+                document.getElementById('kpi-budget-remaining').textContent = formatBudgetCurrency(Math.max(0, totalLimit - totalSpent));
+            }
+
             progress.forEach(item => {
                 const over = item.spent > item.limit;
                 const near = !over && item.percent >= 80;
@@ -3050,12 +3172,40 @@
             updateExpenseSummary();
         }
 
+        function renderExpenseBreakdown(items) {
+            const list = document.getElementById('expense-breakdown-list');
+            if (!list) return;
+            const totals = {};
+            for (const item of items || []) {
+                if (item.pending_delete) continue;
+                const key = (item.category || 'Other').trim() || 'Other';
+                totals[key] = (totals[key] || 0) + (Number(item.amount) || 0);
+            }
+            const rows = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+            const grand = rows.reduce((sum, [, value]) => sum + value, 0);
+            if (!rows.length || grand <= 0) {
+                list.innerHTML = '<li class="text-sm text-slate-500">No expenses yet.</li>';
+                return;
+            }
+            list.innerHTML = rows.map(([name, value]) => {
+                const share = Math.round((value / grand) * 100);
+                return `<li class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-3 text-sm">
+                        <span class="min-w-0 truncate font-medium text-slate-800">${escapeHtml(name)}</span>
+                        <span class="flex-shrink-0 font-semibold text-slate-900">₦${value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-xs font-medium text-slate-500">${share}%</span></span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" style="width:${share}%"></div></div>
+                </li>`;
+            }).join('');
+        }
+
         async function renderExpenseListFromIndexedDB() {
             const listContainer = document.getElementById('transaction-list');
             if (!listContainer) return;
 
             try {
                 const expenses = await getExpensesLocal();
+                renderExpenseBreakdown(expenses);
                 const visible = (expenses || []).filter(item => !item.pending_delete);
                 listContainer.innerHTML = visible.length
                     ? visible.slice().reverse().map(buildExpenseItemHTML).join('')
@@ -4102,7 +4252,14 @@
                 select.value = products.includes(selected) ? selected : '';
             }
 
-            function getFilteredSales(items) {
+            function getFilteredSales(allItems) {
+                const quick = window.salesQuickFilter || 'all';
+                const todayKey = localDateKey(new Date());
+                const items = quick === 'today'
+                    ? allItems.filter(item => recordDayKey(item.date) === todayKey)
+                    : quick === 'bulk'
+                        ? allItems.filter(item => item.sale_type === 'bulk')
+                        : allItems;
                 const product = document.getElementById('sales-product-filter')?.value || '';
                 const status = document.getElementById('sales-payment-filter')?.value || '';
                 const minRaw = document.getElementById('sales-min-total')?.value || '';
@@ -4119,7 +4276,7 @@
                 });
                 const matchingKeys = new Set(matchingGroups.map(group => group.key));
                 const matchingItems = items.filter(item => matchingKeys.has(incomeSaleGroupKey(item)));
-                const filtered = Boolean(product || status || minRaw !== '' || maxRaw !== '');
+                const filtered = Boolean(product || status || minRaw !== '' || maxRaw !== '' || quick !== 'all');
                 return { items: matchingItems, groupCount: matchingGroups.length, totalGroups: groups.length, filtered };
             }
 
@@ -4169,6 +4326,18 @@
 
                 calculateDashboard();
             }
+
+            document.querySelectorAll('[data-sales-quick]').forEach(button => {
+                button.addEventListener('click', () => {
+                    window.salesQuickFilter = button.dataset.salesQuick;
+                    document.querySelectorAll('[data-sales-quick]').forEach(other => {
+                        const active = other === button;
+                        other.classList.toggle('is-active', active);
+                        other.setAttribute('aria-pressed', String(active));
+                    });
+                    renderIncomeListUI();
+                });
+            });
 
             const incomeList = document.getElementById('income-list');
             ['sales-product-filter', 'sales-payment-filter'].forEach(id => {
@@ -5020,6 +5189,29 @@
             });
 
 
+            // Inventory summary counts, read from the rendered rows
+            function updateInventorySummary() {
+                const rows = [...document.querySelectorAll('#presets-grid tr[data-inventory-row]')];
+                const low = rows.filter(row => row.querySelector('.inventory-status.low')).length;
+                const out = rows.filter(row => row.querySelector('.inventory-status.out')).length;
+                const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = String(value); };
+                set('inv-count', rows.length);
+                set('inv-low', low);
+                set('inv-out', out);
+            }
+            if (presetsGrid) new MutationObserver(updateInventorySummary).observe(presetsGrid, { childList: true });
+            document.querySelectorAll('[data-inv-view]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const table = button.dataset.invView === 'table';
+                    document.getElementById('inv-list-card')?.classList.toggle('inv-view-table', table);
+                    document.querySelectorAll('[data-inv-view]').forEach(other => {
+                        const active = other === button;
+                        other.classList.toggle('is-active', active);
+                        other.setAttribute('aria-pressed', String(active));
+                    });
+                });
+            });
+
             // Render the inventory list
             function renderPresetsGrid() {
                 if (!presetsGrid) return;
@@ -5534,9 +5726,38 @@
             }
             window.addEventListener('resize', () => drawAnalyticsTrend(latestAnalyticsChartData));
 
+            function renderDashboardRecentSales(items) {
+                const list = document.getElementById('dashboard-recent-list');
+                if (!list) return;
+                const recent = (items || [])
+                    .filter(item => !item.pending_delete)
+                    .slice()
+                    .sort((a, b) => (parseRecordDate(b.date)?.getTime() || 0) - (parseRecordDate(a.date)?.getTime() || 0))
+                    .slice(0, 5);
+                if (!recent.length) {
+                    list.innerHTML = '<li class="py-6 text-center text-sm text-slate-500">No sales yet. Record your first sale to see it here.</li>';
+                    return;
+                }
+                list.innerHTML = recent.map(item => {
+                    const total = Number(item.total_value ?? item.amount ?? 0) || 0;
+                    const paid = Number(item.amount_paid ?? item.amount ?? 0) || 0;
+                    const when = parseRecordDate(item.date);
+                    const whenText = when ? when.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }) : '';
+                    const owing = total - paid > 0.005;
+                    return `<li class="flex items-center justify-between gap-3 py-3">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-slate-900">${escapeHtml(item.customer_name || 'Walk-in Customer')}</p>
+                            <p class="text-xs text-slate-500">${escapeHtml(whenText)}${owing ? ' · <span class="text-amber-700">Balance due</span>' : ''}</p>
+                        </div>
+                        <p class="flex-shrink-0 text-sm font-bold text-slate-900">₦${paid.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </li>`;
+                }).join('');
+            }
+
             async function renderAnalytics(period) {
                 updateDashboardPeriodCopy(period);
                 const incomeItems = await getIncomeLocal();
+                renderDashboardRecentSales(incomeItems);
                 const expenseItems = await getExpensesLocal();
                 
                 // Helper to format date keys

@@ -860,3 +860,82 @@ body.app-shell > header button:hover {
 }
 #budget-summary-fill { border-radius: 999px; }
 .profile-panel { border-radius: 16px; }
+
+/* Dashboard low stock now lives in its own Figma panel; the old stock
+   line in "Needs attention" stays in the DOM for the script but is hidden. */
+#daily-stock-alert { display: none !important; }
+
+/* Sales quick filters (All sales, Today, Bulk sales) */
+.sales-quick-chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sb-line);
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.sales-quick-chip:hover { border-color: #bfdbfe; color: #1e40af; }
+.sales-quick-chip.is-active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+
+/* Inventory: card / table view switch */
+.inv-view-btn {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+.inv-view-btn.is-active { background: #fff; color: #1d4ed8; box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+
+/* Table view: the same rows, shown as a classic table */
+.inv-view-table .inventory-table-wrap table { display: table; }
+.inv-view-table .inventory-table-wrap tbody { display: table-row-group; }
+.inv-view-table .inventory-table-wrap thead { display: table-header-group; }
+.inv-view-table .inventory-table-wrap thead th {
+  padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em; color: #64748b;
+  border-bottom: 1px solid var(--sb-line); background: #f8fafc;
+}
+.inv-view-table #presets-grid { display: table-row-group; padding: 0; gap: 0; }
+.inv-view-table #presets-grid tr {
+  display: table-row; padding: 0; margin: 0; border: 0; border-radius: 0;
+  box-shadow: none; background: #fff;
+}
+.inv-view-table #presets-grid tr:hover { background: #f8fafc; box-shadow: none; }
+.inv-view-table #presets-grid td {
+  display: table-cell; padding: 12px 14px !important; vertical-align: middle;
+  border-bottom: 1px solid var(--sb-line) !important;
+}
+.inv-view-table #presets-grid tr:has(td[colspan]) td { text-align: center; }
+
+/* ---- Phone layouts (Figma phone screens) ----
+   Bottom tab bar, page headers and summary cards on small screens. */
+@media (max-width: 1023px) {
+  body.app-shell { padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+  #mobile-bottom-nav {
+    height: 72px;
+    padding-top: 6px;
+    box-shadow: 0 -10px 30px -22px rgba(15, 23, 42, .35);
+  }
+  #mobile-bottom-nav .mobile-nav-btn > span:first-child {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 30px; border-radius: 999px; transition: background-color .15s ease;
+  }
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] > span:first-child { background: #eff6ff; }
+}
+@media (max-width: 639px) {
+  .page-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .page-head > .sb-btn,
+  .page-head > a.sb-btn { width: 100%; justify-content: center; }
+  #inv-summary { gap: 10px; }
+  #inv-summary > div { padding: 12px; }
+  #inv-summary .stat-value { font-size: 1.35rem; }
+  #budget-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #budget-kpis > div:last-child { grid-column: 1 / -1; }
+  #budget-kpis .stat-value { font-size: 1.35rem; }
+  #dashboard-bottom-grid, #daily-business-checkin { margin-bottom: 14px; }
+}
