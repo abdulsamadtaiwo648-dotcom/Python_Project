@@ -860,3 +860,7 @@ body.app-shell > header button:hover {
 }
 #budget-summary-fill { border-radius: 999px; }
 .profile-panel { border-radius: 16px; }
+
+/* Dashboard low stock now lives in its own Figma panel; the old stock
+   line in "Needs attention" stays in the DOM for the script but is hidden. */
+#daily-stock-alert { display: none !important; }

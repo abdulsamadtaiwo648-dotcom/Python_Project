@@ -566,7 +566,8 @@
             </div>
         </section>
 
-        <section id="dashboard-recent-sales" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-panel mb-6 w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-recent-heading">
+        <div id="dashboard-bottom-grid" class="{% if active_tab != 'dashboard' %}hidden{% endif %} mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section id="dashboard-recent-sales" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-recent-heading">
             <div class="mb-3 flex items-center justify-between gap-3">
                 <h3 id="dashboard-recent-heading" class="text-base font-bold text-slate-900">Recent sales</h3>
                 <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-blue-700 hover:text-blue-900">View all</a>
@@ -575,6 +576,26 @@
                 <li class="py-6 text-center text-sm text-slate-500">Loading sales…</li>
             </ul>
         </section>
+
+        <!-- Low stock (Figma layout): products at or below their alert level -->
+        <section id="dashboard-low-stock" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-low-heading">
+            <h3 id="dashboard-low-heading" class="text-base font-bold text-slate-900">Low stock</h3>
+            <p class="mt-1 text-xs text-slate-500">Restock before these run out.</p>
+            <ul class="mt-4 space-y-3">
+                {% for item in low_stock_items[:6] %}
+                <li class="flex items-center justify-between gap-3">
+                    <span class="min-w-0 truncate text-sm text-slate-800">{{ item.item_name }}</span>
+                    <span class="flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold {% if item.stock <= 0 %}bg-rose-50 text-rose-700{% else %}bg-amber-50 text-amber-700{% endif %}">{% if item.stock <= 0 %}Out of stock{% else %}{{ item.stock }} left{% endif %}</span>
+                </li>
+                {% else %}
+                <li class="rounded-xl bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">Nothing is running low.</li>
+                {% endfor %}
+            </ul>
+            {% if low_stock_items|length > 6 %}
+            <a href="/inventory" data-dashboard-tab="inventory" class="mt-4 inline-block text-sm font-semibold text-blue-700 hover:text-blue-900">View all {{ low_stock_items|length }} items</a>
+            {% endif %}
+        </section>
+        </div>
 
         <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-panel mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
             <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
