@@ -1118,3 +1118,24 @@ body.app-shell > header button:hover {
   #tab-profile-content { gap: 16px; }
   #profile-account { gap: 12px; }
 }
+
+/* ===== Sign-in and register: exact Figma values =====
+   Brand panel 72px padding with a 60px headline and 20px text; form column
+   48px padding; form card 440px wide with a 34px title and 15px subtitle;
+   fields with 10px by 12px padding, 10px radius and 12px labels; buttons
+   12px radius. */
+@media (min-width: 960px) {
+  .login-brand { padding: 72px; gap: 24px; }
+  .login-brand > div > h2 { font-size: 60px !important; letter-spacing: -0.033em; line-height: 1.05; }
+  .login-brand > div > p { font-size: 20px !important; }
+  .login-main { padding: 48px; }
+}
+.login-card { max-width: 440px; gap: 18px; }
+.login-card h1 { font-size: 34px !important; letter-spacing: -0.03em; }
+.login-card > div > p { font-size: 15px !important; }
+.login-field label { font-size: 12px; font-weight: 600; }
+.login-field input { padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.login-submit { min-height: 48px; border-radius: 12px; font-size: 14px; }
+.reg-form input:not([type=checkbox]) { padding: 10px 12px !important; border-radius: 10px !important; font-size: 14px !important; }
+.reg-form label { font-size: 12px !important; font-weight: 600 !important; }
+.reg-form button[type=submit], .reg-form #btn-send-otp { border-radius: 12px !important; font-size: 14px !important; }
