@@ -971,3 +971,23 @@ body.app-shell > header button:hover {
 #daily-business-checkin { padding: 20px !important; border-radius: 16px !important; }
 #dashboard-insights .dash-panel { gap: 16px; }
 #dashboard-low-stock { width: 100%; }
+
+/* ===== Sales: exact Figma values =====
+   Page head as the dashboard; chips 7/14 padding, 8px gap, brand fill when
+   active; sale rows 12px vertical padding with a divider, name 14px, time
+   12px, amount 14px semibold; list panel padding 20, radius 16. */
+#tab-income-content .page-head .page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#tab-income-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
+#tab-income-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#sales-quick-filters { gap: 8px; }
+.sales-quick-chip { padding: 7px 14px; min-height: 0; font-size: 13px; font-weight: 600; line-height: 1.2; }
+#tab-income-content .sale-list { display: grid; gap: 0; }
+#tab-income-content .sale-card {
+  border: 0; border-bottom: 1px solid var(--sb-line); border-radius: 0;
+  padding: 12px 0; background: transparent; box-shadow: none !important;
+}
+#tab-income-content .sale-card:last-child { border-bottom: 0; }
+#tab-income-content .sale-card-top strong,
+#tab-income-content .sale-card-top .font-bold { font-size: 14px; font-weight: 500; color: #0f172a; }
+#tab-income-content .sale-card-top .font-semibold { font-size: 14px; font-weight: 600; color: #0f172a; }
+#tab-income-content .sale-card .text-xs { font-size: 12px; color: #64748b; }
