@@ -806,3 +806,42 @@ body.app-shell > header button:hover {
 /* Dashboard panels: consistent card rhythm with the Figma layout. */
 .dash-panel { box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 6px 18px rgba(15, 23, 42, .04); }
 .dash-panel h2, .dash-panel h3 { letter-spacing: -0.01em; }
+
+/* Sales and Inventory, from the Figma design */
+.page-head .page-sub {
+  margin-top: 4px;
+  font-size: .875rem;
+  color: #64748b;
+}
+.inventory-table-wrap table,
+.inventory-table-wrap tbody { display: block; width: 100%; }
+.inventory-table-wrap thead { display: none; }
+#presets-grid { display: grid; gap: 10px; padding: 12px; }
+#presets-grid tr {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--sb-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+#presets-grid tr:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, .08);
+}
+#presets-grid tr:has(td[colspan]) { grid-template-columns: 1fr; }
+#presets-grid td {
+  border: 0 !important;
+  padding: 0 !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#presets-grid td[colspan] { text-align: center; }
+@media (max-width: 639px) {
+  #presets-grid tr { grid-template-columns: 1fr 1fr; }
+  #presets-grid tr td:first-child { grid-column: 1 / -1; }
+}
