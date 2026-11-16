@@ -1007,6 +1007,21 @@
                 </div>
             </div>
 
+            <!-- Account summary (Figma): plan and sign-out -->
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="rounded-2xl bg-gradient-to-br from-blue-700 to-blue-900 p-6 text-white shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-blue-200">Current plan</p>
+                    <p class="mt-2 text-2xl font-extrabold">Early access</p>
+                    <p class="mt-2 text-sm text-blue-100">Your records, sales and business page are all included while SoloBiz is in early access.</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Account</p>
+                    <p class="mt-2 text-base font-semibold text-slate-900">{{ username }}</p>
+                    <p class="mt-1 text-sm text-slate-500">Signed in on this device.</p>
+                    <button type="button" onclick="handleLogout()" class="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Sign out</button>
+                </div>
+            </div>
+
             <!-- Business details -->
             <div class="sb-panel profile-panel">
                 <div class="hidden">
