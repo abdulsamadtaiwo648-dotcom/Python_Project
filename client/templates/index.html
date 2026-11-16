@@ -657,6 +657,23 @@
                 <button id="btn-toggle-budget-details" type="button" class="hidden" aria-hidden="true" tabindex="-1">Manage budget</button>
             </div>
 
+            <div id="budget-kpis" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Monthly budget</p>
+                    <p id="kpi-budget-limit" class="stat-value mt-2 text-2xl text-slate-900">₦0.00</p>
+                    <p class="mt-1 text-xs text-slate-500">Total of your category limits</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Spent so far</p>
+                    <p id="kpi-budget-spent" class="stat-value mt-2 text-2xl text-slate-900">₦0.00</p>
+                    <p class="mt-1 text-xs text-slate-500">Expenses this month</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Remaining</p>
+                    <p id="kpi-budget-remaining" class="stat-value mt-2 text-2xl text-blue-700">₦0.00</p>
+                    <p class="mt-1 text-xs text-slate-500">Left before the limits are reached</p>
+                </div>
+            </div>
             <div id="budget-summary-card" class="sb-panel">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
@@ -2147,6 +2164,15 @@
                 const limit = Number(budget.amount) || 0;
                 return { ...budget, spent, limit, percent: limit > 0 ? spent / limit * 100 : 0 };
             }).sort((a, b) => b.percent - a.percent);
+
+            const kpiLimit = document.getElementById('kpi-budget-limit');
+            if (kpiLimit) {
+                const totalLimit = progress.reduce((sum, item) => sum + item.limit, 0);
+                const totalSpent = progress.reduce((sum, item) => sum + item.spent, 0);
+                kpiLimit.textContent = formatBudgetCurrency(totalLimit);
+                document.getElementById('kpi-budget-spent').textContent = formatBudgetCurrency(totalSpent);
+                document.getElementById('kpi-budget-remaining').textContent = formatBudgetCurrency(Math.max(0, totalLimit - totalSpent));
+            }
 
             progress.forEach(item => {
                 const over = item.spent > item.limit;
