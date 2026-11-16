@@ -30,10 +30,10 @@ body.auth-page {
 .auth-modal-card .text-slate-400 { color: var(--sb-muted) !important; }
 .auth-card .text-slate-300,
 .auth-modal-card .text-slate-300 { color: #475569 !important; }
-.auth-card .text-indigo-400,
-.auth-modal-card .text-indigo-400 { color: var(--sb-brand) !important; }
-.auth-card .text-indigo-300,
-.auth-modal-card .text-indigo-300 { color: #1e40af !important; }
+.auth-card .text-blue-400,
+.auth-modal-card .text-blue-400 { color: var(--sb-brand) !important; }
+.auth-card .text-blue-300,
+.auth-modal-card .text-blue-300 { color: #1e40af !important; }
 .auth-card .text-red-400,
 .auth-modal-card .text-red-400 { color: #b91c1c !important; }
 .auth-card .text-emerald-400,
@@ -67,13 +67,13 @@ body.auth-page {
   box-shadow: 0 0 0 3px rgba(15, 118, 110, .12) !important;
 }
 
-.auth-card .bg-indigo-950\/60,
-.auth-modal-card .bg-indigo-950\/60 {
+.auth-card .bg-blue-950\/60,
+.auth-modal-card .bg-blue-950\/60 {
   border-color: #dbeafe !important;
   background: #f8faff !important;
 }
-.auth-card .bg-indigo-500\/20,
-.auth-modal-card .bg-indigo-500\/10 {
+.auth-card .bg-blue-500\/20,
+.auth-modal-card .bg-blue-500\/10 {
   border-color: #dbeafe !important;
   background: #eff6ff !important;
 }

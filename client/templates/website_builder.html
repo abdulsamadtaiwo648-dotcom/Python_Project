@@ -22,7 +22,7 @@
         .wb-step-title span { font-size: .78rem; font-weight: 600; color: var(--sb-muted); }
         .wb-step-sub { font-size: .82rem; color: var(--sb-muted); margin: 2px 0 14px; }
         .wb-fields { display: flex; flex-direction: column; gap: 14px; }
-        .wb-public { display: inline-block; padding: 1px 7px; border-radius: 999px; background: #eff6ff; color: #4338ca; font-size: .7rem; font-weight: 600; vertical-align: middle; }
+        .wb-public { display: inline-block; padding: 1px 7px; border-radius: 999px; background: #eff6ff; color: #1e40af; font-size: .7rem; font-weight: 600; vertical-align: middle; }
 
         /* status */
         .wb-status-address { font-size: 1.05rem; font-weight: 700; color: var(--sb-ink); word-break: break-all; }
@@ -42,12 +42,12 @@
         .wb-layout p { font-size: .78rem; color: var(--sb-muted); line-height: 1.35; margin-top: 2px; }
         .wb-wire { display: grid; gap: 4px; padding: 6px; border-radius: 8px; background: #f1f5f9; }
         .wb-wire i { display: block; border-radius: 3px; background: #cbd5e1; }
-        .wb-wire .hero { height: 22px; background: #a5b4fc; }
+        .wb-wire .hero { height: 22px; background: #93c5fd; }
         .wb-wire .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
         .wb-wire .cards i { height: 26px; }
         .wb-wire .rows { display: grid; gap: 4px; }
         .wb-wire .rows i { height: 11px; }
-        .wb-wire .cta { height: 9px; width: 45%; background: #6366f1; }
+        .wb-wire .cta { height: 9px; width: 45%; background: #3b82f6; }
 
         /* images */
         .wb-image-row { display: flex; align-items: center; gap: 12px; }
@@ -300,7 +300,7 @@
         const $ = id => document.getElementById(id);
         const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const naira = value => '₦' + Number(value).toLocaleString('en-NG', { maximumFractionDigits: 2 });
-        const SWATCHES = ['#4F46E5', '#1d4ed8', '#BE185D', '#B45309', '#1D4ED8', '#15803D', '#7C3AED', '#0F172A'];
+        const SWATCHES = ['#1d4ed8', '#1d4ed8', '#BE185D', '#B45309', '#1D4ED8', '#15803D', '#7C3AED', '#0F172A'];
         const ACTION_HINTS = {
             whatsapp: { label: 'WhatsApp number', placeholder: '+2348012345678', text: 'Chat on WhatsApp' },
             call: { label: 'Phone number', placeholder: '+2348012345678', text: 'Call us' },

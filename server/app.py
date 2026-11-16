@@ -175,7 +175,7 @@ def sanitize_brand_color(value):
     color = str(value or "").strip()
     if BRAND_COLOR_PATTERN.match(color):
         return color.upper() if len(color) == 7 else color
-    return "#4F46E5"
+    return "#1d4ed8"
 
 
 def sanitize_logo_url(value):
@@ -377,12 +377,12 @@ def _build_otp_html(subject_type: str, otp_code: str) -> str:
 </head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#f8fafc;margin:0;padding:40px 20px;color:#0f172a;">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;text-align:center;">
-    <div style="font-size:22px;font-weight:800;color:#4F46E5;margin-bottom:8px;letter-spacing:-0.4px;">SoloBiz</div>
+    <div style="font-size:22px;font-weight:800;color:#1d4ed8;margin-bottom:8px;letter-spacing:-0.4px;">SoloBiz</div>
     <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:12px;">{safe_type}</div>
     <p style="font-size:14px;color:#64748b;line-height:1.6;margin-bottom:24px;">
       Use the 6-digit verification PIN below to continue. This code expires in 15 minutes.
     </p>
-    <div style="background:#f8fafc;border:1px solid #c7d2fe;border-radius:12px;padding:18px;font-size:32px;font-weight:800;letter-spacing:8px;color:#4338ca;margin:20px 0;font-family:ui-monospace,monospace;">{safe_code}</div>
+    <div style="background:#f8fafc;border:1px solid #bfdbfe;border-radius:12px;padding:18px;font-size:32px;font-weight:800;letter-spacing:8px;color:#1e40af;margin:20px 0;font-family:ui-monospace,monospace;">{safe_code}</div>
     <p style="font-size:13px;color:#94a3b8;margin-top:20px;">If you didn't request this code, you can ignore this email.</p>
   </div>
 </body>

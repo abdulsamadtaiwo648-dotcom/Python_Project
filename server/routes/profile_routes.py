@@ -70,7 +70,7 @@ def get_unique_store_slug(company_name, user_id, current_slug=None):
 @app.route("/api/avatar/<store_slug>")
 def dynamic_business_avatar(store_slug):
     company_name = store_slug
-    color_hex = "4F46E5"
+    color_hex = "1D4ED8"
     with get_db() as db:
         profile = db.execute(
             "SELECT company_name, brand_color FROM business_profiles WHERE LOWER(store_slug) = LOWER(?)",
@@ -83,7 +83,7 @@ def dynamic_business_avatar(store_slug):
                 color_hex = profile["brand_color"].replace("#", "")
 
     if not re.fullmatch(r"[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}", color_hex):
-        color_hex = "4F46E5"
+        color_hex = "1D4ED8"
 
     initials = (company_name[:2] if len(company_name) >= 2 else (company_name[:1] or "B")).upper()
     initials = html.escape(initials)
@@ -171,7 +171,7 @@ def api_business_profile():
                 "profile": {
                     "company_name": "", "business_phone": "", "business_address": "",
                     "instagram_handle": "", "whatsapp_number": "", "store_policy": "",
-                    "brand_color": "#4F46E5", "logo_url": "", "store_slug": "",
+                    "brand_color": "#1d4ed8", "logo_url": "", "store_slug": "",
                     "profile_updated_at": "", "profile_change_reason": "", "profile_change_note": ""
                 }
             }), 200
@@ -188,7 +188,7 @@ def api_business_profile():
                 "instagram_handle": profile_dict.get("instagram_handle") or "",
                 "whatsapp_number": profile_dict.get("whatsapp_number") or "",
                 "store_policy": profile_dict.get("store_policy") or "",
-                "brand_color": profile_dict.get("brand_color") or "#4F46E5",
+                "brand_color": profile_dict.get("brand_color") or "#1d4ed8",
                 "logo_url": profile_dict.get("logo_url") or "",
                 "store_slug": profile_dict.get("store_slug") or "",
                 "profile_updated_at": profile_dict.get("profile_updated_at") or "",
@@ -229,10 +229,10 @@ def api_business_profile():
             "instagram_handle": str(data.get("instagram_handle", "")).strip(),
             "whatsapp_number": str(data.get("whatsapp_number", "")).strip(),
             "store_policy": str(data.get("store_policy", "")).strip(),
-            "brand_color": sanitize_brand_color(data.get("brand_color", "#4F46E5")),
+            "brand_color": sanitize_brand_color(data.get("brand_color", "#1d4ed8")),
         }
         profile_changed = any(
-            str(existing_dict.get(field) or ("#4F46E5" if field == "brand_color" else "")) != value
+            str(existing_dict.get(field) or ("#1d4ed8" if field == "brand_color" else "")) != value
             for field, value in next_profile.items()
         )
         uploaded_logo = request.files.get("logo")
@@ -305,7 +305,7 @@ def api_business_profile():
         instagram_handle = str(data.get("instagram_handle", "")).strip()
         whatsapp_number = str(data.get("whatsapp_number", "")).strip()
         store_policy = str(data.get("store_policy", "")).strip()
-        brand_color = sanitize_brand_color(data.get("brand_color", "#4F46E5"))
+        brand_color = sanitize_brand_color(data.get("brand_color", "#1d4ed8"))
 
         logo_url = None
         if "logo" in request.files:
