@@ -15,6 +15,7 @@
     <link rel="apple-touch-icon" href="/static/logo.svg">
     <!-- Pulls in Tailwind CSS for premium styling -->
     <script src="/static/tailwind.js"></script>
+    <script src="/static/shrink-image.js"></script>
     <!-- jsPDF + html2canvas loaded deferred — never block first paint -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -6163,6 +6164,11 @@
 
                     try {
                         pendingProfileFormData = new FormData(profileForm);
+                        // Shrink the logo on the device first; the server keeps a 2 MB limit.
+                        const logoInput = document.getElementById('profile-logo-file');
+                        if (logoInput?.files?.[0] && window.shrinkImage) {
+                            pendingProfileFormData.set('logo', await window.shrinkImage(logoInput.files[0]));
+                        }
                         
                         // Request OTP
                         const response = await authenticatedFetch('/api/business_profile/request-otp', {

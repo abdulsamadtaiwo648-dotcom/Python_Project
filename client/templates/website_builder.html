@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <meta name="theme-color" content="#4F46E5">
     <script src="/static/tailwind.js"></script>
+    <script src="/static/shrink-image.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/solobiz-ui.css">
     <style>
@@ -463,9 +464,11 @@
                 const input = $('file-input');
                 input.value = '';
                 input.onchange = async () => {
-                    const file = input.files[0];
-                    if (!file) return resolve(null);
-                    if (file.size > 2 * 1024 * 1024) { note('That image is larger than 2 MB. Choose a smaller one.', 'error'); return resolve(null); }
+                    const original = input.files[0];
+                    if (!original) return resolve(null);
+                    note('Preparing photo…');
+                    const file = await window.shrinkImage(original);
+                    if (file.size > 2 * 1024 * 1024) { note('That image is still larger than 2 MB. Choose a smaller one.', 'error'); return resolve(null); }
                     const form = new FormData();
                     form.append('image', file);
                     note('Uploading photo…');
