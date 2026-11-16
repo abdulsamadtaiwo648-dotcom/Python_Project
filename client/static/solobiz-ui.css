@@ -758,3 +758,47 @@ body.app-shell > header button:hover {
 .website-promo strong { font-size: .9rem; }
 .website-promo:hover { background: #dbeafe; }
 
+
+/* ---- App shell and dashboard, from the Figma design ----
+   248px white sidebar with grouped nav, tinted active item in the primary
+   blue, and bolder dashboard figures. */
+@media (min-width: 1024px) {
+  .desktop-sidebar {
+    width: 248px;
+    padding: 22px 16px;
+    background: #fff;
+    border-right: 1px solid var(--sb-line);
+  }
+  .desktop-sidebar .side-brand {
+    padding: 0 8px 18px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--sb-line);
+  }
+  .desktop-sidebar .nav-group {
+    margin: 20px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+  .desktop-sidebar .tab-btn {
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #475569;
+  }
+  .desktop-sidebar .side-foot {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--sb-line);
+  }
+  .desktop-content { background: var(--sb-canvas); }
+}
+.stat-value {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
