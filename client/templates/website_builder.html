@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website — SoloBiz</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#1d4ed8">
     <script src="/static/tailwind.js"></script>
     <script src="/static/shrink-image.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,7 +22,7 @@
         .wb-step-title span { font-size: .78rem; font-weight: 600; color: var(--sb-muted); }
         .wb-step-sub { font-size: .82rem; color: var(--sb-muted); margin: 2px 0 14px; }
         .wb-fields { display: flex; flex-direction: column; gap: 14px; }
-        .wb-public { display: inline-block; padding: 1px 7px; border-radius: 999px; background: #f0fdfa; color: #4338ca; font-size: .7rem; font-weight: 600; vertical-align: middle; }
+        .wb-public { display: inline-block; padding: 1px 7px; border-radius: 999px; background: #eff6ff; color: #4338ca; font-size: .7rem; font-weight: 600; vertical-align: middle; }
 
         /* status */
         .wb-status-address { font-size: 1.05rem; font-weight: 700; color: var(--sb-ink); word-break: break-all; }
@@ -300,7 +300,7 @@
         const $ = id => document.getElementById(id);
         const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const naira = value => '₦' + Number(value).toLocaleString('en-NG', { maximumFractionDigits: 2 });
-        const SWATCHES = ['#4F46E5', '#0F766E', '#BE185D', '#B45309', '#1D4ED8', '#15803D', '#7C3AED', '#0F172A'];
+        const SWATCHES = ['#4F46E5', '#1d4ed8', '#BE185D', '#B45309', '#1D4ED8', '#15803D', '#7C3AED', '#0F172A'];
         const ACTION_HINTS = {
             whatsapp: { label: 'WhatsApp number', placeholder: '+2348012345678', text: 'Chat on WhatsApp' },
             call: { label: 'Phone number', placeholder: '+2348012345678', text: 'Call us' },

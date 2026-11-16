@@ -1,6 +1,6 @@
 :root {
-  --sb-brand: #0f766e;
-  --sb-brand-hover: #115e59;
+  --sb-brand: #1d4ed8;
+  --sb-brand-hover: #1e40af;
   --sb-ink: #0f172a;
   --sb-muted: #64748b;
   --sb-line: #e2e8f0;
@@ -33,7 +33,7 @@ body.auth-page {
 .auth-card .text-indigo-400,
 .auth-modal-card .text-indigo-400 { color: var(--sb-brand) !important; }
 .auth-card .text-indigo-300,
-.auth-modal-card .text-indigo-300 { color: #115e59 !important; }
+.auth-modal-card .text-indigo-300 { color: #1e40af !important; }
 .auth-card .text-red-400,
 .auth-modal-card .text-red-400 { color: #b91c1c !important; }
 .auth-card .text-emerald-400,
@@ -69,13 +69,13 @@ body.auth-page {
 
 .auth-card .bg-indigo-950\/60,
 .auth-modal-card .bg-indigo-950\/60 {
-  border-color: #ccfbf1 !important;
+  border-color: #dbeafe !important;
   background: #f8faff !important;
 }
 .auth-card .bg-indigo-500\/20,
 .auth-modal-card .bg-indigo-500\/10 {
-  border-color: #ccfbf1 !important;
-  background: #f0fdfa !important;
+  border-color: #dbeafe !important;
+  background: #eff6ff !important;
 }
 .auth-card .shadow-lg,
 .auth-modal-card .shadow-lg,
@@ -136,12 +136,12 @@ body.app-shell > header button:hover {
 }
 
 .desktop-sidebar .tab-btn[aria-current="page"] {
-  background: #f0fdfa !important;
-  color: #115e59 !important;
+  background: #eff6ff !important;
+  color: #1e40af !important;
   box-shadow: none !important;
   font-weight: 700;
 }
-.desktop-sidebar .tab-btn[aria-current="page"] svg { color: #115e59 !important; }
+.desktop-sidebar .tab-btn[aria-current="page"] svg { color: #1e40af !important; }
 .desktop-sidebar .tab-btn:not([aria-current="page"]):hover { background: #f8fafc; }
 
 .desktop-content input:focus,
@@ -391,7 +391,7 @@ body.app-shell > header button:hover {
 #pwa-install-banner .sb-install-dismiss {
   display: grid; place-items: center;
   width: 32px; height: 32px; border-radius: 8px;
-  color: #99f6e4;
+  color: #93c5fd;
 }
 #pwa-install-banner .sb-install-dismiss:hover { background: rgba(255, 255, 255, .12); color: #fff; }
 
@@ -630,7 +630,7 @@ body.app-shell > header button:hover {
 .sale-line-remove { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; color: #94a3b8; }
 .sale-line-remove:hover { background: #fff1f2; color: #be123c; }
 .sale-line-remove svg { width: 18px; height: 18px; }
-.sale-line-bulk { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: .85rem; font-weight: 600; color: #115e59; cursor: pointer; }
+.sale-line-bulk { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: .85rem; font-weight: 600; color: #1e40af; cursor: pointer; }
 .sale-line-bulk input { width: 20px; height: 20px; min-height: 0; accent-color: var(--sb-brand); }
 .sale-line-source { grid-column: 1 / -1; font-size: .74rem; color: var(--sb-muted); }
 @media (min-width: 640px) {
@@ -706,7 +706,7 @@ body.app-shell > header button:hover {
 #transaction-list .expense-card:last-child { border-bottom: 0; }
 #transaction-list .expense-card:hover { background: #f8fafc; }
 #transaction-list .expense-card:focus-visible { outline: 2px solid var(--sb-brand); outline-offset: -2px; }
-.expense-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #f0fdfa; color: #115e59; font-weight: 700; }
+.expense-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #eff6ff; color: #1e40af; font-weight: 700; }
 .expense-text { flex: 1; min-width: 0; }
 .expense-category-val { font-size: .95rem; font-weight: 600; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .expense-desc-val { font-size: .8rem; color: var(--sb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -717,7 +717,7 @@ body.app-shell > header button:hover {
 /* Budget */
 .budget-month-pick input { min-height: 42px; padding: 0 10px; border: 1px solid var(--sb-line); border-radius: var(--sb-radius-sm); background: #fff; font-size: .9rem; color: var(--sb-ink); }
 .budget-summary-title { font-size: 1rem; font-weight: 700; color: var(--sb-ink); }
-.budget-percent { flex-shrink: 0; padding: 4px 10px; border-radius: 999px; background: #f0fdfa; color: #115e59; font-size: .85rem; font-weight: 700; }
+.budget-percent { flex-shrink: 0; padding: 4px 10px; border-radius: 999px; background: #eff6ff; color: #1e40af; font-size: .85rem; font-weight: 700; }
 .budget-track { margin-top: 12px; height: 10px; overflow: hidden; border-radius: 999px; background: #eef2f7; }
 #budget-insight:not(.hidden) { margin: 0 !important; }
 .budget-form { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px 0 16px; }
@@ -754,7 +754,7 @@ body.app-shell > header button:hover {
   .sb-sheet-compact { height: auto; max-height: 92%; border-radius: 20px 20px 0 0; }
   .sb-sheet-compact .sb-sheet-foot { margin-top: 4px; }
 }
-.website-promo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #99f6e4; border-radius: var(--sb-radius-sm); background: #f0fdfa; color: #0f766e; font-size: .82rem; text-decoration: none; }
+.website-promo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #93c5fd; border-radius: var(--sb-radius-sm); background: #eff6ff; color: #1d4ed8; font-size: .82rem; text-decoration: none; }
 .website-promo strong { font-size: .9rem; }
-.website-promo:hover { background: #ccfbf1; }
+.website-promo:hover { background: #dbeafe; }
 
