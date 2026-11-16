@@ -15,7 +15,7 @@
   <meta name="theme-color" content="{{ palette.brand }}">
   {% if site.logo_url %}<link rel="icon" href="{{ site.logo_url }}">{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/website.css">
   <style>:root { --brand: {{ palette.brand }}; --on-brand: {{ palette.on_brand }}; --brand-ink: {{ palette.ink }}; --brand-tint: {{ palette.tint }}; }</style>
 </head>
@@ -29,7 +29,7 @@
   <header class="site-header">
     <div class="wrap header-row">
       <a class="brand" href="#top" aria-label="{{ name }} home">
-        {% if site.logo_url %}<img src="{{ site.logo_url }}" alt="" width="40" height="40">{% endif %}
+        {% if site.logo_url %}<img src="{{ site.logo_url }}" alt="" width="40" height="40">{% else %}<span class="brand-mark" aria-hidden="true">{{ name[:1]|upper }}</span>{% endif %}
         <span>{{ name }}</span>
       </a>
       <nav class="site-nav" aria-label="Sections">
@@ -44,25 +44,37 @@
   <main id="main">
     <section id="top" class="hero {% if site.cover_url %}hero-cover{% else %}hero-plain{% endif %}">
       {% if site.cover_url %}<img class="hero-img" src="{{ site.cover_url }}" alt="">{% endif %}
-      <div class="wrap hero-inner">
-        <h1>{{ name }}</h1>
-        {% if site.tagline %}<p class="hero-tagline">{{ site.tagline }}</p>{% endif %}
-        <div class="hero-actions">
-          {% if is_product and has_items %}
-            <a class="btn btn-primary" href="#items">Browse products</a>
-            {% if action_href %}<a class="btn btn-ghost" href="{{ action_href }}" {% if action_type != 'call' %}target="_blank" rel="noopener"{% endif %}>{{ action_label }}</a>{% endif %}
-          {% elif action_href %}
-            <a class="btn btn-primary" href="{{ action_href }}" {% if action_type != 'call' %}target="_blank" rel="noopener"{% endif %}>{{ action_label }}</a>
-            {% if has_items %}<a class="btn btn-ghost" href="#items">See {{ items_label|lower }}</a>{% endif %}
-          {% endif %}
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          {% if is_product %}<p class="eyebrow">New arrivals</p>{% else %}<p class="eyebrow">Professional services</p>{% endif %}
+          <h1>{{ name }}</h1>
+          {% if site.tagline %}<p class="hero-tagline">{{ site.tagline }}</p>{% endif %}
+          <div class="hero-actions">
+            {% if is_product and has_items %}
+              <a class="btn btn-primary" href="#items">Browse products</a>
+              {% if action_href %}<a class="btn btn-ghost" href="{{ action_href }}" {% if action_type != 'call' %}target="_blank" rel="noopener"{% endif %}>{{ action_label }}</a>{% endif %}
+            {% elif action_href %}
+              <a class="btn btn-primary" href="{{ action_href }}" {% if action_type != 'call' %}target="_blank" rel="noopener"{% endif %}>{{ action_label }}</a>
+              {% if has_items %}<a class="btn btn-ghost" href="#items">See {{ items_label|lower }}</a>{% endif %}
+            {% endif %}
+          </div>
         </div>
+        {% if not site.cover_url %}
+        <div class="hero-visual" aria-hidden="true">
+          {% if site.logo_url %}<img src="{{ site.logo_url }}" alt="">{% else %}<span>{{ name[:1]|upper }}</span>{% endif %}
+        </div>
+        {% endif %}
       </div>
     </section>
 
     {% if is_product and has_items %}
     <section id="items" class="section">
       <div class="wrap">
-        <h2>Products</h2>
+        <div class="section-head">
+          <p class="eyebrow">Shop</p>
+          <h2>Products</h2>
+          <p class="section-sub">Pick what you like and order in one tap on WhatsApp.</p>
+        </div>
         <ul class="grid {% if products|length == 1 %}grid-single{% endif %}">
           {% for product in products %}
           <li class="card">
@@ -72,12 +84,12 @@
               {% else %}
                 <span class="card-placeholder" aria-hidden="true">{{ product.name[:1]|upper }}</span>
               {% endif %}
-              {% if product.sold_out %}<span class="badge">Sold out</span>{% endif %}
+              {% if product.sold_out %}<span class="badge badge-muted">Sold out</span>{% elif product.bulk %}<span class="badge">Bulk offer</span>{% endif %}
             </div>
             <div class="card-body">
               <h3>{{ product.name }}</h3>
-              <p class="price">{{ naira(product.price) }}</p>
               {% if product.bulk %}<p class="note">{{ product.bulk.quantity }} for {{ naira(product.bulk.price) }}</p>{% endif %}
+              <p class="price">{{ naira(product.price) }}</p>
               {% if order_base and not product.sold_out %}
                 <a class="card-link" target="_blank" rel="noopener"
                    href="{{ order_base }}?text={{ ('Hello ' ~ name ~ ', I would like to order: ' ~ product.name ~ ' (' ~ naira(product.price) ~ ')')|urlencode }}">Order on WhatsApp</a>
@@ -93,7 +105,11 @@
     {% if not is_product and has_items %}
     <section id="items" class="section">
       <div class="wrap">
-        <h2>Services</h2>
+        <div class="section-head">
+          <p class="eyebrow">What we do</p>
+          <h2>Services</h2>
+          <p class="section-sub">Tell us the job and we send a clear quote before we begin.</p>
+        </div>
         <ul class="grid grid-services {% if services|length == 1 %}grid-single{% endif %}">
           {% for service in services %}
           <li class="card">
@@ -119,7 +135,10 @@
     {% if gallery %}
     <section id="gallery" class="section section-tint">
       <div class="wrap">
-        <h2>{% if is_product %}Gallery{% else %}Our work{% endif %}</h2>
+        <div class="section-head">
+          <p class="eyebrow">{% if is_product %}Gallery{% else %}Recent jobs{% endif %}</p>
+          <h2>{% if is_product %}A look at our stock{% else %}Our work{% endif %}</h2>
+        </div>
         <ul class="gallery">
           {% for image in gallery %}<li><img src="{{ image }}" alt="{{ name }} photo {{ loop.index }}" loading="lazy"></li>{% endfor %}
         </ul>
@@ -130,6 +149,7 @@
     {% if site.about %}
     <section id="about" class="section">
       <div class="wrap narrow">
+        <p class="eyebrow">About</p>
         <h2>About {{ name }}</h2>
         <p class="prose">{{ site.about }}</p>
       </div>
@@ -139,15 +159,19 @@
     {% if has_contact %}
     <section id="contact" class="section section-tint">
       <div class="wrap">
-        <h2>Contact</h2>
-        <div class="contact-grid">
-          <ul class="contact-list">
-            {% if site.whatsapp %}<li><span>WhatsApp</span><a href="https://wa.me/{{ whatsapp_digits }}" target="_blank" rel="noopener">{{ site.whatsapp }}</a></li>{% endif %}
-            {% if site.phone %}<li><span>Phone</span><a href="tel:{{ site.phone }}">{{ site.phone }}</a></li>{% endif %}
-            {% if site.email %}<li><span>Email</span><a href="mailto:{{ site.email }}">{{ site.email }}</a></li>{% endif %}
-            {% if site.instagram %}<li><span>Instagram</span><a href="https://instagram.com/{{ site.instagram }}" target="_blank" rel="noopener">@{{ site.instagram }}</a></li>{% endif %}
-            {% if site.address %}<li><span>Location</span><p>{{ site.address }}</p></li>{% endif %}
-          </ul>
+        <div class="contact-card">
+          <div class="contact-main">
+            <p class="eyebrow eyebrow-light">Contact</p>
+            <h2>Visit or message us</h2>
+            <ul class="contact-list">
+              {% if site.whatsapp %}<li><span>WhatsApp</span><a href="https://wa.me/{{ whatsapp_digits }}" target="_blank" rel="noopener">{{ site.whatsapp }}</a></li>{% endif %}
+              {% if site.phone %}<li><span>Phone</span><a href="tel:{{ site.phone }}">{{ site.phone }}</a></li>{% endif %}
+              {% if site.email %}<li><span>Email</span><a href="mailto:{{ site.email }}">{{ site.email }}</a></li>{% endif %}
+              {% if site.instagram %}<li><span>Instagram</span><a href="https://instagram.com/{{ site.instagram }}" target="_blank" rel="noopener">@{{ site.instagram }}</a></li>{% endif %}
+              {% if site.address %}<li><span>Location</span><p>{{ site.address }}</p></li>{% endif %}
+            </ul>
+            {% if whatsapp_digits %}<a class="btn btn-light" href="https://wa.me/{{ whatsapp_digits }}" target="_blank" rel="noopener">Message us on WhatsApp</a>{% endif %}
+          </div>
           {% if site.hours %}
           <div class="hours">
             <h3>Opening hours</h3>
@@ -161,8 +185,11 @@
   </main>
 
   <footer class="site-footer">
-    <div class="wrap footer-row">
-      <p class="footer-name">{{ name }}</p>
+    <div class="wrap footer-grid">
+      <div>
+        <p class="footer-name">{{ name }}</p>
+        {% if site.tagline %}<p class="footer-tagline">{{ site.tagline }}</p>{% endif %}
+      </div>
       <p class="footer-links">
         {% if site.whatsapp %}<a href="https://wa.me/{{ whatsapp_digits }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
         {% if site.phone %}<a href="tel:{{ site.phone }}">Call</a>{% endif %}

@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <!-- PWA Web App Manifest & Mobile App Meta Tags -->
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#4F46E5">
+    <meta name="theme-color" content="#1d4ed8">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -73,7 +73,7 @@
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
+            background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
             border-radius: 20px 20px 0 0;
         }
         .biz-card-divider {
@@ -98,8 +98,8 @@
         }
         .custom-select-wrapper.select-open { z-index: 80; }
         .custom-select-option[aria-selected="true"] {
-            background: #eef2ff;
-            color: #3730a3;
+            background: #eff6ff;
+            color: #1d4ed8;
             font-weight: 700;
         }
         .custom-select-wrapper > svg { display: none; }
@@ -124,7 +124,7 @@
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
 
         /* ═══════════════════════════════════════════
            MOBILE (< 1024px): Bottom Tab Bar
@@ -326,14 +326,14 @@
         <div class="max-w-screen-2xl mx-auto flex justify-between items-center px-4">
             <!-- Left: Logo + Name + Tag -->
             <div class="flex items-center gap-2.5">
-                <div id="app-header-logo-wrap" class="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-indigo-600 flex items-center justify-center shadow-md">
+                <div id="app-header-logo-wrap" class="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-blue-700 flex items-center justify-center shadow-md">
                     <img id="app-header-logo" src="/static/logo.svg" alt="SoloBiz Logo" class="w-full h-full object-cover rounded-xl">
                 </div>
                 <h1 id="app-header-biz-name" class="font-bold text-base sm:text-lg tracking-tight text-slate-900">SoloBiz</h1>
             </div>
             <!-- Right: Status + Logout -->
             <div class="flex items-center gap-2">
-                <button onclick="handleLogout()" type="button" aria-label="Sign out" class="text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-slate-200 hover:bg-slate-50 min-h-[40px] min-w-[40px] px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer">
+                <button onclick="handleLogout()" type="button" aria-label="Sign out" class="lg:hidden text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-slate-200 hover:bg-slate-50 min-h-[40px] min-w-[40px] px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                     <span class="sb-logout-label">Sign out</span>
                 </button>
@@ -343,32 +343,39 @@
 
     <main class="desktop-dashboard-shell w-full">
 <!-- Sidebar Navigation -->
-        <aside id="dashboard-navigation" class="desktop-sidebar">
-            <div class="px-1 pt-1 pb-3 hidden lg:block">
-                <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Menu</p>
+        <aside id="dashboard-navigation" class="desktop-sidebar" aria-label="Main navigation">
+            <div class="side-brand">
+                <img src="/static/logo.svg" alt="" width="32" height="32">
+                <div class="min-w-0">
+                    <p class="side-brand-name">SoloBiz</p>
+                    <p class="side-brand-sub">{{ username }}</p>
+                </div>
             </div>
-            <a id="btn-tab-dashboard" data-dashboard-tab="dashboard" href="/dashboard" {% if active_tab == 'dashboard' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'dashboard' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <p class="nav-group">Overview</p>
+            <a id="btn-tab-dashboard" data-dashboard-tab="dashboard" href="/dashboard" {% if active_tab == 'dashboard' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'dashboard' %}bg-blue-700 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
                 <span>Dashboard</span>
             </a>
-            <a id="btn-tab-expenses" data-dashboard-tab="expenses" href="/expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'expenses' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                <span>Expenses</span>
+            <p class="nav-group">Business</p>
+            <a id="btn-tab-income" data-dashboard-tab="income" href="/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-blue-700 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                <span>Sales</span>
             </a>
-            <a id="btn-tab-inventory" data-dashboard-tab="inventory" href="/inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'inventory' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-inventory" data-dashboard-tab="inventory" href="/inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'inventory' %}bg-blue-700 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/><path d="M9 12v4M15 12v4"/></svg>
                 <span>Inventory</span>
                 <span data-low-stock-badge class="{% if not low_stock_items %}hidden {% endif %}ml-auto min-w-[1.25rem] rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white" aria-label="{{ low_stock_items|length }} products low on stock">{{ low_stock_items|length }}</span>
             </a>
-            <a id="btn-tab-income" data-dashboard-tab="income" href="/sales" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'income' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
-                <span>Sales</span>
+            <a id="btn-tab-expenses" data-dashboard-tab="expenses" href="/expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'expenses' %}bg-blue-700 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <span>Expenses</span>
             </a>
-            <a id="btn-tab-budget" data-dashboard-tab="budget" href="/budget" {% if active_tab == 'budget' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'budget' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <a id="btn-tab-budget" data-dashboard-tab="budget" href="/budget" {% if active_tab == 'budget' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'budget' %}bg-blue-700 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h4M7 16h6"/></svg>
                 <span>Budget</span>
             </a>
-            <a id="btn-tab-profile" data-dashboard-tab="profile" href="/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
+            <p class="nav-group">Account</p>
+            <a id="btn-tab-profile" data-dashboard-tab="profile" href="/profile" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'profile' %}bg-blue-700 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-100{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
                 <span>Profile</span>
             </a>
@@ -376,23 +383,29 @@
                 <svg class="w-4 h-4 flex-shrink-0" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
                 <span>Website</span>
             </a>
+            <div class="side-foot">
+                <button onclick="handleLogout()" type="button" class="side-signout">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+                    Sign out
+                </button>
+            </div>
         </aside>
 
         <!-- Main Content Area -->
         <div class="desktop-content">
 
         <!-- PWA Mobile Install App Banner -->
-        <div id="pwa-install-banner" class="hidden mb-3 bg-indigo-900 text-white flex items-center justify-between">
+        <div id="pwa-install-banner" class="hidden mb-3 bg-blue-950 text-white flex items-center justify-between">
             <div class="flex items-center gap-3 min-w-0">
-                <div id="pwa-banner-icon" class="w-10 h-10 rounded-xl overflow-hidden bg-indigo-500 flex-shrink-0 flex items-center justify-center">
+                <div id="pwa-banner-icon" class="w-10 h-10 rounded-xl overflow-hidden bg-blue-600 flex-shrink-0 flex items-center justify-center">
                     <img id="pwa-banner-logo" src="/static/logo.svg" alt="App Icon" class="w-full h-full object-cover rounded-xl">
                 </div>
                 <div>
                     <h3 id="pwa-banner-title" class="text-sm font-semibold text-white">Add SoloBiz to your phone</h3>
-                    <p class="text-xs text-indigo-200">Opens faster and works offline.</p>
+                    <p class="text-xs text-blue-200">Opens faster and works offline.</p>
                 </div>
             </div>
-            <button id="btn-pwa-install" type="button" class="bg-white text-indigo-900 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition whitespace-nowrap flex items-center gap-1.5">
+            <button id="btn-pwa-install" type="button" class="bg-white text-blue-950 text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm hover:bg-blue-50 transition whitespace-nowrap flex items-center gap-1.5">
                 Install
             </button>
             <button type="button" id="btn-pwa-dismiss" class="sb-install-dismiss flex-shrink-0" aria-label="Not now">
@@ -406,61 +419,26 @@
         </div>
 
         <!-- Dashboard: greeting and the two things a trader does most -->
-        <section id="tab-dashboard-content" class="tab-content {% if active_tab != 'dashboard' %}hidden{% endif %}" aria-labelledby="dash-title">
-            <div class="dash-head">
+        <section id="tab-dashboard-content" class="tab-content space-y-6 {% if active_tab != 'dashboard' %}hidden{% endif %}">
+            <div class="flex items-center justify-between gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7 sm:py-6">
                 <div class="min-w-0">
-                    <p class="dash-date" id="dash-date">{{ today }}</p>
-                    <h2 class="dash-title" id="dash-title"><span id="dash-greeting">Hello</span>, {{ username }}</h2>
+                    <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        <span class="h-1.5 w-1.5 rounded-full bg-blue-600" aria-hidden="true"></span>
+                        Your business
+                    </p>
+                    <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">Welcome back, {{ username }}</h2>
+                    <p class="mt-1 text-sm leading-6 text-slate-500">A clear view of this month’s sales, expenses and cash flow.</p>
                 </div>
-                <div class="dash-actions">
-                    <a href="/sales" data-dashboard-tab="income" data-open-new-sale class="sb-btn sb-btn-primary">
-                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
-                        New sale
-                    </a>
-                    <a href="/expenses" data-dashboard-tab="expenses" class="sb-btn sb-btn-secondary">Add expense</a>
+                <div class="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 sm:flex" aria-hidden="true">
+                    <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5h16.5A1.75 1.75 0 0 1 22 9.25v9A1.75 1.75 0 0 1 20.25 20h-16.5A1.75 1.75 0 0 1 2 18.25v-9A1.75 1.75 0 0 1 3.75 7.5Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7.5V5.75A1.75 1.75 0 0 1 9.75 4h4.5A1.75 1.75 0 0 1 16 5.75V7.5M2 12h20m-13 0v1.5h6V12" />
+                    </svg>
                 </div>
             </div>
         </section>
 
-        <!-- Today, plus anything that needs the owner's attention -->
-        <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-card" aria-labelledby="daily-checkin-heading">
-            <h3 id="daily-checkin-heading" class="dash-card-title">Today</h3>
-            <dl class="dash-figures dash-figures-3">
-                <div>
-                    <dt>Collected</dt>
-                    <dd id="daily-collected" class="text-emerald-700">₦{{ "{:,.2f}".format(today_collected) }}</dd>
-                </div>
-                <div>
-                    <dt>Spent</dt>
-                    <dd id="daily-expenses" class="text-rose-700">₦{{ "{:,.2f}".format(today_expenses) }}</dd>
-                </div>
-                <div>
-                    <dt>Net</dt>
-                    <dd id="daily-net" class="{% if today_net >= 0 %}text-slate-900{% else %}text-amber-700{% endif %}">₦{{ "{:,.2f}".format(today_net) }}</dd>
-                </div>
-            </dl>
 
-            <div class="dash-attention" aria-live="polite">
-                <h4 class="dash-subtitle">Needs attention</h4>
-                <a id="daily-unpaid-alert" href="/sales" data-dashboard-tab="income" class="{% if outstanding_sale_count == 0 %}hidden {% endif %}dash-row dash-row-warn">
-                    <span class="dash-row-icon" aria-hidden="true"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-                    <span class="dash-row-text">
-                        <strong><span id="daily-unpaid-count">{{ outstanding_sale_count }}</span> unpaid sale<span id="daily-unpaid-plural">{% if outstanding_sale_count != 1 %}s{% endif %}</span></strong>
-                        <span><span id="daily-unpaid-balance">₦{{ "{:,.2f}".format(total_unpaid_balance) }}</span> still owed to you</span>
-                    </span>
-                    <svg class="dash-row-chevron" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
-                </a>
-                <a id="daily-stock-alert" href="/inventory" data-dashboard-tab="inventory" class="{% if not low_stock_items %}hidden {% endif %}dash-row dash-row-danger">
-                    <span class="dash-row-icon" aria-hidden="true"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/></svg></span>
-                    <span class="dash-row-text">
-                        <strong><span id="daily-stock-count">{{ low_stock_items|length }}</span> product<span id="daily-stock-plural">{% if low_stock_items|length != 1 %}s{% endif %}</span> low on stock</strong>
-                        <span id="daily-stock-items">{% for item in low_stock_items[:5] %}{{ item.item_name }} ({{ item.stock }}){% if not loop.last %}, {% endif %}{% endfor %}{% if low_stock_items|length > 5 %}, and {{ low_stock_items|length - 5 }} more{% endif %}</span>
-                    </span>
-                    <svg class="dash-row-chevron" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
-                </a>
-                <p id="daily-checkin-clear" class="{% if outstanding_sale_count or low_stock_items %}hidden {% endif %}dash-clear">All clear: no unpaid sales or low stock.</p>
-            </div>
-        </section>
 
         <!-- Reports page heading (phones reach Reports from the bottom bar) -->
         <section id="tab-reports-content" class="tab-content {% if active_tab != 'reports' %}hidden{% endif %}" aria-labelledby="reports-title">
@@ -475,96 +453,151 @@
             </div>
         </section>
 
-        <!-- Running totals across every sale and expense -->
-        <div id="cfo-dashboard" data-report-part="overview" class="{% if active_tab not in ['dashboard', 'reports'] %}hidden{% endif %} dash-card" role="region" aria-labelledby="cfo-heading">
+        <!-- CFO Dashboard KPI cards (This month), Figma layout -->
+        <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab != 'dashboard' %}hidden{% endif %}">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-5">
+            <div class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Sales collected</p>
+                </div>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none text-slate-900 truncate" id="top-sales">₦{ "{:,.2f}".format(total_sales or 0.0) }</span>
+                <p class="text-xs leading-snug text-slate-500">Payments received across all sales</p>
+            </div>
+            <div class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Expenses</p>
+                </div>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none text-slate-900 truncate" id="top-expenses">₦{ "{:,.2f}".format(total_expenses or 0.0) }</span>
+                <p class="text-xs leading-snug text-slate-500">Across all recorded expenses</p>
+            </div>
+            <div class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Outstanding</p>
+                </div>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none text-slate-900 truncate" id="top-outstanding">₦{ "{:,.2f}".format(total_outstanding or 0.0) }</span>
+                <p class="text-xs leading-snug text-slate-500">Balance due across all sales</p>
+            </div>
             {% set np = net_profit or 0.0 %}
-            <div class="dash-card-headrow">
-                <h3 id="cfo-heading" class="dash-card-title">All time</h3>
-                <span class="dash-card-hint">Every sale and expense recorded</span>
+            <div id="kpi-net-cash-flow" class="kpi-card rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col gap-3 min-w-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="kpi-icon flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700" aria-hidden="true"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+                    <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">Net cash flow</p>
+                </div>
+                <span class="stat-value text-2xl sm:text-[1.7rem] leading-none {% if np >= 0 %}text-blue-700{% else %}text-amber-600{% endif %} truncate" id="top-profit">₦{ "{:,.2f}".format(np) }</span>
+                <p class="text-xs leading-snug text-slate-500">All payments received minus all expenses</p>
             </div>
-            <div class="dash-net">
-                <p class="dash-net-label">Net cash flow</p>
-                <p id="top-profit" class="dash-net-value" style="color: {% if np < 0 %}#b45309{% else %}#3730a3{% endif %}">₦{{ "{:,.2f}".format(np) }}</p>
-                <p class="dash-net-note">Money collected minus money spent</p>
-            </div>
-            <dl class="dash-figures dash-figures-3">
-                <div>
-                    <dt>Collected</dt>
-                    <dd id="top-sales" class="text-emerald-700">₦{{ "{:,.2f}".format(total_sales or 0.0) }}</dd>
-                </div>
-                <div>
-                    <dt>Expenses</dt>
-                    <dd id="top-expenses" class="text-rose-700">₦{{ "{:,.2f}".format(total_expenses or 0.0) }}</dd>
-                </div>
-                <div>
-                    <dt>Owed to you</dt>
-                    <dd id="top-outstanding" class="text-amber-700">₦{{ "{:,.2f}".format(total_outstanding or 0.0) }}</dd>
-                </div>
-            </dl>
         </div>
+        </div> <!-- End cfo-dashboard -->
 
-        <!-- Trends for a chosen period -->
-        <section id="dashboard-insights" class="{% if active_tab not in ['dashboard', 'reports'] %}hidden{% endif %} dash-insights" aria-labelledby="dashboard-insights-heading">
-            <div class="dash-section-head" data-report-part="trends periods">
-                <h3 id="dashboard-insights-heading" class="dash-section-title">Trends</h3>
-                <div class="sb-segmented" role="group" aria-label="Choose reporting period">
-                    <button type="button" data-period="daily" class="analytics-tab-btn text-slate-500">Day</button>
-                    <button type="button" data-period="weekly" class="analytics-tab-btn bg-white shadow-sm text-slate-900">Week</button>
-                    <button type="button" data-period="monthly" class="analytics-tab-btn text-slate-500">Month</button>
-                    <button type="button" data-period="yearly" class="analytics-tab-btn text-slate-500">Year</button>
+        <section id="dashboard-insights" class="{% if active_tab != 'dashboard' %}hidden{% endif %} space-y-4" aria-labelledby="dashboard-insights-heading">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 id="dashboard-insights-heading" class="text-base font-bold text-slate-900">Business analysis</h2>
+                    <p class="mt-1 text-xs text-slate-500">Review sales and expenses for the selected period.</p>
+                </div>
+                <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Choose reporting period">
+                    <button type="button" data-period="daily" class="analytics-tab-btn rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm">Day</button>
+                    <button type="button" data-period="weekly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Week</button>
+                    <button type="button" data-period="monthly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Month</button>
+                    <button type="button" data-period="yearly" class="analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Year</button>
                 </div>
             </div>
 
-            <div class="dash-card" data-report-part="trends">
-                <dl class="dash-figures dash-figures-5">
-                    <div>
-                        <dt>Sales value</dt>
-                        <dd id="analytics-total-value" class="text-slate-900">₦0.00</dd>
-                    </div>
-                    <div>
-                        <dt>Collected</dt>
-                        <dd id="analytics-cash-collected" class="text-emerald-700">₦0.00</dd>
-                    </div>
-                    <div>
-                        <dt>Expenses</dt>
-                        <dd id="analytics-total-expenses" class="text-rose-700">₦0.00</dd>
-                    </div>
-                    <div>
-                        <dt>Owed</dt>
-                        <dd id="analytics-outstanding-balance" class="text-amber-700">₦0.00</dd>
-                    </div>
-                    <div>
-                        <dt>Net cash flow</dt>
-                        <dd id="analytics-liquid-profit" class="text-emerald-700">₦0.00</dd>
-                    </div>
-                </dl>
-                <p id="analytics-period-summary" class="dash-note">Totals for this week to date.</p>
-                <!-- Kept for the analytics script; unpaid sales already show under "Needs attention". -->
-                <p id="analytics-outstanding-alert" class="hidden sb-visually-suppressed" aria-hidden="true"></p>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Sales value</p>
+                    <p id="analytics-total-value" class="mt-1 text-base font-bold text-slate-900">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Collected</p>
+                    <p id="analytics-cash-collected" class="mt-1 text-base font-bold text-emerald-700">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Expenses</p>
+                    <p id="analytics-total-expenses" class="mt-1 text-base font-bold text-rose-700">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Balance due</p>
+                    <p id="analytics-outstanding-balance" class="mt-1 text-base font-bold text-amber-700">₦0.00</p>
+                </article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Net cash flow</p>
+                    <p id="analytics-liquid-profit" class="mt-1 text-base font-bold text-emerald-700">₦0.00</p>
+                </article>
             </div>
+            <p id="analytics-period-summary" class="-mt-2 text-[10px] text-slate-400">Analysis totals for today.</p>
+            <p id="analytics-outstanding-alert" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">Some sales still have an outstanding balance.</p>
 
-            <div class="dash-trend-grid">
-                <section class="dash-card min-w-0" data-report-part="trends" aria-labelledby="analytics-trend-heading">
-                    <div class="dash-card-headrow">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+                <section class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="analytics-trend-heading">
+                    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                         <div>
-                            <h4 id="analytics-trend-heading" class="dash-card-title">Money in and out</h4>
-                            <p id="analytics-period-label" class="dash-card-hint">Per Week</p>
+                            <h3 id="analytics-trend-heading" class="text-base font-bold text-slate-900">Sales and expenses</h3>
+                            <p id="analytics-period-label" class="mt-0.5 text-[11px] text-slate-500">By day</p>
                         </div>
-                        <div class="dash-legend" aria-label="Chart legend">
-                            <span><i style="background:#4f46e5"></i>Collected</span>
-                            <span><i style="background:#f43f5e"></i>Expenses</span>
+                        <div class="flex items-center gap-3 text-[10px] font-medium text-slate-500" aria-label="Chart legend">
+                            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-blue-600"></span>Sales collected</span>
+                            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-slate-400"></span>Expenses</span>
                         </div>
                     </div>
-                    <canvas id="analytics-trend-chart" class="block h-56 w-full" aria-label="Collected and expenses chart"></canvas>
+                    <canvas id="analytics-trend-chart" class="block h-64 w-full sm:h-80" aria-label="Sales and expenses trend chart"></canvas>
                     <p id="analytics-trend-summary" class="sr-only" aria-live="polite"></p>
                 </section>
-                <section class="dash-card min-w-0" data-report-part="periods" aria-labelledby="analytics-history-heading">
-                    <h4 id="analytics-history-heading" class="dash-card-title">Sales by period</h4>
-                    <p class="dash-card-hint">Tap a period to see its sales.</p>
+                <section class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="analytics-history-heading">
+                    <h3 id="analytics-history-heading" class="text-base font-bold text-slate-900">Sales by period</h3>
+                    <p class="mt-0.5 text-[11px] text-slate-500">Open a period to see its recorded sales.</p>
                     <div id="analytics-grouped-list" class="mt-3 max-h-[340px] space-y-2 overflow-y-auto" aria-live="polite">
                         <p class="py-6 text-center text-sm text-slate-500">Loading sales…</p>
                     </div>
                 </section>
+            </div>
+        </section>
+
+        <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-panel mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 id="daily-checkin-heading" class="text-base font-bold text-slate-900">Today at a glance</h2>
+                    <p class="mt-1 text-xs text-slate-500">A quick check of today’s money in and out.</p>
+                </div>
+                <span class="text-xs font-medium text-slate-500">{{ today }}</span>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium text-slate-500">Collected today</p>
+                    <p id="daily-collected" class="mt-2 text-xl font-semibold tracking-tight text-emerald-700">₦{{ "{:,.2f}".format(today_collected) }}</p>
+                </article>
+                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium text-slate-500">Expenses today</p>
+                    <p id="daily-expenses" class="mt-2 text-xl font-semibold tracking-tight text-rose-700">₦{{ "{:,.2f}".format(today_expenses) }}</p>
+                </article>
+                <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium text-slate-500">Net cash today</p>
+                    <p id="daily-net" class="mt-2 text-xl font-semibold tracking-tight {% if today_net >= 0 %}text-slate-900{% else %}text-amber-700{% endif %}">₦{{ "{:,.2f}".format(today_net) }}</p>
+                    <p class="mt-1 text-[11px] text-slate-500">Collected minus expenses</p>
+                </article>
+            </div>
+            <div class="mt-4 border-t border-slate-100 pt-4">
+                <h3 class="text-sm font-semibold text-slate-800">Needs attention</h3>
+                <div class="mt-2 space-y-2" aria-live="polite">
+                    <div id="daily-unpaid-alert" class="{% if outstanding_sale_count == 0 %}hidden{% endif %} flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-3">
+                        <p class="text-sm text-amber-900"><strong id="daily-unpaid-count">{{ outstanding_sale_count }}</strong> sale<span id="daily-unpaid-plural">{% if outstanding_sale_count != 1 %}s{% endif %}</span> with a balance to follow up · <strong id="daily-unpaid-balance">₦{{ "{:,.2f}".format(total_unpaid_balance) }}</strong> outstanding</p>
+                        <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-amber-900 underline underline-offset-2">Review sales</a>
+                    </div>
+                    <div id="daily-stock-alert" class="{% if not low_stock_items %}hidden{% endif %} flex flex-wrap items-start justify-between gap-3 rounded-xl bg-rose-50 px-3 py-3">
+                        <div class="text-sm text-rose-900"><strong id="daily-stock-count">{{ low_stock_items|length }}</strong> tracked item<span id="daily-stock-plural">{% if low_stock_items|length != 1 %}s{% endif %}</span> at 3 units or fewer
+                            <p id="daily-stock-items" class="mt-1 text-xs text-rose-800">{% for item in low_stock_items[:5] %}{{ item.item_name }} ({{ item.stock }}){% if not loop.last %}, {% endif %}{% endfor %}{% if low_stock_items|length > 5 %}, and {{ low_stock_items|length - 5 }} more{% endif %}</p>
+                        </div>
+                        <a href="/inventory" data-dashboard-tab="inventory" class="text-sm font-semibold text-rose-900 underline underline-offset-2">Review stock</a>
+                    </div>
+                    <p id="daily-checkin-clear" class="{% if outstanding_sale_count or low_stock_items %}hidden{% endif %} rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-600">Nothing needs attention based on your current sales and stock records.</p>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2">
+                <a href="/sales" data-dashboard-tab="income" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white no-underline hover:bg-blue-700">Record a sale</a>
+                <a href="/expenses" data-dashboard-tab="expenses" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 no-underline hover:bg-slate-50">Record an expense</a>
             </div>
         </section>
 
@@ -592,7 +625,7 @@
                     <span id="budget-summary-percent" class="budget-percent">0%</span>
                 </div>
                 <div id="budget-summary-track" class="budget-track" role="progressbar" aria-label="Monthly budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                    <div id="budget-summary-fill" class="h-full w-0 rounded-full bg-indigo-600"></div>
+                    <div id="budget-summary-fill" class="h-full w-0 rounded-full bg-blue-700"></div>
                 </div>
             </div>
 
@@ -632,7 +665,7 @@
         <!-- ========================================================= -->
         <section id="tab-expenses-content" class="tab-content page-stack {% if active_tab != 'expenses' %}hidden{% endif %}" aria-labelledby="expenses-title">
             <div class="page-head">
-                <h2 class="page-title" id="expenses-title">Expenses</h2>
+                <div class="min-w-0"><h2 class="page-title" id="expenses-title">Expenses</h2><p class="page-sub">Where your money goes each month.</p></div>
                 <button type="button" id="btn-new-expense" class="sb-btn sb-btn-primary">
                     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
                     Add expense
@@ -737,7 +770,7 @@
         <!-- ========================================================= -->
         <section id="tab-inventory-content" class="tab-content page-stack {% if active_tab != 'inventory' %}hidden{% endif %}" aria-labelledby="inventory-title">
             <div class="page-head">
-                <h2 class="page-title" id="inventory-title">Inventory</h2>
+                <div class="min-w-0"><h2 class="page-title" id="inventory-title">Inventory</h2><p class="page-sub">Stock levels, prices and bulk offers.</p></div>
                 <button type="button" id="btn-manage-presets" class="sb-btn sb-btn-primary">
                     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
                     Add product
@@ -758,14 +791,14 @@
                 </div>
             </div>
             <div id="push-settings" class="hidden sb-panel flex flex-wrap items-center gap-3">
-                <svg class="w-5 h-5 flex-shrink-0 text-indigo-600" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <svg class="w-5 h-5 flex-shrink-0 text-blue-700" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                 <div class="flex-1 min-w-[12rem]">
                     <p class="text-sm font-bold text-slate-900">Stock alert notifications</p>
                     <p id="push-status" class="text-xs text-slate-500 mt-0.5" aria-live="polite">Get a notification on this device when a product runs low or sells out, even when SoloBiz is closed.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" id="push-test" class="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Send test</button>
-                    <button type="button" id="push-toggle" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60">Turn on</button>
+                    <button type="button" id="push-toggle" class="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-60">Turn on</button>
                 </div>
             </div>
             <div class="sb-list-card">
@@ -786,7 +819,7 @@
         <!-- ========================================================= -->
         <section id="tab-income-content" class="tab-content page-stack {% if active_tab != 'income' %}hidden{% endif %}" aria-labelledby="sales-title">
             <div class="page-head">
-                <h2 class="page-title" id="sales-title">Sales</h2>
+                <div class="min-w-0"><h2 class="page-title" id="sales-title">Sales</h2><p class="page-sub">Record every sale, unit or bulk.</p></div>
                 <button type="button" id="btn-new-sale" class="sb-btn sb-btn-primary">
                     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
                     New sale
@@ -906,7 +939,7 @@
             <!-- Business details -->
             <div class="sb-panel profile-panel">
                 <div class="hidden">
-                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
                     </div>
                     <div>
@@ -927,11 +960,11 @@
                     <div id="digital-business-card" class="biz-card-v2 relative overflow-hidden flex flex-col justify-between space-y-4">
 
                         <!-- Top Brand Color Accent Line -->
-                        <div id="card-top-accent" class="absolute top-0 left-0 right-0 h-2" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }};"></div>
+                        <div id="card-top-accent" class="absolute top-0 left-0 right-0 h-2" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#1d4ed8' }};"></div>
 
                         <!-- Header: Logo/Avatar + Business Name -->
                         <div class="flex items-center gap-3.5 pt-1">
-                            <div id="card-logo-container" class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-md flex-shrink-0 overflow-hidden border border-indigo-100" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }};">
+                            <div id="card-logo-container" class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-md flex-shrink-0 overflow-hidden border border-blue-100" style="background-color: {{ profile.brand_color if profile and profile.brand_color else '#1d4ed8' }};">
                                 {% if profile and profile.logo_url %}
                                     <img id="card-logo-img" src="{{ profile.logo_url }}" alt="Logo" class="w-full h-full object-cover">
                                 {% else %}
@@ -941,7 +974,7 @@
                             <div class="min-w-0 flex-1">
                                 <h2 id="card-company-name" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate flex items-center gap-1.5">
                                     {{ profile.company_name if profile and profile.company_name else 'Your Business' }}
-                                    <svg class="w-4 h-4 text-indigo-600 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                    <svg class="w-4 h-4 text-blue-700 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                                 </h2>
                                 <p id="profile-verification-status" class="text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 mt-0.5">
                                     <span class="w-1.5 h-1.5 rounded-full {% if profile and profile.company_name %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
@@ -953,12 +986,12 @@
                         <!-- Contact Badges Grid -->
                         <div class="space-y-2 text-xs pt-1 border-t border-slate-100">
                             <div class="flex items-center gap-2 text-slate-700 font-medium">
-                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                                 <span id="card-phone">{{ profile.business_phone if profile and profile.business_phone else 'Not set' }}</span>
                             </div>
 
                             <div class="flex items-center gap-2 text-slate-700 font-medium">
-                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                 <span id="card-address" class="truncate">{{ profile.business_address if profile and profile.business_address else 'Not set' }}</span>
                             </div>
 
@@ -1092,7 +1125,7 @@
                         </div>
 
                         <!-- Removed Brand Color Theme Preset Palette per user request -->
-                        <input type="hidden" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#4F46E5' }}">
+                        <input type="hidden" name="brand_color" id="profile-brand-color" value="{{ profile.brand_color if profile and profile.brand_color else '#1d4ed8' }}">
 
                         <!-- Business Logo File Upload -->
                         <div class="sb-field">
@@ -1306,17 +1339,17 @@
     <!-- Receipt Profile Requirement Modal -->
     <div id="receipt-profile-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-4">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h3"/>
                 </svg>
             </div>
-            <p class="text-[10px] uppercase tracking-[0.2em] font-black text-indigo-600">Receipt setup required</p>
+            <p class="text-[10px] uppercase tracking-[0.2em] font-black text-blue-700">Receipt setup required</p>
             <h3 class="text-xl font-black text-slate-900 mt-1">Add your business profile first</h3>
             <p class="text-sm text-slate-500 mt-2 leading-relaxed">Your receipt needs a business name so customers can verify who it came from. Add your profile, then generate the receipt again.</p>
             <div class="flex gap-3 mt-6">
                 <button type="button" id="close-receipt-profile-modal" class="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">Not now</button>
-                <button type="button" id="open-receipt-profile" class="flex-1 py-3 rounded-2xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 shadow-md">Set up profile</button>
+                <button type="button" id="open-receipt-profile" class="flex-1 py-3 rounded-2xl bg-blue-700 text-white text-xs font-black hover:bg-blue-800 shadow-md">Set up profile</button>
             </div>
         </div>
     </div>
@@ -1333,13 +1366,13 @@
                 <div>
                     <label for="profile-otp-input" class="block text-xs font-semibold text-slate-600 mb-1.5">Verification code</label>
                     <input type="text" id="profile-otp-input" inputmode="numeric" pattern="\d{6}" maxlength="6" required placeholder="123456"
-                           class="w-full border border-slate-200 rounded-xl p-3 text-center text-xl font-bold tracking-[0.2em] text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                           class="w-full border border-slate-200 rounded-xl p-3 text-center text-xl font-bold tracking-[0.2em] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600">
                 </div>
                 <p id="profile-otp-feedback" class="hidden rounded-lg border px-3 py-2 text-sm" role="status" aria-live="polite"></p>
-                <button type="button" id="btn-profile-resend-code" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">Send a new code</button>
+                <button type="button" id="btn-profile-resend-code" class="text-sm font-semibold text-blue-700 hover:text-blue-900 hover:underline">Send a new code</button>
                 <div class="flex gap-3 mt-6">
                     <button type="button" onclick="document.getElementById('profile-otp-modal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 hover:bg-gray-200 text-slate-700 text-xs font-bold rounded-xl transition">Cancel</button>
-                    <button type="submit" id="btn-verify-otp" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md">Verify & Save</button>
+                    <button type="submit" id="btn-verify-otp" class="flex-1 py-3 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition shadow-md">Verify & Save</button>
                 </div>
             </form>
         </div>
@@ -1470,7 +1503,7 @@
             whatsapp_number: {{ (profile.whatsapp_number if profile and profile.whatsapp_number else '') | tojson }},
             instagram_handle: {{ (profile.instagram_handle if profile and profile.instagram_handle else '') | tojson }},
             store_policy: {{ (profile.store_policy if profile and profile.store_policy else '') | tojson }},
-            brand_color: {{ (profile.brand_color if profile and profile.brand_color else '#4F46E5') | tojson }},
+            brand_color: {{ (profile.brand_color if profile and profile.brand_color else '#1d4ed8') | tojson }},
             profile_updated_at: INITIAL_PROFILE_UPDATED_AT
         };
         window.SOLOBIZ_PROFILE = window.SOLOBIZ_PROFILE || INITIAL_PROFILE_DATA;
@@ -1681,7 +1714,7 @@
             if (topProfitEl) {
                 topProfitEl.innerText = fmt(netProfit);
                 // Only touch colour — preserve the stat-value layout class
-                topProfitEl.style.color = netProfit < 0 ? '#b45309' : '#3730a3';
+                topProfitEl.style.color = netProfit < 0 ? '#b45309' : '#1d4ed8';
             }
             const outstandingEl = document.getElementById('top-outstanding');
             if (outstandingEl && totalOutstanding !== null) outstandingEl.innerText = fmt(totalOutstanding);
@@ -1690,11 +1723,11 @@
             const npCard = topProfitEl ? topProfitEl.closest('[class*="rounded-2xl"]') : null;
             if (npCard) {
                 if (netProfit < 0) {
-                    npCard.classList.remove('bg-indigo-50', 'border-indigo-200');
+                    npCard.classList.remove('bg-white', 'border-slate-200');
                     npCard.classList.add('bg-amber-50', 'border-amber-200');
                 } else {
                     npCard.classList.remove('bg-amber-50', 'border-amber-200');
-                    npCard.classList.add('bg-indigo-50', 'border-indigo-200');
+                    npCard.classList.add('bg-white', 'border-slate-200');
                 }
             }
             refreshDailyBusinessCheckin();
@@ -1799,7 +1832,7 @@
                             whatsapp_number: result.profile.whatsapp_number || '',
                             instagram_handle: result.profile.instagram_handle || '',
                             store_policy: result.profile.store_policy || '',
-                            brand_color: result.profile.brand_color || '#4F46E5',
+                            brand_color: result.profile.brand_color || '#1d4ed8',
                             logo_url: result.profile.logo_url || '',
                             store_slug: result.profile.store_slug || '',
                             profile_updated_at: result.profile.profile_updated_at || '',
@@ -1863,7 +1896,7 @@
                     whatsapp_number: p.whatsapp_number || '',
                     instagram_handle: p.instagram_handle || '',
                     store_policy: p.store_policy || '',
-                    brand_color: p.brand_color || '#4F46E5',
+                    brand_color: p.brand_color || '#1d4ed8',
                     logo_url: p.logo_url || '',
                     store_slug: p.store_slug || '',
                     profile_updated_at: p.profile_updated_at || '',
@@ -2049,7 +2082,7 @@
                 if (summaryTrack) summaryTrack.setAttribute('aria-valuenow', '0');
                 if (summaryFill) {
                     summaryFill.style.width = '0%';
-                    summaryFill.className = 'h-full rounded-full bg-indigo-600';
+                    summaryFill.className = 'h-full rounded-full bg-blue-700';
                 }
                 if (manageButton && budgetDetails?.classList.contains('hidden')) manageButton.textContent = 'Set budget';
                 return;
@@ -2086,7 +2119,7 @@
                 track.setAttribute('aria-valuemax', '100');
                 track.setAttribute('aria-valuenow', String(Math.min(100, Math.round(item.percent))));
                 const fill = document.createElement('div');
-                fill.className = `h-full rounded-full transition-all ${over ? 'bg-rose-500' : near ? 'bg-amber-500' : 'bg-indigo-600'}`;
+                fill.className = `h-full rounded-full transition-all ${over ? 'bg-rose-500' : near ? 'bg-amber-500' : 'bg-blue-700'}`;
                 fill.style.width = `${Math.min(100, item.percent)}%`;
                 track.append(fill);
 
@@ -2117,13 +2150,13 @@
             if (summaryTrack) summaryTrack.setAttribute('aria-valuenow', String(Math.min(100, Math.round(totalPercent))));
             if (summaryFill) {
                 summaryFill.style.width = `${Math.min(100, totalPercent)}%`;
-                summaryFill.className = `h-full rounded-full ${totalOver ? 'bg-rose-500' : totalNear ? 'bg-amber-500' : 'bg-indigo-600'}`;
+                summaryFill.className = `h-full rounded-full ${totalOver ? 'bg-rose-500' : totalNear ? 'bg-amber-500' : 'bg-blue-700'}`;
             }
             if (manageButton && budgetDetails?.classList.contains('hidden')) manageButton.textContent = 'Manage budget';
             if (insight) {
                 const over = highest.spent > highest.limit;
                 const near = highest.percent >= 80;
-                insight.className = `mb-4 rounded-xl px-4 py-3 text-sm ${over ? 'bg-rose-50 text-rose-800 border border-rose-200' : near ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-800 border border-indigo-100'}`;
+                insight.className = `mb-4 rounded-xl px-4 py-3 text-sm ${over ? 'bg-rose-50 text-rose-800 border border-rose-200' : near ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-900 border border-blue-100'}`;
                 insight.textContent = over
                     ? `${highest.category} is over its monthly limit by ${formatBudgetCurrency(highest.spent - highest.limit)}.`
                     : near
@@ -3049,7 +3082,7 @@
 
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.className = 'custom-select-button w-full rounded-xl border border-slate-200 bg-white py-3 px-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+                button.className = 'custom-select-button w-full rounded-xl border border-slate-200 bg-white py-3 px-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600';
                 button.setAttribute('aria-haspopup', 'listbox');
                 button.setAttribute('aria-expanded', 'false');
 
@@ -3277,13 +3310,13 @@
                 profile: document.getElementById('tab-profile-content')
             };
             const dashboardColors = {
-                dashboard: 'bg-indigo-600',
-                reports: 'bg-indigo-600',
-                expenses: 'bg-indigo-600',
-                inventory: 'bg-indigo-600',
-                income: 'bg-indigo-600',
-                budget: 'bg-indigo-600',
-                profile: 'bg-indigo-600'
+                dashboard: 'bg-blue-700',
+                reports: 'bg-blue-700',
+                expenses: 'bg-blue-700',
+                inventory: 'bg-blue-700',
+                income: 'bg-blue-700',
+                budget: 'bg-blue-700',
+                profile: 'bg-blue-700'
             };
             function dashboardTabFromLocation() {
                 const section = window.location.pathname.split('/').filter(Boolean).pop();
@@ -3310,18 +3343,18 @@
                     else link.removeAttribute('aria-current');
 
                     if (link.classList.contains('tab-btn')) {
-                        link.classList.remove('bg-indigo-600', 'bg-emerald-600', 'bg-blue-600', 'bg-amber-500', 'text-white', 'shadow-sm');
+                        link.classList.remove('bg-blue-700', 'bg-emerald-600', 'bg-blue-600', 'bg-amber-500', 'text-white', 'shadow-sm');
                         link.classList.add('text-slate-500', 'hover:text-slate-800', 'hover:bg-slate-100');
                         if (active) {
                             link.classList.remove('text-slate-500', 'hover:text-slate-800', 'hover:bg-slate-100');
                             link.classList.add(dashboardColors[tab], 'text-white', 'shadow-sm');
                         }
                     } else if (link.classList.contains('mobile-nav-btn')) {
-                        link.classList.toggle('text-indigo-600', active);
+                        link.classList.toggle('text-blue-700', active);
                         link.classList.toggle('text-slate-400', !active);
                     } else if (link.getAttribute('role') === 'menuitem') {
-                        link.classList.toggle('text-indigo-700', active);
-                        link.classList.toggle('bg-indigo-50', active);
+                        link.classList.toggle('text-blue-800', active);
+                        link.classList.toggle('bg-blue-50', active);
                         link.classList.toggle('text-slate-700', !active);
                     }
                 });
@@ -3329,7 +3362,7 @@
                 const moreActive = tab === 'reports' || tab === 'budget' || tab === 'profile';
                 document.getElementById('mobile-more-menu')?.classList.add('hidden');
                 moreButton?.setAttribute('aria-expanded', 'false');
-                moreButton?.classList.toggle('text-indigo-600', moreActive);
+                moreButton?.classList.toggle('text-blue-700', moreActive);
                 moreButton?.classList.toggle('text-slate-400', !moreActive);
                 if (moreActive) moreButton?.setAttribute('aria-current', 'page');
                 else moreButton?.removeAttribute('aria-current');
@@ -3523,7 +3556,7 @@
                     const whatsappNumber  = profileRecord?.whatsapp_number || '';
                     const instagramHandle = profileRecord?.instagram_handle || '';
                     const storePolicy     = profileRecord?.store_policy || '';
-                    const brandColorHex   = profileRecord?.brand_color || '#4F46E5';
+                    const brandColorHex   = profileRecord?.brand_color || '#1d4ed8';
                     const customerName    = saleRecord.customer_name || 'Valued Customer';
                     const receiptId       = saleRecord.receipt_id   || `REC-${String(saleLocalId).padStart(5,'0')}`;
                     
@@ -3539,9 +3572,9 @@
                     const fmt             = (n) => 'NGN ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
                     function hexToRgb(hex) {
-                        let c = (hex || '#4F46E5').replace('#', '');
+                        let c = (hex || '#1d4ed8').replace('#', '');
                         if (c.length === 3) c = c.split('').map(x => x + x).join('');
-                        const num = parseInt(c, 16) || 0x4F46E5;
+                        const num = parseInt(c, 16) || 0x1D4ED8;
                         return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
                     }
                     const [brandR, brandG, brandB] = hexToRgb(brandColorHex);
@@ -4689,7 +4722,7 @@
                     toggle.dataset.bulkToggleWrap = 'true';
                     toggle.className = 'sale-line-bulk';
                     toggle.style.gridColumn = '1 / -1';
-                    toggle.innerHTML = '<input type="checkbox" data-bulk-toggle class="w-4 h-4 accent-indigo-600"><span data-bulk-toggle-text></span>';
+                    toggle.innerHTML = '<input type="checkbox" data-bulk-toggle class="w-4 h-4 accent-blue-700"><span data-bulk-toggle-text></span>';
                     row.insertBefore(toggle, row.querySelector('[data-row-source]'));
                 }
                 toggle.querySelector('[data-bulk-toggle]').checked = rowSaleType(row) === 'bulk';
@@ -5001,7 +5034,7 @@
                         <td class="font-semibold">${escapeHtml(product.item_name)}</td>
                         <td><span class="inventory-status ${statusClass}">${status}</span></td>
                         <td>${stock}</td>
-                        <td class="font-semibold">₦${Number(product.price).toLocaleString('en-NG')}${formatBulkOffer(product) ? `<span class="block text-[10px] font-semibold text-indigo-600">Bulk: ${escapeHtml(formatBulkOffer(product))}</span>` : ''}</td>
+                        <td class="font-semibold">₦${Number(product.price).toLocaleString('en-NG')}${formatBulkOffer(product) ? `<span class="block text-[10px] font-semibold text-blue-700">Bulk: ${escapeHtml(formatBulkOffer(product))}</span>` : ''}</td>
                     </tr>`;
                 }).join('');
                 if (inventoryPresets.length === 0) {
@@ -5108,7 +5141,7 @@
                 pushToggle.textContent = state === 'on' ? 'Turn off' : 'Turn on';
                 pushToggle.className = state === 'on'
                     ? 'rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60'
-                    : 'rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60';
+                    : 'rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-60';
                 pushTest.classList.toggle('hidden', state !== 'on');
             }
             async function postPush(path, body) {
@@ -5305,9 +5338,9 @@
                 manageList.innerHTML = inventoryPresets.map(p => `
                     <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-xs" data-manage-id="${p.id}">
                         <span class="flex-1 font-semibold text-slate-800 truncate">${escapeHtml(p.item_name)}</span>
-                        <span class="text-emerald-600 font-bold whitespace-nowrap">₦${p.price.toLocaleString()}${formatBulkOffer(p) ? `<span class="block text-[10px] text-indigo-600">bulk ${escapeHtml(formatBulkOffer(p))}</span>` : ''}</span>
+                        <span class="text-emerald-600 font-bold whitespace-nowrap">₦${p.price.toLocaleString()}${formatBulkOffer(p) ? `<span class="block text-[10px] text-blue-700">bulk ${escapeHtml(formatBulkOffer(p))}</span>` : ''}</span>
                         <span class="text-slate-500 whitespace-nowrap w-12 text-center">${p.track_stock ? `${p.stock} pcs` : 'untracked'}</span>
-                        <button type="button" class="btn-edit-preset text-indigo-600 hover:text-indigo-800 font-bold transition" data-id="${p.id}">Edit</button>
+                        <button type="button" class="btn-edit-preset text-blue-700 hover:text-blue-900 font-bold transition" data-id="${p.id}">Edit</button>
                         <button type="button" class="btn-delete-preset text-red-400 hover:text-red-600 font-bold transition" data-id="${p.id}">✕</button>
                     </div>
                 `).join('');
@@ -5440,7 +5473,7 @@
                 const data = buckets.slice(-7);
                 if (!data.length) {
                     context.fillStyle = '#64748b';
-                    context.font = '13px sans-serif';
+                    context.font = '13px Inter, system-ui, sans-serif';
                     context.textAlign = 'center';
                     context.fillText('No sales or expense data for this period yet.', width / 2, height / 2);
                     if (summary) summary.textContent = 'No sales or expense data for this period yet.';
@@ -5455,33 +5488,41 @@
                     notation: 'compact', maximumFractionDigits: 1
                 }).format(value);
 
-                context.font = '10px sans-serif';
+                context.font = '12px Inter, system-ui, sans-serif';
                 context.textAlign = 'right';
                 context.textBaseline = 'middle';
                 for (let step = 0; step <= 4; step++) {
                     const y = pad.top + plotHeight - (plotHeight * step / 4);
-                    context.strokeStyle = '#e2e8f0';
+                    context.strokeStyle = '#f1f5f9';
                     context.lineWidth = 1;
                     context.beginPath();
                     context.moveTo(pad.left, y);
                     context.lineTo(width - pad.right, y);
                     context.stroke();
-                    context.fillStyle = '#64748b';
+                    context.fillStyle = '#94a3b8';
                     context.fillText(compactMoney(maxValue * step / 4), pad.left - 7, y);
                 }
 
                 const slotWidth = plotWidth / data.length;
-                const barWidth = Math.min(22, slotWidth * 0.28);
+                const barWidth = Math.min(18, slotWidth * 0.3);
+                const barTop = (x, y, w, h) => {
+                    if (h <= 0) return;
+                    const r = Math.min(6, w / 2, h);
+                    context.beginPath();
+                    if (context.roundRect) context.roundRect(x, y, w, h, [r, r, 0, 0]);
+                    else context.rect(x, y, w, h);
+                    context.fill();
+                };
                 data.forEach((item, index) => {
                     const center = pad.left + slotWidth * (index + 0.5);
                     const salesHeight = Math.max(0, item.sales / maxValue * plotHeight);
                     const expenseHeight = Math.max(0, item.expenses / maxValue * plotHeight);
-                    context.fillStyle = '#4f46e5';
-                    context.fillRect(center - barWidth - 2, pad.top + plotHeight - salesHeight, barWidth, salesHeight);
-                    context.fillStyle = '#f43f5e';
-                    context.fillRect(center + 2, pad.top + plotHeight - expenseHeight, barWidth, expenseHeight);
+                    context.fillStyle = '#1d4ed8';
+                    barTop(center - barWidth - 2, pad.top + plotHeight - salesHeight, barWidth, salesHeight);
+                    context.fillStyle = '#94a3b8';
+                    barTop(center + 2, pad.top + plotHeight - expenseHeight, barWidth, expenseHeight);
                     context.fillStyle = '#64748b';
-                    context.font = '10px sans-serif';
+                    context.font = '12px Inter, system-ui, sans-serif';
                     context.textAlign = 'center';
                     context.textBaseline = 'top';
                     context.fillText(item.label, center, pad.top + plotHeight + 9, slotWidth - 2);
@@ -5639,7 +5680,7 @@
                                 <span class="font-bold text-slate-800 text-sm">${escapeHtml(key)}</span>
                                 <span class="text-[10px] bg-gray-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">${g.items.length} tx</span>
                             </div>
-                            <span class="font-bold text-indigo-600">₦${g.salesVolume.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                            <span class="font-bold text-blue-700">₦${g.salesVolume.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                         </summary>
                         <div class="px-4 pb-4 pt-1 space-y-2 bg-white">
                             ${g.items.map(item => {
@@ -5796,7 +5837,7 @@
                         if (expensesEl) expensesEl.textContent = fmt(filteredExpenseTotal);
                         if (netProfitEl) {
                             netProfitEl.textContent = fmt(netProfit);
-                            netProfitEl.style.color = netProfit < 0 ? '#b45309' : '#3730a3';
+                            netProfitEl.style.color = netProfit < 0 ? '#b45309' : '#1d4ed8';
                         }
                     };
                 }).catch(err => console.warn('recalculateDashboard error:', err));
@@ -5931,7 +5972,7 @@
             };
 
             function highlightActiveSwatch(colorHex) {
-                const targetColor = (colorHex || '#4F46E5').toUpperCase();
+                const targetColor = (colorHex || '#1d4ed8').toUpperCase();
                 const swatches = document.querySelectorAll('.palette-swatch');
                 swatches.forEach(swatch => {
                     const swatchColor = (swatch.getAttribute('data-color') || '').toUpperCase();
@@ -5948,7 +5989,7 @@
             }
 
             function updateCardThemeColor(colorHex) {
-                const color = colorHex || '#4F46E5';
+                const color = colorHex || '#1d4ed8';
                 const hiddenInput = document.getElementById('profile-brand-color');
                 if (hiddenInput) hiddenInput.value = color;
 
@@ -6013,9 +6054,9 @@
                     if (igEl) igEl.value = profile.instagram_handle || '';
                     if (addrEl) addrEl.value = profile.business_address || '';
                     if (polEl) polEl.value = profile.store_policy || '';
-                    if (colorEl) colorEl.value = profile.brand_color || '#4F46E5';
+                    if (colorEl) colorEl.value = profile.brand_color || '#1d4ed8';
 
-                    updateCardThemeColor(profile.brand_color || '#4F46E5');
+                    updateCardThemeColor(profile.brand_color || '#1d4ed8');
 
                     if (cComp) cComp.childNodes[0].nodeValue = profile.company_name + ' ';
                     if (cPhone) cPhone.textContent = profile.business_phone || 'Not set';
@@ -6073,7 +6114,7 @@
                     // ── Dynamic App Branding: Profile UI populated ──────
                     toggleProfileMode('view');
                 } else {
-                    updateCardThemeColor('#4F46E5');
+                    updateCardThemeColor('#1d4ed8');
                     toggleProfileMode('edit');
                 }
             }
@@ -6419,38 +6460,38 @@
 
 <!-- Mobile Bottom Nav Bar -->
 <nav id="mobile-bottom-nav" aria-label="App pages" class="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-stretch bg-white border-t border-slate-200" style="padding-bottom: env(safe-area-inset-bottom);">
-  <a href="/dashboard" data-dashboard-tab="dashboard" data-mobile-tab="dashboard" {% if active_tab == 'dashboard' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'dashboard' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+  <a href="/dashboard" data-dashboard-tab="dashboard" data-mobile-tab="dashboard" {% if active_tab == 'dashboard' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'dashboard' %}text-blue-700{% else %}text-slate-400{% endif %}">
     <span class="relative"><svg class="w-6 h-6" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span>
     <span class="mobile-nav-label">Home</span>
   </a>
-  <a href="/sales" data-dashboard-tab="income" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'income' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+  <a href="/sales" data-dashboard-tab="income" data-mobile-tab="income" {% if active_tab == 'income' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'income' %}text-blue-700{% else %}text-slate-400{% endif %}">
     <span class="relative"><svg class="w-6 h-6" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></span>
     <span class="mobile-nav-label">Sales</span>
   </a>
-  <a href="/inventory" data-dashboard-tab="inventory" data-mobile-tab="inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'inventory' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+  <a href="/inventory" data-dashboard-tab="inventory" data-mobile-tab="inventory" {% if active_tab == 'inventory' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'inventory' %}text-blue-700{% else %}text-slate-400{% endif %}">
     <span class="relative"><svg class="w-6 h-6" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M5 7l1 13h12l1-13M9 7V4a3 3 0 0 1 6 0v3"/><path d="M9 12v4M15 12v4"/></svg>
       <span data-low-stock-badge class="{% if not low_stock_items %}hidden {% endif %}absolute -top-1.5 -right-2.5 min-w-[1.1rem] rounded-full bg-rose-600 px-1 py-0.5 text-center text-[10px] font-bold leading-none text-white" aria-label="{{ low_stock_items|length }} products low on stock">{{ low_stock_items|length }}</span></span>
     <span class="mobile-nav-label">Inventory</span>
   </a>
-  <a href="/expenses" data-dashboard-tab="expenses" data-mobile-tab="expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'expenses' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+  <a href="/expenses" data-dashboard-tab="expenses" data-mobile-tab="expenses" {% if active_tab == 'expenses' %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab == 'expenses' %}text-blue-700{% else %}text-slate-400{% endif %}">
     <span class="relative"><svg class="w-6 h-6" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
     <span class="mobile-nav-label">Expenses</span>
   </a>
-  <button id="mobile-more-btn" type="button" aria-expanded="false" aria-controls="mobile-more-menu" aria-haspopup="true" {% if active_tab in ['reports', 'budget', 'profile'] %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab in ['reports', 'budget', 'profile'] %}text-indigo-600{% else %}text-slate-400{% endif %}">
+  <button id="mobile-more-btn" type="button" aria-expanded="false" aria-controls="mobile-more-menu" aria-haspopup="true" {% if active_tab in ['reports', 'budget', 'profile'] %}aria-current="page"{% endif %} class="mobile-nav-btn {% if active_tab in ['reports', 'budget', 'profile'] %}text-blue-700{% else %}text-slate-400{% endif %}">
     <span class="relative"><svg class="w-6 h-6" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></span>
     <span class="mobile-nav-label">More</span>
   </button>
   <div id="mobile-more-menu" class="hidden w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl" role="menu" aria-label="More pages">
-    <a href="/reports" data-dashboard-tab="reports" role="menuitem" {% if active_tab == 'reports' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'reports' %}text-indigo-700 bg-indigo-50{% else %}text-slate-700{% endif %} hover:bg-indigo-50 hover:text-indigo-700" style="text-decoration:none">
+    <a href="/reports" data-dashboard-tab="reports" role="menuitem" {% if active_tab == 'reports' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'reports' %}text-blue-800 bg-blue-50{% else %}text-slate-700{% endif %} hover:bg-blue-50 hover:text-blue-800" style="text-decoration:none">
       <svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg> Reports
     </a>
-    <a href="/budget" data-dashboard-tab="budget" role="menuitem" {% if active_tab == 'budget' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'budget' %}text-indigo-700 bg-indigo-50{% else %}text-slate-700{% endif %} hover:bg-indigo-50 hover:text-indigo-700" style="text-decoration:none">
+    <a href="/budget" data-dashboard-tab="budget" role="menuitem" {% if active_tab == 'budget' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'budget' %}text-blue-800 bg-blue-50{% else %}text-slate-700{% endif %} hover:bg-blue-50 hover:text-blue-800" style="text-decoration:none">
       <svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h4M7 16h6"/></svg> Budget
     </a>
-    <a href="/profile" role="menuitem" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'profile' %}text-indigo-700 bg-indigo-50{% else %}text-slate-700{% endif %} hover:bg-indigo-50 hover:text-indigo-700" style="text-decoration:none">
+    <a href="/profile" role="menuitem" {% if active_tab == 'profile' %}aria-current="page"{% endif %} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold {% if active_tab == 'profile' %}text-blue-800 bg-blue-50{% else %}text-slate-700{% endif %} hover:bg-blue-50 hover:text-blue-800" style="text-decoration:none">
       <svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profile
     </a>
-    <a href="/website" role="menuitem" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700" style="text-decoration:none">
+    <a href="/website" role="menuitem" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800" style="text-decoration:none">
       <svg class="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg> Website
     </a>
   </div>

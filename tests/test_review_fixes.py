@@ -89,7 +89,7 @@ def test_avatar_svg_escapes_names(client, signed_in):
         db.commit()
     svg = client.get("/api/avatar/xss-co").get_data(as_text=True)
     assert "&lt;&amp;" in svg and "<&" not in svg
-    assert 'fill="#4F46E5"' in svg
+    assert 'fill="#1D4ED8"' in svg
 
 
 def test_synced_sales_with_bad_dates_get_a_real_date(client, signed_in):

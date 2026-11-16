@@ -226,7 +226,7 @@ def brand_palette(color):
     ink       the brand colour darkened until it reads on a white page
     tint      a very light wash of it for section backgrounds
     """
-    color = color if _COLOR_RE.match(color or "") else "#4F46E5"
+    color = color if _COLOR_RE.match(color or "") else "#1d4ed8"
     rgb = _rgb(color)
     white, dark = (255, 255, 255), (15, 23, 42)
     on_brand = "#ffffff" if _contrast(rgb, white) >= _contrast(rgb, dark) else "#0f172a"
@@ -255,7 +255,7 @@ def default_content(profile=None):
         "display_name": (profile.get("company_name") or "").strip()[:80],
         "tagline": "",
         "about": "",
-        "brand_color": profile.get("brand_color") if _COLOR_RE.match(profile.get("brand_color") or "") else "#4F46E5",
+        "brand_color": profile.get("brand_color") if _COLOR_RE.match(profile.get("brand_color") or "") else "#1d4ed8",
         "logo_url": logo if logo.startswith(("/static/uploads/logos/", "/media/")) else "",
         "cover_url": "",
         "phone": phone,
@@ -323,7 +323,7 @@ def clean_content(data, user_id, db, profile_logo=""):
         "display_name": _text(data.get("display_name"), 80),
         "tagline": _text(data.get("tagline"), 160),
         "about": _text(data.get("about"), 1200, multiline=True),
-        "brand_color": data.get("brand_color").upper() if _COLOR_RE.match(str(data.get("brand_color") or "")) else "#4F46E5",
+        "brand_color": data.get("brand_color").upper() if _COLOR_RE.match(str(data.get("brand_color") or "")) else "#1d4ed8",
         "logo_url": image(data.get("logo_url"), "logo_url"),
         "cover_url": image(data.get("cover_url"), "cover_url"),
         "phone": phone(data.get("phone"), "phone", "phone number"),
