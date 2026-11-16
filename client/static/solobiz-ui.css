@@ -845,3 +845,18 @@ body.app-shell > header button:hover {
   #presets-grid tr { grid-template-columns: 1fr 1fr; }
   #presets-grid tr td:first-child { grid-column: 1 / -1; }
 }
+
+/* Expenses, Budget and Profile, from the Figma design */
+.expense-card {
+  border-radius: 14px;
+  border: 1px solid var(--sb-line);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.expense-card:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, .08);
+}
+#budget-summary-fill { border-radius: 999px; }
+.profile-panel { border-radius: 16px; }
