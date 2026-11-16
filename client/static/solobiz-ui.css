@@ -1093,3 +1093,28 @@ body.app-shell > header button:hover {
 #profile-account > div:first-child p:first-child { font-size: 13px; }
 #profile-account > div:first-child p:nth-child(2) { font-size: 24px; font-weight: 700; }
 #profile-account > div:first-child p:last-child { font-size: 12px; }
+
+/* ===== Phone versions: exact Figma values (under 640px) =====
+   20px side margins and 16px gaps between sections; page titles 24px
+   with 13px subtitles; summary cards two across with 14px padding and
+   20px figures; the third Expenses card spans the full width. The app
+   header with sign-out is kept on phones. */
+@media (max-width: 639px) {
+  .desktop-content { padding: 16px 20px 24px !important; }
+  .page-stack:not(.hidden) { gap: 16px; }
+  .page-title { font-size: 24px !important; font-weight: 700; line-height: 1.2; }
+  .page-sub { font-size: 13px; }
+  .kpi-card { padding: 14px !important; }
+  .kpi-card .stat-value { font-size: 20px !important; }
+  #expense-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+  #expense-kpis > div:last-child { grid-column: 1 / -1; }
+  #budget-kpis { gap: 12px; }
+  #dashboard-bottom-grid { gap: 16px; }
+  #dashboard-bottom-grid > section { padding: 16px !important; }
+  .budget-categories-panel,
+  #expense-breakdown,
+  #tab-profile-content .profile-panel,
+  #profile-account > div { padding: 16px !important; }
+  #tab-profile-content { gap: 16px; }
+  #profile-account { gap: 12px; }
+}
