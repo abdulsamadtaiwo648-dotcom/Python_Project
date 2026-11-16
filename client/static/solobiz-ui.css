@@ -939,3 +939,35 @@ body.app-shell > header button:hover {
   #budget-kpis .stat-value { font-size: 1.35rem; }
   #dashboard-bottom-grid, #daily-business-checkin { margin-bottom: 14px; }
 }
+
+/* ===== Dashboard: exact Figma values =====
+   Sidebar 248 wide, padding 20; nav items 10/12 padding, radius 10, 14px;
+   main padding 32, gap 24; page title 28 bold, subtitle 14; KPI cards padding
+   18, gap 8, radius 14 with 13px labels, 24px figures, 12px notes; panels
+   padding 20, radius 16. */
+@media (min-width: 1024px) {
+  .desktop-sidebar { width: 248px; padding: 20px; }
+  .desktop-sidebar .side-brand { padding: 0 0 18px; }
+  .desktop-sidebar .nav-group { margin: 20px 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: .12em; }
+  .desktop-sidebar .tab-btn { padding: 10px 12px; border-radius: 10px; font-size: 14px; gap: 12px; }
+  .desktop-content { padding: 32px; }
+  .desktop-content > #dashboard-bottom-grid,
+  .desktop-content > #daily-business-checkin { margin-bottom: 24px; }
+}
+#cfo-dashboard .page-head .page-title,
+#cfo-dashboard h2.page-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+#cfo-dashboard .page-sub { font-size: 14px; margin-top: 4px; }
+#cfo-dashboard .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
+#cfo-dashboard .grid { gap: 16px !important; }
+.kpi-card { padding: 18px !important; gap: 8px !important; border-radius: 14px !important; }
+.kpi-card .kpi-icon { width: 32px; height: 32px; border-radius: 10px; }
+.kpi-card > div > p { font-size: 13px !important; font-weight: 500 !important; text-transform: none !important; letter-spacing: 0 !important; color: #64748b !important; }
+.kpi-card .stat-value { font-size: 24px !important; line-height: 1.1 !important; }
+.kpi-card > p:last-child { font-size: 12px !important; }
+#cfo-dashboard .kpi-card .text-slate-500 { color: #64748b; }
+#dashboard-insights .dash-panel,
+#dashboard-recent-sales,
+#dashboard-low-stock,
+#daily-business-checkin { padding: 20px !important; border-radius: 16px !important; }
+#dashboard-insights .dash-panel { gap: 16px; }
+#dashboard-low-stock { width: 100%; }
