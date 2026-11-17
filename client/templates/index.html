@@ -794,14 +794,6 @@
                 </div>
             </div>
 
-            <div class="list-toolbar">
-                <button type="button" id="expense-filter-toggle" class="sb-chip" aria-expanded="false" aria-controls="expense-filter-panel">
-                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-                    Filter <span id="expense-filter-count" class="sb-chip-count hidden">0</span>
-                </button>
-                <p id="expense-list-summary" class="list-toolbar-text" aria-live="polite"></p>
-                <button type="button" id="btn-clear-filters" class="hidden sb-link">Clear</button>
-            </div>
 
             <section id="expense-filter-panel" class="sb-panel filter-panel" aria-label="Filter expenses">
                 <div class="filter-grid filter-grid-2">
@@ -831,7 +823,17 @@
 
             <div id="expense-layout" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div class="min-w-0 expense-list-panel">
-            <h3 class="expense-list-title">Recent expenses</h3>
+            <div class="expense-list-head">
+                <h3 class="expense-list-title">Recent expenses</h3>
+            <div class="list-toolbar expense-toolbar-inline">
+                <button type="button" id="expense-filter-toggle" class="sb-chip" aria-expanded="false" aria-controls="expense-filter-panel">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                    Filter <span id="expense-filter-count" class="sb-chip-count hidden">0</span>
+                </button>
+                <p id="expense-list-summary" class="list-toolbar-text" aria-live="polite"></p>
+                <button type="button" id="btn-clear-filters" class="hidden sb-link">Clear</button>
+            </div>
+            </div>
             <div class="sb-list-card" id="transaction-list">
                 {% if expenses|length == 0 %}
                     <p class="list-empty" id="no-expenses-msg">No expenses yet. Tap “Add expense” to record one.</p>
@@ -1014,9 +1016,7 @@
                     <button type="button" data-sales-quick="today" aria-pressed="false" class="sales-quick-chip">Today</button>
                     <button type="button" data-sales-quick="week" aria-pressed="false" class="sales-quick-chip">This week</button>
                     <button type="button" data-sales-quick="bulk" aria-pressed="false" class="sales-quick-chip">Bulk sales</button>
-                </div>
-
-                <div class="list-toolbar">
+                <div class="list-toolbar sales-toolbar-inline">
                     <button type="button" id="sales-filter-toggle" class="sb-chip" aria-expanded="false" aria-controls="sales-filter-panel">
                         <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
                         Filter <span id="sales-filter-count" class="sb-chip-count hidden">0</span>
@@ -1024,6 +1024,8 @@
                     <p id="sales-filter-summary" class="list-toolbar-text" aria-live="polite">All sales</p>
                     <button id="sales-clear-filters" type="button" class="hidden sb-link">Clear</button>
                 </div>
+                </div>
+
 
                 <section id="sales-filter-panel" class="sb-panel filter-panel" aria-label="Filter sales">
                     <div class="filter-grid">

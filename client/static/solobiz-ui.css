@@ -1486,3 +1486,10 @@ body[data-page="reports"] #dashboard-insights:not(.hidden) > * { order: 0 !impor
 }
 body[data-page="reports"] #cfo-dashboard .page-head { display: none; }
 .expense-when { flex-shrink: 0; font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; white-space: nowrap; }
+
+/* Filter controls sit inside the frame's own rows instead of adding a row */
+.sales-toolbar-inline { margin: 0 0 0 auto !important; padding: 0 !important; display: flex; align-items: center; gap: 8px; }
+.expense-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.expense-toolbar-inline { margin: 0 !important; padding: 0 !important; display: flex; align-items: center; gap: 8px; }
+.sales-toolbar-inline .sb-chip, .expense-toolbar-inline .sb-chip { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.sales-toolbar-inline .list-toolbar-text, .expense-toolbar-inline .list-toolbar-text { font-size: 12px; color: #64748b; margin: 0; }
