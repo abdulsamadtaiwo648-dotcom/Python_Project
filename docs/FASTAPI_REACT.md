@@ -24,6 +24,12 @@ For front-end work run the API on port 8000 (`uvicorn app:app --port 8000`) and
 
 ## Deploy on Render
 
+The built app (`web/dist`) is committed and `gunicorn.conf.py` selects the ASGI
+worker, so the existing Render commands (`pip install -r requirements.txt` and
+`gunicorn app:app`) keep working without changes. Rebuild with `npm run build`
+in `web/` and commit `web/dist` whenever the front end changes. The commands
+below build it on Render instead, if you prefer that.
+
 Change the existing service to (or create it from `render.yaml`):
 
 * Build command: `pip install -r requirements.txt && cd web && npm ci && npm run build`
