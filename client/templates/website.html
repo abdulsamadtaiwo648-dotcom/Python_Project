@@ -67,6 +67,40 @@
       </div>
     </section>
 
+    {% if has_items %}
+    <section id="how-it-works" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">{% if is_product %}Why shop with us{% else %}How it works{% endif %}</p>
+          <h2>{% if is_product %}Shopping made simple{% else %}Three simple steps{% endif %}</h2>
+        </div>
+        <ul class="why-grid">
+          {% if is_product %}
+          <li class="why-card"><span class="why-num">1</span>
+            <h3>{% if order_base %}Order in one tap{% else %}Easy to reach{% endif %}</h3>
+            <p>{% if order_base %}Tap Order on WhatsApp on any product and your message is ready to send.{% else %}Use the contact details below to place an order.{% endif %}</p></li>
+          <li class="why-card"><span class="why-num">2</span>
+            <h3>Clear prices</h3>
+            <p>Every price is shown up front, so you know what to expect.</p></li>
+          <li class="why-card"><span class="why-num">3</span>
+            <h3>Always up to date</h3>
+            <p>This page shows what is available, and sold-out items are marked.</p></li>
+          {% else %}
+          <li class="why-card"><span class="why-num">1</span>
+            <h3>Tell us what you need</h3>
+            <p>Send a message or call using the contact details below.</p></li>
+          <li class="why-card"><span class="why-num">2</span>
+            <h3>See the price</h3>
+            <p>Each service shows its price, or you can ask for a quote.</p></li>
+          <li class="why-card"><span class="why-num">3</span>
+            <h3>Book it in</h3>
+            <p>Agree a time and we take it from there.</p></li>
+          {% endif %}
+        </ul>
+      </div>
+    </section>
+    {% endif %}
+
     {% if is_product and has_items %}
     <section id="items" class="section">
       <div class="wrap">
@@ -146,19 +180,18 @@
     </section>
     {% endif %}
 
-    {% if site.about %}
-    <section id="about" class="section">
-      <div class="wrap narrow">
-        <p class="eyebrow">About</p>
-        <h2>About {{ name }}</h2>
-        <p class="prose">{{ site.about }}</p>
-      </div>
-    </section>
-    {% endif %}
-
-    {% if has_contact %}
-    <section id="contact" class="section section-tint">
-      <div class="wrap">
+    {% if site.about or has_contact %}
+    <section class="section section-tint about-contact">
+      <div class="wrap about-contact-grid">
+        {% if site.about %}
+        <div id="about" class="about-block">
+          <p class="eyebrow">About</p>
+          <h2>About {{ name }}</h2>
+          <p class="prose">{{ site.about }}</p>
+        </div>
+        {% endif %}
+        {% if has_contact %}
+        <div id="contact">
         <div class="contact-card">
           <div class="contact-main">
             <p class="eyebrow eyebrow-light">Contact</p>
@@ -179,6 +212,8 @@
           </div>
           {% endif %}
         </div>
+        </div>
+        {% endif %}
       </div>
     </section>
     {% endif %}

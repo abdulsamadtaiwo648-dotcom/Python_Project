@@ -38,7 +38,10 @@ def run(base_url, expect_commit=None, timeout=60):
         check(f"running commit {expect_commit[:7]}", (body.get("commit") or "") == expect_commit[:7], body.get("commit") or "unknown")
 
     login = get("/login")
-    check("login page loads with a CSRF token", login.status_code == 200 and 'name="csrf_token"' in login.text, f"HTTP {login.status_code}")
+    check("sign-in page serves the app", login.status_code == 200 and 'id="root"' in login.text, f"HTTP {login.status_code}")
+    session = get("/api/session")
+    check("session API issues a CSRF token", session.status_code == 200 and bool(session.json().get("csrf_token")), f"HTTP {session.status_code}")
+    check("app bundle is served", 'src="/assets/' in login.text and get(login.text.split('src="')[1].split('"')[0]).status_code == 200)
     check("register page loads", get("/register").status_code == 200)
     check("landing page loads", get("/").status_code == 200)
     dashboard = get("/dashboard")
@@ -48,7 +51,7 @@ def run(base_url, expect_commit=None, timeout=60):
     check("stylesheet is served", get("/static/solobiz-ui.css").status_code == 200)
     check("service worker is served", get("/sw.js").status_code == 200)
     check("unknown website address is a 404", get("/site/this-name-is-not-used").status_code == 404)
-    check("sign-out by link is ignored", get("/logout").status_code in (301, 302))
+    check("sign-out by link is ignored", get("/api/logout").status_code == 405)
     check("removed pages stay removed", get("/user-count").status_code == 404 and get("/floor").status_code == 404)
     return failures
 

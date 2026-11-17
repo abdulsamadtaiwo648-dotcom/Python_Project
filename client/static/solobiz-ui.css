@@ -1081,7 +1081,7 @@ body.app-shell > header button:hover {
 #tab-profile-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
 #tab-profile-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
 @media (min-width: 1024px) {
-  #tab-profile-content { display: grid !important; max-width: none !important; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  #tab-profile-content:not(.hidden) { display: grid !important; max-width: none !important; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
   #tab-profile-content > .page-head { grid-column: 1 / -1; }
   #tab-profile-content > .profile-panel { grid-column: 1; grid-row: 2; }
   #tab-profile-content > #profile-account { grid-column: 2; grid-row: 2; grid-template-columns: minmax(0, 1fr); }
@@ -1139,3 +1139,357 @@ body.app-shell > header button:hover {
 .reg-form input:not([type=checkbox]) { padding: 10px 12px !important; border-radius: 10px !important; font-size: 14px !important; }
 .reg-form label { font-size: 12px !important; font-weight: 600 !important; }
 .reg-form button[type=submit], .reg-form #btn-send-otp { border-radius: 12px !important; font-size: 14px !important; }
+
+/* ===== Matched to the Figma screenshots (desktop, 1024px and up) ===== */
+@media (min-width: 1024px) {
+  /* Dashboard: Recent sales takes the full width under the chart row */
+  #dashboard-bottom-grid { grid-template-columns: 1fr !important; }
+  /* Sidebar business card above sign-out */
+  .side-business {
+    margin-top: auto; display: flex; align-items: center; gap: 10px;
+    padding: 12px; border-radius: 12px; background: #f8fafc;
+  }
+  .desktop-sidebar .side-foot { margin-top: 14px; }
+  .side-business-mark {
+    width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+    background: #eff6ff; color: #1d4ed8; display: grid; place-items: center;
+    font-size: 13px; font-weight: 700;
+  }
+  /* Sales: the New sale form sits in a panel beside the list */
+  #sales-main-view { display: grid !important; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+  #sales-main-view > * { grid-column: 1; }
+  #sales-main-view > #sale-entry-modal { grid-column: 2; grid-row: 1 / span 60; }
+  #sale-entry-modal.hidden { display: block !important; }
+  #sale-entry-modal { position: static !important; background: transparent !important; padding: 0 !important; backdrop-filter: none !important; z-index: auto !important; }
+  #sale-entry-card { position: static !important; width: 100% !important; max-width: none !important; max-height: none !important; border-radius: 16px !important; border: 1px solid var(--sb-line); box-shadow: 0 1px 2px rgba(15,23,42,.04) !important; padding: 0; }
+  #sale-entry-modal [data-close-entry] { display: none; }
+}
+/* Inventory: filter chips hide rows that don't match; product cards get an image area */
+#inv-list-card:not(.inv-view-table) #presets-grid tr[data-chip-hidden] { display: none !important; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr::before {
+  content: ""; display: block; height: 110px; border-radius: 10px; background: #eff6ff;
+}
+
+/* ===== Dashboard: exact values from the Figma frames =====
+   Desktop 1440 frame and phone 390 frame. The sidebar replaces the top bar on
+   desktop; KPI cards, chart row, Recent sales and the phone bar follow the
+   frame's sizes, gaps, colours and type. */
+@media (min-width: 1024px) {
+  body.app-shell > header { display: none !important; }
+  .desktop-dashboard-shell { min-height: 100vh; }
+  .desktop-sidebar {
+    position: sticky !important; top: 0 !important; height: 100vh !important;
+    width: 248px !important; padding: 20px !important; gap: 4px !important;
+    background: #fff; border-right: 1px solid #e2e8f0;
+  }
+  .desktop-content, .desktop-content:has(#daily-business-checkin:not(.hidden)) {
+    display: block !important; max-width: none !important; padding: 32px !important; background: #f8fafc;
+  }
+  .desktop-sidebar .side-brand { display: flex; align-items: center; gap: 10px; padding: 0 0 20px !important; margin: 0 !important; border: 0 !important; }
+  .desktop-sidebar .side-brand img { width: 32px; height: 32px; border-radius: 9px; }
+  .desktop-sidebar .side-brand-name { font-size: 18px; font-weight: 700; line-height: 25px; color: #0f172a; letter-spacing: 0; text-transform: none; }
+  .desktop-sidebar .nav-group { margin: 0 !important; padding: 0; font-size: 11px; font-weight: 600; line-height: 15px; letter-spacing: 0; text-transform: uppercase; color: #64748b; }
+  .desktop-sidebar a.tab-btn { min-height: 40px; padding: 10px 12px; gap: 12px; border-radius: 10px; font-size: 14px; font-weight: 500; line-height: 20px; color: #64748b; background: transparent; }
+  .desktop-sidebar a.tab-btn svg { width: 16px; height: 16px; color: #94a3b8; }
+  .desktop-sidebar a.tab-btn:not([aria-current="page"]):hover { background: #f8fafc; }
+  .desktop-sidebar a.tab-btn[aria-current="page"] { background: #eff6ff !important; color: #1d4ed8 !important; font-weight: 600; }
+  .desktop-sidebar a.tab-btn[aria-current="page"] svg { color: #1d4ed8 !important; }
+  .side-business { margin-top: auto; padding: 12px; gap: 12px; border-radius: 12px; background: #f8fafc; display: flex; align-items: center; }
+  .side-business-mark { width: 36px; height: 36px; border-radius: 18px; font-size: 14px; font-weight: 600; }
+  .side-business p:first-child { font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+  .side-business p:last-child { font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; }
+  .desktop-sidebar .side-foot { margin-top: 8px !important; padding: 0 !important; border: 0 !important; }
+}
+.side-signout { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; }
+.side-signout:hover { background: #f8fafc; }
+.side-signout svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; }
+
+/* KPI cards: 18 padding, 8 gap, 14 radius; 13 / 24 / 12 type */
+#cfo-dashboard { margin-bottom: 24px; }
+#cfo-dashboard .page-head { margin-bottom: 24px !important; align-items: center; }
+#cfo-dashboard #kpi-row { display: grid; gap: 16px !important; margin: 0 !important; }
+#kpi-row .kpi-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 18px !important; border: 1px solid #e2e8f0; border-radius: 14px !important; background: #fff; box-shadow: none; }
+#kpi-row .kpi-label { font-size: 13px; font-weight: 500; line-height: 18px; color: #64748b; text-transform: none; letter-spacing: 0; margin: 0; }
+#kpi-row .kpi-card .stat-value { font-size: 24px !important; font-weight: 700; line-height: 34px !important; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+#kpi-row .kpi-card .stat-value.text-amber-600 { color: #d97706; }
+#kpi-row .kpi-note { font-size: 12px !important; font-weight: 500; line-height: 17px; margin: 0; color: #64748b; }
+#kpi-row .kpi-card:nth-child(1) .kpi-note { color: #167251; }
+#kpi-row .kpi-card:nth-child(3) .kpi-note { color: #1d4ed8; }
+#kpi-row .kpi-card:nth-child(4) .kpi-note { color: #b45309; }
+
+/* Under the KPIs: chart row, then Recent sales, then the app's own analysis */
+#dashboard-insights:not(.hidden) { display: flex; flex-direction: column; gap: 24px; margin-bottom: 24px; }
+#dashboard-insights > * { order: 3; margin-top: 0 !important; }
+#dashboard-insights > #dashboard-chart-row { order: 1; gap: 20px; margin: 0; }
+#dashboard-insights > #dashboard-bottom-grid { order: 2; margin: 0 !important; grid-template-columns: 1fr !important; }
+#dashboard-chart-row > section:first-child { padding: 20px !important; border-radius: 16px !important; display: flex; flex-direction: column; gap: 16px; }
+#dashboard-chart-row > section:first-child > div:first-child { margin: 0 !important; }
+#analytics-trend-heading { font-size: 16px; font-weight: 600; line-height: 22px; color: #0f172a; }
+#analytics-period-label { margin-top: 16px !important; font-size: 12px; line-height: 17px; color: #64748b; }
+#analytics-trend-chart { height: 248px !important; }
+#dashboard-low-stock { align-self: start; padding: 20px !important; border-radius: 16px !important; display: flex; flex-direction: column; gap: 12px; }
+#dashboard-low-stock h3 { font-size: 16px; font-weight: 600; line-height: 22px; color: #0f172a; }
+#dashboard-low-stock > p { margin: 0 !important; font-size: 12px; line-height: 17px; color: #64748b; }
+#dashboard-low-stock ul { margin: 0 !important; display: flex; flex-direction: column; gap: 12px; }
+#dashboard-low-stock li { margin: 0 !important; }
+#dashboard-low-stock li > span:first-child { font-size: 14px; font-weight: 500; line-height: 20px; color: #0f172a; }
+#dashboard-low-stock li > span:last-child { padding: 4px 10px; font-size: 12px; font-weight: 600; line-height: 17px; }
+#dashboard-low-stock .bg-amber-50 { background: #fff5dc !important; color: #b45309 !important; }
+#dashboard-recent-sales { padding: 20px !important; border-radius: 16px !important; margin: 0; }
+#dashboard-recent-sales > div:first-child { margin-bottom: 0 !important; }
+#dashboard-recent-heading { font-size: 16px; font-weight: 600; line-height: 22px; color: #0f172a; }
+#dashboard-recent-list { display: block; }
+#dashboard-recent-list > * { border-top-width: 0 !important; }
+.recent-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+.recent-row:last-child { border-bottom: 0; }
+.recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; line-height: 20px; color: #0f172a; }
+.recent-when { flex-shrink: 0; font-size: 12px; line-height: 17px; color: #64748b; }
+.recent-when.is-owing { color: #b45309; }
+.recent-amount { flex-shrink: 0; font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+#tab-dashboard-content, #daily-business-checkin { margin-top: 0; margin-bottom: 24px; }
+
+/* Phone frame (390): 14px between sections, 12px KPI gaps, 20px figures */
+@media (max-width: 639px) {
+  #cfo-dashboard { margin-bottom: 14px; }
+  #cfo-dashboard .page-head { margin-bottom: 14px !important; }
+  #cfo-dashboard .page-head .sb-btn { display: none; }
+  #cfo-dashboard #kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px !important; }
+  #kpi-row .kpi-card .stat-value { font-size: 20px !important; line-height: 28px !important; }
+  #dashboard-insights:not(.hidden) { gap: 14px; margin-bottom: 14px; }
+  #dashboard-low-stock, #dashboard-recent-sales { padding: 16px !important; }
+  #dashboard-low-stock h3, #dashboard-recent-heading { font-size: 15px; line-height: 21px; }
+  #dashboard-chart-row { gap: 14px !important; }
+}
+/* Phone bottom bar: 8px top, 26px bottom, 22px icons, 11px labels */
+@media (max-width: 1023px) {
+  body.app-shell { padding-bottom: calc(81px + env(safe-area-inset-bottom)) !important; }
+  #mobile-bottom-nav { height: auto !important; padding: 8px 8px max(26px, env(safe-area-inset-bottom)) !important; box-shadow: none !important; border-top: 1px solid #e2e8f0; background: #fff; }
+  #mobile-bottom-nav .mobile-nav-btn { gap: 4px; padding-top: 4px; }
+  #mobile-bottom-nav .mobile-nav-btn > span:first-child,
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] > span:first-child { background: transparent !important; width: auto; height: auto; }
+  #mobile-bottom-nav .mobile-nav-btn svg { width: 22px; height: 22px; color: #94a3b8; }
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] svg { color: #1d4ed8; }
+  #mobile-bottom-nav .mobile-nav-label { font-size: 11px; font-weight: 500; line-height: 15px; color: #64748b; }
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] .mobile-nav-label { color: #1d4ed8; font-weight: 500; }
+}
+
+/* Full-bleed desktop shell: the sidebar starts at the top-left corner */
+@media (min-width: 1024px) {
+  body.app-shell { background: #f8fafc !important; padding-top: 0 !important; }
+  main.desktop-dashboard-shell { margin: 0 !important; padding: 0 !important; max-width: none !important; width: 100%; }
+  #dashboard-insights { max-width: none !important; width: auto !important; }
+}
+.desktop-sidebar .side-brand .side-brand-name {
+  font-size: 18px !important; font-weight: 700 !important; letter-spacing: 0 !important; line-height: 25px !important;
+  text-transform: none !important; padding: 0 !important; margin: 0 !important; color: #0f172a !important;
+}
+
+/* Phone Home (Figma phone frame): heading, KPI cards, Low stock, Recent sales.
+   The chart and the full analysis stay on the Reports tab. */
+@media (max-width: 1023px) {
+  body[data-page="dashboard"] #cfo-dashboard { display: block !important; }
+  body[data-page="dashboard"] #dashboard-insights { display: flex !important; }
+  body[data-page="dashboard"] #dashboard-insights > :not(#dashboard-chart-row):not(#dashboard-bottom-grid) { display: none !important; }
+  body[data-page="dashboard"] #dashboard-chart-row > section:first-child { display: none !important; }
+  body[data-page="dashboard"] #dashboard-chart-row { display: block; }
+}
+
+/* Phone margins and background from the 390 frame: 20px sides, #f8fafc */
+body.app-shell { background: #f8fafc !important; }
+@media (max-width: 1023px) {
+  .desktop-content { padding: 16px 10px 24px !important; }
+}
+@media (max-width: 639px) {
+  #cfo-dashboard .page-head { align-items: stretch !important; padding: 0 !important; }
+  #dashboard-low-stock > p { display: none; }
+}
+
+/* ===== Sales: exact values from the Figma frame ===== */
+@media (min-width: 1024px) {
+  .tab-content.page-stack:not(.hidden) { max-width: none !important; }
+  #tab-income-content:not(.hidden) { gap: 24px; }
+  #sales-main-view { gap: 20px 20px; }
+}
+.sales-quick-chip { font-weight: 500; color: #64748b; }
+.sales-quick-chip.is-active { font-weight: 600; color: #fff; }
+/* List: one white panel of compact rows (name left, time, amount right) */
+#income-list.sale-list {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 8px 20px; display: block;
+}
+#income-list .sale-card { border: 0 !important; border-bottom: 1px solid #e2e8f0 !important; border-radius: 0 !important; background: transparent !important; padding: 12px 0 !important; box-shadow: none !important; }
+#income-list .sale-card:last-child { border-bottom: 0 !important; }
+#income-list .sale-customer { font-size: 14px; font-weight: 500; line-height: 20px; color: #0f172a; }
+#income-list .sale-meta { font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; }
+#income-list .sale-total p { font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+#income-list .sale-items { margin-top: 6px; }
+#income-list .sale-items li { font-size: 12px; line-height: 17px; color: #64748b; }
+#income-list .sale-actions { margin-top: 8px; gap: 8px; }
+#income-list .sale-actions .sb-btn-small { min-height: 28px; padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+/* New sale form: panel 20px padding, 12px gaps, 12px labels, 10px/12px controls */
+#sale-entry-card { padding: 20px !important; display: flex; flex-direction: column; gap: 12px; }
+#sale-entry-card .sb-sheet-head { padding: 0 !important; border: 0 !important; min-height: 0; }
+#sale-entry-card .sb-sheet-title { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; }
+#sale-entry-card .sb-sheet-body { padding: 0 !important; gap: 12px; overflow: visible; }
+#sale-entry-card .sb-sheet-foot { padding: 0 !important; border: 0 !important; margin: 0; background: transparent; }
+#sale-entry-card .sb-field > label,
+#sale-entry-card .sale-line label,
+#sale-entry-card .sale-items-head > span { font-size: 12px; font-weight: 600; line-height: 17px; color: #64748b; }
+#sale-entry-card input, #sale-entry-card select {
+  padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff;
+  font-size: 14px; line-height: 20px; min-height: 0; color: #0f172a;
+}
+#sale-entry-card input::placeholder { color: #64748b; }
+#sale-entry-card .sb-help { font-size: 12px; line-height: 17px; color: #64748b; }
+#sale-entry-card .sb-btn-block { min-height: 44px; padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+.sale-line > .sale-line-name { width: 100% !important; }
+
+/* Sales panel: keep each item line stacked (name on top, price and quantity below) */
+#sale-entry-card .sale-line { grid-template-columns: 1fr 1fr !important; padding: 10px 12px 12px !important; }
+#sale-entry-card .sale-line .sale-line-name { grid-column: 1 / -1 !important; padding-right: 40px !important; }
+@media (min-width: 1024px) {
+  #sales-main-view { max-width: none !important; }
+}
+@media (min-width: 1024px) {
+  #sales-main-view > #sale-entry-modal { grid-row: 2 / span 60; }
+}
+
+/* Sales on phones (390 frame): title, three chips, list panel, then + New sale */
+@media (max-width: 1023px) {
+  #tab-income-content .page-head > .sb-btn { display: none; }
+  #btn-new-sale-bottom { min-height: 44px; padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+}
+@media (max-width: 639px) {
+  #tab-income-content:not(.hidden) { gap: 16px; }
+  [data-sales-quick="week"] { display: none; }
+  #income-list.sale-list { padding: 4px 16px; }
+}
+
+/* ===== Inventory: exact values from the Figma frame ===== */
+@media (min-width: 1024px) {
+  #tab-inventory-content:not(.hidden) { gap: 24px; }
+}
+/* Card parts in the frame's order: name, price and bulk offer, stock, status pill */
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(1) { order: 1; font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(4) { order: 2; font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(3) { order: 3; font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; margin-top: -6px; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(2) { order: 4; align-self: flex-start; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(3) .block { display: none; }
+#inv-list-card:not(.inv-view-table) .inventory-status { padding: 4px 10px; font-size: 12px; font-weight: 600; line-height: 17px; }
+#inv-list-card:not(.inv-view-table) .inventory-status.low { background: #fff5dc; color: #b45309; }
+
+/* ===== Expenses: exact values from the Figma frame ===== */
+@media (min-width: 1024px) { #tab-expenses-content:not(.hidden) { gap: 24px; } }
+#expense-kpis .kpi-card > p:last-child { color: #167251; font-weight: 500; }
+.expense-list-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.expense-list-title { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; }
+.expense-list-panel #transaction-list { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+.expense-list-panel .expense-card { display: flex; align-items: center; gap: 12px; padding: 12px 0 !important; border: 0 !important; border-bottom: 1px solid #e2e8f0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.expense-list-panel .expense-card:last-child { border-bottom: 0 !important; }
+.expense-list-panel .expense-card:hover { background: #f8fafc !important; }
+.expense-list-panel .expense-icon { display: none; }
+.expense-list-panel .expense-category-val { font-size: 14px; font-weight: 500; line-height: 20px; }
+.expense-list-panel .expense-desc-val { font-size: 12px; font-weight: 400; line-height: 17px; }
+.expense-list-panel .expense-amount-val { font-size: 14px; font-weight: 600; line-height: 20px; }
+.expense-list-panel .page-note { margin: 0; font-size: 12px; }
+#expense-breakdown { gap: 12px; display: flex; flex-direction: column; }
+#expense-breakdown > p { display: none; }
+#expense-breakdown-heading { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; }
+#expense-breakdown-list { margin: 0 !important; display: flex; flex-direction: column; gap: 12px; }
+#expense-breakdown-list > li { margin: 0 !important; display: flex; flex-direction: column; gap: 6px; }
+#expense-breakdown-list > li > div:first-child { font-size: 13px; line-height: 18px; }
+#expense-breakdown-list > li > div:first-child span:first-child { font-weight: 500; color: #0f172a; }
+#expense-breakdown-list > li > div:first-child span:last-child { font-weight: 600; color: #0f172a; }
+#expense-breakdown-list .breakdown-share { display: none; }
+#expense-breakdown-list > li > div:last-child { height: 8px !important; border-radius: 4px; background: #cbd5e1 !important; }
+#expense-breakdown-list > li > div:last-child > div { border-radius: 4px; background: #1d4ed8; }
+
+/* ===== Budget: exact values from the Figma frame ===== */
+@media (min-width: 1024px) { #tab-budget-content:not(.hidden) { gap: 24px; } }
+.budget-head-actions { display: flex; align-items: center; gap: 12px; }
+#tab-budget-content .page-head { align-items: center; }
+#budget-kpis > div > p:last-child { color: #167251; font-weight: 500; }
+#budget-progress-list > article > div:first-child p { color: #64748b; font-weight: 400; font-size: 13px; line-height: 18px; }
+#budget-progress-list > article h4 { font-size: 14px; font-weight: 600; line-height: 20px; }
+#budget-kpis .stat-value { color: #0f172a !important; }
+
+/* ===== Profile: exact values from the Figma frame ===== */
+@media (min-width: 1024px) { #tab-profile-content:not(.hidden) { row-gap: 24px; column-gap: 20px; } }
+#tab-profile-content .page-head { display: flex; align-items: center; justify-content: space-between; }
+.profile-panel-title { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; margin-bottom: 12px; }
+#profile-form label, #profile-form .sb-field > label { font-size: 12px; font-weight: 600; line-height: 17px; color: #64748b; }
+#profile-form input:not([type="file"]):not([type="checkbox"]), #profile-form textarea, #profile-form select {
+  padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; font-size: 14px; line-height: 20px; color: #0f172a;
+}
+#profile-form input::placeholder, #profile-form textarea::placeholder { color: #64748b; }
+/* Plan card: flat brand blue; Account: 15px title */
+#profile-account > div:first-child { background: #1d4ed8 !important; background-image: none !important; display: flex; flex-direction: column; gap: 8px; }
+#profile-account > div:first-child p:first-child { font-size: 13px; font-weight: 500; line-height: 18px; text-transform: none; letter-spacing: 0; color: #fff; }
+#profile-account > div:first-child p:nth-child(2) { font-size: 24px; font-weight: 700; line-height: 34px; margin: 0; }
+#profile-account > div:first-child p:last-child { font-size: 12px; line-height: 17px; color: #fff; margin: 0; }
+#profile-account > div:nth-child(2) { display: flex; flex-direction: column; gap: 12px; }
+#profile-account > div:nth-child(2) > p:first-child { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; text-transform: none; letter-spacing: 0; margin: 0; }
+#profile-account > div:nth-child(2) > p { margin: 0 !important; }
+
+/* ===== Inventory order and phone details (Figma frames) =====
+   Chips, search and the product cards come first; the restock alert and the
+   notification settings follow the cards. */
+#tab-inventory-content:not(.hidden) > * { order: 3; }
+#tab-inventory-content > .page-head { order: 0; }
+#tab-inventory-content > #inv-chips { order: 1; }
+#tab-inventory-content > .sb-search { order: 2; }
+#tab-inventory-content > #inventory-stock-alert { order: 8; }
+#tab-inventory-content > #push-settings { order: 9; }
+@media (max-width: 1023px) {
+  #btn-profile-save-top { display: none; }
+}
+@media (max-width: 639px) {
+  .page-head { padding: 0 !important; }
+  [data-inv-chip="out"] { display: none; }
+  #btn-set-budget { display: none; }
+  .budget-head-actions { width: 100%; }
+}
+
+@media (max-width: 1023px) {
+  #inv-list-card:not(.inv-view-table) #presets-grid td { text-align: left; }
+}
+@media (max-width: 639px) {
+  #tab-budget-content .page-head, #tab-profile-content .page-head { align-items: stretch !important; }
+}
+
+/* ===== Sign-in and register: exact values from the Figma frames =====
+   The brand panel stacks from the top: logo, 64px, headline, 24px, text,
+   24px, points with 14px gaps; labels are slate-500; buttons are 44px. */
+@media (min-width: 960px) {
+  .login-hero-copy { margin-top: 64px; }
+  .login-hero-sub { margin-top: 24px !important; }
+  .login-brand > ul { gap: 14px; padding-top: 12px; }
+  .login-brand > ul li > span { width: 8px; height: 8px; background: #93c5fd; }
+}
+.login-field label, .reg-form label { color: #64748b !important; }
+.login-submit { min-height: 44px; box-shadow: none; }
+.login-card > .grid.gap-4 { gap: 18px; }
+.reg-form p.mt-6 { margin-top: 0 !important; padding-top: 8px; font-size: 14px; color: #64748b; }
+
+/* Phone sign-in and register start with the logo row (Figma phone frames) */
+.login-phone-brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; color: #0f172a; text-decoration: none; }
+.login-phone-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(145deg, #1d4ed8, #1e40af); color: #fff; font-size: 17px; font-weight: 700; }
+@media (min-width: 960px) { .login-phone-brand { display: none; } }
+
+/* ===== Dashboard shows only the frame's sections; the rest lives on Reports ===== */
+body[data-page="dashboard"] #dashboard-insights > :not(#dashboard-chart-row):not(#dashboard-bottom-grid) { display: none !important; }
+body[data-page="reports"] #dashboard-insights:not(.hidden) > * { order: 0 !important; }
+@media (min-width: 1024px) {
+  #tab-reports-content:not(.hidden) { display: block !important; margin-bottom: 24px; }
+  #tab-reports-content .reports-switch { display: none; }
+  #tab-reports-content .reports-head { margin: 0; }
+  #tab-reports-content .dash-title { font-size: 28px; font-weight: 700; line-height: 1.2; color: #0f172a; }
+}
+body[data-page="reports"] #cfo-dashboard .page-head { display: none; }
+.expense-when { flex-shrink: 0; font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; white-space: nowrap; }
+
+/* Filter controls sit inside the frame's own rows instead of adding a row */
+.sales-toolbar-inline { margin: 0 0 0 auto !important; padding: 0 !important; display: flex; align-items: center; gap: 8px; }
+.expense-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.expense-toolbar-inline { margin: 0 !important; padding: 0 !important; display: flex; align-items: center; gap: 8px; }
+.sales-toolbar-inline .sb-chip, .expense-toolbar-inline .sb-chip { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.sales-toolbar-inline .list-toolbar-text, .expense-toolbar-inline .list-toolbar-text { font-size: 12px; color: #64748b; margin: 0; }

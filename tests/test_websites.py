@@ -6,7 +6,7 @@ import uuid
 import pytest
 
 from server import websites
-from server.app import get_db
+from server.database import get_db
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 
@@ -353,7 +353,7 @@ def test_image_upload_and_serving(client, signed_in, headers):
     assert upload.status_code == 201
     url = upload.get_json()["url"]
     served = client.get(url, base_url=host("dlnz"))
-    assert served.status_code == 200 and served.mimetype == "image/png"
+    assert served.status_code == 200 and served.headers["content-type"].split(";")[0] == "image/png"
     assert "immutable" in served.headers["Cache-Control"] and "Set-Cookie" not in served.headers
 
     bad = client.post("/api/website/media", data={"image": (io.BytesIO(b"<script>alert(1)</script>"), "x.png")}, headers=headers)

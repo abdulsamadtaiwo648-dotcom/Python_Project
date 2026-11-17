@@ -40,9 +40,9 @@
       <span class="grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-base font-extrabold">S</span>
       <span class="text-lg font-bold">SoloBiz</span>
     </a>
-    <div class="mt-auto">
+    <div class="login-hero-copy">
       <h2 class="text-5xl font-extrabold leading-[1.05] tracking-tight">Welcome back.</h2>
-      <p class="mt-4 max-w-md text-lg leading-relaxed text-blue-100">Sign in to see today’s sales, stock and expenses in one place.</p>
+      <p class="login-hero-sub max-w-md text-lg leading-relaxed text-blue-100">Sign in to see today’s sales, stock and expenses in one place.</p>
     </div>
     <ul class="grid gap-3 text-base text-white">
       <li class="flex items-center gap-3"><span class="h-2 w-2 rounded-full bg-blue-300"></span>Sales, stock and expenses together</li>
@@ -53,6 +53,10 @@
 
   <main class="login-main">
     <div class="login-card">
+      <a href="/" class="login-phone-brand" aria-label="SoloBiz home">
+        <span class="login-phone-mark" aria-hidden="true">S</span>
+        <span>SoloBiz</span>
+      </a>
       <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 no-underline" aria-label="Back to home">
         <span aria-hidden="true">←</span> Back to home
       </a>
@@ -81,11 +85,11 @@
         <input type="email" id="login-email" name="email" required placeholder="you@example.com" autocomplete="email">
       </div>
       <div class="login-field">
-        <div class="mb-1.5 flex items-center justify-between">
-          <label for="login-password" class="!mb-0">Password</label>
-          <button type="button" id="forgot-btn" class="cursor-pointer text-sm font-semibold text-blue-700 hover:underline">Forgot password?</button>
-        </div>
+        <label for="login-password">Password</label>
         <input type="password" id="login-password" name="password" required placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="flex justify-end">
+        <button type="button" id="forgot-btn" class="cursor-pointer text-sm font-semibold text-blue-700 hover:underline">Forgot password?</button>
       </div>
       <button type="submit" class="login-submit">Sign in</button>
     </form>

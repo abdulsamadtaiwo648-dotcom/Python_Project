@@ -1,5 +1,5 @@
-﻿"""Compatibility entry point for hosts using `gunicorn app:app`."""
+"""ASGI entry point: `uvicorn app:app` (the same app as `api.main:app`)."""
 
-from server.app import app
+from api.main import app
 
 __all__ = ["app"]

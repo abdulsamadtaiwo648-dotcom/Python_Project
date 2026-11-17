@@ -1,0 +1,295 @@
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        /* ── Stat Cards: fluid number sizing ── */
+        .stat-value {
+            font-size: clamp(0.75rem, 3.8vw, 1.15rem);
+            font-weight: 800;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+            max-width: 100%;
+        }
+        @media (min-width: 640px) {
+            .stat-value { font-size: 1.25rem; white-space: nowrap; }
+        }
+
+        /* ── Big central total display ── */
+        .big-total-value {
+            font-size: clamp(1.5rem, 8vw, 2.75rem);
+            font-weight: 800;
+            line-height: 1.1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+            width: 100%;
+        }
+        @media (min-width: 640px) {
+            .big-total-value { font-size: 2.75rem; }
+        }
+
+        /* ── Business Card ── */
+        .biz-card {
+            background: #ffffff;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .biz-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
+            border-radius: 20px 20px 0 0;
+        }
+        .biz-card-divider {
+            border: none;
+            height: 1px;
+            background: #f1f5f9;
+            margin: 12px 0;
+        }
+
+        /* ── Custom Select ── */
+        .custom-select-menu {
+            max-height: 16rem;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            background-color: #ffffff !important;
+            opacity: 1 !important;
+            isolation: isolate;
+            z-index: 81 !important;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+        }
+        .custom-select-wrapper.select-open { z-index: 80; }
+        .custom-select-option[aria-selected="true"] {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 700;
+        }
+        .custom-select-wrapper > svg { display: none; }
+        .custom-select-wrapper > .custom-select-button {
+            position: relative;
+            padding-left: 0.75rem;
+            padding-right: 2.25rem;
+        }
+        .custom-select-wrapper > .custom-select-button::after {
+            content: '';
+            position: absolute;
+            right: 0.9rem;
+            top: 50%;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-right: 2px solid #64748b;
+            border-bottom: 2px solid #64748b;
+            transform: translateY(-70%) rotate(45deg);
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        /* ═══════════════════════════════════════════
+           MOBILE (< 1024px): Bottom Tab Bar
+        ═══════════════════════════════════════════ */
+        @media (max-width: 1023px) {
+            html, body {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
+                padding-bottom: 72px;
+            }
+            .desktop-dashboard-shell {
+                display: block;
+                width: 100%;
+                max-width: 100%;
+                padding: 0 14px;
+                box-sizing: border-box;
+            }
+            /* Old horizontal tab nav hidden on mobile — bottom bar handles it */
+            #dashboard-navigation {
+                display: none !important;
+            }
+            .desktop-content {
+                padding: 14px 0 20px;
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+           DESKTOP (≥ 1024px): Left Sidebar + Content
+           Uses a simple flex layout — NO overlapping
+        ═══════════════════════════════════════════ */
+        @media (min-width: 1024px) {
+            body {
+                min-height: 100vh;
+                background: #f1f5f9;
+            }
+
+            /* Hide mobile bottom nav on desktop */
+            #mobile-bottom-nav {
+                display: none !important;
+            }
+
+            /* Header inner constraint */
+            header > div {
+                max-width: 1440px;
+                padding-left: 28px;
+                padding-right: 28px;
+            }
+
+            /* ── Main shell: sidebar left + scrollable content right ── */
+            .desktop-dashboard-shell {
+                display: flex;
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 0;
+                width: 100%;
+                max-width: 1440px;
+                margin: 0 auto;
+                padding: 0;
+                min-height: calc(100vh - 62px);
+            }
+
+            /* ── Left Sidebar ── */
+            .desktop-sidebar {
+                position: sticky;
+                top: 62px;
+                height: calc(100vh - 62px);
+                width: 248px;
+                flex-shrink: 0;
+                padding: 24px 14px 20px;
+                background: #ffffff;
+                border-right: 1px solid #e2e8f0;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                grid-column: unset;
+                grid-row: unset;
+            }
+
+            /* Sidebar label */
+            .desktop-sidebar > div:first-child p {
+                font-size: 0.65rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: #94a3b8;
+                padding: 0 2px;
+                margin-bottom: 4px;
+            }
+
+            /* Sidebar nav buttons */
+            .desktop-sidebar .tab-btn {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 11px;
+                padding: 11px 14px;
+                border-radius: 12px;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #64748b;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                transition: background 0.15s, color 0.15s;
+                text-align: left;
+                white-space: nowrap;
+                text-decoration: none;
+            }
+            .desktop-sidebar .tab-btn:hover {
+                background: #f1f5f9;
+                color: #1e293b;
+            }
+
+            /* ── Right content area ── */
+            .desktop-content {
+                flex: 1;
+                min-width: 0;
+                padding: 32px 36px;
+                overflow-y: auto;
+                grid-column: unset;
+                grid-row: unset;
+            }
+
+            /* Network status */
+            #network-status-banner { margin-bottom: 16px; }
+
+            #tab-analytics-content,
+            #tab-profile-content { max-width: 100%; }
+
+            .desktop-content input,
+            .desktop-content select,
+            .desktop-content .custom-select-button { min-height: 44px; }
+
+        }
+        #mobile-more-menu { position:absolute; right:.5rem; bottom:calc(100% + 10px); }
+        /* Keep the app bar visible while the dashboard content scrolls. */
+        :root { --app-header-height: 60px; scroll-padding-top: var(--app-header-height); }
+        @media (min-width: 640px) {
+            :root { --app-header-height: 64px; }
+        }
+        body > header {
+            position: fixed !important;
+            inset: 0 0 auto;
+            width: 100%;
+            z-index: 1000;
+        }
+        main.desktop-dashboard-shell { padding-top: var(--app-header-height); }
+
+        /* Compact layout: preserve every control while reducing visual weight. */
+        .tab-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
+        #analytics-view.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+            --tw-space-y-reverse: 0;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+        #tab-analytics-content .mock-chart-card,
+        #tab-analytics-content > #analytics-view > .bg-white {
+            padding: 16px;
+            border-radius: 15px;
+            box-shadow: 0 1px 2px rgba(15,23,42,.04);
+        }
+        #tab-analytics-content .analytics-tab-btn { padding-top: .55rem; padding-bottom: .55rem; }
+        #tab-analytics-content canvas { height: 220px; }
+        #tab-expenses-content h3,
+        #tab-analytics-content h2,
+        #tab-analytics-content h3,
+        #tab-profile-content h3 { letter-spacing: -.01em; }
+        @media (min-width: 1024px) {
+            .desktop-dashboard-shell { max-width: 1360px; }
+            .desktop-sidebar { width: 220px; padding: 20px 12px; }
+            .desktop-content { padding: 22px 26px; }
+            #tab-expenses-content.space-y-6 > :not([hidden]) ~ :not([hidden]),
+            #tab-income-content.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+                margin-top: 0;
+            }
+        }
+        @media (max-width: 1023px) {
+            .desktop-dashboard-shell { padding-right: 10px; padding-left: 10px; }
+            .desktop-content { padding: 10px 0 16px; }
+            #tab-analytics-content .analytics-tab-btn { font-size: .78rem; }
+        }
+        @media (max-width: 639px) {
+            .mobile-secondary-copy { display: none !important; }
+        }
+        @media (max-width: 1023px) {
+            #mobile-bottom-nav { bottom:0 !important; }
+        }
+        #budget-summary-fill { transition:width .25s ease, background-color .25s ease; }

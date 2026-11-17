@@ -223,3 +223,40 @@ a { color: var(--brand-ink); }
   .price { font-size: 20px; }
   .site-footer { padding: 64px 0 40px; }
 }
+
+/* Figma website frames: about and contact side by side, a light 560px hero
+   visual, three-across gallery with 300px tiles, 72px page margins */
+.about-contact-grid { display: grid; gap: 32px; align-items: start; }
+.about-block .prose { margin-top: 16px; }
+.hero-visual span, .card-placeholder { display: none; }
+.hero-plain .hero-visual { background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 62%, #fff) 0%, var(--brand-tint) 100%); }
+@media (min-width: 1024px) {
+  .wrap { max-width: 1440px; padding-left: 72px; padding-right: 72px; }
+  .header-row { min-height: 88px; }
+  .hero-grid { grid-template-columns: minmax(0, 1fr) 560px; }
+  .hero-visual { width: 560px; height: 560px; aspect-ratio: auto; }
+  .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  .gallery img { aspect-ratio: auto; height: 300px; border-radius: 24px; }
+  .about-contact-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; }
+}
+@media (max-width: 640px) { .wrap { padding-left: 20px; padding-right: 20px; } }
+
+/* Phone frame: the hero visual sits under the buttons, full width and 240px tall */
+@media (max-width: 1023px) {
+  .hero-plain .hero-visual { display: grid; width: 100%; height: 240px; aspect-ratio: auto; border-radius: 24px; }
+}
+
+/* Why shop with us / How it works: three numbered cards (Figma website frames) */
+.why-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+.why-card {
+  display: flex; flex-direction: column; gap: 12px; padding: 22px; background: #fff;
+  border: 1px solid #e2e8f0; border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 8px 24px -14px rgba(15, 23, 42, .12);
+}
+.why-card h3 { font-size: 1.15rem; font-weight: 600; color: #0f172a; line-height: 1.3; }
+.why-card p { color: #64748b; font-size: .98rem; line-height: 1.5; }
+.why-num { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 22px; background: var(--brand-tint); color: var(--brand-ink); font-weight: 700; }
+@media (min-width: 720px) {
+  .why-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .why-card { padding: 28px; }
+}

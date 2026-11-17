@@ -38,30 +38,29 @@ def test_invalid_alert_level_is_rejected(client, headers, value):
     assert _add(client, headers, low_stock_threshold=value).status_code == 400
 
 
-def _dashboard(client):
-    return client.get("/dashboard").get_data(as_text=True)
+def _low(client):
+    return {i["item_name"]: i for i in client.get("/api/dashboard").json()["low_stock_items"]}
 
 
 def test_dashboard_uses_each_products_alert_level(client, headers):
     _add(client, headers, item_name="Fine Cap", stock=5, low_stock_threshold=3)
     _add(client, headers, item_name="Low Jogger", stock=5, low_stock_threshold=5)
-    page = _dashboard(client)
-    assert "Low Jogger (5)" in page
-    assert "Fine Cap (5)" not in page
-    assert 'data-low-stock-badge class="ml-auto' in page  # badge visible
+    low = _low(client)
+    assert low["Low Jogger"]["stock"] == 5 and low["Low Jogger"]["threshold"] == 5
+    assert "Fine Cap" not in low
 
 
 def test_sale_that_crosses_alert_level_shows_on_dashboard(client, headers):
     preset = _add(client, headers, stock=6, low_stock_threshold=3).get_json()["preset"]
-    assert f"{preset['item_name']} (" not in _dashboard(client)
+    assert preset["item_name"] not in _low(client)
     client.post(
         "/api/checkout",
         json={"checkout_id": "low-1", "amount_paid": 0, "items": [{"inventory_item_id": preset["id"], "quantity": 4}]},
         headers=headers,
     )
-    assert "Jogger (2)" in _dashboard(client)
+    assert _low(client)[preset["item_name"]]["stock"] == 2
 
 
-def test_no_badge_when_stock_is_healthy(client, headers):
-    _add(client, headers, stock=50)
-    assert 'data-low-stock-badge class="hidden ml-auto' in _dashboard(client)
+def test_nothing_is_low_when_stock_is_healthy(client, headers):
+    preset = _add(client, headers, stock=50).get_json()["preset"]
+    assert preset["item_name"] not in _low(client)
