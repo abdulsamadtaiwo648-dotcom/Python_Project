@@ -3188,6 +3188,18 @@
         // -------------------------------------------------------------
         // UI RENDERING HELPER
         // -------------------------------------------------------------
+        // "Today", "Yesterday", "2 days ago" ... or a short date, as in the frame's rows
+        function relativeDayLabel(value) {
+            const date = parseRecordDate(value);
+            if (!date) return '';
+            const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+            const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86400000);
+            if (days <= 0) return 'Today';
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return `${days} days ago`;
+            return date.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+        }
+
         function buildExpenseItemHTML(expense) {
             const categoryInitial = ((expense.category || 'O')[0] || '').toUpperCase();
             const formattedAmount = parseFloat(expense.amount || 0).toLocaleString('en-US', {
@@ -3209,6 +3221,7 @@
                     <p class="expense-category-val"><span class="category-name">${escapeHtml(categoryLabel)}</span>${offlineBadge}</p>
                     <p class="expense-desc-val">${escapeHtml(expense.description || 'No description')}</p>
                 </div>
+                <p class="expense-when">${escapeHtml(relativeDayLabel(expense.date))}</p>
                 <p class="expense-amount-val">₦${formattedAmount}</p>
             </div>`;
         }
@@ -3241,6 +3254,11 @@
             const live = (items || []).filter(item => !item.pending_delete);
             const month = live.filter(item => { const d = parseRecordDate(item.date); return d && d >= monthStart; });
             const total = month.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const lastTotal = live.reduce((sum, item) => {
+                const d = parseRecordDate(item.date);
+                return d && d >= lastMonthStart && d < monthStart ? sum + (Number(item.amount) || 0) : sum;
+            }, 0);
             const perCategory = {};
             month.forEach(item => {
                 const key = (item.category || 'Other').trim() || 'Other';
@@ -3251,6 +3269,12 @@
             const money = value => '₦' + value.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
             const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
             set('exp-kpi-total', money(total));
+            if (lastTotal > 0) {
+                const change = Math.round((total - lastTotal) / lastTotal * 100);
+                set('exp-kpi-total-note', `${change >= 0 ? '+' : '\u2212'}${Math.abs(change)}% vs last month`);
+            } else {
+                set('exp-kpi-total-note', 'No expenses last month');
+            }
             set('exp-kpi-count', String(month.length));
             set('exp-kpi-count-note', `${week} this week`);
             if (top && total > 0) {

@@ -1485,3 +1485,4 @@ body[data-page="reports"] #dashboard-insights:not(.hidden) > * { order: 0 !impor
   #tab-reports-content .dash-title { font-size: 28px; font-weight: 700; line-height: 1.2; color: #0f172a; }
 }
 body[data-page="reports"] #cfo-dashboard .page-head { display: none; }
+.expense-when { flex-shrink: 0; font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; white-space: nowrap; }
