@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import { DataProvider } from "./data";
+import Expenses from "./pages/Expenses";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -34,7 +35,7 @@ export default function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/sales" element={<Soon name="Sales" />} />
             <Route path="/inventory" element={<Soon name="Inventory" />} />
-            <Route path="/expenses" element={<Soon name="Expenses" />} />
+            <Route path="/expenses" element={<Expenses />} />
             <Route path="/budget" element={<Soon name="Budget" />} />
             <Route path="/profile" element={<Soon name="Profile" />} />
             <Route path="/website" element={<Soon name="Website" />} />
