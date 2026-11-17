@@ -1081,7 +1081,7 @@ body.app-shell > header button:hover {
 #tab-profile-content .page-head .page-sub { font-size: 14px; margin-top: 4px; }
 #tab-profile-content .page-head .sb-btn { padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 0; }
 @media (min-width: 1024px) {
-  #tab-profile-content { display: grid !important; max-width: none !important; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  #tab-profile-content:not(.hidden) { display: grid !important; max-width: none !important; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
   #tab-profile-content > .page-head { grid-column: 1 / -1; }
   #tab-profile-content > .profile-panel { grid-column: 1; grid-row: 2; }
   #tab-profile-content > #profile-account { grid-column: 2; grid-row: 2; grid-template-columns: minmax(0, 1fr); }
@@ -1363,3 +1363,16 @@ body.app-shell { background: #f8fafc !important; }
   [data-sales-quick="week"] { display: none; }
   #income-list.sale-list { padding: 4px 16px; }
 }
+
+/* ===== Inventory: exact values from the Figma frame ===== */
+@media (min-width: 1024px) {
+  #tab-inventory-content:not(.hidden) { gap: 24px; }
+}
+/* Card parts in the frame's order: name, price and bulk offer, stock, status pill */
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(1) { order: 1; font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(4) { order: 2; font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(3) { order: 3; font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; margin-top: -6px; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(2) { order: 4; align-self: flex-start; }
+#inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(3) .block { display: none; }
+#inv-list-card:not(.inv-view-table) .inventory-status { padding: 4px 10px; font-size: 12px; font-weight: 600; line-height: 17px; }
+#inv-list-card:not(.inv-view-table) .inventory-status.low { background: #fff5dc; color: #b45309; }
