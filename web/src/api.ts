@@ -45,7 +45,16 @@ async function request<T>(method: Method, url: string, body?: unknown, opId?: st
     headers["X-CSRFToken"] = csrfToken;
     if (opId) headers["X-Client-Op"] = opId;
   }
-  const res = await fetch(url, { method, headers, body: payload, credentials: "same-origin" });
+  let res = await fetch(url, { method, headers, body: payload, credentials: "same-origin" });
+  if (res.status === 400 && method !== "GET") {
+    // A stale security token (the session was renewed elsewhere): fetch a fresh one and try once more.
+    const peek = (await res.clone().json().catch(() => null)) as { message?: string } | null;
+    if (peek?.message && /token/i.test(peek.message)) {
+      await loadSession();
+      headers["X-CSRFToken"] = csrfToken;
+      res = await fetch(url, { method, headers, body: payload, credentials: "same-origin" });
+    }
+  }
   let data: unknown = null;
   try {
     data = await res.json();

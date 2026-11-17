@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 try:
     import psycopg2
@@ -274,6 +274,9 @@ def init_client_ops_table():
                 PRIMARY KEY (user_id, op_id)
             )
         """)
+        # Replays only happen within days; keep a generous 60 days of ids.
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
+        db.execute("DELETE FROM client_ops WHERE created_at < ?", (cutoff,))
         db.commit()
 
 

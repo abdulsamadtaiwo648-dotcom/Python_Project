@@ -370,6 +370,14 @@ export default function Sales() {
   const [needProfile, setNeedProfile] = useState(false);
 
   useEffect(() => { document.title = "Sales | SoloBiz"; }, []);
+  // On phones the New sale form is a full-screen sheet: Escape closes it and the page behind does not scroll.
+  useEffect(() => {
+    if (!creating || !window.matchMedia("(max-width: 1023px)").matches) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setCreating(false);
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [creating]);
 
   const names = useMemo(() => [...new Set(sales.map((s) => s.description.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [sales]);
 

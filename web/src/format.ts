@@ -7,14 +7,14 @@ export function money(value: number | null | undefined): string {
   return `₦${sign}${abs.toLocaleString("en-NG", whole ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** Parse a saved "YYYY-MM-DD hh:mm AM" (or ISO) date into a Date, or null. */
+/** Parse a saved "YYYY-MM-DD hh:mm AM" (or ISO) date into a Date, or null. The server stores UTC. */
 export function parseSaved(value: string | null | undefined): Date | null {
   if (!value) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})\s*(AM|PM)?)?/i.exec(value);
   if (!m) return null;
   let hour = m[4] ? Number(m[4]) : 0;
   if (m[6]) hour = (hour % 12) + (m[6].toUpperCase() === "PM" ? 12 : 0);
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), hour, m[5] ? Number(m[5]) : 0);
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), hour, m[5] ? Number(m[5]) : 0));
 }
 
 export function relativeDay(value: string): string {

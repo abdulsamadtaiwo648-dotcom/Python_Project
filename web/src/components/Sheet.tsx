@@ -1,18 +1,20 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /** The design's modal: a bottom/full-screen sheet on phones, a card on desktop. */
 export default function Sheet(props: {
   title: string; onClose: () => void; children: ReactNode; compact?: boolean; id?: string; description?: ReactNode;
 }) {
+  const close = useRef(props.onClose);
+  close.current = props.onClose;
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && props.onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close.current();
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [props]);
+  }, []);
   return (
     <div className="sb-modal" role="dialog" aria-modal="true" aria-label={props.title}
       onMouseDown={(e) => e.target === e.currentTarget && props.onClose()}>
