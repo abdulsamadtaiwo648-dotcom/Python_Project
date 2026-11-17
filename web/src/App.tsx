@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import { DataProvider } from "./data";
+import Sales from "./pages/Sales";
 import Inventory from "./pages/Inventory";
 import Expenses from "./pages/Expenses";
 import Dashboard from "./pages/Dashboard";
@@ -34,7 +35,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
-            <Route path="/sales" element={<Soon name="Sales" />} />
+            <Route path="/sales" element={<Sales />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/budget" element={<Soon name="Budget" />} />
