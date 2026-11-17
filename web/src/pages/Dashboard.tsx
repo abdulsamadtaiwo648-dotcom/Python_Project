@@ -65,9 +65,18 @@ export function RecentSales() {
 }
 
 export default function Dashboard() {
+  const { summary } = useData();
   useEffect(() => { document.title = "Dashboard | SoloBiz"; }, []);
+  const todayLabel = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return (
     <>
+      {/* Phones only: the welcome sits in the page, apart from the fixed header (desktop has it in the top bar). */}
+      <section className="welcome-block lg:hidden" aria-label="Welcome">
+        <div className="min-w-0">
+          <h2 className="truncate">Welcome back, {summary?.username ?? ""}</h2>
+          <p>{todayLabel}</p>
+        </div>
+      </section>
       <div id="cfo-dashboard" className="transition-all duration-300">
         <div className="page-head mb-4">
           <div className="min-w-0">
