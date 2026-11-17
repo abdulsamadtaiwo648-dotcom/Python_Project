@@ -223,3 +223,25 @@ a { color: var(--brand-ink); }
   .price { font-size: 20px; }
   .site-footer { padding: 64px 0 40px; }
 }
+
+/* Figma website frames: about and contact side by side, a light 560px hero
+   visual, three-across gallery with 300px tiles, 72px page margins */
+.about-contact-grid { display: grid; gap: 32px; align-items: start; }
+.about-block .prose { margin-top: 16px; }
+.hero-visual span, .card-placeholder { display: none; }
+.hero-plain .hero-visual { background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 62%, #fff) 0%, var(--brand-tint) 100%); }
+@media (min-width: 1024px) {
+  .wrap { max-width: 1440px; padding-left: 72px; padding-right: 72px; }
+  .header-row { min-height: 88px; }
+  .hero-grid { grid-template-columns: minmax(0, 1fr) 560px; }
+  .hero-visual { width: 560px; height: 560px; aspect-ratio: auto; }
+  .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  .gallery img { aspect-ratio: auto; height: 300px; border-radius: 24px; }
+  .about-contact-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; }
+}
+@media (max-width: 640px) { .wrap { padding-left: 20px; padding-right: 20px; } }
+
+/* Phone frame: the hero visual sits under the buttons, full width and 240px tall */
+@media (max-width: 1023px) {
+  .hero-plain .hero-visual { display: grid; width: 100%; height: 240px; aspect-ratio: auto; border-radius: 24px; }
+}
