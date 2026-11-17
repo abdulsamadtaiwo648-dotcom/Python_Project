@@ -1064,8 +1064,9 @@
             <div class="page-head">
                 <div>
                     <h2 class="page-title" id="profile-title">Profile</h2>
-                    <p class="page-sub">Your business details for receipts and your shop link.</p>
+                    <p class="page-sub">Your business details and how customers find you.</p>
                 </div>
+                <button type="button" id="btn-profile-save-top" class="sb-btn sb-btn-primary">Save changes</button>
             </div>
 
             <!-- Account summary (Figma): plan and sign-out -->
@@ -1211,6 +1212,7 @@
 
                 <!-- Edit Mode Container -->
                 <div id="profile-edit-mode" class="hidden">
+                    <h3 class="profile-panel-title">Business details</h3>
                     <form id="profile-form" class="profile-form" enctype="multipart/form-data" novalidate>
                         <p id="profile-required-error" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700" role="alert"></p>
                         <div id="profile-change-lock" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3" role="status" aria-live="polite">
@@ -4403,6 +4405,11 @@
             }
 
             document.getElementById('btn-new-sale-bottom')?.addEventListener('click', () => document.getElementById('btn-new-sale')?.click());
+            document.getElementById('btn-profile-save-top')?.addEventListener('click', () => {
+                const form = document.getElementById('profile-form');
+                if (form && form.requestSubmit) form.requestSubmit(); else form?.submit();
+            });
+
             document.getElementById('btn-set-budget')?.addEventListener('click', () => {
                 const field = document.getElementById('budget-category');
                 field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
