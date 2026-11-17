@@ -1429,3 +1429,29 @@ body.app-shell { background: #f8fafc !important; }
 #profile-account > div:nth-child(2) { display: flex; flex-direction: column; gap: 12px; }
 #profile-account > div:nth-child(2) > p:first-child { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; text-transform: none; letter-spacing: 0; margin: 0; }
 #profile-account > div:nth-child(2) > p { margin: 0 !important; }
+
+/* ===== Inventory order and phone details (Figma frames) =====
+   Chips, search and the product cards come first; the restock alert and the
+   notification settings follow the cards. */
+#tab-inventory-content:not(.hidden) > * { order: 3; }
+#tab-inventory-content > .page-head { order: 0; }
+#tab-inventory-content > #inv-chips { order: 1; }
+#tab-inventory-content > .sb-search { order: 2; }
+#tab-inventory-content > #inventory-stock-alert { order: 8; }
+#tab-inventory-content > #push-settings { order: 9; }
+@media (max-width: 1023px) {
+  #btn-profile-save-top { display: none; }
+}
+@media (max-width: 639px) {
+  .page-head { padding: 0 !important; }
+  [data-inv-chip="out"] { display: none; }
+  #btn-set-budget { display: none; }
+  .budget-head-actions { width: 100%; }
+}
+
+@media (max-width: 1023px) {
+  #inv-list-card:not(.inv-view-table) #presets-grid td { text-align: left; }
+}
+@media (max-width: 639px) {
+  #tab-budget-content .page-head, #tab-profile-content .page-head { align-items: stretch !important; }
+}
