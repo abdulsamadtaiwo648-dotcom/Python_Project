@@ -1455,3 +1455,22 @@ body.app-shell { background: #f8fafc !important; }
 @media (max-width: 639px) {
   #tab-budget-content .page-head, #tab-profile-content .page-head { align-items: stretch !important; }
 }
+
+/* ===== Sign-in and register: exact values from the Figma frames =====
+   The brand panel stacks from the top: logo, 64px, headline, 24px, text,
+   24px, points with 14px gaps; labels are slate-500; buttons are 44px. */
+@media (min-width: 960px) {
+  .login-hero-copy { margin-top: 64px; }
+  .login-hero-sub { margin-top: 24px !important; }
+  .login-brand > ul { gap: 14px; padding-top: 12px; }
+  .login-brand > ul li > span { width: 8px; height: 8px; background: #93c5fd; }
+}
+.login-field label, .reg-form label { color: #64748b !important; }
+.login-submit { min-height: 44px; box-shadow: none; }
+.login-card > .grid.gap-4 { gap: 18px; }
+.reg-form p.mt-6 { margin-top: 0 !important; padding-top: 8px; font-size: 14px; color: #64748b; }
+
+/* Phone sign-in and register start with the logo row (Figma phone frames) */
+.login-phone-brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; color: #0f172a; text-decoration: none; }
+.login-phone-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(145deg, #1d4ed8, #1e40af); color: #fff; font-size: 17px; font-weight: 700; }
+@media (min-width: 960px) { .login-phone-brand { display: none; } }
