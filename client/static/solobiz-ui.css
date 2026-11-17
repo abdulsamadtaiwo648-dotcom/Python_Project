@@ -1376,3 +1376,29 @@ body.app-shell { background: #f8fafc !important; }
 #inv-list-card:not(.inv-view-table) #presets-grid tr td:nth-child(3) .block { display: none; }
 #inv-list-card:not(.inv-view-table) .inventory-status { padding: 4px 10px; font-size: 12px; font-weight: 600; line-height: 17px; }
 #inv-list-card:not(.inv-view-table) .inventory-status.low { background: #fff5dc; color: #b45309; }
+
+/* ===== Expenses: exact values from the Figma frame ===== */
+@media (min-width: 1024px) { #tab-expenses-content:not(.hidden) { gap: 24px; } }
+#expense-kpis .kpi-card > p:last-child { color: #167251; font-weight: 500; }
+.expense-list-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.expense-list-title { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; }
+.expense-list-panel #transaction-list { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+.expense-list-panel .expense-card { display: flex; align-items: center; gap: 12px; padding: 12px 0 !important; border: 0 !important; border-bottom: 1px solid #e2e8f0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.expense-list-panel .expense-card:last-child { border-bottom: 0 !important; }
+.expense-list-panel .expense-card:hover { background: #f8fafc !important; }
+.expense-list-panel .expense-icon { display: none; }
+.expense-list-panel .expense-category-val { font-size: 14px; font-weight: 500; line-height: 20px; }
+.expense-list-panel .expense-desc-val { font-size: 12px; font-weight: 400; line-height: 17px; }
+.expense-list-panel .expense-amount-val { font-size: 14px; font-weight: 600; line-height: 20px; }
+.expense-list-panel .page-note { margin: 0; font-size: 12px; }
+#expense-breakdown { gap: 12px; display: flex; flex-direction: column; }
+#expense-breakdown > p { display: none; }
+#expense-breakdown-heading { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; }
+#expense-breakdown-list { margin: 0 !important; display: flex; flex-direction: column; gap: 12px; }
+#expense-breakdown-list > li { margin: 0 !important; display: flex; flex-direction: column; gap: 6px; }
+#expense-breakdown-list > li > div:first-child { font-size: 13px; line-height: 18px; }
+#expense-breakdown-list > li > div:first-child span:first-child { font-weight: 500; color: #0f172a; }
+#expense-breakdown-list > li > div:first-child span:last-child { font-weight: 600; color: #0f172a; }
+#expense-breakdown-list .breakdown-share { display: none; }
+#expense-breakdown-list > li > div:last-child { height: 8px !important; border-radius: 4px; background: #cbd5e1 !important; }
+#expense-breakdown-list > li > div:last-child > div { border-radius: 4px; background: #1d4ed8; }

@@ -824,7 +824,8 @@
 
 
             <div id="expense-layout" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div class="min-w-0">
+            <div class="min-w-0 expense-list-panel">
+            <h3 class="expense-list-title">Recent expenses</h3>
             <div class="sb-list-card" id="transaction-list">
                 {% if expenses|length == 0 %}
                     <p class="list-empty" id="no-expenses-msg">No expenses yet. Tap “Add expense” to record one.</p>
@@ -836,7 +837,7 @@
                             <p class="expense-category-val"><span class="category-name">{{ item.category }}</span></p>
                             <p class="expense-desc-val">{{ item.description }}</p>
                         </div>
-                        <p class="expense-amount-val">₦{{ "{:,.2f}".format(item.amount) }}</p>
+                        <p class="expense-amount-val">{{ item.amount|money }}</p>
                     </div>
                     {% endfor %}
                 {% endif %}
@@ -3157,7 +3158,7 @@
         function buildExpenseItemHTML(expense) {
             const categoryInitial = ((expense.category || 'O')[0] || '').toUpperCase();
             const formattedAmount = parseFloat(expense.amount || 0).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
+                minimumFractionDigits: 0,
                 maximumFractionDigits: 2
             });
 
@@ -3214,7 +3215,7 @@
             });
             const top = Object.entries(perCategory).sort((a, b) => b[1] - a[1])[0];
             const week = live.filter(item => { const d = parseRecordDate(item.date); return d && d >= weekStart; }).length;
-            const money = value => '₦' + value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const money = value => '₦' + value.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
             const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
             set('exp-kpi-total', money(total));
             set('exp-kpi-count', String(month.length));
@@ -3249,7 +3250,7 @@
                 return `<li class="space-y-1.5">
                     <div class="flex items-center justify-between gap-3 text-sm">
                         <span class="min-w-0 truncate font-medium text-slate-800">${escapeHtml(name)}</span>
-                        <span class="flex-shrink-0 font-semibold text-slate-900">₦${value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-xs font-medium text-slate-500">${share}%</span></span>
+                        <span class="flex-shrink-0 font-semibold text-slate-900">₦${value.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span class="breakdown-share text-xs font-medium text-slate-500">${share}%</span></span>
                     </div>
                     <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" style="width:${share}%"></div></div>
                 </li>`;
