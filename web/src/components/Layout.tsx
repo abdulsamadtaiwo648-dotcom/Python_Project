@@ -42,15 +42,8 @@ export default function Layout() {
   const { pathname } = useLocation();
   const nav = useNavigate();
   const { refresh } = useSession();
-  const { summary, profile } = useData();
+  const { summary, profile, online, pending, failed, dismissFailed, syncNow } = useData();
   const [moreOpen, setMoreOpen] = useState(false);
-  const [online, setOnline] = useState(navigator.onLine);
-  useEffect(() => {
-    const up = () => setOnline(true), down = () => setOnline(false);
-    window.addEventListener("online", up);
-    window.addEventListener("offline", down);
-    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", down); };
-  }, []);
   const tab = tabFor(pathname);
   const lowCount = summary?.low_stock_items.length ?? 0;
   const businessName = profile?.company_name || "SoloBiz";
@@ -136,7 +129,27 @@ export default function Layout() {
         <div className="desktop-content">
           {!online && (
             <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">
-              <span>You are offline. You can look at your last saved records; recording sales and changes needs a connection.</span>
+              <span>
+                You are offline. Sales and expenses you record are saved on this device and sent when you reconnect.
+                {pending > 0 ? ` ${pending} waiting.` : ""}
+              </span>
+            </div>
+          )}
+          {online && pending > 0 && (
+            <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+              <span>{pending} change{pending === 1 ? "" : "s"} saved on this device, syncing…</span>
+              <button type="button" className="rounded-lg bg-blue-700 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white" onClick={() => void syncNow()}>Retry sync</button>
+            </div>
+          )}
+          {failed.length > 0 && (
+            <div role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-900">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p>{failed.length} change{failed.length === 1 ? "" : "s"} made offline could not be saved:</p>
+                  <ul className="mt-1 list-disc pl-4 font-medium">{failed.map((f) => <li key={f.id}>{f.message}</li>)}</ul>
+                </div>
+                <button type="button" className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wide" onClick={dismissFailed}>Dismiss</button>
+              </div>
             </div>
           )}
           <Outlet />

@@ -41,8 +41,13 @@ takes traffic.
 * Existing sessions are signed out once: the cookie format changed.
 * The app is one page that switches views without reloading.
 * Budgets are still stored per device (browser storage).
-* The app opens offline with the last saved records. Recording sales and
-  changes needs a connection; the earlier offline queue was not ported.
+* Offline works. The app opens without a connection and shows the last saved
+  records. Sales, payments, expenses (add, edit, delete) and sale deletions made
+  offline are saved on the device, shown straight away marked "Not synced", and
+  sent in order when the connection returns. Each carries an id the server
+  remembers (`X-Client-Op`, table `client_ops`), so nothing is applied twice.
+  A change the server rejects (for example, not enough stock) is reported in a
+  banner. Inventory, profile and website changes still need a connection.
 * The `/delete/<id>` and `/edit/<id>` expense form pages were removed; the app
   uses the JSON endpoints.
 

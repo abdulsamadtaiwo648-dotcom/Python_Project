@@ -124,3 +124,22 @@ def test_users_cannot_see_each_others_data(client, app, signed_in):
             sess["user_id"] = other_id
         expenses = other.get("/api/expenses").get_json()["expenses"]
         assert expenses == []
+
+
+def test_replayed_offline_operation_is_applied_once(client, signed_in):
+    _, token = signed_in
+    headers = {"X-CSRFToken": token, "X-Client-Op": "op-expense-1"}
+    body = {"amount": 500, "category": "Others", "description": "Offline lunch"}
+    assert client.post("/add", json=body, headers=headers).status_code == 201
+    again = client.post("/add", json=body, headers=headers)
+    assert again.status_code == 200 and again.json()["duplicate"] is True
+    listed = client.get("/api/expenses").json()["expenses"]
+    assert sum(1 for e in listed if e["description"] == "Offline lunch") == 1
+
+
+def test_failed_operation_is_not_remembered(client, signed_in):
+    _, token = signed_in
+    headers = {"X-CSRFToken": token, "X-Client-Op": "op-bad-1"}
+    assert client.post("/add", json={"amount": -1, "category": "x", "description": "y"}, headers=headers).status_code == 400
+    ok = client.post("/add", json={"amount": 5, "category": "x", "description": "y"}, headers=headers)
+    assert ok.status_code == 201

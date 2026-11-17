@@ -1,6 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api } from "./api";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ApiError, api, isNetworkError } from "./api";
+import {
+  loadFailed, loadOutbox, newOpId, saveFailed, saveOutbox, type FailedOp, type Op,
+} from "./offline";
+import { parseSaved } from "./format";
+import { useSession } from "./session";
 import type { BusinessProfile, DashboardSummary, Expense, Product, Sale } from "./types";
+
+type NewOp = Omit<Op, "id" | "at">;
 
 interface DataState {
   summary: DashboardSummary | null;
@@ -9,19 +16,107 @@ interface DataState {
   products: Product[];
   profile: BusinessProfile | null;
   loading: boolean;
-  /** Reload everything after a write; cheap enough for a small business. */
+  /** Changes saved on this device that the server has not confirmed yet. */
+  pending: number;
+  failed: FailedOp[];
+  dismissFailed: () => void;
+  online: boolean;
+  syncNow: () => Promise<void>;
+  /** Reload everything from the server (no-op while offline). */
   reload: () => Promise<void>;
+  /**
+   * Send a change. Online it goes straight to the server; offline (or while
+   * earlier changes are still waiting) it is queued and shown right away.
+   * Resolves { queued } and throws only when the server rejects it.
+   */
+  write: (op: NewOp) => Promise<{ queued: boolean }>;
 }
 
 const Ctx = createContext<DataState | null>(null);
 
+const monthOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const dayOf = (d: Date) => `${monthOf(d)}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** The server's records with the not-yet-synced changes laid over them. */
+function overlay(base: { sales: Sale[]; expenses: Expense[]; products: Product[] }, ops: Op[]) {
+  let sales = [...base.sales];
+  let expenses = [...base.expenses];
+  const stock = new Map<number, number>();
+  const bump = (id: number, by: number) => stock.set(id, (stock.get(id) ?? 0) + by);
+  for (const op of ops) {
+    const m = op.meta;
+    if (op.kind === "checkout") {
+      sales = [...(m.sales ?? []).map((s) => ({ ...s, pending: true })), ...sales];
+      for (const [id, units] of Object.entries(m.stock ?? {})) bump(Number(id), -units);
+    } else if (op.kind === "expense_add" && m.expense) {
+      expenses = [{ ...m.expense, synced: false }, ...expenses];
+    } else if (op.kind === "expense_edit") {
+      expenses = expenses.map((e) => (e.server_id === m.expenseId ? { ...e, ...m.patch, synced: false } : e));
+    } else if (op.kind === "expense_delete") {
+      expenses = expenses.filter((e) => e.server_id !== m.expenseId);
+    } else if (op.kind === "payment") {
+      sales = sales.map((s) =>
+        s.id === m.saleId
+          ? { ...s, amount_paid: Math.min(s.total_value, s.amount_paid + (m.amount ?? 0)), balance_owed: Math.max(0, s.total_value - s.amount_paid - (m.amount ?? 0)), pending: true }
+          : s);
+    } else if (op.kind === "sale_delete") {
+      const ids = new Set(m.saleIds ?? []);
+      sales = sales.filter((s) => !ids.has(s.id) && !(m.checkoutId && s.checkout_id === m.checkoutId));
+      for (const [id, units] of Object.entries(m.stock ?? {})) bump(Number(id), units);
+    }
+  }
+  const products = base.products.map((p) => (stock.has(p.id) && p.track_stock ? { ...p, stock: Math.max(0, p.stock + (stock.get(p.id) ?? 0)) } : p));
+  return { sales, expenses, products };
+}
+
+function adjustSummary(base: DashboardSummary | null, ops: Op[], products: Product[]): DashboardSummary | null {
+  if (!base) return null;
+  const now = new Date();
+  const month = monthOf(now), today = dayOf(now);
+  const s = { ...base };
+  const add = (date: string, income: number, spend: number) => {
+    const d = parseSaved(date);
+    if (!d) return;
+    if (monthOf(d) === month) { s.month_income += income; s.month_expenses += spend; }
+    if (dayOf(d) === today) { s.today_collected += income; s.today_expenses += spend; }
+    s.total_sales += income;
+    s.total_expenses += spend;
+  };
+  for (const op of ops) {
+    if (op.kind === "checkout") for (const sale of op.meta.sales ?? []) add(sale.date, sale.amount_paid, 0);
+    if (op.kind === "expense_add" && op.meta.expense) add(op.meta.expense.date, 0, op.meta.expense.amount);
+  }
+  s.month_net = s.month_income - s.month_expenses;
+  s.net_profit = s.total_sales - s.total_expenses;
+  s.today_net = s.today_collected - s.today_expenses;
+  s.low_stock_items = products
+    .filter((p) => p.track_stock && p.stock <= (Number.isInteger(p.low_stock_threshold) ? p.low_stock_threshold : 3))
+    .sort((a, b) => a.stock - b.stock)
+    .map((p) => ({ item_name: p.item_name, stock: p.stock, threshold: p.low_stock_threshold }));
+  return s;
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { user } = useSession();
+  const userId = user?.id ?? "anon";
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [rawSales, setSales] = useState<Sale[]>([]);
+  const [rawExpenses, setExpenses] = useState<Expense[]>([]);
+  const [rawProducts, setProducts] = useState<Product[]>([]);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [outbox, setOutbox] = useState<Op[]>(() => loadOutbox(userId));
+  const [failed, setFailed] = useState<FailedOp[]>(() => loadFailed(userId));
+  const [online, setOnline] = useState(navigator.onLine);
+  const flushing = useRef(false);
+  const outboxRef = useRef(outbox);
+  outboxRef.current = outbox;
+
+  const commit = useCallback((ops: Op[]) => {
+    outboxRef.current = ops;
+    setOutbox(ops);
+    saveOutbox(userId, ops);
+  }, [userId]);
 
   const reload = useCallback(async () => {
     const [s, i, e, p, b] = await Promise.allSettled([
@@ -39,14 +134,93 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  /** Send waiting changes in order; stop at the first one the network drops. */
+  const syncNow = useCallback(async () => {
+    if (flushing.current || !navigator.onLine || outboxRef.current.length === 0) return;
+    flushing.current = true;
+    let sent = 0;
+    try {
+      while (outboxRef.current.length) {
+        const op = outboxRef.current[0];
+        try {
+          await api.send(op.method, op.url, op.body, op.id);
+          sent++;
+        } catch (err) {
+          if (isNetworkError(err)) break;
+          const message = err instanceof ApiError ? err.message : "Could not be saved.";
+          const next = [...loadFailed(userId), { id: op.id, kind: op.kind, message }];
+          saveFailed(userId, next);
+          setFailed(next);
+        }
+        commit(outboxRef.current.slice(1));
+      }
+    } finally {
+      flushing.current = false;
+    }
+    if (sent || outboxRef.current.length === 0) await reload();
+  }, [commit, reload, userId]);
 
-  const value = useMemo(
-    () => ({ summary, sales, expenses, products, profile, loading, reload }),
-    [summary, sales, expenses, products, profile, loading, reload],
-  );
+  const write = useCallback(async (input: NewOp): Promise<{ queued: boolean }> => {
+    const op: Op = { ...input, id: newOpId(), at: Date.now() };
+    const m = op.meta;
+    const list = outboxRef.current;
+
+    // A change to something that only exists on this device edits the waiting change itself.
+    if (op.kind === "expense_edit" && (m.expenseId ?? 0) < 0) {
+      commit(list.map((o) => (o.kind === "expense_add" && o.meta.expense?.server_id === m.expenseId
+        ? { ...o, body: op.body, meta: { ...o.meta, expense: { ...o.meta.expense!, ...m.patch } as Expense } } : o)));
+      return { queued: true };
+    }
+    if (op.kind === "expense_delete" && (m.expenseId ?? 0) < 0) {
+      commit(list.filter((o) => !(o.kind === "expense_add" && o.meta.expense?.server_id === m.expenseId)));
+      return { queued: true };
+    }
+    if (op.kind === "sale_delete" && (m.saleIds ?? []).some((id) => id < 0)) {
+      const gone = new Set(m.saleIds);
+      commit(list.filter((o) => !(o.kind === "checkout" && o.meta.sales?.some((s) => gone.has(s.id)))));
+      return { queued: true };
+    }
+
+    if (navigator.onLine && list.length === 0) {
+      try {
+        await api.send(op.method, op.url, op.body, op.id);
+        await reload();
+        return { queued: false };
+      } catch (err) {
+        if (!isNetworkError(err)) throw err;      // the server said no: show it
+      }
+    }
+    commit([...outboxRef.current, op]);
+    void syncNow();
+    return { queued: true };
+  }, [commit, reload, syncNow]);
+
+  // Start, and whenever the connection changes.
+  useEffect(() => {
+    void (async () => {
+      await reload();
+      await syncNow();
+    })();
+    const up = () => { setOnline(true); void syncNow(); };
+    const down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    const timer = window.setInterval(() => void syncNow(), 20_000);
+    return () => {
+      window.removeEventListener("online", up);
+      window.removeEventListener("offline", down);
+      window.clearInterval(timer);
+    };
+  }, [reload, syncNow]);
+
+  const view = useMemo(() => overlay({ sales: rawSales, expenses: rawExpenses, products: rawProducts }, outbox), [rawSales, rawExpenses, rawProducts, outbox]);
+  const shownSummary = useMemo(() => adjustSummary(summary, outbox, view.products), [summary, outbox, view.products]);
+
+  const value = useMemo<DataState>(() => ({
+    summary: shownSummary, sales: view.sales, expenses: view.expenses, products: view.products, profile, loading,
+    pending: outbox.length, failed, online, syncNow, reload, write,
+    dismissFailed: () => { saveFailed(userId, []); setFailed([]); },
+  }), [shownSummary, view, profile, loading, outbox.length, failed, online, syncNow, reload, write, userId]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

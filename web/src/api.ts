@@ -31,7 +31,7 @@ export async function loadSession(): Promise<SessionInfo> {
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
-async function request<T>(method: Method, url: string, body?: unknown): Promise<T> {
+async function request<T>(method: Method, url: string, body?: unknown, opId?: string): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   let payload: BodyInit | undefined;
   if (body instanceof FormData) {
@@ -43,6 +43,7 @@ async function request<T>(method: Method, url: string, body?: unknown): Promise<
   if (method !== "GET") {
     if (!csrfToken) await loadSession();
     headers["X-CSRFToken"] = csrfToken;
+    if (opId) headers["X-Client-Op"] = opId;
   }
   const res = await fetch(url, { method, headers, body: payload, credentials: "same-origin" });
   let data: unknown = null;
@@ -59,8 +60,13 @@ async function request<T>(method: Method, url: string, body?: unknown): Promise<
   return data as T;
 }
 
+/** True when a failure means "could not reach the server" rather than "the server said no". */
+export const isNetworkError = (e: unknown) => !(e instanceof ApiError);
+
 export const api = {
   get: <T>(url: string) => request<T>("GET", url),
+  /** A write that can be replayed safely: the server ignores a repeated op id. */
+  send: <T>(method: "POST" | "PUT" | "DELETE", url: string, body: unknown, opId: string) => request<T>(method, url, body, opId),
   post: <T>(url: string, body?: unknown) => request<T>("POST", url, body),
   put: <T>(url: string, body?: unknown) => request<T>("PUT", url, body),
   del: <T>(url: string) => request<T>("DELETE", url),

@@ -39,6 +39,8 @@ export interface Sale {
   sale_type: "unit" | "bulk";
   bundle_count: number | null;
   bundle_size: number | null;
+  /** True while the sale is saved on this device but not yet on the server. */
+  pending?: boolean;
 }
 
 export interface Expense {

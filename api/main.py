@@ -2,6 +2,7 @@
 
 import logging
 import os
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -32,7 +33,23 @@ def create_app() -> FastAPI:
         # Inside SessionMiddleware, so the session cookie is readable here.
         if request.method not in SAFE_METHODS and not csrf_ok(request):
             return error("Invalid request token. Refresh the page and try again.", 400)
-        return await call_next(request)
+        op_id = (request.headers.get("X-Client-Op") or "")[:80]
+        user_id = request.session.get("user_id") if op_id and request.method not in SAFE_METHODS else None
+        if user_id:
+            with get_db() as db:
+                seen = db.execute("SELECT 1 FROM client_ops WHERE user_id = ? AND op_id = ?", (str(user_id), op_id)).fetchone()
+            if seen:
+                return JSONResponse({"status": "success", "duplicate": True, "message": "Already saved."})
+        response = await call_next(request)
+        if user_id and response.status_code < 400:
+            try:
+                with get_db() as db:
+                    db.execute("INSERT INTO client_ops (user_id, op_id, created_at) VALUES (?, ?, ?)",
+                               (str(user_id), op_id, datetime.now(timezone.utc).isoformat()))
+                    db.commit()
+            except Exception:
+                logging.exception("Could not remember offline operation %s", op_id)
+        return response
 
     app.add_middleware(
         SessionMiddleware,

@@ -261,6 +261,22 @@ def init_push_subscriptions_table():
         db.commit()
 
 
+def init_client_ops_table():
+    """Operations queued on a device while offline and replayed later. The id
+    the device sends is remembered so a replay that already landed (but whose
+    answer was lost) is not applied twice."""
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS client_ops (
+                user_id TEXT NOT NULL,
+                op_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, op_id)
+            )
+        """)
+        db.commit()
+
+
 def init_website_tables():
     """Business websites (one per account) and the images they use.
 
@@ -298,6 +314,7 @@ def init_website_tables():
 
 def init_db():
     init_push_subscriptions_table()
+    init_client_ops_table()
     init_website_tables()
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:

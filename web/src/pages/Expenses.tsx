@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ApiError, api } from "../api";
+import { ApiError } from "../api";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money, parseSaved, relativeDay } from "../format";
+import { nextTempId, nowStamp } from "../offline";
 import type { Expense } from "../types";
 
 export const EXPENSE_CATEGORIES = [
@@ -12,10 +13,9 @@ export const EXPENSE_CATEGORIES = [
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
-function ExpenseForm(props: {
-  initial?: Expense; onClose: () => void; onSaved: () => Promise<void>;
-}) {
+function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
+  const { write } = useData();
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [category, setCategory] = useState(initial?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -31,9 +31,13 @@ function ExpenseForm(props: {
     setError("");
     try {
       const body = { amount: n, category, description: description.trim() };
-      if (initial) await api.put(`/api/expenses/${initial.server_id}`, body);
-      else await api.post("/add", body);
-      await props.onSaved();
+      if (initial) {
+        await write({ kind: "expense_edit", method: "PUT", url: `/api/expenses/${initial.server_id}`, body,
+          meta: { expenseId: initial.server_id, patch: body } });
+      } else {
+        const expense: Expense = { server_id: nextTempId(), ...body, date: nowStamp(), synced: false };
+        await write({ kind: "expense_add", method: "POST", url: "/add", body, meta: { expense } });
+      }
       props.onClose();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not save. Try again.");
@@ -46,8 +50,8 @@ function ExpenseForm(props: {
     if (!initial || !window.confirm("Delete this expense?")) return;
     setBusy(true);
     try {
-      await api.del(`/api/expenses/${initial.server_id}`);
-      await props.onSaved();
+      await write({ kind: "expense_delete", method: "DELETE", url: `/api/expenses/${initial.server_id}`,
+        meta: { expenseId: initial.server_id } });
       props.onClose();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not delete. Try again.");
@@ -96,7 +100,7 @@ function ExpenseForm(props: {
 }
 
 export default function Expenses() {
-  const { expenses, reload } = useData();
+  const { expenses } = useData();
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
@@ -213,7 +217,7 @@ export default function Expenses() {
                 onClick={() => setEditing(e)} onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && setEditing(e)}>
                 <div className="category-icon-val expense-icon" aria-hidden="true">{(e.category || "O")[0].toUpperCase()}</div>
                 <div className="expense-text">
-                  <p className="expense-category-val"><span className="category-name">{e.category || "Other"}</span></p>
+                  <p className="expense-category-val"><span className="category-name">{e.category || "Other"}</span>{!e.synced && <span className="sync-badge">Not synced</span>}</p>
                   <p className="expense-desc-val">{e.description || "No description"}</p>
                 </div>
                 <p className="expense-when">{relativeDay(e.date)}</p>
@@ -247,7 +251,7 @@ export default function Expenses() {
       </div>
 
       {editing && (
-        <ExpenseForm initial={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} onSaved={reload} />
+        <ExpenseForm initial={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />
       )}
     </section>
   );

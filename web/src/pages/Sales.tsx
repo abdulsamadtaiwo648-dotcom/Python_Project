@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ApiError, api } from "../api";
+import { ApiError } from "../api";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
+import { nextTempId, nowStamp } from "../offline";
 import type { BusinessProfile, Product, Sale } from "../types";
 
 type Quick = "all" | "today" | "week" | "bulk";
@@ -77,8 +78,9 @@ interface Line {
 let lineSeq = 0;
 const blankLine = (): Line => ({ key: `l${++lineSeq}`, presetId: null, name: "", price: "", qty: "1", bulk: false });
 
-function NewSale(props: { products: Product[]; onClose: () => void; onDone: () => void; onSaved: () => Promise<void> }) {
+function NewSale(props: { products: Product[]; onClose: () => void; onDone: () => void }) {
   const { products } = props;
+  const { write } = useData();
   const [lines, setLines] = useState<Line[]>([blankLine()]);
   const [customer, setCustomer] = useState("");
   const [mode, setMode] = useState("Cash");
@@ -146,21 +148,38 @@ function NewSale(props: { products: Product[]; onClose: () => void; onDone: () =
     setBusy(true);
     setError("");
     try {
-      await api.post("/api/checkout", {
-        checkout_id: checkoutId,
-        customer_name: customer.trim() || "Walk-in Customer",
-        payment_mode: mode,
-        amount_paid: paidValue,
-        items: items.map((l, i) => ({
-          checkout_line_id: `line-${i + 1}`,
-          inventory_item_id: l.presetId,
-          item_name: l.presetId ? undefined : l.name.trim(),
-          quantity: Number(l.qty),
-          unit_price: Number(l.price.replace(/,/g, "")),
-          sale_type: l.bulk ? "bulk" : "unit",
-        })),
+      const customerName = customer.trim() || "Walk-in Customer";
+      const date = nowStamp();
+      const receiptId = `REC-${checkoutId.slice(0, 12).toUpperCase()}`;
+      let remaining = paidValue;
+      const stock: Record<number, number> = {};
+      const rows: Sale[] = items.map((l, i) => {
+        const p = product(l.presetId);
+        const q = Number(l.qty), price = Number(l.price.replace(/,/g, ""));
+        const units = l.bulk && p?.bulk_quantity ? q * p.bulk_quantity : q;
+        const lineTotal = price * q;
+        const linePaid = Math.min(remaining, lineTotal);
+        remaining -= linePaid;
+        if (p && p.track_stock) stock[p.id] = (stock[p.id] ?? 0) + units;
+        return {
+          id: nextTempId(), description: l.presetId ? l.name : l.name.trim(), total_value: lineTotal, amount_paid: linePaid,
+          balance_owed: lineTotal - linePaid, customer_name: customerName, payment_mode: mode, date, receipt_id: receiptId,
+          checkout_id: checkoutId, checkout_line_id: `line-${i + 1}`, inventory_item_id: l.presetId, quantity: units,
+          unit_price: lineTotal / units, sale_type: l.bulk ? "bulk" : "unit", bundle_count: l.bulk ? q : null,
+          bundle_size: l.bulk && p?.bulk_quantity ? p.bulk_quantity : null, pending: true,
+        };
       });
-      await props.onSaved();
+      await write({
+        kind: "checkout", method: "POST", url: "/api/checkout",
+        body: {
+          checkout_id: checkoutId, customer_name: customerName, payment_mode: mode, amount_paid: paidValue,
+          items: items.map((l, i) => ({
+            checkout_line_id: `line-${i + 1}`, inventory_item_id: l.presetId, item_name: l.presetId ? undefined : l.name.trim(),
+            quantity: Number(l.qty), unit_price: Number(l.price.replace(/,/g, "")), sale_type: l.bulk ? "bulk" : "unit",
+          })),
+        },
+        meta: { sales: rows, stock },
+      });
       props.onDone();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not record the sale. Try again.");
@@ -268,8 +287,9 @@ function NewSale(props: { products: Product[]; onClose: () => void; onDone: () =
   );
 }
 
-function SettleDebt(props: { receipt: Receipt; onClose: () => void; onSaved: () => Promise<void> }) {
+function SettleDebt(props: { receipt: Receipt; onClose: () => void }) {
   const { receipt } = props;
+  const { write } = useData();
   const line = receipt.items.find((s) => s.total_value - s.amount_paid > 0.005)!;
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
@@ -289,10 +309,10 @@ function SettleDebt(props: { receipt: Receipt; onClose: () => void; onSaved: () 
         const owing = s.total_value - s.amount_paid;
         if (owing <= 0.005 || left <= 0) continue;
         const part = Math.min(owing, left);
-        await api.post(`/update_payment/${s.id}`, { payment_amount: part });
+        await write({ kind: "payment", method: "POST", url: `/update_payment/${s.id}`, body: { payment_amount: part },
+          meta: { saleId: s.id, amount: part } });
         left -= part;
       }
-      await props.onSaved();
       props.onClose();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not record the payment.");
@@ -335,7 +355,7 @@ function SettleDebt(props: { receipt: Receipt; onClose: () => void; onSaved: () 
 }
 
 export default function Sales() {
-  const { sales, products, profile, reload } = useData();
+  const { sales, products, profile, write } = useData();
   const [quick, setQuick] = useState<Quick>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [product, setProduct] = useState("");
@@ -375,8 +395,12 @@ export default function Sales() {
   async function confirmDelete() {
     if (!deleting) return;
     try {
-      await api.del(`/api/income/${deleting.items[0].id}`);
-      await reload();
+      const stock: Record<number, number> = {};
+      for (const s of deleting.items) {
+        if (s.inventory_item_id != null) stock[s.inventory_item_id] = (stock[s.inventory_item_id] ?? 0) + s.quantity;
+      }
+      await write({ kind: "sale_delete", method: "DELETE", url: `/api/income/${deleting.items[0].id}`,
+        meta: { saleIds: deleting.items.map((s) => s.id), checkoutId: deleting.items[0].checkout_id, stock } });
       setDeleting(null);
       setDeleteError("");
     } catch (err) {
@@ -399,7 +423,7 @@ export default function Sales() {
       <div id="sales-main-view" className="page-stack">
         {/* A side panel on desktop; a full-screen sheet on phones. */}
         <div id="sale-entry-modal" className={creating ? "sb-modal" : "sb-modal hidden"} role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
-          <NewSale key={formKey} products={products} onClose={() => setCreating(false)} onSaved={reload}
+          <NewSale key={formKey} products={products} onClose={() => setCreating(false)}
             onDone={() => { setCreating(false); setFormKey((k) => k + 1); }} />
         </div>
         <div id="sales-quick-filters" className="flex flex-wrap gap-2" role="group" aria-label="Quick filters">
@@ -449,7 +473,7 @@ export default function Sales() {
               <article key={r.key} className="sale-card">
                 <div className="sale-card-top">
                   <div className="min-w-0">
-                    <p className="sale-customer">{first.customer_name || "Walk-in customer"}</p>
+                    <p className="sale-customer">{first.customer_name || "Walk-in customer"}{r.items.some((x) => x.pending) && <span className="sale-offline"> Not synced</span>}</p>
                     <p className="sale-meta">{meta}</p>
                   </div>
                   <div className="sale-total">
@@ -462,7 +486,7 @@ export default function Sales() {
                 </ul>
                 {r.owed > 0 && <p className="sale-owed">{money(r.owed)} still owed · {money(r.paid)} paid</p>}
                 <div className="sale-actions">
-                  {r.owed > 0 && <button type="button" className="btn-settle-debt sb-btn sb-btn-small sb-btn-warn" onClick={() => setSettling(r)}>Record payment</button>}
+                  {r.owed > 0 && !r.items.some((x) => x.id < 0) && <button type="button" className="btn-settle-debt sb-btn sb-btn-small sb-btn-warn" onClick={() => setSettling(r)}>Record payment</button>}
                   <button type="button" className="sb-btn sb-btn-small sb-btn-secondary"
                     onClick={() => (profile?.company_name ? printReceipt(r, profile) : setNeedProfile(true))}>Receipt</button>
                   <button type="button" className="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale"
@@ -475,7 +499,7 @@ export default function Sales() {
         <button type="button" className="sb-btn sb-btn-primary sb-btn-block lg:hidden" onClick={() => setCreating(true)}>+ New sale</button>
       </div>
 
-      {settling && <SettleDebt receipt={settling} onClose={() => setSettling(null)} onSaved={reload} />}
+      {settling && <SettleDebt receipt={settling} onClose={() => setSettling(null)} />}
       {deleting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true">
           <div className="w-full max-w-sm rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
