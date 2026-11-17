@@ -13,7 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from server.database import get_db
 
 from .. import core
-from ..deps import current_user_id
+from ..deps import current_user_id, ensure_csrf_token
 
 router = APIRouter(prefix="/api")
 
@@ -99,7 +99,7 @@ def session_info(request: Request):
             row = db.execute("SELECT id, email, first_name, last_name FROM users WHERE id = ?", (user_id,)).fetchone()
         if row:
             user = {"id": row["id"], "email": row["email"], "first_name": row["first_name"], "last_name": row["last_name"]}
-    return {"status": "ok", "csrf_token": request.session.get("csrf_token", ""), "user": user}
+    return {"status": "ok", "csrf_token": ensure_csrf_token(request), "user": user}
 
 
 @router.post("/register/request")
