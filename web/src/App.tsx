@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import { DataProvider } from "./data";
+import Website from "./pages/Website";
 import Profile from "./pages/Profile";
 import Budget from "./pages/Budget";
 import Sales from "./pages/Sales";
@@ -23,10 +24,6 @@ function Protected() {
   );
 }
 
-function Soon({ name }: { name: string }) {
-  return <p className="p-6 text-slate-500">{name} is being rebuilt.</p>;
-}
-
 export default function App() {
   return (
     <SessionProvider>
@@ -34,6 +31,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route element={<Protected />}>
+          <Route path="/website" element={<Website />} />
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
@@ -42,7 +40,6 @@ export default function App() {
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/budget" element={<Budget />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/website" element={<Soon name="Website" />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
