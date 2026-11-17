@@ -122,9 +122,9 @@ let tempId = -Date.now();
 /** Ids below zero mark rows that exist only on this device so far. */
 export const nextTempId = () => (tempId -= 1);
 
-/** "YYYY-MM-DD hh:mm AM", the format the server stores. */
+/** "YYYY-MM-DD hh:mm AM" in UTC, the format (and clock) the server stores. */
 export function nowStamp(d = new Date()): string {
-  const h = d.getHours() % 12 || 12;
+  const h = d.getUTCHours() % 12 || 12;
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(h)}:${p(d.getMinutes())} ${d.getHours() >= 12 ? "PM" : "AM"}`;
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(h)}:${p(d.getUTCMinutes())} ${d.getUTCHours() >= 12 ? "PM" : "AM"}`;
 }
