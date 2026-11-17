@@ -107,22 +107,6 @@ export default function Layout() {
             <span className="sb-logout-label">Sign out</span>
           </button>
         </div>
-        {/* Phones: welcome and profile fill the space between the brand row and the page title. */}
-        <div className="topbar-mobile lg:hidden">
-          <div className="min-w-0">
-            <p className="truncate text-[15px] font-semibold text-slate-900">Welcome back, {summary?.username ?? ""}</p>
-            <p className="truncate text-xs text-slate-500">{todayLabel}</p>
-          </div>
-          <Link to="/profile" className="topbar-profile topbar-profile-sm" aria-label="Open your profile">
-            <span className="topbar-avatar" aria-hidden="true">
-              {profile?.logo_url ? <img src={profile.logo_url} alt="" /> : (businessName || "S").slice(0, 1).toUpperCase()}
-            </span>
-            <span className="min-w-0 text-left">
-              <span className="block truncate text-[13px] font-semibold text-slate-900">{summary?.username ?? ""}</span>
-              <span className="block truncate text-[11px] text-slate-500">{businessName}</span>
-            </span>
-          </Link>
-        </div>
       </header>
 
       <main className="desktop-dashboard-shell w-full">
