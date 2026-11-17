@@ -88,7 +88,7 @@ def create_app() -> FastAPI:
             return render(request, "500.html", status=500)
         return error("An internal server error occurred. Please try again later.", 500)
 
-    @app.get("/healthz")
+    @app.api_route("/healthz", methods=["GET", "HEAD"])
     def healthz():
         try:
             with get_db() as db:

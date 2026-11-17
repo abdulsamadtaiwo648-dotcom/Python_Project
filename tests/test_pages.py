@@ -45,3 +45,8 @@ def test_service_worker_carries_the_version(client):
 def test_health_check(client):
     body = client.get("/healthz").json()
     assert body["status"] == "ok"
+
+
+def test_head_requests_work_for_uptime_checks(client):
+    for path in ("/", "/healthz", "/privacy", "/login"):
+        assert client.head(path).status_code == 200, path
