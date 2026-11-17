@@ -40,6 +40,19 @@ app = Flask(
     static_folder=os.path.join(CLIENT_ROOT, "static"),
 )
 
+
+@app.template_filter("money")
+def money_filter(value):
+    """Naira amount that drops the kobo when there are none: 52600 -> ₦52,600."""
+    try:
+        amount = float(value or 0)
+    except (TypeError, ValueError):
+        amount = 0.0
+    sign = "-" if amount < 0 else ""
+    amount = abs(amount)
+    body = f"{amount:,.0f}" if abs(amount - round(amount)) < 0.005 else f"{amount:,.2f}"
+    return f"₦{sign}{body}"
+
 _secret_key = os.environ.get("SECRET_KEY")
 _is_hosted = bool(os.environ.get("DATABASE_URL") or os.environ.get("RENDER"))
 if not _secret_key:

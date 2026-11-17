@@ -1169,3 +1169,137 @@ body.app-shell > header button:hover {
 #inv-list-card:not(.inv-view-table) #presets-grid tr::before {
   content: ""; display: block; height: 110px; border-radius: 10px; background: #eff6ff;
 }
+
+/* ===== Dashboard: exact values from the Figma frames =====
+   Desktop 1440 frame and phone 390 frame. The sidebar replaces the top bar on
+   desktop; KPI cards, chart row, Recent sales and the phone bar follow the
+   frame's sizes, gaps, colours and type. */
+@media (min-width: 1024px) {
+  body.app-shell > header { display: none !important; }
+  .desktop-dashboard-shell { min-height: 100vh; }
+  .desktop-sidebar {
+    position: sticky !important; top: 0 !important; height: 100vh !important;
+    width: 248px !important; padding: 20px !important; gap: 4px !important;
+    background: #fff; border-right: 1px solid #e2e8f0;
+  }
+  .desktop-content, .desktop-content:has(#daily-business-checkin:not(.hidden)) {
+    display: block !important; max-width: none !important; padding: 32px !important; background: #f8fafc;
+  }
+  .desktop-sidebar .side-brand { display: flex; align-items: center; gap: 10px; padding: 0 0 20px !important; margin: 0 !important; border: 0 !important; }
+  .desktop-sidebar .side-brand img { width: 32px; height: 32px; border-radius: 9px; }
+  .desktop-sidebar .side-brand-name { font-size: 18px; font-weight: 700; line-height: 25px; color: #0f172a; letter-spacing: 0; text-transform: none; }
+  .desktop-sidebar .nav-group { margin: 0 !important; padding: 0; font-size: 11px; font-weight: 600; line-height: 15px; letter-spacing: 0; text-transform: uppercase; color: #64748b; }
+  .desktop-sidebar a.tab-btn { min-height: 40px; padding: 10px 12px; gap: 12px; border-radius: 10px; font-size: 14px; font-weight: 500; line-height: 20px; color: #64748b; background: transparent; }
+  .desktop-sidebar a.tab-btn svg { width: 16px; height: 16px; color: #94a3b8; }
+  .desktop-sidebar a.tab-btn:not([aria-current="page"]):hover { background: #f8fafc; }
+  .desktop-sidebar a.tab-btn[aria-current="page"] { background: #eff6ff !important; color: #1d4ed8 !important; font-weight: 600; }
+  .desktop-sidebar a.tab-btn[aria-current="page"] svg { color: #1d4ed8 !important; }
+  .side-business { margin-top: auto; padding: 12px; gap: 12px; border-radius: 12px; background: #f8fafc; display: flex; align-items: center; }
+  .side-business-mark { width: 36px; height: 36px; border-radius: 18px; font-size: 14px; font-weight: 600; }
+  .side-business p:first-child { font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+  .side-business p:last-child { font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; }
+  .desktop-sidebar .side-foot { margin-top: 8px !important; padding: 0 !important; border: 0 !important; }
+}
+.side-signout { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; }
+.side-signout:hover { background: #f8fafc; }
+.side-signout svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; }
+
+/* KPI cards: 18 padding, 8 gap, 14 radius; 13 / 24 / 12 type */
+#cfo-dashboard { margin-bottom: 24px; }
+#cfo-dashboard .page-head { margin-bottom: 24px !important; align-items: center; }
+#cfo-dashboard #kpi-row { display: grid; gap: 16px !important; margin: 0 !important; }
+#kpi-row .kpi-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 18px !important; border: 1px solid #e2e8f0; border-radius: 14px !important; background: #fff; box-shadow: none; }
+#kpi-row .kpi-label { font-size: 13px; font-weight: 500; line-height: 18px; color: #64748b; text-transform: none; letter-spacing: 0; margin: 0; }
+#kpi-row .kpi-card .stat-value { font-size: 24px !important; font-weight: 700; line-height: 34px !important; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+#kpi-row .kpi-card .stat-value.text-amber-600 { color: #d97706; }
+#kpi-row .kpi-note { font-size: 12px !important; font-weight: 500; line-height: 17px; margin: 0; color: #64748b; }
+#kpi-row .kpi-card:nth-child(1) .kpi-note { color: #167251; }
+#kpi-row .kpi-card:nth-child(3) .kpi-note { color: #1d4ed8; }
+#kpi-row .kpi-card:nth-child(4) .kpi-note { color: #b45309; }
+
+/* Under the KPIs: chart row, then Recent sales, then the app's own analysis */
+#dashboard-insights:not(.hidden) { display: flex; flex-direction: column; gap: 24px; margin-bottom: 24px; }
+#dashboard-insights > * { order: 3; margin-top: 0 !important; }
+#dashboard-insights > #dashboard-chart-row { order: 1; gap: 20px; margin: 0; }
+#dashboard-insights > #dashboard-bottom-grid { order: 2; margin: 0 !important; grid-template-columns: 1fr !important; }
+#dashboard-chart-row > section:first-child { padding: 20px !important; border-radius: 16px !important; display: flex; flex-direction: column; gap: 16px; }
+#dashboard-chart-row > section:first-child > div:first-child { margin: 0 !important; }
+#analytics-trend-heading { font-size: 16px; font-weight: 600; line-height: 22px; color: #0f172a; }
+#analytics-period-label { margin-top: 16px !important; font-size: 12px; line-height: 17px; color: #64748b; }
+#analytics-trend-chart { height: 248px !important; }
+#dashboard-low-stock { align-self: start; padding: 20px !important; border-radius: 16px !important; display: flex; flex-direction: column; gap: 12px; }
+#dashboard-low-stock h3 { font-size: 16px; font-weight: 600; line-height: 22px; color: #0f172a; }
+#dashboard-low-stock > p { margin: 0 !important; font-size: 12px; line-height: 17px; color: #64748b; }
+#dashboard-low-stock ul { margin: 0 !important; display: flex; flex-direction: column; gap: 12px; }
+#dashboard-low-stock li { margin: 0 !important; }
+#dashboard-low-stock li > span:first-child { font-size: 14px; font-weight: 500; line-height: 20px; color: #0f172a; }
+#dashboard-low-stock li > span:last-child { padding: 4px 10px; font-size: 12px; font-weight: 600; line-height: 17px; }
+#dashboard-low-stock .bg-amber-50 { background: #fff5dc !important; color: #b45309 !important; }
+#dashboard-recent-sales { padding: 20px !important; border-radius: 16px !important; margin: 0; }
+#dashboard-recent-sales > div:first-child { margin-bottom: 0 !important; }
+#dashboard-recent-heading { font-size: 16px; font-weight: 600; line-height: 22px; color: #0f172a; }
+#dashboard-recent-list { display: block; }
+#dashboard-recent-list > * { border-top-width: 0 !important; }
+.recent-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+.recent-row:last-child { border-bottom: 0; }
+.recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; line-height: 20px; color: #0f172a; }
+.recent-when { flex-shrink: 0; font-size: 12px; line-height: 17px; color: #64748b; }
+.recent-when.is-owing { color: #b45309; }
+.recent-amount { flex-shrink: 0; font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+#tab-dashboard-content, #daily-business-checkin { margin-top: 0; margin-bottom: 24px; }
+
+/* Phone frame (390): 14px between sections, 12px KPI gaps, 20px figures */
+@media (max-width: 639px) {
+  #cfo-dashboard { margin-bottom: 14px; }
+  #cfo-dashboard .page-head { margin-bottom: 14px !important; }
+  #cfo-dashboard .page-head .sb-btn { display: none; }
+  #cfo-dashboard #kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px !important; }
+  #kpi-row .kpi-card .stat-value { font-size: 20px !important; line-height: 28px !important; }
+  #dashboard-insights:not(.hidden) { gap: 14px; margin-bottom: 14px; }
+  #dashboard-low-stock, #dashboard-recent-sales { padding: 16px !important; }
+  #dashboard-low-stock h3, #dashboard-recent-heading { font-size: 15px; line-height: 21px; }
+  #dashboard-chart-row { gap: 14px !important; }
+}
+/* Phone bottom bar: 8px top, 26px bottom, 22px icons, 11px labels */
+@media (max-width: 1023px) {
+  body.app-shell { padding-bottom: calc(81px + env(safe-area-inset-bottom)) !important; }
+  #mobile-bottom-nav { height: auto !important; padding: 8px 8px max(26px, env(safe-area-inset-bottom)) !important; box-shadow: none !important; border-top: 1px solid #e2e8f0; background: #fff; }
+  #mobile-bottom-nav .mobile-nav-btn { gap: 4px; padding-top: 4px; }
+  #mobile-bottom-nav .mobile-nav-btn > span:first-child,
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] > span:first-child { background: transparent !important; width: auto; height: auto; }
+  #mobile-bottom-nav .mobile-nav-btn svg { width: 22px; height: 22px; color: #94a3b8; }
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] svg { color: #1d4ed8; }
+  #mobile-bottom-nav .mobile-nav-label { font-size: 11px; font-weight: 500; line-height: 15px; color: #64748b; }
+  #mobile-bottom-nav .mobile-nav-btn[aria-current="page"] .mobile-nav-label { color: #1d4ed8; font-weight: 500; }
+}
+
+/* Full-bleed desktop shell: the sidebar starts at the top-left corner */
+@media (min-width: 1024px) {
+  body.app-shell { background: #f8fafc !important; padding-top: 0 !important; }
+  main.desktop-dashboard-shell { margin: 0 !important; padding: 0 !important; max-width: none !important; width: 100%; }
+  #dashboard-insights { max-width: none !important; width: auto !important; }
+}
+.desktop-sidebar .side-brand .side-brand-name {
+  font-size: 18px !important; font-weight: 700 !important; letter-spacing: 0 !important; line-height: 25px !important;
+  text-transform: none !important; padding: 0 !important; margin: 0 !important; color: #0f172a !important;
+}
+
+/* Phone Home (Figma phone frame): heading, KPI cards, Low stock, Recent sales.
+   The chart and the full analysis stay on the Reports tab. */
+@media (max-width: 1023px) {
+  body[data-page="dashboard"] #cfo-dashboard { display: block !important; }
+  body[data-page="dashboard"] #dashboard-insights { display: flex !important; }
+  body[data-page="dashboard"] #dashboard-insights > :not(#dashboard-chart-row):not(#dashboard-bottom-grid) { display: none !important; }
+  body[data-page="dashboard"] #dashboard-chart-row > section:first-child { display: none !important; }
+  body[data-page="dashboard"] #dashboard-chart-row { display: block; }
+}
+
+/* Phone margins and background from the 390 frame: 20px sides, #f8fafc */
+body.app-shell { background: #f8fafc !important; }
+@media (max-width: 1023px) {
+  .desktop-content { padding: 16px 10px 24px !important; }
+}
+@media (max-width: 639px) {
+  #cfo-dashboard .page-head { align-items: stretch !important; padding: 0 !important; }
+  #dashboard-low-stock > p { display: none; }
+}
