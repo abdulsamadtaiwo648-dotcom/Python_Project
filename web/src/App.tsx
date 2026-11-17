@@ -1,6 +1,8 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import { DataProvider } from "./data";
+import Profile from "./pages/Profile";
+import Budget from "./pages/Budget";
 import Sales from "./pages/Sales";
 import Inventory from "./pages/Inventory";
 import Expenses from "./pages/Expenses";
@@ -38,8 +40,8 @@ export default function App() {
             <Route path="/sales" element={<Sales />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/expenses" element={<Expenses />} />
-            <Route path="/budget" element={<Soon name="Budget" />} />
-            <Route path="/profile" element={<Soon name="Profile" />} />
+            <Route path="/budget" element={<Budget />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/website" element={<Soon name="Website" />} />
           </Route>
         </Route>
