@@ -1003,7 +1003,7 @@
                 </div>
 
                 <div id="sales-quick-filters" class="flex flex-wrap gap-2" role="group" aria-label="Quick filters">
-                    <button type="button" data-sales-quick="all" aria-pressed="true" class="sales-quick-chip is-active">All sales</button>
+                    <button type="button" data-sales-quick="all" aria-pressed="true" class="sales-quick-chip is-active">All</button>
                     <button type="button" data-sales-quick="today" aria-pressed="false" class="sales-quick-chip">Today</button>
                     <button type="button" data-sales-quick="week" aria-pressed="false" class="sales-quick-chip">This week</button>
                     <button type="button" data-sales-quick="bulk" aria-pressed="false" class="sales-quick-chip">Bulk sales</button>
@@ -1047,6 +1047,7 @@
                 <div id="income-list" class="sale-list" aria-live="polite">
                     <p class="list-empty" id="no-income-msg">No sales recorded yet.</p>
                 </div>
+                <button type="button" id="btn-new-sale-bottom" class="sb-btn sb-btn-primary sb-btn-block lg:hidden">+ New sale</button>
             </div>
         </section>
 
@@ -4386,6 +4387,7 @@
                 calculateDashboard();
             }
 
+            document.getElementById('btn-new-sale-bottom')?.addEventListener('click', () => document.getElementById('btn-new-sale')?.click());
             document.querySelectorAll('[data-sales-quick]').forEach(button => {
                 button.addEventListener('click', () => {
                     window.salesQuickFilter = button.dataset.salesQuick;

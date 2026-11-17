@@ -1303,3 +1303,63 @@ body.app-shell { background: #f8fafc !important; }
   #cfo-dashboard .page-head { align-items: stretch !important; padding: 0 !important; }
   #dashboard-low-stock > p { display: none; }
 }
+
+/* ===== Sales: exact values from the Figma frame ===== */
+@media (min-width: 1024px) {
+  .tab-content.page-stack:not(.hidden) { max-width: none !important; }
+  #tab-income-content:not(.hidden) { gap: 24px; }
+  #sales-main-view { gap: 20px 20px; }
+}
+.sales-quick-chip { font-weight: 500; color: #64748b; }
+.sales-quick-chip.is-active { font-weight: 600; color: #fff; }
+/* List: one white panel of compact rows (name left, time, amount right) */
+#income-list.sale-list {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 8px 20px; display: block;
+}
+#income-list .sale-card { border: 0 !important; border-bottom: 1px solid #e2e8f0 !important; border-radius: 0 !important; background: transparent !important; padding: 12px 0 !important; box-shadow: none !important; }
+#income-list .sale-card:last-child { border-bottom: 0 !important; }
+#income-list .sale-customer { font-size: 14px; font-weight: 500; line-height: 20px; color: #0f172a; }
+#income-list .sale-meta { font-size: 12px; font-weight: 400; line-height: 17px; color: #64748b; }
+#income-list .sale-total p { font-size: 14px; font-weight: 600; line-height: 20px; color: #0f172a; }
+#income-list .sale-items { margin-top: 6px; }
+#income-list .sale-items li { font-size: 12px; line-height: 17px; color: #64748b; }
+#income-list .sale-actions { margin-top: 8px; gap: 8px; }
+#income-list .sale-actions .sb-btn-small { min-height: 28px; padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+/* New sale form: panel 20px padding, 12px gaps, 12px labels, 10px/12px controls */
+#sale-entry-card { padding: 20px !important; display: flex; flex-direction: column; gap: 12px; }
+#sale-entry-card .sb-sheet-head { padding: 0 !important; border: 0 !important; min-height: 0; }
+#sale-entry-card .sb-sheet-title { font-size: 15px; font-weight: 600; line-height: 21px; color: #0f172a; }
+#sale-entry-card .sb-sheet-body { padding: 0 !important; gap: 12px; overflow: visible; }
+#sale-entry-card .sb-sheet-foot { padding: 0 !important; border: 0 !important; margin: 0; background: transparent; }
+#sale-entry-card .sb-field > label,
+#sale-entry-card .sale-line label,
+#sale-entry-card .sale-items-head > span { font-size: 12px; font-weight: 600; line-height: 17px; color: #64748b; }
+#sale-entry-card input, #sale-entry-card select {
+  padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff;
+  font-size: 14px; line-height: 20px; min-height: 0; color: #0f172a;
+}
+#sale-entry-card input::placeholder { color: #64748b; }
+#sale-entry-card .sb-help { font-size: 12px; line-height: 17px; color: #64748b; }
+#sale-entry-card .sb-btn-block { min-height: 44px; padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+.sale-line > .sale-line-name { width: 100% !important; }
+
+/* Sales panel: keep each item line stacked (name on top, price and quantity below) */
+#sale-entry-card .sale-line { grid-template-columns: 1fr 1fr !important; padding: 10px 12px 12px !important; }
+#sale-entry-card .sale-line .sale-line-name { grid-column: 1 / -1 !important; padding-right: 40px !important; }
+@media (min-width: 1024px) {
+  #sales-main-view { max-width: none !important; }
+}
+@media (min-width: 1024px) {
+  #sales-main-view > #sale-entry-modal { grid-row: 2 / span 60; }
+}
+
+/* Sales on phones (390 frame): title, three chips, list panel, then + New sale */
+@media (max-width: 1023px) {
+  #tab-income-content .page-head > .sb-btn { display: none; }
+  #btn-new-sale-bottom { min-height: 44px; padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+}
+@media (max-width: 639px) {
+  #tab-income-content:not(.hidden) { gap: 16px; }
+  [data-sales-quick="week"] { display: none; }
+  #income-list.sale-list { padding: 4px 16px; }
+}
