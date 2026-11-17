@@ -74,7 +74,12 @@ export interface Ok {
 
 export const auth = {
   login: (email: string, password: string) => api.post<Ok>("/api/login", { email, password }),
-  logout: () => api.post<Ok>("/api/logout"),
+  logout: async () => {
+    const r = await api.post<Ok>("/api/logout");
+    // Forget this account's offline copy on this device.
+    navigator.serviceWorker?.controller?.postMessage({ type: "CLEAR_PRIVATE_OFFLINE_DATA" });
+    return r;
+  },
   registerRequest: (b: {
     email: string; first_name: string; last_name: string;
     password: string; confirm_password: string; privacy_accepted: boolean;

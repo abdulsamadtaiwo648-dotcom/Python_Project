@@ -1,33 +1,34 @@
+// SoloBiz service worker. The React app is one shell for every signed-in page,
+// so the shell holds no personal data. Account data (API reads) is kept in a
+// separate private cache that is emptied on sign-out.
 const CACHE_NAME = 'solobiz-offline-{{ version }}';
 const PRIVATE_CACHE_NAME = 'solobiz-private-{{ version }}';
-const OFFLINE_SHELL_KEY = new URL('/__solobiz_offline_dashboard__', self.location.origin).href;
-const AUTHENTICATED_PAGE_PATHS = new Set(['/dashboard', '/expenses', '/inventory', '/sales', '/analytics', '/profile']);
-const isAuthenticatedPage = (pathname) => AUTHENTICATED_PAGE_PATHS.has(pathname) || pathname.startsWith('/dashboard/');
+const SHELL_KEY = new URL('/__solobiz_app_shell__', self.location.origin).href;
+const APP_PATHS = new Set(['/dashboard', '/sales', '/inventory', '/expenses', '/budget', '/profile', '/reports', '/website']);
+const READ_APIS = new Set([
+  '/api/session', '/api/dashboard', '/api/income', '/api/expenses',
+  '/api/inventory-presets', '/api/business_profile', '/api/website'
+]);
 
-// Public assets are shared. The dashboard shell is stored separately because
-// it contains user-specific values and is removed when the user logs out.
 const PRECACHE_ASSETS = [
   '/static/logo.svg',
   '/static/manifest.json',
   '/static/favicon.png',
-  '/static/tailwind.js'
+  '/static/tailwind.js',
+  '/static/solobiz-ui.css'
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      await Promise.all(PRECACHE_ASSETS.map(async (asset) => {
-        try {
-          const response = await fetch(asset, { cache: 'no-store' });
-          if (response.ok) {
-            await cache.put(asset, response);
-          }
-        } catch (error) {
-          console.warn('[PWA] Could not precache', asset, error);
-        }
-      }));
-    })
+    caches.open(CACHE_NAME).then((cache) => Promise.all(PRECACHE_ASSETS.map(async (asset) => {
+      try {
+        const response = await fetch(asset, { cache: 'no-store' });
+        if (response.ok) await cache.put(asset, response);
+      } catch (error) {
+        console.warn('[PWA] Could not precache', asset, error);
+      }
+    })))
   );
 });
 
@@ -42,91 +43,66 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data?.type === 'CLEAR_PRIVATE_OFFLINE_SHELL') {
+  if (event.data?.type === 'CLEAR_PRIVATE_OFFLINE_DATA') {
     event.waitUntil(caches.delete(PRIVATE_CACHE_NAME));
-    return;
-  }
-
-  if (event.data?.type === 'CACHE_DASHBOARD_SHELL' && event.data.url) {
-    event.waitUntil((async () => {
-      try {
-        const pageUrl = new URL(event.data.url, self.location.origin);
-        if (pageUrl.origin !== self.location.origin || !isAuthenticatedPage(pageUrl.pathname)) return;
-        const response = await fetch(pageUrl.href, { cache: 'no-store', credentials: 'same-origin' });
-        const finalUrl = new URL(response.url || pageUrl.href);
-        if (!response.ok || finalUrl.origin !== self.location.origin || !isAuthenticatedPage(finalUrl.pathname)) return;
-        const privateCache = await caches.open(PRIVATE_CACHE_NAME);
-        await privateCache.put(OFFLINE_SHELL_KEY, response);
-      } catch (error) {
-        console.warn('[PWA] Could not save the dashboard for offline use:', error);
-      }
-    })());
   }
 });
+
+const offlinePage = (status) => new Response(
+  '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline</title>' +
+  '<body style="font:16px system-ui;padding:32px;text-align:center"><h1>You are offline</h1><p>Reconnect and try again.</p></body></html>',
+  { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+);
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Do not intercept non-GET requests or API calls
-  if (request.method !== 'GET' || url.origin !== self.location.origin ||
-      url.pathname.startsWith('/api/')) {
-    return;
-  }
-
-  if (request.mode === 'navigate') {
-    const isDashboard = isAuthenticatedPage(url.pathname);
-    const isLogout = url.pathname === '/logout';
-
+  // Account data: network first, last good copy when offline.
+  if (READ_APIS.has(url.pathname)) {
     event.respondWith((async () => {
-      if (isLogout) {
-        await caches.delete(PRIVATE_CACHE_NAME);
-        try {
-          return await fetch(request, { cache: 'no-cache' });
-        } catch (_) {
-          return new Response(
-            '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline</title><body style="font:16px system-ui;padding:2rem;background:#0f172a;color:#fff"><h1>Signed out on this device</h1><p>You are offline. Connect to the internet to finish signing out of SoloBiz.</p></body></html>',
-            { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-          );
-        }
-      }
-
+      const cache = await caches.open(PRIVATE_CACHE_NAME);
       try {
-        const response = await fetch(request, { cache: 'no-cache' });
-        const finalUrl = new URL(response.url || request.url);
-        const isAuthenticatedDashboard = response.ok && isAuthenticatedPage(finalUrl.pathname);
-        if (isAuthenticatedDashboard) {
-          const privateCache = await caches.open(PRIVATE_CACHE_NAME);
-          await privateCache.put(OFFLINE_SHELL_KEY, response.clone());
-        }
+        const response = await fetch(request);
+        if (response.ok) await cache.put(url.pathname, response.clone());
         return response;
       } catch (_) {
-        if (isDashboard || url.pathname === '/') {
-          const privateCache = await caches.open(PRIVATE_CACHE_NAME);
-          const offlineShell = await privateCache.match(OFFLINE_SHELL_KEY);
-          if (offlineShell) return offlineShell;
-        }
-        return new Response(
-          '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline</title><body style="font:16px system-ui;padding:2rem;background:#0f172a;color:#fff"><h1>You are offline</h1><p>Open SoloBiz once while online to make the dashboard available offline.</p></body></html>',
-          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-        );
+        return (await cache.match(url.pathname)) || Response.error();
       }
     })());
     return;
   }
+  if (url.pathname.startsWith('/api/')) return;
 
-  // Static assets: serve cached copy if available, otherwise fetch and cache
-  if (url.pathname.startsWith('/static/')) {
+  // Pages of the app: the same React shell for all of them.
+  if (request.mode === 'navigate' && APP_PATHS.has(url.pathname)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(request, { cache: 'no-cache' });
+        if (response.ok && response.headers.get('content-type')?.includes('text/html') && !response.redirected) {
+          await cache.put(SHELL_KEY, response.clone());
+        }
+        return response;
+      } catch (_) {
+        return (await cache.match(SHELL_KEY)) || offlinePage(503);
+      }
+    })());
+    return;
+  }
+  if (request.mode === 'navigate') return;
+
+  // Static and built assets: cached copy first.
+  if (url.pathname.startsWith('/static/') || url.pathname.startsWith('/assets/')) {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) return cachedResponse;
-        return fetch(request).then((networkResponse) => {
-          if (!networkResponse || !networkResponse.ok) return networkResponse;
-          const responseCopy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy));
-          return networkResponse;
-        }).catch(() => Response.error());
-      })
+      caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      }).catch(() => Response.error()))
     );
   }
 });

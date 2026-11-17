@@ -44,6 +44,13 @@ export default function Layout() {
   const { refresh } = useSession();
   const { summary, profile } = useData();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const up = () => setOnline(true), down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", down); };
+  }, []);
   const tab = tabFor(pathname);
   const lowCount = summary?.low_stock_items.length ?? 0;
   const businessName = profile?.company_name || "SoloBiz";
@@ -127,6 +134,11 @@ export default function Layout() {
         </aside>
 
         <div className="desktop-content">
+          {!online && (
+            <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">
+              <span>You are offline. You can look at your last saved records; recording sales and changes needs a connection.</span>
+            </div>
+          )}
           <Outlet />
         </div>
       </main>
