@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../api";
 import { useData } from "../data";
 import { useSession } from "../session";
@@ -47,6 +47,7 @@ export default function Layout() {
   const tab = tabFor(pathname);
   const lowCount = summary?.low_stock_items.length ?? 0;
   const businessName = profile?.company_name || "SoloBiz";
+  const todayLabel = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   useEffect(() => {
     document.body.dataset.page = tab;
@@ -77,19 +78,50 @@ export default function Layout() {
 
   return (
     <>
-      <header className="bg-white text-slate-900 p-3.5 sm:p-4 shadow-none sticky top-0 z-40">
-        <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-4">
-          <div className="flex items-center gap-2.5">
+      <header className="app-topbar bg-white text-slate-900 sticky top-0 z-40">
+        <div className="topbar-inner flex items-center justify-between gap-3">
+          {/* Phones: brand on the left. Desktop: the sidebar carries the brand, so this is a welcome. */}
+          <div className="flex items-center gap-2.5 lg:hidden">
             <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-blue-700 flex items-center justify-center shadow-md">
               <img src={profile?.logo_url || "/static/logo.svg"} alt="" className="w-full h-full object-cover rounded-xl" />
             </div>
-            <h1 className="font-bold text-base sm:text-lg tracking-tight text-slate-900">{businessName}</h1>
+            <h1 className="font-bold text-base tracking-tight text-slate-900">{businessName}</h1>
           </div>
+          <div className="topbar-welcome hidden lg:block min-w-0">
+            <p className="truncate text-[15px] font-semibold text-slate-900">Welcome back, {summary?.username ?? ""}</p>
+            <p className="truncate text-xs text-slate-500">{todayLabel}</p>
+          </div>
+
+          <Link to="/profile" className="topbar-profile hidden lg:flex" aria-label="Open your profile">
+            <span className="topbar-avatar" aria-hidden="true">
+              {profile?.logo_url ? <img src={profile.logo_url} alt="" /> : (businessName || "S").slice(0, 1).toUpperCase()}
+            </span>
+            <span className="min-w-0 text-left">
+              <span className="block truncate text-sm font-semibold text-slate-900">{summary?.username ?? ""}</span>
+              <span className="block truncate text-xs text-slate-500">{businessName}</span>
+            </span>
+          </Link>
           <button type="button" onClick={signOut} aria-label="Sign out"
             className="lg:hidden text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-slate-200 hover:bg-slate-50 min-h-[40px] px-3 rounded-xl inline-flex items-center gap-1.5">
             <Svg html={ICONS.signout} className="w-3.5 h-3.5" />
             <span className="sb-logout-label">Sign out</span>
           </button>
+        </div>
+        {/* Phones: welcome and profile fill the space between the brand row and the page title. */}
+        <div className="topbar-mobile lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold text-slate-900">Welcome back, {summary?.username ?? ""}</p>
+            <p className="truncate text-xs text-slate-500">{todayLabel}</p>
+          </div>
+          <Link to="/profile" className="topbar-profile topbar-profile-sm" aria-label="Open your profile">
+            <span className="topbar-avatar" aria-hidden="true">
+              {profile?.logo_url ? <img src={profile.logo_url} alt="" /> : (businessName || "S").slice(0, 1).toUpperCase()}
+            </span>
+            <span className="min-w-0 text-left">
+              <span className="block truncate text-[13px] font-semibold text-slate-900">{summary?.username ?? ""}</span>
+              <span className="block truncate text-[11px] text-slate-500">{businessName}</span>
+            </span>
+          </Link>
         </div>
       </header>
 
