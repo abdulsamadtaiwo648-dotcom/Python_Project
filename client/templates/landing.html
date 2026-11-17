@@ -283,6 +283,18 @@
             .footer-row { gap: 14px; }
             .footer-links { gap: 14px 18px; }
         }
+
+        /* Phone header (Figma): the Sign in link at the right, Get started stays in the hero */
+        @media (max-width: 719px) {
+            .nav-right .btn-outline { display: inline-flex !important; background: none; border: 0; box-shadow: none; color: #1d4ed8; padding: 0; min-height: 0; font-size: 15px; font-weight: 600; }
+            .nav-right .btn-primary { display: none !important; }
+        }
+
+        @media (max-width: 899px) {
+            .hero-grid > div:first-child { display: flex; flex-direction: column; gap: 16px; }
+            .hero .eyebrow, .hero h1, .hero .lede, .hero-actions { margin: 0; }
+            .hero-actions { padding-top: 4px; }
+        }
     </style>
     <link rel="stylesheet" href="/static/solobiz-ui.css">
 
@@ -312,7 +324,7 @@
                     <a href="#how-it-works">How it works</a>
                     <a href="#questions">Questions</a>
                 </div>
-                <a href="/login" class="btn btn-outline">Log in</a>
+                <a href="/login" class="btn btn-outline">Sign in</a>
                 <a href="/register" class="btn btn-primary">Get started</a>
             </div>
         </div>
