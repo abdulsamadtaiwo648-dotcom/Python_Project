@@ -1,16 +1,25 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { SessionProvider, useSession } from "./session";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import Layout from "./components/Layout";
+import { DataProvider } from "./data";
+import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Reports from "./pages/Reports";
+import { SessionProvider, useSession } from "./session";
 
-function Gate({ children }: { children: JSX.Element }) {
+function Protected() {
   const { ready, user } = useSession();
   if (!ready) return null;
-  return user ? children : <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  return (
+    <DataProvider>
+      <Outlet />
+    </DataProvider>
+  );
 }
 
-function Placeholder({ name }: { name: string }) {
-  return <p style={{ padding: 24 }}>{name}</p>;
+function Soon({ name }: { name: string }) {
+  return <p className="p-6 text-slate-500">{name} is being rebuilt.</p>;
 }
 
 export default function App() {
@@ -19,7 +28,18 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Gate><Placeholder name="Dashboard" /></Gate>} />
+        <Route element={<Protected />}>
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/sales" element={<Soon name="Sales" />} />
+            <Route path="/inventory" element={<Soon name="Inventory" />} />
+            <Route path="/expenses" element={<Soon name="Expenses" />} />
+            <Route path="/budget" element={<Soon name="Budget" />} />
+            <Route path="/profile" element={<Soon name="Profile" />} />
+            <Route path="/website" element={<Soon name="Website" />} />
+          </Route>
+        </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </SessionProvider>
