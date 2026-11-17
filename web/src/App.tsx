@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { SessionProvider, useSession } from "./session";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function Gate({ children }: { children: JSX.Element }) {
   const { ready, user } = useSession();
@@ -17,6 +18,7 @@ export default function App() {
     <SessionProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Gate><Placeholder name="Dashboard" /></Gate>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
