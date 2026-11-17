@@ -175,6 +175,71 @@
             html { scroll-behavior: auto; }
             .btn { transition: none; }
         }
+
+        /* Exact values from the Figma landing frames */
+        @media (min-width: 900px) {
+            .wrap { max-width: 1440px; padding: 0 72px; }
+            .nav-inner { min-height: 95px; }
+            .hero-grid { padding: 96px 0 104px; gap: 72px; }
+            .hero-grid > div:first-child { display: flex; flex-direction: column; gap: 22px; }
+            .hero .eyebrow, .hero .lede { margin: 0; }
+            .hero h1 { margin: 0; line-height: 1.06; }
+            .hero-actions { margin: 0; padding-top: 8px; }
+            #features { padding: 112px 0 96px; }
+            #features .section-head { margin-bottom: 56px; }
+            #how-it-works { padding: 96px 0 104px; }
+            .site-footer { padding: 48px 0; }
+            .footer-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px 24px; }
+            .footer-copy { width: 100%; padding-top: 16px; }
+        }
+        @media (max-width: 899px) { .wrap { padding: 0 22px; } }
+        .cta-band .wrap { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+        .cta-band h2, .cta-band p, .cta-band .btn { margin: 0; }
+        .cta-band .btn { padding: 0 28px; min-height: 54px; border-radius: 14px; }
+        .faq details { padding: 24px; }
+        .faq details[open] summary { margin-bottom: 0; }
+
+        /* Keep the page's side padding on the hero; the FAQ fills the width like the frame */
+        .hero-grid { padding-left: 24px; padding-right: 24px; }
+        @media (min-width: 900px) { .hero-grid { padding-left: 72px; padding-right: 72px; } }
+        @media (max-width: 899px) { .hero-grid { padding-left: 22px; padding-right: 22px; } }
+        .faq { max-width: none; }
+
+        @media (min-width: 900px) { .hero-grid { grid-template-columns: minmax(0, 1fr) 560px; } }
+        .preview { padding: 26px; display: flex; flex-direction: column; gap: 18px; }
+        .preview .preview-value, .preview .bars { margin: 0; }
+
+        .section-head { max-width: none; margin-bottom: 0; gap: 10px; }
+        #features .section-head, #how-it-works .section-head, #questions .section-head { margin-bottom: 0; }
+        #features > .wrap, #how-it-works > .wrap, #questions > .wrap { display: flex; flex-direction: column; gap: 56px; }
+        #how-it-works > .wrap { gap: 48px; }
+        #questions > .wrap { gap: 40px; }
+
+        .cta-band h2 { max-width: none; font-size: clamp(1.9rem, 4.4vw, 2.75rem); letter-spacing: -.01em; }
+
+        /* Phone frame (390): 22px margins, 56px between blocks, 28px headings, 18px cards */
+        @media (max-width: 719px) {
+            .nav-inner { min-height: 72px; }
+            .hero-grid { padding-top: 24px; padding-bottom: 28px; gap: 26px; }
+            .hero h1 { font-size: 36px; line-height: 1.1; }
+            .hero .lede { font-size: 16px; line-height: 1.5; }
+            .section { padding: 28px 0; }
+            .section-head h2 { font-size: 26px; line-height: 1.15; }
+            #features > .wrap, #how-it-works > .wrap, #questions > .wrap { gap: 16px; }
+            .card { padding: 18px; gap: 8px; border-radius: 18px; box-shadow: none; }
+            .card h3 { font-size: 17px; }
+            .card > p { font-size: 15px; }
+            .points li { font-size: 14px; }
+            .review-row { padding: 12px 14px; }
+            .split { gap: 20px; }
+            .lede { font-size: 15px; }
+            .faq details { padding: 18px; }
+            .faq summary { font-size: 16px; }
+            .cta-band { padding: 28px 0 36px; }
+            .cta-band .wrap { gap: 14px; }
+            .cta-band h2 { font-size: 24px; }
+            .site-footer { padding: 32px 0; }
+        }
     </style>
     <link rel="stylesheet" href="/static/solobiz-ui.css">
 
@@ -235,10 +300,6 @@
                         <div class="bar-pair"><div class="bar bar-in" style="height:78%"></div><div class="bar bar-out" style="height:44%"></div></div>
                         <div class="bar-pair"><div class="bar bar-in" style="height:54%"></div><div class="bar bar-out" style="height:36%"></div></div>
                         <div class="bar-pair"><div class="bar bar-in" style="height:90%"></div><div class="bar bar-out" style="height:52%"></div></div>
-                    </div>
-                    <div class="chips">
-                        <span class="chip chip-blue">Sales collected ₦1.28M</span>
-                        <span class="chip chip-amber">Low stock: 3 items</span>
                     </div>
                 </div>
             </div>
@@ -368,15 +429,15 @@
                     <h2 id="faq-title">Common questions</h2>
                 </div>
                 <div class="faq">
-                    <details>
+                    <details open>
                         <summary>Does it work without internet?</summary>
                         <p>Yes. Your records are saved on your device and sync when you are back online.</p>
                     </details>
-                    <details>
+                    <details open>
                         <summary>Do I need to install an app?</summary>
                         <p>No. Open SoloBiz in your mobile browser and add it to your home screen for quick access.</p>
                     </details>
-                    <details>
+                    <details open>
                         <summary>Who can see my records?</summary>
                         <p>Only you, after you sign in with your email and password.</p>
                     </details>
