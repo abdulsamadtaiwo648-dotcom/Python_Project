@@ -1,0 +1,19 @@
+# Render blueprint for the single SoloBiz service: FastAPI serves the JSON API,
+# the server-rendered pages (landing, privacy, business websites) and the built
+# React app. Set DATABASE_URL, SECRET_KEY and the mail/push keys in the dashboard.
+services:
+  - type: web
+    name: solobiz
+    runtime: python
+    buildCommand: pip install -r requirements.txt && cd web && npm ci && npm run build
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
+      - key: NODE_VERSION
+        value: "22"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false

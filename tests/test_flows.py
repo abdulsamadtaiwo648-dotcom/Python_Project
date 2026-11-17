@@ -2,7 +2,7 @@
 
 import uuid
 
-from server.app import get_db
+from server.database import get_db
 
 
 def test_requests_without_a_session_are_unauthorized(client):
@@ -39,8 +39,8 @@ def test_expense_add_update_delete(client, signed_in):
     item = next(e for e in listed["expenses"] if e["server_id"] == expense_id)
     assert float(item["amount"]) == 199.99
 
-    deleted = client.post(f"/delete/{expense_id}", headers=headers)
-    assert deleted.status_code == 302
+    deleted = client.delete(f"/api/expenses/{expense_id}", headers=headers)
+    assert deleted.status_code == 200
     listed = client.get("/api/expenses").get_json()
     assert all(e["server_id"] != expense_id for e in listed["expenses"])
 

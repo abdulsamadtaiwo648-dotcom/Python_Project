@@ -1,6 +1,6 @@
 """The Floor feature and its tables are gone."""
 
-from server.app import get_db
+from server.database import get_db
 from server.database import init_db
 
 FLOOR_TABLES = ("market_mood", "street_tip", "sabi_plug_request", "sabi_plug_recommendation", "community_vote")

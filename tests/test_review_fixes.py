@@ -2,25 +2,25 @@
 
 import io
 
-from tests.conftest import PASSWORD, csrf_token
-from server.app import get_db
+from .conftest import PASSWORD, csrf_token, sign_in
+from server.database import get_db
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 
 
 def _login(client, email, password):
-    return client.post("/login", data={"email": email, "password": password, "csrf_token": csrf_token(client)})
+    return sign_in(client, email, password)[0]
 
 
 def test_logout_needs_a_post_with_csrf(client, signed_in):
     user_id, token = signed_in
-    assert client.get("/logout").status_code == 302            # a link cannot sign you out
+    assert client.get("/api/logout").status_code == 405         # a link cannot sign you out
     with client.session_transaction() as sess:
         assert sess.get("user_id") == user_id
-    assert client.post("/logout").status_code in (302, 400)     # no token: refused
+    assert client.post("/api/logout").status_code == 400        # no token: refused
     with client.session_transaction() as sess:
         assert sess.get("user_id") == user_id
-    client.post("/logout", headers={"X-CSRFToken": token})
+    client.post("/api/logout", headers={"X-CSRFToken": token})
     with client.session_transaction() as sess:
         assert "user_id" not in sess
 
@@ -40,21 +40,22 @@ def test_user_count_page_is_gone(client):
 
 def test_removed_legacy_pages(client, signed_in):
     token = signed_in[1]
-    assert client.post("/search", data={"csrf_token": token}).status_code in (404, 405)
-    assert client.post("/calculate", data={"csrf_token": token}).status_code in (404, 405)
+    headers = {"X-CSRFToken": token}
+    assert client.post("/search", headers=headers).status_code in (404, 405)
+    assert client.post("/calculate", headers=headers).status_code in (404, 405)
 
 
 def test_passwords_keep_their_spaces_and_old_accounts_still_sign_in(client, user):
     # `user` was created the old way: its hash is of the trimmed password.
-    assert _login(client, user[1], PASSWORD + " ").status_code == 302
-    client.post("/logout", data={"csrf_token": csrf_token(client)})
+    assert _login(client, user[1], PASSWORD + " ").status_code == 200
+    client.post("/api/logout", headers={"X-CSRFToken": csrf_token(client)})
 
     from werkzeug.security import generate_password_hash
     with get_db() as db:
         db.execute("UPDATE users SET password = ? WHERE id = ?", (generate_password_hash(" spaced Pass1 "), user[0]))
         db.commit()
-    assert _login(client, user[1], "spaced Pass1").status_code == 200      # trimmed version is wrong
-    assert _login(client, user[1], " spaced Pass1 ").status_code == 302
+    assert _login(client, user[1], "spaced Pass1").status_code == 401      # trimmed version is wrong
+    assert _login(client, user[1], " spaced Pass1 ").status_code == 200
 
 
 def test_profile_logo_is_stored_in_the_database(client, signed_in, monkeypatch):
@@ -63,7 +64,7 @@ def test_profile_logo_is_stored_in_the_database(client, signed_in, monkeypatch):
     headers = {"X-CSRFToken": token}
     with get_db() as db:
         email = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()["email"]
-    from server.app import upsert_otp
+    from api.core import upsert_otp
     code, _ = upsert_otp(email, "profile")
     response = client.post("/api/business_profile", data={
         "company_name": "Logo Test", "business_phone": "+2348010000000", "business_address": "Lagos",
@@ -72,7 +73,7 @@ def test_profile_logo_is_stored_in_the_database(client, signed_in, monkeypatch):
     assert response.status_code == 200, response.get_json()
     logo_url = response.get_json()["profile"]["logo_url"]
     assert logo_url.startswith("/media/")
-    assert client.get(logo_url).mimetype == "image/png"
+    assert client.get(logo_url).headers["content-type"] == "image/png"
 
     bad = client.post("/api/business_profile", data={
         "company_name": "Logo Test", "business_phone": "+2348010000000", "business_address": "Lagos",
