@@ -16,7 +16,7 @@ interface SaveResult { status: string; message?: string }
 export default function Profile() {
   const nav = useNavigate();
   const { refresh } = useSession();
-  const { profile, summary, reload } = useData();
+  const { profile, summary, reload, pending } = useData();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({ company_name: "", business_phone: "", whatsapp_number: "", instagram_handle: "", business_address: "", store_policy: "", reason: "", note: "" });
@@ -104,6 +104,7 @@ export default function Profile() {
   }
 
   async function signOut() {
+    if (pending > 0 && !window.confirm(`${pending} change${pending === 1 ? " is" : "s are"} saved on this device but not sent yet. They stay on this device and are sent the next time you sign in with internet. Sign out now?`)) return;
     try { await auth.logout(); } finally { await refresh(); nav("/login", { replace: true }); }
   }
 

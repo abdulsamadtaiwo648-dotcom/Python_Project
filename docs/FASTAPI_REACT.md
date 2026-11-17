@@ -46,6 +46,12 @@ takes traffic.
   offline are saved on the device, shown straight away marked "Not synced", and
   sent in order when the connection returns. Each carries an id the server
   remembers (`X-Client-Op`, table `client_ops`), so nothing is applied twice.
+  The waiting changes are written to two places on the device (localStorage and
+  IndexedDB) and the browser is asked to keep them; they survive closing the app,
+  restarting or switching off the device, and signing out. A payment on a sale
+  that has not synced yet is merged into that waiting sale. Changes are only
+  discarded when the server rejects them for a reason about the change itself;
+  being signed out, a stale token or a server error keeps them for the next try.
   A change the server rejects (for example, not enough stock) is reported in a
   banner. Inventory, profile and website changes still need a connection.
 * The `/delete/<id>` and `/edit/<id>` expense form pages were removed; the app

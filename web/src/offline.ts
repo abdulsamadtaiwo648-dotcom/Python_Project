@@ -50,8 +50,71 @@ function write<T>(k: string, items: T[]) {
 export const newOpId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `op-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+// The queue is written to two places on every change: localStorage (read
+// instantly at start-up) and IndexedDB (a second copy that survives if one of
+// them is lost). Both live through restarts and power-off; only the user wiping
+// the site's data removes them, so we also ask the browser not to evict them.
+const IDB_NAME = "solobiz-outbox";
+
+function idb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open(IDB_NAME, 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("queues");
+    open.onsuccess = () => resolve(open.result);
+    open.onerror = () => reject(open.error);
+  });
+}
+
+async function idbPut(k: string, value: unknown) {
+  try {
+    const db = await idb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("queues", "readwrite");
+      tx.objectStore("queues").put(value, k);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch {
+    /* IndexedDB unavailable: localStorage still holds the queue */
+  }
+}
+
+async function idbGet<T>(k: string): Promise<T[]> {
+  try {
+    const db = await idb();
+    const result = await new Promise<T[]>((resolve, reject) => {
+      const req = db.transaction("queues").objectStore("queues").get(k);
+      req.onsuccess = () => resolve((req.result as T[]) ?? []);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+/** Ask the browser to keep this site's data even when the device is short on space. */
+export async function requestDurableStorage(): Promise<boolean> {
+  try {
+    return (await navigator.storage?.persist?.()) ?? false;
+  } catch {
+    return false;
+  }
+}
+
 export const loadOutbox = (userId: string) => read<Op>(key(userId, "outbox"));
-export const saveOutbox = (userId: string, ops: Op[]) => write(key(userId, "outbox"), ops);
+export const saveOutbox = (userId: string, ops: Op[]) => {
+  write(key(userId, "outbox"), ops);
+  void idbPut(key(userId, "outbox"), ops);
+};
+/** Changes found only in the IndexedDB copy (e.g. localStorage was cleared). */
+export async function recoverOutbox(userId: string, current: Op[]): Promise<Op[]> {
+  const mirror = await idbGet<Op>(key(userId, "outbox"));
+  const have = new Set(current.map((o) => o.id));
+  return mirror.filter((o) => !have.has(o.id));
+}
 export const loadFailed = (userId: string) => read<FailedOp>(key(userId, "failed"));
 export const saveFailed = (userId: string, items: FailedOp[]) => write(key(userId, "failed"), items);
 

@@ -57,8 +57,13 @@ export default function Layout() {
     };
   }, [tab]);
   useEffect(() => setMoreOpen(false), [pathname]);
+  useEffect(() => {
+    // Closing the tab is safe (the changes stay saved); this only guards against clearing site data by mistake.
+    document.title = pending > 0 ? `(${pending}) ${document.title.replace(/^\(\d+\) /, "")}` : document.title.replace(/^\(\d+\) /, "");
+  }, [pending, pathname]);
 
   async function signOut() {
+    if (pending > 0 && !window.confirm(`${pending} change${pending === 1 ? " is" : "s are"} saved on this device but not sent yet. They stay on this device and are sent the next time you sign in with internet. Sign out now?`)) return;
     try {
       await auth.logout();
     } finally {

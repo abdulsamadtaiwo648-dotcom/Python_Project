@@ -486,7 +486,7 @@ export default function Sales() {
                 </ul>
                 {r.owed > 0 && <p className="sale-owed">{money(r.owed)} still owed · {money(r.paid)} paid</p>}
                 <div className="sale-actions">
-                  {r.owed > 0 && !r.items.some((x) => x.id < 0) && <button type="button" className="btn-settle-debt sb-btn sb-btn-small sb-btn-warn" onClick={() => setSettling(r)}>Record payment</button>}
+                  {r.owed > 0 && <button type="button" className="btn-settle-debt sb-btn sb-btn-small sb-btn-warn" onClick={() => setSettling(r)}>Record payment</button>}
                   <button type="button" className="sb-btn sb-btn-small sb-btn-secondary"
                     onClick={() => (profile?.company_name ? printReceipt(r, profile) : setNeedProfile(true))}>Receipt</button>
                   <button type="button" className="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale"

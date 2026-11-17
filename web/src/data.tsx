@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ApiError, api, isNetworkError } from "./api";
+import { ApiError, api, isNetworkError, loadSession } from "./api";
 import {
-  loadFailed, loadOutbox, newOpId, saveFailed, saveOutbox, type FailedOp, type Op,
+  loadFailed, loadOutbox, newOpId, recoverOutbox, requestDurableStorage, saveFailed, saveOutbox, type FailedOp, type Op,
 } from "./offline";
 import { parseSaved } from "./format";
 import { useSession } from "./session";
@@ -33,6 +33,11 @@ interface DataState {
 }
 
 const Ctx = createContext<DataState | null>(null);
+
+/** Failures that say nothing about the change itself, so it must not be thrown away. */
+const isRetryable = (e: ApiError) =>
+  e.status === 401 || e.status === 408 || e.status === 429 || e.status >= 500 ||
+  (e.status === 400 && /token/i.test(e.message));
 
 const monthOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const dayOf = (d: Date) => `${monthOf(d)}-${String(d.getDate()).padStart(2, "0")}`;
@@ -147,6 +152,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           sent++;
         } catch (err) {
           if (isNetworkError(err)) break;
+          // Signed out, token out of date, busy or down: the change is fine, keep it and try again later.
+          if (err instanceof ApiError && isRetryable(err)) {
+            if (err.status === 400) await loadSession().catch(() => undefined);
+            break;
+          }
           const message = err instanceof ApiError ? err.message : "Could not be saved.";
           const next = [...loadFailed(userId), { id: op.id, kind: op.kind, message }];
           saveFailed(userId, next);
@@ -181,6 +191,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return { queued: true };
     }
 
+    if (op.kind === "payment" && (m.saleId ?? 0) < 0) {
+      // The sale itself is still waiting: add the payment to that waiting sale.
+      commit(list.map((o) => {
+        const rows = o.meta.sales;
+        if (o.kind !== "checkout" || !rows?.some((s) => s.id === m.saleId)) return o;
+        const next = rows.map((s) => s.id === m.saleId
+          ? { ...s, amount_paid: Math.min(s.total_value, s.amount_paid + (m.amount ?? 0)) } : s)
+          .map((s) => ({ ...s, balance_owed: Math.max(0, s.total_value - s.amount_paid) }));
+        const paid = next.reduce((n, s) => n + s.amount_paid, 0);
+        return { ...o, body: { ...(o.body as object), amount_paid: paid }, meta: { ...o.meta, sales: next } };
+      }));
+      return { queued: true };
+    }
+
     if (navigator.onLine && list.length === 0) {
       try {
         await api.send(op.method, op.url, op.body, op.id);
@@ -197,6 +221,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Start, and whenever the connection changes.
   useEffect(() => {
+    void requestDurableStorage();
+    void recoverOutbox(userId, outboxRef.current).then((lost) => {
+      if (lost.length) commit([...outboxRef.current, ...lost].sort((a, b) => a.at - b.at));
+    });
     void (async () => {
       await reload();
       await syncNow();
@@ -211,7 +239,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("offline", down);
       window.clearInterval(timer);
     };
-  }, [reload, syncNow]);
+  }, [reload, syncNow, commit, userId]);
 
   const view = useMemo(() => overlay({ sales: rawSales, expenses: rawExpenses, products: rawProducts }, outbox), [rawSales, rawExpenses, rawProducts, outbox]);
   const shownSummary = useMemo(() => adjustSummary(summary, outbox, view.products), [summary, outbox, view.products]);
