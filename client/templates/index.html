@@ -443,7 +443,7 @@
         </section>
 
         <!-- CFO Dashboard KPI cards (This month), Figma layout -->
-        <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab != 'dashboard' %}hidden{% endif %}">
+        <div id="cfo-dashboard" class="transition-all duration-300 {% if active_tab not in ['dashboard', 'reports'] %}hidden{% endif %}">
         <div class="page-head mb-4">
             <div class="min-w-0">
                 <h2 class="page-title">Dashboard</h2>
@@ -456,20 +456,20 @@
         </div>
         <div id="kpi-row" class="grid grid-cols-2 lg:grid-cols-4">
             <div class="kpi-card">
-                <p class="kpi-label">Sales collected</p>
-                <span class="stat-value" id="top-sales">{{ (total_sales or 0)|money }}</span>
-                <p class="kpi-note">Payments received across all sales</p>
+                <p class="kpi-label">Income this month</p>
+                <span class="stat-value" id="top-sales">{{ month_income|money }}</span>
+                <p id="kpi-sales-note" class="kpi-note">{{ income_note }}</p>
             </div>
             <div class="kpi-card">
-                <p class="kpi-label">Expenses</p>
-                <span class="stat-value" id="top-expenses">{{ (total_expenses or 0)|money }}</span>
-                <p class="kpi-note">Across all recorded expenses</p>
+                <p class="kpi-label">Expenses this month</p>
+                <span class="stat-value" id="top-expenses">{{ month_expenses|money }}</span>
+                <p id="kpi-expenses-note" class="kpi-note">{{ expense_note }}</p>
             </div>
-            {% set np = net_profit or 0.0 %}
+            {% set np = month_net or 0.0 %}
             <div id="kpi-net-cash-flow" class="kpi-card">
-                <p class="kpi-label">Net cash flow</p>
+                <p class="kpi-label">Net profit</p>
                 <span class="stat-value {% if np < 0 %}text-amber-600{% endif %}" id="top-profit">{{ np|money }}</span>
-                <p class="kpi-note">All payments received minus all expenses</p>
+                <p id="kpi-net-note" class="kpi-note">{{ net_note }}</p>
             </div>
             <div class="kpi-card">
                 <p class="kpi-label">Low stock</p>
@@ -478,10 +478,11 @@
             </div>
         </div>
         <!-- Kept for the totals script; the balance due also shows in Business analysis. -->
+        <span id="all-time-sales" class="hidden" aria-hidden="true" data-sales="{{ total_sales or 0 }}"></span>
         <span id="top-outstanding" class="hidden" aria-hidden="true">₦{{ "{:,.2f}".format(total_outstanding or 0.0) }}</span>
         </div> <!-- End cfo-dashboard -->
 
-        <section id="dashboard-insights" class="{% if active_tab != 'dashboard' %}hidden{% endif %} space-y-4" aria-labelledby="dashboard-insights-heading">
+        <section id="dashboard-insights" class="{% if active_tab not in ['dashboard', 'reports'] %}hidden{% endif %} space-y-4" aria-labelledby="dashboard-insights-heading">
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <h2 id="dashboard-insights-heading" class="text-base font-bold text-slate-900">Business analysis</h2>
@@ -577,7 +578,7 @@
 
 
         <!-- Dashboard: greeting and the two things a trader does most -->
-        <section id="tab-dashboard-content" class="tab-content space-y-6 {% if active_tab != 'dashboard' %}hidden{% endif %}">
+        <section id="tab-dashboard-content" class="tab-content space-y-6 {% if active_tab != 'reports' %}hidden{% endif %}">
             <div class="flex items-center justify-between gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7 sm:py-6">
                 <div class="min-w-0">
                     <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -596,7 +597,7 @@
             </div>
         </section>
 
-        <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-panel mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
+        <section id="daily-business-checkin" class="{% if active_tab != 'reports' %}hidden{% endif %} dash-panel mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
             <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <h2 id="daily-checkin-heading" class="text-base font-bold text-slate-900">Today at a glance</h2>
@@ -1794,7 +1795,7 @@
                 }
             });
 
-            const salesEl = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
+            const salesEl = document.getElementById('all-time-sales') || document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
             const salesValue = salesEl ? parseFloat(salesEl.dataset.sales || salesEl.innerText.replace(/[^0-9.-]+/g, '')) || 0 : 0;
             updateAllDashboardTotals(salesValue, totalExpenses);
             return totalExpenses;
@@ -1845,41 +1846,57 @@
                 mainTotalEl.innerText = fmt(expenses);
             }
 
-            // 2. Top "Total Sales" summary card
-            const topSalesEl = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
-            if (topSalesEl) {
-                topSalesEl.dataset.sales = sales;
-                topSalesEl.innerText = fmt(sales);
-            }
+            // 2. All-time sales stay in a hidden holder for the scripts that need them
+            const allTimeEl = document.getElementById('all-time-sales');
+            if (allTimeEl) allTimeEl.dataset.sales = sales;
 
-            // 3. Top "Total Expenses" summary card
-            const topExpensesEl = document.getElementById('top-expenses') || document.getElementById('cfo-total-expenses');
-            if (topExpensesEl) {
-                topExpensesEl.innerText = fmt(expenses);
-            }
-
-            // 4. Top "Net Profit" summary card
-            const topProfitEl = document.getElementById('top-profit') || document.getElementById('cfo-net-profit');
-            if (topProfitEl) {
-                topProfitEl.innerText = fmt(netProfit);
-                // Only touch colour — preserve the stat-value layout class
-                topProfitEl.style.color = netProfit < 0 ? '#b45309' : '#1d4ed8';
-            }
             const outstandingEl = document.getElementById('top-outstanding');
             if (outstandingEl && totalOutstanding !== null) outstandingEl.innerText = fmt(totalOutstanding);
 
-            // Also flip the Net Profit card background when JS updates it live
-            const npCard = topProfitEl ? topProfitEl.closest('[class*="rounded-2xl"]') : null;
-            if (npCard) {
-                if (netProfit < 0) {
-                    npCard.classList.remove('bg-white', 'border-slate-200');
-                    npCard.classList.add('bg-amber-50', 'border-amber-200');
-                } else {
-                    npCard.classList.remove('bg-amber-50', 'border-amber-200');
-                    npCard.classList.add('bg-white', 'border-slate-200');
-                }
-            }
+            updateMonthKpis();
             refreshDailyBusinessCheckin();
+        }
+
+        // Income / Expenses / Net profit cards: this month, compared with last month
+        async function updateMonthKpis() {
+            const salesEl = document.getElementById('top-sales');
+            if (!salesEl) return;
+            try {
+                const [incomeItems, expenseItems] = await Promise.all([getIncomeLocal(), getExpensesLocal()]);
+                const now = new Date();
+                const monthIndex = date => date.getFullYear() * 12 + date.getMonth();
+                const current = monthIndex(now), previous = current - 1;
+                const totals = { in: [0, 0], out: [0, 0] };   // [this month, last month]
+                const add = (bucket, date, value) => {
+                    if (!date) return;
+                    const index = monthIndex(date);
+                    if (index === current) bucket[0] += value;
+                    else if (index === previous) bucket[1] += value;
+                };
+                (incomeItems || []).forEach(item => {
+                    if (item && !item.pending_delete) add(totals.in, parseRecordDate(item.date), parseFloat(item.amount_paid ?? item.amount ?? 0) || 0);
+                });
+                (expenseItems || []).forEach(item => {
+                    if (item && !item.pending_delete) add(totals.out, parseRecordDate(item.date), parseFloat(item.amount || 0) || 0);
+                });
+                const income = totals.in[0], spent = totals.out[0], net = income - spent;
+                const money = value => '₦' + value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                const versus = (now_, before, empty) => {
+                    if (before <= 0) return empty;
+                    const change = Math.round((now_ - before) / before * 100);
+                    return `${change >= 0 ? '+' : '\u2212'}${Math.abs(change)}% vs last month`;
+                };
+                const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+                set('top-sales', money(income));
+                set('top-expenses', money(spent));
+                set('top-profit', money(net));
+                set('kpi-sales-note', versus(income, totals.in[1], 'No sales last month'));
+                set('kpi-expenses-note', versus(spent, totals.out[1], 'No expenses last month'));
+                set('kpi-net-note', net < 0 ? 'Spending is above income' : income > 0 ? `${Math.round(net / income * 100)}% margin` : 'No income yet');
+                document.getElementById('top-profit')?.classList.toggle('text-amber-600', net < 0);
+            } catch (error) {
+                console.warn('Month figures could not be updated:', error);
+            }
         }
 
         async function refreshDailyBusinessCheckin() {
@@ -2932,7 +2949,7 @@
 
         async function recalculateTotalFromUI() {
             let salesVal = 0;
-            const salesEl = document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
+            const salesEl = document.getElementById('all-time-sales') || document.getElementById('top-sales') || document.getElementById('cfo-total-sales');
             if (salesEl) {
                 salesVal = parseFloat(salesEl.dataset.sales || salesEl.innerText.replace(/[^0-9.-]+/g, '')) || 0;
             }
@@ -3558,7 +3575,7 @@
                 const showsReports = tab === 'dashboard' || tab === 'reports';
                 document.body.dataset.page = tab;
                 document.getElementById('cfo-dashboard')?.classList.toggle('hidden', !showsReports);
-                document.getElementById('daily-business-checkin')?.classList.toggle('hidden', tab !== 'dashboard');
+                document.getElementById('daily-business-checkin')?.classList.toggle('hidden', tab !== 'reports');
                 document.getElementById('dashboard-insights')?.classList.toggle('hidden', !showsReports);
 
                 document.querySelectorAll('[data-dashboard-tab]').forEach(link => {
@@ -5746,7 +5763,7 @@
             });
 
             const analyticsTabs = document.querySelectorAll('.analytics-tab-btn');
-            let activeAnalyticsPeriod = 'weekly';
+            let activeAnalyticsPeriod = document.body.dataset.page === 'dashboard' ? 'monthly' : 'weekly';
             analyticsTabs.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const period = e.currentTarget.dataset.period;
@@ -5780,7 +5797,7 @@
                 context.clearRect(0, 0, width, height);
 
                 const summary = document.getElementById('analytics-trend-summary');
-                const data = buckets.slice(-7);
+                const data = buckets.slice(document.body.dataset.page === 'dashboard' ? -12 : -7);
                 if (!data.length) {
                     context.fillStyle = '#64748b';
                     context.font = '13px Inter, system-ui, sans-serif';
@@ -6006,7 +6023,7 @@
                 const labelEl = document.getElementById('analytics-period-label');
                 
                 const labels = { 'daily': 'Per Day', 'weekly': 'Per Week', 'monthly': 'Per Month', 'yearly': 'Per Year' };
-                if(labelEl) labelEl.textContent = labels[period];
+                if(labelEl) labelEl.textContent = document.body.dataset.page === 'dashboard' ? 'Last 12 months' : labels[period];
 
                 if (Object.keys(groups).length === 0) {
                     listEl.innerHTML = '<p class="text-center text-slate-500 py-8 text-sm">No sales data available.</p>';

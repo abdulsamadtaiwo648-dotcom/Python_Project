@@ -1,6 +1,6 @@
 """Page Routes HTTP routes."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from flask import make_response, redirect, render_template, send_from_directory
 import logging, os
 from ..app import (
@@ -126,6 +126,23 @@ def legacy_dashboard_section(section):
     return redirect(f"/{section}", code=302)
 
 
+def _vs_last_month(current, previous, empty_text):
+    """'+12% vs last month' style note; empty_text when last month had nothing."""
+    if previous <= 0:
+        return empty_text
+    change = round((current - previous) / previous * 100)
+    sign = "+" if change >= 0 else "\u2212"
+    return f"{sign}{abs(change)}% vs last month"
+
+
+def _margin_note(income, net):
+    if net < 0:
+        return "Spending is above income"
+    if income > 0:
+        return f"{round(net / income * 100)}% margin"
+    return "No income yet"
+
+
 def render_dashboard_page(section):
     user_id = get_current_user_id()
     if not user_id:
@@ -145,6 +162,7 @@ def render_dashboard_page(section):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     today_collected = 0.0
     today_expenses = 0.0
+    month_income = month_expenses = prev_income = prev_expenses = 0.0
     outstanding_sale_count = 0
     total_unpaid_balance = 0.0
     low_stock_items = []
@@ -231,10 +249,34 @@ def render_dashboard_page(section):
             except Exception as e:
                 print(f"Dashboard daily check-in note: {e}", flush=True)
 
+            # This month and last month, for the dashboard's Income / Expenses / Net profit cards.
+            try:
+                first_of_month = datetime.now(timezone.utc).replace(day=1)
+                prev_month = (first_of_month - timedelta(days=1)).strftime("%Y-%m")
+                for key, table, column in (
+                    ("income", "income", "amount_paid"),
+                    ("expenses", "expenses", "amount"),
+                ):
+                    this_row = db.execute(
+                        f"SELECT COALESCE(SUM({column}), 0) AS total FROM {table} WHERE user_id = ? AND date LIKE ?",
+                        (user_id, current_month + "%"),
+                    ).fetchone()
+                    last_row = db.execute(
+                        f"SELECT COALESCE(SUM({column}), 0) AS total FROM {table} WHERE user_id = ? AND date LIKE ?",
+                        (user_id, prev_month + "%"),
+                    ).fetchone()
+                    if key == "income":
+                        month_income, prev_income = float(this_row["total"] or 0), float(last_row["total"] or 0)
+                    else:
+                        month_expenses, prev_expenses = float(this_row["total"] or 0), float(last_row["total"] or 0)
+            except Exception as e:
+                print(f"Dashboard month totals note: {e}", flush=True)
+
     except Exception as e:
         logging.error(f"Dashboard data fetch error for user '{user_id}': {e}", exc_info=True)
 
     net_profit = total_sales - total_expenses
+    month_net = month_income - month_expenses
 
     profile = None
     try:
@@ -254,6 +296,12 @@ def render_dashboard_page(section):
         total_outstanding=total_outstanding,
         current_month=current_month,
         net_profit=net_profit,
+        month_income=month_income,
+        month_expenses=month_expenses,
+        month_net=month_net,
+        income_note=_vs_last_month(month_income, prev_income, "No sales last month"),
+        expense_note=_vs_last_month(month_expenses, prev_expenses, "No expenses last month"),
+        net_note=_margin_note(month_income, month_net),
         today=today,
         today_collected=today_collected,
         today_expenses=today_expenses,
