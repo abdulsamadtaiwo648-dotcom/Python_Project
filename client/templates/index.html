@@ -644,14 +644,18 @@
         <section id="tab-budget-content" class="tab-content page-stack {% if active_tab != 'budget' %}hidden{% endif %}" aria-labelledby="budget-heading">
             <!-- Monthly category budgets are stored on this device for offline use. -->
             <div class="page-head">
-                <div>
+                <div class="min-w-0">
                     <h2 class="page-title" id="budget-heading">Budget</h2>
-                    <p id="budget-month-label" class="page-sub">This month</p>
+                    <p class="page-sub">Plan each month and track what is left.</p>
+                    <p id="budget-month-label" class="sr-only">This month</p>
                 </div>
-                <label class="budget-month-pick">
-                    <span class="sr-only">Month</span>
-                    <input id="budget-month" type="month" aria-label="Budget month">
-                </label>
+                <div class="budget-head-actions">
+                    <label class="budget-month-pick">
+                        <span class="sr-only">Month</span>
+                        <input id="budget-month" type="month" aria-label="Budget month">
+                    </label>
+                    <button type="button" id="btn-set-budget" class="sb-btn sb-btn-primary">Set budget</button>
+                </div>
                 <!-- Budget is its own page, so its form is always shown. -->
                 <button id="btn-toggle-budget-details" type="button" class="hidden" aria-hidden="true" tabindex="-1">Manage budget</button>
             </div>
@@ -659,18 +663,18 @@
             <div id="budget-kpis" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Monthly budget</p>
-                    <p id="kpi-budget-limit" class="stat-value mt-2 text-2xl text-slate-900">₦0.00</p>
-                    <p class="mt-1 text-xs text-slate-500">Total of your category limits</p>
+                    <p id="kpi-budget-limit" class="stat-value mt-2 text-2xl text-slate-900">₦0</p>
+                    <p id="kpi-budget-limit-note" class="mt-1 text-xs text-slate-500">For this month</p>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Spent so far</p>
-                    <p id="kpi-budget-spent" class="stat-value mt-2 text-2xl text-slate-900">₦0.00</p>
-                    <p class="mt-1 text-xs text-slate-500">Expenses this month</p>
+                    <p id="kpi-budget-spent" class="stat-value mt-2 text-2xl text-slate-900">₦0</p>
+                    <p id="kpi-budget-spent-note" class="mt-1 text-xs text-slate-500">0% used</p>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Remaining</p>
-                    <p id="kpi-budget-remaining" class="stat-value mt-2 text-2xl text-blue-700">₦0.00</p>
-                    <p class="mt-1 text-xs text-slate-500">Left before the limits are reached</p>
+                    <p id="kpi-budget-remaining" class="stat-value mt-2 text-2xl text-blue-700">₦0</p>
+                    <p id="kpi-budget-remaining-note" class="mt-1 text-xs text-slate-500"></p>
                 </div>
             </div>
             <div id="budget-summary-card" class="sb-panel">
@@ -687,6 +691,13 @@
             </div>
 
             <div id="budget-insight" class="hidden" aria-live="polite"></div>
+
+            <div id="budget-categories-panel" class="budget-categories-panel">
+            <h3 class="budget-categories-title">Categories</h3>
+            <div id="budget-progress-list" class="budget-list" aria-live="polite">
+                <p class="sb-help">Loading budgets…</p>
+            </div>
+            </div>
 
             <div id="budget-details" class="sb-panel">
                 <h3 class="dash-card-title">Category limits</h3>
@@ -709,12 +720,6 @@
                     </div>
                     <button type="submit" class="sb-btn sb-btn-primary">Save limit</button>
                 </form>
-                <div id="budget-categories-panel" class="budget-categories-panel">
-                <h3 class="budget-categories-title">Categories</h3>
-                <div id="budget-progress-list" class="budget-list" aria-live="polite">
-                    <p class="sb-help">Loading budgets…</p>
-                </div>
-                </div>
             </div>
         </section>
 
@@ -2171,7 +2176,7 @@
         }
 
         function formatBudgetCurrency(value) {
-            return `₦${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            return `₦${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         }
 
         async function getMonthlyBudgets(month) {
@@ -2243,6 +2248,15 @@
                 kpiLimit.textContent = formatBudgetCurrency(totalLimit);
                 document.getElementById('kpi-budget-spent').textContent = formatBudgetCurrency(totalSpent);
                 document.getElementById('kpi-budget-remaining').textContent = formatBudgetCurrency(Math.max(0, totalLimit - totalSpent));
+                const usedPct = totalLimit > 0 ? Math.round(totalSpent / totalLimit * 100) : 0;
+                const spentNote = document.getElementById('kpi-budget-spent-note');
+                if (spentNote) spentNote.textContent = `${usedPct}% used`;
+                const now = new Date();
+                const [shownYear, shownMonth] = month.split('-').map(Number);
+                const daysLeft = (now.getFullYear() === shownYear && now.getMonth() + 1 === shownMonth)
+                    ? new Date(shownYear, shownMonth, 0).getDate() - now.getDate() : 0;
+                const leftNote = document.getElementById('kpi-budget-remaining-note');
+                if (leftNote) leftNote.textContent = daysLeft > 0 ? `${daysLeft} days left` : '';
             }
 
             progress.forEach(item => {
@@ -4389,6 +4403,12 @@
             }
 
             document.getElementById('btn-new-sale-bottom')?.addEventListener('click', () => document.getElementById('btn-new-sale')?.click());
+            document.getElementById('btn-set-budget')?.addEventListener('click', () => {
+                const field = document.getElementById('budget-category');
+                field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                field?.focus({ preventScroll: true });
+            });
+
             document.querySelectorAll('[data-sales-quick]').forEach(button => {
                 button.addEventListener('click', () => {
                     window.salesQuickFilter = button.dataset.salesQuick;

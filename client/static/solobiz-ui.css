@@ -1402,3 +1402,12 @@ body.app-shell { background: #f8fafc !important; }
 #expense-breakdown-list .breakdown-share { display: none; }
 #expense-breakdown-list > li > div:last-child { height: 8px !important; border-radius: 4px; background: #cbd5e1 !important; }
 #expense-breakdown-list > li > div:last-child > div { border-radius: 4px; background: #1d4ed8; }
+
+/* ===== Budget: exact values from the Figma frame ===== */
+@media (min-width: 1024px) { #tab-budget-content:not(.hidden) { gap: 24px; } }
+.budget-head-actions { display: flex; align-items: center; gap: 12px; }
+#tab-budget-content .page-head { align-items: center; }
+#budget-kpis > div > p:last-child { color: #167251; font-weight: 500; }
+#budget-progress-list > article > div:first-child p { color: #64748b; font-weight: 400; font-size: 13px; line-height: 18px; }
+#budget-progress-list > article h4 { font-size: 14px; font-weight: 600; line-height: 20px; }
+#budget-kpis .stat-value { color: #0f172a !important; }
