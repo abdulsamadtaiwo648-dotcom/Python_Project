@@ -306,3 +306,11 @@
   .app-topbar { position: static; background: #f8fafc; border-bottom: 0; }
   .topbar-inner { min-height: 72px; padding: 14px 34px 6px calc(248px + 34px); }
 }
+
+/* Phone: a second row under the brand bar, level with the page content margins. */
+.topbar-mobile { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 20px 12px; }
+.topbar-profile-sm { display: flex; padding: 5px 10px 5px 5px; max-width: 170px; }
+.topbar-profile-sm .topbar-avatar { width: 32px; height: 32px; border-radius: 9px; font-size: 13px; }
+
+/* The top bar is in the page flow here, so the shell needs no extra top offset. */
+@media (max-width: 1023px) { .desktop-dashboard-shell { padding-top: 0 !important; } }
