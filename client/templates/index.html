@@ -379,10 +379,21 @@
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
                 <span>Profile</span>
             </a>
+            <a id="btn-tab-reports" data-dashboard-tab="reports" href="/reports" {% if active_tab == 'reports' %}aria-current="page"{% endif %} class="tab-btn {% if active_tab == 'reports' %}bg-blue-700 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+                <svg class="w-4 h-4 flex-shrink-0" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+                <span>Reports</span>
+            </a>
             <a href="/website" class="tab-btn text-slate-500 hover:text-slate-800 hover:bg-slate-100">
                 <svg class="w-4 h-4 flex-shrink-0" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
                 <span>Website</span>
             </a>
+            <div class="side-business">
+                <span class="side-business-mark" aria-hidden="true">{{ username[:1]|upper }}</span>
+                <div class="min-w-0">
+                    <p class="truncate text-sm font-semibold text-slate-900">{{ username }}</p>
+                    <p class="truncate text-xs text-slate-500">Your business</p>
+                </div>
+            </div>
             <div class="side-foot">
                 <button onclick="handleLogout()" type="button" class="side-signout">
                     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
@@ -541,7 +552,7 @@
             <p id="analytics-period-summary" class="-mt-2 text-[10px] text-slate-400">Analysis totals for today.</p>
             <p id="analytics-outstanding-alert" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">Some sales still have an outstanding balance.</p>
 
-            <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+            <div id="dashboard-chart-row" class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)_340px]">
                 <section class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="analytics-trend-heading">
                     <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                         <div>
@@ -563,22 +574,8 @@
                         <p class="py-6 text-center text-sm text-slate-500">Loading sales…</p>
                     </div>
                 </section>
-            </div>
-        </section>
-
-        <div id="dashboard-bottom-grid" class="{% if active_tab != 'dashboard' %}hidden{% endif %} mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section id="dashboard-recent-sales" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-recent-heading">
-            <div class="mb-3 flex items-center justify-between gap-3">
-                <h3 id="dashboard-recent-heading" class="text-base font-bold text-slate-900">Recent sales</h3>
-                <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-blue-700 hover:text-blue-900">View all</a>
-            </div>
-            <ul id="dashboard-recent-list" class="divide-y divide-slate-100" aria-live="polite">
-                <li class="py-6 text-center text-sm text-slate-500">Loading sales…</li>
-            </ul>
-        </section>
-
         <!-- Low stock (Figma layout): products at or below their alert level -->
-        <section id="dashboard-low-stock" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-low-heading">
+            <section id="dashboard-low-stock" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-low-heading">
             <h3 id="dashboard-low-heading" class="text-base font-bold text-slate-900">Low stock</h3>
             <p class="mt-1 text-xs text-slate-500">Restock before these run out.</p>
             <ul class="mt-4 space-y-3">
@@ -595,6 +592,20 @@
             <a href="/inventory" data-dashboard-tab="inventory" class="mt-4 inline-block text-sm font-semibold text-blue-700 hover:text-blue-900">View all {{ low_stock_items|length }} items</a>
             {% endif %}
         </section>
+            </div>
+        </section>
+
+        <div id="dashboard-bottom-grid" class="{% if active_tab != 'dashboard' %}hidden{% endif %} mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section id="dashboard-recent-sales" class="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-recent-heading">
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <h3 id="dashboard-recent-heading" class="text-base font-bold text-slate-900">Recent sales</h3>
+                <a href="/sales" data-dashboard-tab="income" class="text-sm font-semibold text-blue-700 hover:text-blue-900">View all</a>
+            </div>
+            <ul id="dashboard-recent-list" class="divide-y divide-slate-100" aria-live="polite">
+                <li class="py-6 text-center text-sm text-slate-500">Loading sales…</li>
+            </ul>
+        </section>
+
         </div>
 
         <section id="daily-business-checkin" class="{% if active_tab != 'dashboard' %}hidden{% endif %} dash-panel mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
@@ -893,6 +904,12 @@
                     <button type="button" id="push-toggle" class="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-60">Turn on</button>
                 </div>
             </div>
+            <div id="inv-chips" class="flex flex-wrap gap-2" role="group" aria-label="Filter products">
+                <button type="button" data-inv-chip="all" aria-pressed="true" class="sales-quick-chip is-active">All</button>
+                <button type="button" data-inv-chip="low" aria-pressed="false" class="sales-quick-chip">Low stock</button>
+                <button type="button" data-inv-chip="out" aria-pressed="false" class="sales-quick-chip">Out of stock</button>
+                <button type="button" data-inv-chip="bulk" aria-pressed="false" class="sales-quick-chip">Bulk offers</button>
+            </div>
             <div id="inv-summary" class="grid grid-cols-3 gap-3">
                 <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Products</p>
@@ -991,7 +1008,7 @@
                             </div>
 
                             <div class="sb-sheet-foot">
-                                <button type="submit" class="sb-btn sb-btn-primary sb-btn-block">Save sale</button>
+                                <button type="submit" class="sb-btn sb-btn-primary sb-btn-block">Record sale</button>
                             </div>
                         </form>
                     </div>
@@ -1000,6 +1017,7 @@
                 <div id="sales-quick-filters" class="flex flex-wrap gap-2" role="group" aria-label="Quick filters">
                     <button type="button" data-sales-quick="all" aria-pressed="true" class="sales-quick-chip is-active">All sales</button>
                     <button type="button" data-sales-quick="today" aria-pressed="false" class="sales-quick-chip">Today</button>
+                    <button type="button" data-sales-quick="week" aria-pressed="false" class="sales-quick-chip">This week</button>
                     <button type="button" data-sales-quick="bulk" aria-pressed="false" class="sales-quick-chip">Bulk sales</button>
                 </div>
 
@@ -4305,11 +4323,14 @@
             function getFilteredSales(allItems) {
                 const quick = window.salesQuickFilter || 'all';
                 const todayKey = localDateKey(new Date());
+                const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
                 const items = quick === 'today'
                     ? allItems.filter(item => recordDayKey(item.date) === todayKey)
-                    : quick === 'bulk'
-                        ? allItems.filter(item => item.sale_type === 'bulk')
-                        : allItems;
+                    : quick === 'week'
+                        ? allItems.filter(item => { const d = parseRecordDate(item.date); return d && d >= weekStart; })
+                        : quick === 'bulk'
+                            ? allItems.filter(item => item.sale_type === 'bulk')
+                            : allItems;
                 const product = document.getElementById('sales-product-filter')?.value || '';
                 const status = document.getElementById('sales-payment-filter')?.value || '';
                 const minRaw = document.getElementById('sales-min-total')?.value || '';
@@ -5239,8 +5260,33 @@
             });
 
 
+            // Inventory filter chips: mark rows that don't match with data-chip-hidden
+            let invChip = 'all';
+            function applyInventoryChip() {
+                document.querySelectorAll('#presets-grid tr[data-inventory-row]').forEach(row => {
+                    const low = row.querySelector('.inventory-status.low');
+                    const out = row.querySelector('.inventory-status.out');
+                    const priceText = row.lastElementChild?.textContent || '';
+                    const bulk = /bulk|for ₦/i.test(priceText);
+                    const show = invChip === 'all' || (invChip === 'low' && (low || out)) || (invChip === 'out' && out) || (invChip === 'bulk' && bulk);
+                    row.toggleAttribute('data-chip-hidden', !show);
+                });
+            }
+            document.querySelectorAll('[data-inv-chip]').forEach(button => {
+                button.addEventListener('click', () => {
+                    invChip = button.dataset.invChip;
+                    document.querySelectorAll('[data-inv-chip]').forEach(other => {
+                        const active = other === button;
+                        other.classList.toggle('is-active', active);
+                        other.setAttribute('aria-pressed', String(active));
+                    });
+                    applyInventoryChip();
+                });
+            });
+
             // Inventory summary counts, read from the rendered rows
             function updateInventorySummary() {
+                applyInventoryChip();
                 const rows = [...document.querySelectorAll('#presets-grid tr[data-inventory-row]')];
                 const low = rows.filter(row => row.querySelector('.inventory-status.low')).length;
                 const out = rows.filter(row => row.querySelector('.inventory-status.out')).length;
