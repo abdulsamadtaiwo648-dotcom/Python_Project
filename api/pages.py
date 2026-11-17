@@ -133,19 +133,19 @@ def website_preview(request: Request):
 
 
 # --- Public pages -----------------------------------------------------------
-@router.get("/", response_class=HTMLResponse)
+@router.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def landing(request: Request):
     if current_user_id(request):
         return RedirectResponse("/dashboard", status_code=302)
     return render(request, "landing.html")
 
 
-@router.get("/privacy", response_class=HTMLResponse)
+@router.api_route("/privacy", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def privacy(request: Request):
     return render(request, "privacy.html")
 
 
-@router.get("/data-access", response_class=HTMLResponse)
+@router.api_route("/data-access", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def data_access(request: Request):
     return render(request, "data_access.html")
 
@@ -274,4 +274,4 @@ def make_app_page(path: str):
 
 
 for _path in APP_PATHS:
-    router.add_api_route(_path, make_app_page(_path), methods=["GET"], include_in_schema=False)
+    router.add_api_route(_path, make_app_page(_path), methods=["GET", "HEAD"], include_in_schema=False)
