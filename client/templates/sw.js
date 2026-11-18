@@ -7,7 +7,7 @@ const SHELL_KEY = new URL('/__solobiz_app_shell__', self.location.origin).href;
 const APP_PATHS = new Set(['/dashboard', '/sales', '/inventory', '/expenses', '/budget', '/profile', '/reports', '/website']);
 const READ_APIS = new Set([
   '/api/session', '/api/dashboard', '/api/income', '/api/expenses',
-  '/api/inventory-presets', '/api/business_profile', '/api/website'
+  '/api/inventory-presets', '/api/business_profile', '/api/website', '/api/subscription'
 ]);
 
 const PRECACHE_ASSETS = [

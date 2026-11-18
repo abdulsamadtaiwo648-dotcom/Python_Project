@@ -88,3 +88,41 @@ export interface CheckoutLine {
   sale_type?: "unit" | "bulk";
   checkout_line_id?: string;
 }
+
+export type FeatureKey = "offline" | "website" | "reports" | "alerts" | "branding";
+
+export interface PlanInfo {
+  key: "free" | "basic" | "pro";
+  name: string;
+  price: number;
+  tagline: string;
+  max_products: number | null;
+  history_days: number | null;
+  features: Record<FeatureKey, boolean>;
+}
+
+export interface CurrentPlan {
+  plan: "free" | "basic" | "pro";
+  plan_name: string;
+  state: "trial" | "active" | "grace" | "free";
+  ends_at: string | null;
+  days_left: number | null;
+  cancel_at_period_end: boolean;
+  paid_plan: "basic" | "pro" | null;
+  period_end: string | null;
+  trial_ends_at: string | null;
+  trial_used: boolean;
+  features: FeatureKey[];
+  max_products: number | null;
+  history_days: number | null;
+}
+
+export interface Subscription {
+  current: CurrentPlan;
+  plans: PlanInfo[];
+  feature_labels: Record<FeatureKey, string>;
+  trial_days: number;
+  grace_days: number;
+  payments_ready: boolean;
+  payments: { plan: string; amount: number; currency: string; status: string; created_at: string }[];
+}

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApiError, api } from "../api";
 import PushCard from "../components/PushCard";
+import { isUpgradeError } from "../components/Upgrade";
+import { Link } from "react-router-dom";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money } from "../format";
@@ -29,6 +31,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [upgrade, setUpgrade] = useState(false);
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -55,6 +58,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
       await props.onSaved();
       props.onClose();
     } catch (err) {
+      setUpgrade(isUpgradeError(err));
       setError(err instanceof ApiError ? err.message : "Could not save. Try again.");
       setBusy(false);
     }
@@ -135,7 +139,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
           </div>
           <p className="sb-help">Only used when you tick "Sell as bulk" on a sale. Leave both empty to sell by the piece only.</p>
         </fieldset>
-        {error && <p className="sb-error" role="alert">{error}</p>}
+        {error && <p className="sb-error" role="alert">{error}{upgrade && <> <Link to="/plans" className="font-semibold underline">See plans</Link></>}</p>}
         <div className="sb-sheet-foot">
           {!adding && <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => setConfirmDelete(true)}>Delete</button>}
           <button type="button" className="sb-btn sb-btn-secondary" onClick={props.onClose}>Cancel</button>

@@ -5,7 +5,7 @@ import {
 } from "./offline";
 import { parseSaved } from "./format";
 import { useSession } from "./session";
-import type { BusinessProfile, DashboardSummary, Expense, Product, Sale } from "./types";
+import type { BusinessProfile, DashboardSummary, Expense, FeatureKey, Product, Sale, Subscription } from "./types";
 
 type NewOp = Omit<Op, "id" | "at">;
 
@@ -15,6 +15,9 @@ interface DataState {
   expenses: Expense[];
   products: Product[];
   profile: BusinessProfile | null;
+  subscription: Subscription | null;
+  /** Does the current plan include this feature? (true until the plan is known) */
+  can: (feature: FeatureKey) => boolean;
   loading: boolean;
   /** Changes saved on this device that the server has not confirmed yet. */
   pending: number;
@@ -109,11 +112,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [rawExpenses, setExpenses] = useState<Expense[]>([]);
   const [rawProducts, setProducts] = useState<Product[]>([]);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [outbox, setOutbox] = useState<Op[]>(() => loadOutbox(userId));
   const [failed, setFailed] = useState<FailedOp[]>(() => loadFailed(userId));
   const [online, setOnline] = useState(navigator.onLine);
   const flushing = useRef(false);
+  const subscriptionRef = useRef<Subscription | null>(null);
+  subscriptionRef.current = subscription;
   const outboxRef = useRef(outbox);
   outboxRef.current = outbox;
 
@@ -124,18 +130,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const reload = useCallback(async () => {
-    const [s, i, e, p, b] = await Promise.allSettled([
+    const [s, i, e, p, b, sub] = await Promise.allSettled([
       api.get<DashboardSummary & { status: string }>("/api/dashboard"),
       api.get<{ income: Sale[] }>("/api/income"),
       api.get<{ expenses: Expense[] }>("/api/expenses"),
       api.get<{ presets: Product[] }>("/api/inventory-presets"),
       api.get<{ profile: BusinessProfile }>("/api/business_profile"),
+      api.get<Subscription & { status: string }>("/api/subscription"),
     ]);
     if (s.status === "fulfilled") setSummary(s.value);
     if (i.status === "fulfilled") setSales(i.value.income);
     if (e.status === "fulfilled") setExpenses(e.value.expenses);
     if (p.status === "fulfilled") setProducts(p.value.presets);
     if (b.status === "fulfilled") setProfile(b.value.profile);
+    if (sub.status === "fulfilled") setSubscription(sub.value);
     setLoading(false);
   }, []);
 
@@ -214,6 +222,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!isNetworkError(err)) throw err;      // the server said no: show it
       }
     }
+    // Saving on the device for later is a paid feature (Basic and Pro).
+    if (subscriptionRef.current && !subscriptionRef.current.current.features.includes("offline")) {
+      throw new ApiError("Recording without internet is part of the Basic and Pro plans. Connect to save this, or choose a plan.", 403, { code: "upgrade_required", feature: "offline" });
+    }
     commit([...outboxRef.current, op]);
     void syncNow();
     return { queued: true };
@@ -245,10 +257,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const shownSummary = useMemo(() => adjustSummary(summary, outbox, view.products), [summary, outbox, view.products]);
 
   const value = useMemo<DataState>(() => ({
-    summary: shownSummary, sales: view.sales, expenses: view.expenses, products: view.products, profile, loading,
+    summary: shownSummary, sales: view.sales, expenses: view.expenses, products: view.products, profile, loading, subscription,
+    can: (feature) => !subscription || subscription.current.features.includes(feature),
     pending: outbox.length, failed, online, syncNow, reload, write,
     dismissFailed: () => { saveFailed(userId, []); setFailed([]); },
-  }), [shownSummary, view, profile, loading, outbox.length, failed, online, syncNow, reload, write, userId]);
+  }), [shownSummary, view, profile, loading, subscription, outbox.length, failed, online, syncNow, reload, write, userId]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

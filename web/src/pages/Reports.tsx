@@ -3,12 +3,16 @@ import { Link } from "react-router-dom";
 import Analysis from "../components/Analysis";
 import { useData } from "../data";
 import { money } from "../format";
+import { LockedPage } from "../components/Upgrade";
 import { KpiRow } from "./Dashboard";
 
 export default function Reports() {
-  const { summary: s } = useData();
+  const { summary: s, can } = useData();
   useEffect(() => { document.title = "Reports | SoloBiz"; }, []);
   const stock = s?.low_stock_items ?? [];
+  if (!can("reports")) {
+    return <LockedPage title="Reports" plan="Basic" text="See trends, sales by period and today at a glance. Reports come with the Basic and Pro plans." />;
+  }
   return (
     <>
       <section id="tab-reports-content" className="tab-content" aria-labelledby="reports-title">

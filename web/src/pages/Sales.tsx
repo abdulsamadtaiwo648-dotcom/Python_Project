@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
+import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
@@ -43,7 +44,7 @@ const saleDate = (v: string) => {
   return d ? d.toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }) : v;
 };
 
-function printReceipt(r: Receipt, profile: BusinessProfile | null) {
+function printReceipt(r: Receipt, profile: BusinessProfile | null, branded: boolean) {
   const w = window.open("", "_blank", "width=420,height=640");
   if (!w) return;
   const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -52,7 +53,7 @@ function printReceipt(r: Receipt, profile: BusinessProfile | null) {
 <style>body{font:14px Inter,system-ui,sans-serif;padding:24px;color:#0f172a}h1{font-size:18px;margin:0}p{margin:2px 0;color:#475569}
 table{width:100%;border-collapse:collapse;margin:16px 0}td{padding:6px 0;border-bottom:1px solid #e2e8f0}td:last-child{text-align:right}
 .t td{font-weight:700;border:0}</style>
-<h1>${esc(profile?.company_name || "SoloBiz")}</h1>
+${branded && profile?.logo_url ? `<img src="${esc(window.location.origin + profile.logo_url)}" alt="" style="height:48px;margin-bottom:8px">` : ""}<h1>${esc(profile?.company_name || "SoloBiz")}</h1>
 <p>${esc(profile?.business_address || "")}</p><p>${esc(profile?.business_phone || "")}</p>
 <p style="margin-top:12px">Receipt #${esc(first.receipt_id)} · ${esc(saleDate(first.date))}</p>
 <p>Customer: ${esc(first.customer_name)} · ${esc(first.payment_mode)}</p>
@@ -60,7 +61,7 @@ table{width:100%;border-collapse:collapse;margin:16px 0}td{padding:6px 0;border-
 <tr class="t"><td>Total</td><td>${esc(money(r.total))}</td></tr>
 <tr class="t"><td>Paid</td><td>${esc(money(r.paid))}</td></tr>
 ${r.owed > 0 ? `<tr class="t"><td>Balance due</td><td>${esc(money(r.owed))}</td></tr>` : ""}</table>
-<p>Thank you for your business.</p>`);
+<p>Thank you for your business.</p>${branded ? "" : '<p style="margin-top:16px;font-size:11px;color:#94a3b8">Receipt made with SoloBiz</p>'}`);
   w.document.close();
   w.focus();
   w.print();
@@ -355,7 +356,7 @@ function SettleDebt(props: { receipt: Receipt; onClose: () => void }) {
 }
 
 export default function Sales() {
-  const { sales, products, profile, write } = useData();
+  const { sales, products, profile, write, subscription, can } = useData();
   const [quick, setQuick] = useState<Quick>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [product, setProduct] = useState("");
@@ -428,6 +429,10 @@ export default function Sales() {
         </button>
       </div>
 
+      {subscription?.current.history_days != null && (
+        <UpgradeNotice title={`Showing the last ${subscription.current.history_days} days of sales`}
+          text="Older sales are kept safely. A longer history comes with a paid plan." plan="Basic" />
+      )}
       <div id="sales-main-view" className="page-stack">
         {/* A side panel on desktop; a full-screen sheet on phones. */}
         <div id="sale-entry-modal" className={creating ? "sb-modal" : "sb-modal hidden"} role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
@@ -496,7 +501,7 @@ export default function Sales() {
                 <div className="sale-actions">
                   {r.owed > 0 && <button type="button" className="btn-settle-debt sb-btn sb-btn-small sb-btn-warn" onClick={() => setSettling(r)}>Record payment</button>}
                   <button type="button" className="sb-btn sb-btn-small sb-btn-secondary"
-                    onClick={() => (profile?.company_name ? printReceipt(r, profile) : setNeedProfile(true))}>Receipt</button>
+                    onClick={() => (profile?.company_name ? printReceipt(r, profile, can("branding")) : setNeedProfile(true))}>Receipt</button>
                   <button type="button" className="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale"
                     onClick={() => { setDeleting(r); setDeleteError(""); }}>Delete</button>
                 </div>

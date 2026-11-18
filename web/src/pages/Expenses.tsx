@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
+import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money, parseSaved, relativeDay } from "../format";
@@ -100,7 +101,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 }
 
 export default function Expenses() {
-  const { expenses } = useData();
+  const { expenses, subscription } = useData();
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
@@ -149,6 +150,10 @@ export default function Expenses() {
         </button>
       </div>
 
+      {subscription?.current.history_days != null && (
+        <UpgradeNotice title={`Showing the last ${subscription.current.history_days} days of expenses`}
+          text="Older expenses are kept safely. A longer history comes with a paid plan." plan="Basic" />
+      )}
       <div id="expense-kpis" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col gap-2 min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total this month</p>

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "../api";
+import { UpgradeNotice, isUpgradeError } from "../components/Upgrade";
+import { useData } from "../data";
 import { money } from "../format";
 import { shrinkImage } from "../shrinkImage";
 import "../styles/website-builder.css";
@@ -29,6 +31,7 @@ const ACTION_HINTS = {
 type Tone = "" | "ok" | "error";
 
 export default function Website() {
+  const { can } = useData();
   const [site, setSite] = useState<Site | null>(null);
   const [content, setContent] = useState<Content | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -145,6 +148,11 @@ export default function Website() {
       setNote({ text: `Your website is live at ${r.website.address}`, tone: "ok" });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
+      if (isUpgradeError(err)) {
+        setProblems({ title: err.message, items: [] });
+        setNote({ text: "Publishing needs the Pro plan.", tone: "error" });
+        return;
+      }
       const body = err instanceof ApiError ? (err.body as SiteResponse | undefined) : undefined;
       setProblems({ title: body?.message || "Your website is not ready to publish yet.", items: body?.problems ?? [] });
       setNote({ text: "Not published yet. See what is missing above.", tone: "error" });
@@ -208,6 +216,9 @@ export default function Website() {
       </header>
 
       <main className="wb-main" id="wb-main" aria-busy={busy}>
+        {!can("website") && (
+          <UpgradeNotice title="Publishing a website is part of Pro" text="You can build and preview your website now. Publishing it at your own address comes with the Pro plan." plan="Pro" />
+        )}
         <section className="sb-panel" aria-labelledby="status-title">
           <h2 id="status-title" className="sr-only">Website address and status</h2>
           <p className="sb-help">Your website address</p>
