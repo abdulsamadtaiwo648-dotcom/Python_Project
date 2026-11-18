@@ -280,6 +280,46 @@ def init_client_ops_table():
         db.commit()
 
 
+def init_billing_tables():
+    """Subscriptions (one row per account), payment attempts/records, and the
+    Flutterwave payment-plan ids created for each plan and price."""
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                user_id TEXT PRIMARY KEY,
+                plan TEXT NOT NULL,
+                trial_ends_at TEXT,
+                period_end TEXT,
+                cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                plan TEXT NOT NULL,
+                amount REAL NOT NULL,
+                currency TEXT NOT NULL,
+                tx_ref TEXT UNIQUE NOT NULL,
+                provider_tx_id TEXT UNIQUE,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_payments_user ON payments (user_id)")
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS provider_plans (
+                plan TEXT NOT NULL,
+                amount REAL NOT NULL,
+                provider_plan_id TEXT NOT NULL,
+                PRIMARY KEY (plan, amount)
+            )
+        """)
+        db.commit()
+
+
 def init_website_tables():
     """Business websites (one per account) and the images they use.
 
@@ -318,6 +358,7 @@ def init_website_tables():
 def init_db():
     init_push_subscriptions_table()
     init_client_ops_table()
+    init_billing_tables()
     init_website_tables()
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:
@@ -475,6 +516,7 @@ def init_db():
                         DELETE FROM push_subscriptions WHERE user_id = OLD.id;
                         DELETE FROM business_websites WHERE user_id = OLD.id;
                         DELETE FROM website_media WHERE user_id = OLD.id;
+                        DELETE FROM subscriptions WHERE user_id = OLD.id;
                         DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                         RETURN OLD;
                     END;
@@ -677,6 +719,7 @@ def init_db():
                     DELETE FROM push_subscriptions WHERE user_id = OLD.id;
                     DELETE FROM business_websites WHERE user_id = OLD.id;
                     DELETE FROM website_media WHERE user_id = OLD.id;
+                    DELETE FROM subscriptions WHERE user_id = OLD.id;
                     DELETE FROM otp_codes WHERE LOWER(email) = LOWER(OLD.email);
                 END
             """)

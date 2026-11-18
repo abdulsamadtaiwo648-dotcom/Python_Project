@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, auth } from "../api";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
@@ -16,7 +16,8 @@ interface SaveResult { status: string; message?: string }
 export default function Profile() {
   const nav = useNavigate();
   const { refresh } = useSession();
-  const { profile, summary, reload, pending } = useData();
+  const { profile, summary, reload, pending, subscription } = useData();
+  const plan = subscription?.current;
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({ company_name: "", business_phone: "", whatsapp_number: "", instagram_handle: "", business_address: "", store_policy: "", reason: "", note: "" });
@@ -134,8 +135,15 @@ export default function Profile() {
       <div id="profile-account" className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl bg-gradient-to-br from-blue-700 to-blue-900 p-6 text-white shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-blue-200">Current plan</p>
-          <p className="mt-2 text-2xl font-extrabold">Early access</p>
-          <p className="mt-2 text-sm text-blue-100">Your records, sales and business page are all included while SoloBiz is in early access.</p>
+          <p className="mt-2 text-2xl font-extrabold">{plan ? (plan.state === "trial" ? "Pro trial" : plan.plan_name) : "…"}</p>
+          <p className="mt-2 text-sm text-blue-100">
+            {!plan ? "" :
+              plan.state === "trial" ? `${plan.days_left} day${plan.days_left === 1 ? "" : "s"} left of your free Pro trial.` :
+              plan.state === "active" ? `Active until ${plan.ends_at ? new Date(plan.ends_at).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" }) : ""}.` :
+              plan.state === "grace" ? "Your renewal was not received. Renew to keep your plan." :
+              "Upgrade for reports, a website, alerts and offline recording."}
+          </p>
+          <Link to="/plans" className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-blue-800 no-underline hover:bg-blue-50">Manage plan</Link>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Account</p>

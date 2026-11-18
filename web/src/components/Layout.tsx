@@ -35,6 +35,7 @@ const Svg = ({ html, className = "w-4 h-4 flex-shrink-0", sw = 2 }: { html: stri
 );
 
 export function tabFor(pathname: string): string {
+  if (pathname.startsWith("/plans")) return "profile";
   return NAV.find((n) => pathname.startsWith(n.to))?.tab ?? "dashboard";
 }
 
@@ -42,7 +43,8 @@ export default function Layout() {
   const { pathname } = useLocation();
   const nav = useNavigate();
   const { refresh } = useSession();
-  const { summary, profile, online, pending, failed, dismissFailed, syncNow } = useData();
+  const { summary, profile, online, pending, failed, dismissFailed, syncNow, subscription } = useData();
+  const plan = subscription?.current;
   const [moreOpen, setMoreOpen] = useState(false);
   const tab = tabFor(pathname);
   const lowCount = summary?.low_stock_items.length ?? 0;
@@ -135,7 +137,7 @@ export default function Layout() {
             <span className="side-business-mark" aria-hidden="true">{(summary?.username ?? "S").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">{summary?.username ?? ""}</p>
-              <p className="truncate text-xs text-slate-500">Early access</p>
+              <p className="truncate text-xs text-slate-500">{plan ? (plan.state === "trial" ? "Pro trial" : `${plan.plan_name} plan`) : " "}</p>
             </div>
           </div>
           <div className="side-foot">
@@ -148,6 +150,24 @@ export default function Layout() {
         </aside>
 
         <div className="desktop-content">
+          {plan && pathname !== "/plans" && plan.state === "trial" && (
+            <div className="plan-banner plan-banner-trial" role="status">
+              <span>Pro trial: {plan.days_left} day{plan.days_left === 1 ? "" : "s"} left. After that you move to the Free plan.</span>
+              <Link to="/plans">See plans</Link>
+            </div>
+          )}
+          {plan && pathname !== "/plans" && plan.state === "grace" && (
+            <div className="plan-banner plan-banner-grace" role="alert">
+              <span>Your {plan.plan_name} renewal was not received. Everything keeps working until {plan.ends_at ? new Date(plan.ends_at).toLocaleDateString("en-NG", { day: "numeric", month: "long" }) : "soon"}.</span>
+              <Link to="/plans">Renew now</Link>
+            </div>
+          )}
+          {plan && pathname === "/dashboard" && plan.state === "free" && (
+            <div className="plan-banner plan-banner-free" role="note">
+              <span>{plan.trial_used ? "Your trial has ended. You are on the Free plan." : "You are on the Free plan."} Reports, website, alerts and offline recording need Basic or Pro.</span>
+              <Link to="/plans">See plans</Link>
+            </div>
+          )}
           {!online && (
             <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">
               <span>

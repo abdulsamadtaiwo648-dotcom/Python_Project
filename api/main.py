@@ -31,7 +31,8 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def csrf_guard(request: Request, call_next):
         # Inside SessionMiddleware, so the session cookie is readable here.
-        if request.method not in SAFE_METHODS and not csrf_ok(request):
+        # The payment provider's webhook has no session; it is checked by its secret hash instead.
+        if request.method not in SAFE_METHODS and request.url.path != "/api/billing/webhook" and not csrf_ok(request):
             return error("Invalid request token. Refresh the page and try again.", 400)
         op_id = (request.headers.get("X-Client-Op") or "")[:80]
         user_id = request.session.get("user_id") if op_id and request.method not in SAFE_METHODS else None
@@ -101,7 +102,7 @@ def create_app() -> FastAPI:
             headers={"Cache-Control": "no-store"},
         )
 
-    from .routers import auth, dashboard, expenses, inventory, profile, push, sales, website
+    from .routers import auth, billing, dashboard, expenses, inventory, profile, push, sales, website
 
     from fastapi.staticfiles import StaticFiles
 
@@ -109,7 +110,7 @@ def create_app() -> FastAPI:
     if (WEB_DIST / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=str(WEB_DIST / "assets")), name="assets")
     app.include_router(pages.router)
-    for module in (auth, push, dashboard, sales, expenses, inventory, profile, website):
+    for module in (auth, push, dashboard, sales, expenses, inventory, profile, website, billing):
         app.include_router(module.router)
     return app
 

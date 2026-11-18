@@ -11,6 +11,7 @@ from server.database import get_db
 from .. import core
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
+from ..subscriptions import history_cutoff
 
 record_user_activity = core.record_user_activity
 router = JsonRouter()
@@ -24,10 +25,13 @@ def get_expenses(request: Request, payload: Any = Body(None)):
         return jsonify({"error": "Unauthorized"}), 401
 
     with get_db() as db:
-        rows = db.execute(
-            "SELECT id, amount, category, description, date FROM expenses WHERE user_id = ? ORDER BY id DESC",
-            (user_id,)
-        ).fetchall()
+        cutoff = history_cutoff(user_id)
+        sql = "SELECT id, amount, category, description, date FROM expenses WHERE user_id = ?"
+        params = (user_id,)
+        if cutoff:
+            sql += " AND date >= ?"
+            params = (user_id, cutoff)
+        rows = db.execute(sql + " ORDER BY id DESC", params).fetchall()
         expenses = [
             {
                 "server_id": row["id"],

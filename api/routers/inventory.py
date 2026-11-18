@@ -11,6 +11,7 @@ from server.database import get_db
 from .. import core
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
+from ..subscriptions import product_limit_message
 
 record_user_activity = core.record_user_activity
 router = JsonRouter()
@@ -132,8 +133,9 @@ def api_inventory_presets(request: Request, payload: Any = Body(None)):
 
         with get_db() as db:
             count = db.execute("SELECT COUNT(*) as cnt FROM inventory_presets WHERE user_id = ?", (user_id,)).fetchone()
-            if int(dict(count)["cnt"]) >= 10:
-                return jsonify({"status": "error", "message": "Maximum 10 presets allowed."}), 400
+            limit, limit_message = product_limit_message(user_id)
+            if limit is not None and int(dict(count)["cnt"]) >= limit:
+                return jsonify({"status": "error", "code": "upgrade_required", "feature": "products", "message": limit_message}), 403
 
             cursor = db.execute(
                 "INSERT INTO inventory_presets "

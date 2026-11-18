@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useData } from "../data";
+import { UpgradeNotice } from "./Upgrade";
 import { disablePush, enablePush, pushStatus, type PushState } from "../push";
 
 export default function PushCard() {
+  const { can } = useData();
   const [state, setState] = useState<PushState>("loading");
   const [key, setKey] = useState("");
   const [message, setMessage] = useState("Get a notification on this device when a product runs low or sells out, even when SoloBiz is closed.");
@@ -17,6 +20,9 @@ export default function PushCard() {
   }, []);
 
   if (state === "loading" || state === "hidden") return null;
+  if (!can("alerts")) {
+    return <UpgradeNotice title="Stock alert notifications" text="Get a notification on your phone when a product runs low. Alerts come with the Basic and Pro plans." plan="Basic" />;
+  }
 
   async function toggle() {
     setBusy(true);

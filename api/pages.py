@@ -12,6 +12,8 @@ from server import websites
 from server.database import get_db
 
 from .deps import current_user_id
+from .plans import BRANDING, WEBSITE
+from .subscriptions import has_feature
 from .settings import CLIENT_ROOT, WEB_DIST, settings
 
 templates = Jinja2Templates(directory=str(CLIENT_ROOT / "templates"))
@@ -19,7 +21,7 @@ router = APIRouter()
 
 # Pages the React app owns. Each serves the same shell; the router takes over.
 APP_PATHS = ("/login", "/register", "/dashboard", "/sales", "/inventory", "/expenses",
-             "/budget", "/profile", "/reports", "/website")
+             "/budget", "/profile", "/reports", "/website", "/plans")
 AUTH_PATHS = ("/login", "/register")
 
 
@@ -31,6 +33,14 @@ def render(request: Request, name: str, context: dict | None = None, status: int
 
 
 # --- Business websites ------------------------------------------------------
+def live_site(db, label):
+    """The published site for a label, but only while its owner's plan includes a website."""
+    site = websites.find_published_site(db, label)
+    if site and not has_feature(site["user_id"], WEBSITE):
+        return None
+    return site
+
+
 def site_404(request: Request):
     return render(request, "site_404.html", status=404, Cache_Control="no-store", X_Robots_Tag="noindex")
 
@@ -58,6 +68,7 @@ def site_context(content, user_id, slug, preview=False):
         "site_url": websites.website_url(slug),
         "media_origin": websites.website_url(slug) if websites.subdomains_enabled() else websites.main_origin(),
         "meta_description": description, "preview": preview, "naira": websites.format_naira,
+        "show_credit": not has_feature(user_id, BRANDING),
     }
 
 
@@ -76,7 +87,7 @@ async def business_subdomain_middleware(request: Request, call_next):
     if path.startswith(SITE_PASSTHROUGH_PREFIXES) or path in SITE_PASSTHROUGH_PATHS:
         return await call_next(request)
     with get_db() as db:
-        site = websites.find_published_site(db, label)
+        site = live_site(db, label)
     if not site:
         return site_404(request)
     origin = f"{request.url.scheme}://{request.headers.get('host')}"
@@ -97,7 +108,7 @@ async def business_subdomain_middleware(request: Request, call_next):
 def website_by_path(slug: str, request: Request):
     """The same published website at https://<base>/site/<slug>; needs no DNS."""
     with get_db() as db:
-        site = websites.find_published_site(db, slug.lower())
+        site = live_site(db, slug.lower())
     if not site:
         return site_404(request)
     return render(request, "website.html", site_context(site["content"], site["user_id"], site["slug"]),
