@@ -49,3 +49,10 @@ def require_user(request: Request) -> str:
 
 
 UserId = Depends(require_user)
+
+
+def upgrade_required(feature, message):
+    """The answer when a plan does not include what was asked for."""
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse({"status": "error", "code": "upgrade_required", "feature": feature, "message": message}, status_code=403)

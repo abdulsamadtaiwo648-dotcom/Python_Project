@@ -230,7 +230,7 @@
         {% if site.phone %}<a href="tel:{{ site.phone }}">Call</a>{% endif %}
         {% if site.instagram %}<a href="https://instagram.com/{{ site.instagram }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
       </p>
-      <p class="footer-credit">Website by <a href="https://solobiz.dev/" rel="noopener">SoloBiz</a></p>
+      {% if show_credit %}<p class="footer-credit">Website by <a href="https://solobiz.dev/" rel="noopener">SoloBiz</a></p>{% endif %}
     </div>
   </footer>
 

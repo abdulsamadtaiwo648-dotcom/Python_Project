@@ -10,7 +10,9 @@ from server import push as push_service
 from server.database import get_db
 
 from .. import core
-from ..deps import current_user_id
+from ..deps import current_user_id, upgrade_required
+from ..plans import ALERTS
+from ..subscriptions import has_feature
 
 router = APIRouter(prefix="/api/push")
 _KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]+={0,2}$")
@@ -35,6 +37,8 @@ async def subscribe(request: Request):
         return _err("Unauthorized", 401)
     if not push_service.push_enabled():
         return _err("Notifications are not set up on this server yet.", 503)
+    if not has_feature(user_id, ALERTS):
+        return upgrade_required("alerts", "Stock alerts are part of the Basic and Pro plans.")
     try:
         data = await request.json()
     except Exception:

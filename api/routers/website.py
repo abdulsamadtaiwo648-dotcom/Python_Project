@@ -11,7 +11,11 @@ from server.database import get_db
 
 from .. import core
 from ..compat import JsonRouter, jsonify
-from ..deps import current_user_id
+from ..deps import current_user_id, upgrade_required
+from ..plans import WEBSITE
+from ..subscriptions import has_feature
+
+WEBSITE_UPGRADE = "A business website is part of the Pro plan. Upgrade to publish yours."
 
 record_user_activity = core.record_user_activity
 router = JsonRouter()
@@ -115,6 +119,8 @@ def website_publish(request: Request, payload: Any = Body(None)):
     user_id = current_user_id(request)
     if not user_id:
         return _unauthorized()
+    if not has_feature(user_id, WEBSITE):
+        return upgrade_required("website", WEBSITE_UPGRADE)
     with get_db() as db:
         site = websites.get_website(db, user_id)
         if not site:
