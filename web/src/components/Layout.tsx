@@ -13,6 +13,7 @@ const NAV = [
   { to: "/budget", label: "Budget", tab: "budget" },
   { to: "/reports", label: "Reports", tab: "reports" },
   { to: "/profile", label: "Profile", tab: "profile" },
+  { to: "/plans", label: "Plans", tab: "plans" },
 ] as const;
 
 const MOBILE = [
@@ -26,6 +27,7 @@ const MORE = [
   { to: "/reports", label: "Reports" },
   { to: "/budget", label: "Budget" },
   { to: "/profile", label: "Profile" },
+  { to: "/plans", label: "Plans" },
   { to: "/website", label: "Website" },
 ] as const;
 
@@ -35,7 +37,6 @@ const Svg = ({ html, className = "w-4 h-4 flex-shrink-0", sw = 2 }: { html: stri
 );
 
 export function tabFor(pathname: string): string {
-  if (pathname.startsWith("/plans")) return "profile";
   return NAV.find((n) => pathname.startsWith(n.to))?.tab ?? "dashboard";
 }
 
@@ -214,7 +215,7 @@ export default function Layout() {
         ))}
         <button id="mobile-more-btn" type="button" aria-expanded={moreOpen} aria-controls="mobile-more-menu" aria-haspopup="true"
           onClick={() => setMoreOpen((o) => !o)}
-          className={`mobile-nav-btn ${["reports", "budget", "profile"].includes(tab) ? "text-blue-700" : "text-slate-500"}`}>
+          className={`mobile-nav-btn ${["reports", "budget", "profile", "plans"].includes(tab) ? "text-blue-700" : "text-slate-500"}`}>
           <span className="relative"><Svg html={ICONS.more} className="w-6 h-6" sw={1.9} /></span>
           <span className="mobile-nav-label">More</span>
         </button>
