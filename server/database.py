@@ -27,10 +27,30 @@ class CursorWrapper:
     def __getattr__(self, name):
         return getattr(self._cursor, name)
 
+# Tables known to have no generated `id` column (their key is something else).
+# Anything else is looked up in the database once and remembered.
+_TABLES_WITHOUT_ID = {"otp_codes", "subscriptions", "client_ops", "provider_plans", "user_login_attempts"}
+_TABLE_HAS_ID = {}
+
+
 class DBWrapper:
     def __init__(self, conn, is_postgres=False):
         self.conn = conn
         self.is_postgres = is_postgres
+
+    def _table_has_id(self, table):
+        """Can an INSERT into this table ask PostgreSQL for RETURNING id?"""
+        if not table or table in _TABLES_WITHOUT_ID:
+            return False
+        if table not in _TABLE_HAS_ID:
+            cur = self.conn.cursor()
+            cur.execute(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_schema = current_schema() AND table_name = %s AND column_name = 'id'",
+                (table,),
+            )
+            _TABLE_HAS_ID[table] = cur.fetchone() is not None
+        return _TABLE_HAS_ID[table]
 
     def __enter__(self):
         return self
@@ -65,12 +85,12 @@ class DBWrapper:
             is_insert = "INSERT INTO" in pg_sql.upper()
             insert_match = re.match(r"\s*INSERT\s+INTO\s+([\w.\"]+)", pg_sql, re.IGNORECASE)
             insert_table = insert_match.group(1).split(".")[-1].strip('"').lower() if insert_match else ""
-            # OTP rows are keyed by (email, purpose) and have no generated id.
-            # Asking PostgreSQL for RETURNING id makes the OTP insert fail before email delivery.
+            # Some tables (OTP codes, subscriptions, ...) have no generated id.
+            # Asking PostgreSQL for RETURNING id on them makes the insert fail.
             should_return_id = (
                 is_insert
                 and "RETURNING" not in pg_sql.upper()
-                and insert_table != "otp_codes"
+                and self._table_has_id(insert_table)
             )
             if should_return_id:
                 pg_sql += " RETURNING id"
