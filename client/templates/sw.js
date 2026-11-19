@@ -23,7 +23,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => Promise.all(PRECACHE_ASSETS.map(async (asset) => {
       try {
-        const response = await fetch(asset, { cache: 'no-store' });
+        const response = await fetch(asset, { cache: 'reload' });
         if (response.ok) await cache.put(asset, response);
       } catch (error) {
         console.warn('[PWA] Could not precache', asset, error);
@@ -93,8 +93,8 @@ self.addEventListener('fetch', (event) => {
   }
   if (request.mode === 'navigate') return;
 
-  // Static and built assets: cached copy first.
-  if (url.pathname.startsWith('/static/') || url.pathname.startsWith('/assets/')) {
+  // Built assets have a content hash in their name, so a cached copy is always right.
+  if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request).then((response) => {
         if (response && response.ok) {
@@ -104,6 +104,23 @@ self.addEventListener('fetch', (event) => {
         return response;
       }).catch(() => Response.error()))
     );
+    return;
+  }
+
+  // Everything else under /static/ can change on a deploy (stylesheets, scripts):
+  // always ask the network first so a returning visitor never keeps an old copy,
+  // and fall back to the saved copy only when offline.
+  if (url.pathname.startsWith('/static/')) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(request, { cache: 'no-cache' });
+        if (response && response.ok) await cache.put(request, response.clone());
+        return response;
+      } catch (_) {
+        return (await cache.match(request)) || Response.error();
+      }
+    })());
   }
 });
 

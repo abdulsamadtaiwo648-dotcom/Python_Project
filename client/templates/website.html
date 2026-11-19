@@ -16,7 +16,7 @@
   {% if site.logo_url %}<link rel="icon" href="{{ site.logo_url }}">{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/website.css">
+  <link rel="stylesheet" href="/static/website.css?v={{ asset_v("website.css") }}">
   <style>:root { --brand: {{ palette.brand }}; --on-brand: {{ palette.on_brand }}; --brand-ink: {{ palette.ink }}; --brand-tint: {{ palette.tint }}; }</style>
 </head>
 {% set is_product = site.layout == 'product' %}

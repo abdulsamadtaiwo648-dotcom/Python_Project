@@ -260,3 +260,12 @@ a { color: var(--brand-ink); }
   .why-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
   .why-card { padding: 28px; }
 }
+
+/* Phones: less chrome over the content, readable text on a cover photo. */
+@media (max-width: 720px) {
+  .site-header { position: static; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  html { scroll-padding-top: 12px; }
+  .site-nav { margin-bottom: 0; }
+}
+.hero-cover .eyebrow { color: #fff; opacity: .9; }
+.contact-list a, .contact-list p, .footer-links a { overflow-wrap: anywhere; }

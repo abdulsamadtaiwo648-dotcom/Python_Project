@@ -6,7 +6,7 @@
   <title>Create account | SoloBiz</title>
   <meta name="theme-color" content="#1d4ed8">
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-  <script src="/static/tailwind.js"></script>
+  <script src="/static/tailwind.js?v={{ asset_v("tailwind.js") }}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -38,7 +38,7 @@
     .reg-form button[type=submit], .reg-form #btn-send-otp { background: var(--brand) !important; color: #fff !important; border-radius: 12px !important; }
     .reg-form button[type=submit]:hover { background: var(--brand-deep) !important; }
   </style>
-  <link rel="stylesheet" href="/static/solobiz-ui.css">
+  <link rel="stylesheet" href="/static/solobiz-ui.css?v={{ asset_v("solobiz-ui.css") }}">
 </head>
 <body class="login-page">
 <div class="login-shell">
