@@ -17,6 +17,19 @@ from .subscriptions import has_feature
 from .settings import CLIENT_ROOT, WEB_DIST, settings
 
 templates = Jinja2Templates(directory=str(CLIENT_ROOT / "templates"))
+
+
+def asset_v(name: str) -> str:
+    """A short fingerprint of a static file, so a changed file gets a new address."""
+    import hashlib
+
+    try:
+        return hashlib.md5((CLIENT_ROOT / "static" / name).read_bytes()).hexdigest()[:10]
+    except OSError:
+        return "0"
+
+
+templates.env.globals["asset_v"] = asset_v
 router = APIRouter()
 
 # Pages the React app owns. Each serves the same shell; the router takes over.

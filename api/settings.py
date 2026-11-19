@@ -39,7 +39,7 @@ def load_settings() -> Settings:
         secret_key=key,
         is_hosted=hosted,
         secure_cookie=hosted if secure is None else _truthy(secure),
-        app_version=os.environ.get("APP_VERSION", "20261111.1"),
+        app_version=os.environ.get("APP_VERSION") or (os.environ.get("RENDER_GIT_COMMIT") or "")[:12] or "dev",
     )
 
 
