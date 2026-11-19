@@ -269,3 +269,8 @@ a { color: var(--brand-ink); }
 }
 .hero-cover .eyebrow { color: #fff; opacity: .9; }
 .contact-list a, .contact-list p, .footer-links a { overflow-wrap: anywhere; }
+
+/* Phones: gallery remove buttons are easy to hit. */
+@media (max-width: 1023px) {
+  .wb-gallery-item button { width: 40px; height: 40px; top: 4px; right: 4px; font-size: 1.25rem; }
+}

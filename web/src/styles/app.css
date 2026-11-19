@@ -347,3 +347,129 @@
 .plan-list .yes { color: #15803d; font-weight: 700; }
 .plan-list .no { color: #94a3b8; }
 .plan-list li.is-off { color: #94a3b8; text-decoration: line-through; text-decoration-color: #cbd5e1; }
+
+/* ==========================================================================
+   MOBILE & TABLET UX (under 1024px only). Desktop is not affected.
+   Goals: every control is at least 44px tall, actions sit in an even row,
+   chips and tabs scroll sideways instead of wrapping into clutter, and the
+   page keeps one clear column with consistent 16px rhythm.
+   ========================================================================== */
+@media (max-width: 1023px) {
+  /* Touch targets */
+  .sales-quick-chip, .sb-chip, .inv-view-btn, .analytics-tab-btn, .sb-link-tap {
+    min-height: 40px; padding-top: 9px; padding-bottom: 9px; font-size: 13px;
+  }
+  .sb-btn, .sb-btn-small, .sale-actions button, .sale-actions a {
+    min-height: 44px; font-size: 14px;
+  }
+  .sb-btn-small { padding-left: 14px; padding-right: 14px; }
+  .sb-icon-btn { width: 44px; height: 44px; }
+
+  /* Chip and tab rows: one line, swipe sideways, never wrap into a jumble */
+  #sales-quick-filters, #inv-chips, .reports-switch, [role="group"][aria-label*="period"], [role="group"][aria-label*="Quick"], [role="group"][aria-label*="Filter"] {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  #sales-quick-filters::-webkit-scrollbar, #inv-chips::-webkit-scrollbar { display: none; }
+  #sales-quick-filters > *, #inv-chips > * { flex-shrink: 0; }
+  #sales-quick-filters .list-toolbar { flex-shrink: 0; margin-left: auto; }
+
+  /* Sale receipts: details left, actions as an even row beneath */
+  .sale-card { padding: 16px; }
+  .sale-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+  .sale-actions > button, .sale-actions > a { width: 100%; }
+  .btn-settle-debt { grid-column: 1 / -1; }
+
+  /* Page heads: title and the main action stay usable together */
+  .page-head { flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .page-head > .sb-btn-primary, .page-head > button.sb-btn-primary { min-width: 0; }
+
+  /* Lists: comfortable rows */
+  .expense-card { padding: 14px 4px; min-height: 60px; }
+  .sb-list-card { border-radius: 16px; }
+
+  /* Filter and search fields: 16px text stops iOS zooming in */
+  input, select, textarea { font-size: 16px !important; }
+  .sb-search input { min-height: 44px; }
+
+  /* Business analysis tiles: two columns, even height */
+  #dashboard-insights .grid, #tab-reports-content ~ * .grid { gap: 10px; }
+
+  /* Bottom bar: clear space so the last row is never hidden */
+  main.desktop-dashboard-shell, .desktop-content { padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important; }
+}
+
+/* Phones only: the page title and summary sit closer to the edges; cards breathe. */
+@media (max-width: 639px) {
+  .desktop-content { padding-left: 16px !important; padding-right: 16px !important; }
+  .welcome-block { padding: 14px 16px; }
+  .kpi-card { min-width: 0; }
+}
+
+/* Tablets (640 to 1023px): use the width for two columns instead of one stretched phone column. */
+@media (min-width: 640px) and (max-width: 1023px) {
+  #expense-layout, #dashboard-chart-row, #dashboard-bottom-grid, #sales-main-view { grid-template-columns: minmax(0, 1fr) !important; }
+  #sales-main-view { display: grid; }
+  #sales-main-view > #sale-entry-modal { grid-column: 1; grid-row: auto; }
+  #sales-main-view .sale-list, #sales-main-view .sb-sheet { max-width: 100%; }
+  #expense-breakdown { position: static; }
+  .sale-card { max-width: none; }
+}
+
+/* Mobile/tablet overrides of older, more specific rules (kept below desktop rules). */
+@media (max-width: 1023px) {
+  #income-list .sale-actions .sb-btn-small,
+  #income-list .sale-actions button,
+  #income-list .sale-actions a { min-height: 44px; padding: 10px 12px; font-size: 14px; border-radius: 12px; }
+  .sales-toolbar-inline .sb-chip, .expense-toolbar-inline .sb-chip { min-height: 40px; padding: 0 14px; font-size: 13px; }
+  .sale-actions { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; justify-content: stretch; }
+  .sale-actions > * { width: 100%; justify-content: center; }
+  /* Restock buttons in the Inventory alert card */
+  [aria-label^="Restock "] { min-height: 40px; padding: 8px 14px !important; font-size: 13px !important; }
+  /* Colour swatches and show-toggles are easy to hit */
+  .wb-swatch { width: 40px; height: 40px; }
+  .wb-switch { min-height: 44px; }
+  .wb-switch input { width: 22px; height: 22px; }
+  /* Plans: the cancel link is a real button-sized target */
+  .plan-banner button { min-height: 40px; padding: 0 10px; }
+}
+
+/* Phones: the Filter control and result count get their own line above the scrolling chips,
+   so they are never pushed off-screen. */
+@media (max-width: 1023px) {
+  #sales-quick-filters { flex-wrap: wrap !important; overflow: visible !important; row-gap: 10px; }
+  #sales-quick-filters .list-toolbar { order: -1; flex-basis: 100%; width: 100%; margin-left: 0 !important; justify-content: space-between; }
+  #sales-quick-filters > button[data-sales-quick] { order: 0; }
+  /* the chips themselves scroll sideways inside one row */
+  #sales-quick-filters > button[data-sales-quick] { flex: 0 0 auto; }
+  #sales-quick-filters { display: flex; }
+}
+
+/* Sales chips: one row that swipes sideways on phones and tablets. */
+.sales-chip-row { display: flex; gap: 8px; }
+@media (max-width: 1023px) {
+  #sales-quick-filters { flex-wrap: wrap; overflow: visible; }
+  #sales-quick-filters .list-toolbar { order: -1; flex-basis: 100%; width: 100%; margin-left: 0; justify-content: space-between; }
+  .sales-chip-row { flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px 1px 4px; }
+  .sales-chip-row::-webkit-scrollbar { display: none; }
+  .sales-chip-row > * { flex-shrink: 0; }
+}
+
+/* Budget header at 320px: the month picker and the button share one row, wrapping if needed. */
+@media (max-width: 1023px) {
+  .budget-head-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+  .budget-head-actions .sb-btn { flex: 1 1 auto; }
+  .budget-month-pick input { min-height: 44px; }
+}
+
+/* Website builder on phones: gallery remove buttons are easy to hit. */
+@media (max-width: 1023px) {
+  .wb-gallery-item button { width: 40px; height: 40px; top: 4px; right: 4px; font-size: 1.25rem; }
+}
+
+/* Desktop: keep the original arrangement, chips on the left and Filter on the right. */
+@media (min-width: 1024px) {
+  #sales-quick-filters { flex-wrap: nowrap; justify-content: space-between; }
+  #sales-quick-filters .list-toolbar { order: 2; margin-left: auto; }
+  .sales-chip-row { order: 1; }
+}
