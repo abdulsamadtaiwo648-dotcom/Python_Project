@@ -106,7 +106,7 @@ def test(request: Request):
 
 def remove_session_push_subscription(request: Request):
     endpoint = request.session.get("push_endpoint")
-    user_id = request.session.get("user_id")
+    user_id = current_user_id(request)
     if not endpoint or not user_id:
         return
     with get_db() as db:

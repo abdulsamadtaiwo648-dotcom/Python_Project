@@ -34,6 +34,12 @@ def create_app() -> FastAPI:
         # The payment provider's webhook has no session; it is checked by its secret hash instead.
         if request.method not in SAFE_METHODS and request.url.path != "/api/billing/webhook" and not csrf_ok(request):
             return error("Invalid request token. Refresh the page and try again.", 400)
+        # Staff accounts may only use the pages the owner gave them.
+        from .permissions import permission_error
+
+        denied = permission_error(request)
+        if denied is not None:
+            return denied
         op_id = (request.headers.get("X-Client-Op") or "")[:80]
         user_id = request.session.get("user_id") if op_id and request.method not in SAFE_METHODS else None
         if user_id:
@@ -102,7 +108,7 @@ def create_app() -> FastAPI:
             headers={"Cache-Control": "no-store"},
         )
 
-    from .routers import auth, billing, dashboard, expenses, inventory, profile, push, sales, website
+    from .routers import auth, billing, dashboard, expenses, inventory, profile, push, sales, staff, website
 
     from fastapi.staticfiles import StaticFiles
 
@@ -110,7 +116,7 @@ def create_app() -> FastAPI:
     if (WEB_DIST / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=str(WEB_DIST / "assets")), name="assets")
     app.include_router(pages.router)
-    for module in (auth, push, dashboard, sales, expenses, inventory, profile, website, billing):
+    for module in (auth, push, dashboard, sales, expenses, inventory, profile, website, billing, staff):
         app.include_router(module.router)
     return app
 
