@@ -14,10 +14,21 @@ export interface SessionUser {
   last_name: string | null;
 }
 
+export interface Access {
+  is_owner: boolean;
+  is_staff: boolean;
+  role: string;
+  role_label?: string;
+  /** Page keys this person may use. The owner has them all. */
+  pages: string[];
+  business_id?: string;
+}
+
 export interface SessionInfo {
   status: "ok";
   csrf_token: string;
-  user: SessionUser | null;
+  user: (SessionUser & { business_owner?: string }) | null;
+  access: Access | null;
 }
 
 let csrfToken = "";

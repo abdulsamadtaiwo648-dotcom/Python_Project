@@ -143,3 +143,27 @@ def test_failed_operation_is_not_remembered(client, signed_in):
     assert client.post("/add", json={"amount": -1, "category": "x", "description": "y"}, headers=headers).status_code == 400
     ok = client.post("/add", json={"amount": 5, "category": "x", "description": "y"}, headers=headers)
     assert ok.status_code == 201
+
+
+def test_inventory_sale_always_uses_the_product_price(client, signed_in):
+    _, token = signed_in
+    headers = {"X-CSRFToken": token}
+    preset = client.post("/api/inventory-presets", json={"item_name": "Price test", "price": 3000, "stock": 5}, headers=headers).json()["preset"]
+    sale = client.post("/api/checkout", json={
+        "checkout_id": "price-check-1", "amount_paid": 1,
+        "items": [{"inventory_item_id": preset["id"], "quantity": 2, "unit_price": 1}],
+    }, headers=headers)
+    assert sale.status_code == 201, sale.text
+    assert sale.json()["items"][0]["total_value"] == 6000
+    assert sale.json()["stock"][str(preset["id"])] == 3
+
+
+def test_custom_items_still_take_the_typed_price(client, signed_in):
+    _, token = signed_in
+    headers = {"X-CSRFToken": token}
+    sale = client.post("/api/checkout", json={
+        "checkout_id": "custom-price-1", "amount_paid": 500,
+        "items": [{"item_name": "Repair fee", "quantity": 1, "unit_price": 500}],
+    }, headers=headers)
+    assert sale.status_code == 201, sale.text
+    assert sale.json()["items"][0]["total_value"] == 500

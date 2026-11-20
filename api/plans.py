@@ -32,6 +32,7 @@ class Plan:
     history_days: int | None        # how far back sales/expenses are shown; None = all
     features: frozenset = field(default_factory=frozenset)
     tagline: str = ""
+    staff_seats: int = 0            # staff accounts the owner may create
 
 
 def _price(env, default):
@@ -43,11 +44,11 @@ def _price(env, default):
 
 def plans() -> dict[str, Plan]:
     return {
-        "free": Plan("free", "Free", 0, 10, 30, frozenset(), "Try SoloBiz with the basics"),
+        "free": Plan("free", "Free", 0, 10, 30, frozenset(), "Try SoloBiz with the basics", 0),
         "basic": Plan("basic", "Basic", _price("PRICE_BASIC", 2500), 50, 365,
-                      frozenset({OFFLINE, REPORTS, ALERTS, BRANDING}), "For a growing shop"),
+                      frozenset({OFFLINE, REPORTS, ALERTS, BRANDING}), "For a growing shop", 3),
         "pro": Plan("pro", "Pro", _price("PRICE_PRO", 6000), None, None,
-                    frozenset({OFFLINE, REPORTS, ALERTS, BRANDING, WEBSITE}), "Everything, including your website"),
+                    frozenset({OFFLINE, REPORTS, ALERTS, BRANDING, WEBSITE}), "Everything, including your website", 10),
     }
 
 

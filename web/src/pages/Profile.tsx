@@ -15,9 +15,10 @@ interface SaveResult { status: string; message?: string }
 
 export default function Profile() {
   const nav = useNavigate();
-  const { refresh } = useSession();
+  const { refresh, access } = useSession();
   const { profile, summary, reload, pending, subscription } = useData();
   const plan = subscription?.current;
+  const isOwnerAccount = !access || access.is_owner;
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({ company_name: "", business_phone: "", whatsapp_number: "", instagram_handle: "", business_address: "", store_policy: "", reason: "", note: "" });
@@ -143,7 +144,7 @@ export default function Profile() {
               plan.state === "grace" ? "Your renewal was not received. Renew to keep your plan." :
               "Upgrade for reports, a website, alerts and offline recording."}
           </p>
-          <Link to="/plans" className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-blue-800 no-underline hover:bg-blue-50">Manage plan</Link>
+          {isOwnerAccount && <Link to="/plans" className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-blue-800 no-underline hover:bg-blue-50">Manage plan</Link>}
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Account</p>

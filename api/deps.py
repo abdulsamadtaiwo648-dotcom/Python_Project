@@ -23,22 +23,47 @@ def csrf_ok(request: Request, sent: str = "") -> bool:
     return bool(expected) and hmac.compare_digest(str(sent), str(expected))
 
 
-def current_user_id(request: Request):
-    """The signed-in user's id, or None. A cookie can outlive its account row."""
-    user_id = request.session.get("user_id")
-    if not user_id:
+def _load_actor(request: Request):
+    """Resolve the signed-in account once: the owner, or a staff member working for one."""
+    from . import permissions as perm  # local import: permissions imports this module's database helpers
+
+    login_id = request.session.get("user_id")
+    if not login_id:
         return None
-    user_id = str(user_id)
+    login_id = str(login_id)
     try:
         with get_db() as db:
-            row = db.execute("SELECT account_status FROM users WHERE id = ?", (user_id,)).fetchone()
-        if row and row["account_status"] == "active":
-            return user_id
+            row = db.execute("SELECT account_status FROM users WHERE id = ?", (login_id,)).fetchone()
+            if not row or row["account_status"] != "active":
+                request.session.clear()
+                return None
+            staff = perm.staff_row(db, login_id)
+            if not staff:
+                return {"user_id": login_id, "owner_id": login_id, "is_staff": False,
+                        "pages": set(perm.PAGES), "role": "owner"}
+            owner = db.execute("SELECT account_status FROM users WHERE id = ?", (staff["owner_id"],)).fetchone()
     except Exception:
         logging.exception("Could not validate the active user session")
         return None
-    request.session.clear()
-    return None
+    if not owner or owner["account_status"] != "active":
+        return {"user_id": login_id, "owner_id": staff["owner_id"], "is_staff": True,
+                "pages": set(), "role": staff["role"]}
+    # Staff are switched off if the owner's plan has no seat for them.
+    pages = set(perm.staff_pages(staff)) if perm.staff_in_seats(staff["owner_id"], login_id) else set()
+    return {"user_id": login_id, "owner_id": staff["owner_id"], "is_staff": True,
+            "pages": pages, "role": staff["role"]}
+
+
+def current_user_id(request: Request):
+    """The business id this request works on: the owner's own id, or the owner's
+    id for a staff member. None when nobody is signed in."""
+    who = actor_for(request)
+    return who["owner_id"] if who else None
+
+
+def actor_for(request: Request):
+    from .permissions import actor
+    return actor(request)
 
 
 def require_user(request: Request) -> str:
