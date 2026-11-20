@@ -48,6 +48,9 @@ def required(method, path):
         return None if read else OWNER
     if path in ("/api/session", "/api/logout", "/healthz") or path.startswith(("/api/push", "/api/avatar")):
         return None
+    # Deleting a sale removes money from the records: only the owner may do it.
+    if path.startswith("/api/income/") and method.upper() == "DELETE":
+        return OWNER
     if path == "/api/income" or path.startswith("/api/income/") or path.startswith("/update_payment/") \
             or path in ("/add_income", "/api/checkout", "/api/sync-sales"):
         return frozenset({"sales", "dashboard", "reports"}) if read else frozenset({"sales"})
