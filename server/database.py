@@ -29,7 +29,7 @@ class CursorWrapper:
 
 # Tables known to have no generated `id` column (their key is something else).
 # Anything else is looked up in the database once and remembered.
-_TABLES_WITHOUT_ID = {"otp_codes", "subscriptions", "client_ops", "provider_plans", "user_login_attempts"}
+_TABLES_WITHOUT_ID = {"otp_codes", "subscriptions", "client_ops", "provider_plans", "user_login_attempts", "staff_members"}
 _TABLE_HAS_ID = {}
 
 
@@ -340,6 +340,24 @@ def init_billing_tables():
         db.commit()
 
 
+def init_staff_table():
+    """Staff accounts created by a business owner: which owner they work for,
+    their role and the pages they may use. The staff person's login is a normal
+    users row whose password the owner set."""
+    with get_db() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS staff_members (
+                user_id TEXT PRIMARY KEY,
+                owner_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                pages TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_staff_owner ON staff_members (owner_id)")
+        db.commit()
+
+
 def init_website_tables():
     """Business websites (one per account) and the images they use.
 
@@ -379,6 +397,7 @@ def init_db():
     init_push_subscriptions_table()
     init_client_ops_table()
     init_billing_tables()
+    init_staff_table()
     init_website_tables()
     database_url = os.environ.get("DATABASE_URL")
     if database_url and HAS_PSYCOPG2:

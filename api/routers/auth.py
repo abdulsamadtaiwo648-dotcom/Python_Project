@@ -13,7 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from server.database import get_db
 
 from .. import core
-from ..deps import current_user_id, ensure_csrf_token
+from ..deps import ensure_csrf_token
 
 router = APIRouter(prefix="/api")
 
@@ -41,6 +41,15 @@ def record_user_login(db, user_id):
     except Exception:
         logging.exception("Could not record sign-in activity for user %s", user_id)
         db.conn.rollback()
+
+
+def _is_staff_email(email):
+    """Staff passwords are set by the owner only; e-mail resets never apply to them."""
+    from ..permissions import staff_row
+
+    with get_db() as db:
+        user = db.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
+        return bool(user and staff_row(db, user["id"]))
 
 
 def find_user(email):
@@ -92,14 +101,22 @@ def norm(value):
 
 @router.get("/session")
 def session_info(request: Request):
-    user_id = current_user_id(request)
+    from ..permissions import ROLES, access_for, actor
+
+    who = actor(request)
     user = None
-    if user_id:
+    if who:
         with get_db() as db:
-            row = db.execute("SELECT id, email, first_name, last_name FROM users WHERE id = ?", (user_id,)).fetchone()
+            row = db.execute("SELECT id, email, first_name, last_name FROM users WHERE id = ?", (who["user_id"],)).fetchone()
+            owner = db.execute("SELECT first_name, email FROM users WHERE id = ?", (who["owner_id"],)).fetchone()
         if row:
             user = {"id": row["id"], "email": row["email"], "first_name": row["first_name"], "last_name": row["last_name"]}
-    return {"status": "ok", "csrf_token": ensure_csrf_token(request), "user": user}
+        if owner:
+            user["business_owner"] = owner["first_name"] or owner["email"].split("@")[0]
+    access = access_for(who)
+    if access and access["is_staff"]:
+        access["role_label"] = ROLES.get(access["role"], {}).get("label", "Staff")
+    return {"status": "ok", "csrf_token": ensure_csrf_token(request), "user": user, "access": access}
 
 
 @router.post("/register/request")
@@ -216,7 +233,7 @@ def forgot_request(body: Email):
     email = norm(body.email)
     if not email:
         return fail("Please enter a valid email address.")
-    if log_for(email, "password_change_requested", "Requested a password reset"):
+    if log_for(email, "password_change_requested", "Requested a password reset") and not _is_staff_email(email):
         sent, message, status, _ = core.send_and_store_otp(email, "reset", None, "Password Reset")
         if not sent:
             return fail(message, status)
@@ -228,7 +245,7 @@ def forgot_resend(body: Email):
     email = norm(body.email)
     if not email:
         return fail("Please enter a valid email address.")
-    if log_for(email, "password_reset_code_resent", "Requested another password reset code"):
+    if log_for(email, "password_reset_code_resent", "Requested another password reset code") and not _is_staff_email(email):
         sent, message, status, _ = core.send_and_store_otp(email, "reset", None, "Password Reset")
         if not sent:
             return fail(message, status)
