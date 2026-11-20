@@ -56,7 +56,7 @@ def required(method, path):
         return frozenset({"sales", "dashboard", "reports"}) if read else frozenset({"sales"})
     if path.startswith("/api/inventory-presets"):
         return frozenset({"inventory", "sales", "dashboard"}) if read else frozenset({"inventory"})
-    if path.startswith("/api/expenses") or path == "/add" or path.startswith(("/delete/", "/edit/")):
+    if path.startswith("/api/expenses") or path == "/add":
         return frozenset({"expenses", "dashboard", "reports", "budget"}) if read else frozenset({"expenses"})
     if path == "/api/dashboard":
         return frozenset({"dashboard", "reports"})
@@ -70,7 +70,7 @@ def required(method, path):
 
 
 def is_gated(path):
-    return path.startswith(("/api/", "/website", "/add", "/update_payment/", "/delete/", "/edit/"))
+    return path.startswith(("/api/", "/website", "/add", "/update_payment/"))
 
 
 def staff_row(db, user_id):
