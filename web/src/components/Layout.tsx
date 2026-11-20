@@ -4,6 +4,7 @@ import { auth } from "../api";
 import { useData } from "../data";
 import { useSession } from "../session";
 import { ICONS } from "../icons";
+import { canUse } from "../access";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", tab: "dashboard" },
@@ -13,6 +14,7 @@ const NAV = [
   { to: "/budget", label: "Budget", tab: "budget" },
   { to: "/reports", label: "Reports", tab: "reports" },
   { to: "/profile", label: "Profile", tab: "profile" },
+  { to: "/team", label: "Team", tab: "team" },
   { to: "/plans", label: "Plans", tab: "plans" },
 ] as const;
 
@@ -23,10 +25,11 @@ const MOBILE = [
   { to: "/expenses", label: "Expenses" },
 ] as const;
 
-const MORE = [
+const MORE_ALL = [
   { to: "/reports", label: "Reports" },
   { to: "/budget", label: "Budget" },
   { to: "/profile", label: "Profile" },
+  { to: "/team", label: "Team" },
   { to: "/plans", label: "Plans" },
   { to: "/website", label: "Website" },
 ] as const;
@@ -43,9 +46,15 @@ export function tabFor(pathname: string): string {
 export default function Layout() {
   const { pathname } = useLocation();
   const nav = useNavigate();
-  const { refresh } = useSession();
+  const { refresh, access, user } = useSession();
   const { summary, profile, online, pending, failed, dismissFailed, syncNow, subscription } = useData();
   const plan = subscription?.current;
+  const isOwner = !access || access.is_owner;
+  const name = user?.first_name || summary?.username || "";
+  const NAV_SHOWN = NAV.filter((n) => canUse(access, n.to.slice(1)));
+  const MOBILE_SHOWN = MOBILE.filter((n) => canUse(access, n.to.slice(1)));
+  const MORE = MORE_ALL.filter((n) => canUse(access, n.to.slice(1)));
+  const showWebsite = canUse(access, "website");
   const [moreOpen, setMoreOpen] = useState(false);
   const tab = tabFor(pathname);
   const lowCount = summary?.low_stock_items.length ?? 0;
@@ -91,7 +100,7 @@ export default function Layout() {
             <h1 className="font-bold text-base tracking-tight text-slate-900">{businessName}</h1>
           </div>
           <div className="topbar-welcome hidden lg:block min-w-0">
-            <p className="truncate text-[15px] font-semibold text-slate-900">Welcome back, {summary?.username ?? ""}</p>
+            <p className="truncate text-[15px] font-semibold text-slate-900">Welcome back, {name}</p>
             <p className="truncate text-xs text-slate-500">{todayLabel}</p>
           </div>
 
@@ -100,7 +109,7 @@ export default function Layout() {
               {profile?.logo_url ? <img src={profile.logo_url} alt="" /> : (businessName || "S").slice(0, 1).toUpperCase()}
             </span>
             <span className="min-w-0 text-left">
-              <span className="block truncate text-sm font-semibold text-slate-900">{summary?.username ?? ""}</span>
+              <span className="block truncate text-sm font-semibold text-slate-900">{name}</span>
               <span className="block truncate text-xs text-slate-500">{businessName}</span>
             </span>
           </Link>
@@ -119,7 +128,7 @@ export default function Layout() {
             <div className="min-w-0"><p className="side-brand-name">SoloBiz</p></div>
           </div>
           <p className="nav-group">Main</p>
-          {NAV.map((n) => (
+          {NAV_SHOWN.map((n) => (
             <NavLink key={n.to} to={n.to} id={`btn-tab-${n.tab}`} data-dashboard-tab={n.tab}
               className={({ isActive }) => linkClass(isActive)}>
               <Svg html={ICONS[n.to]} />
@@ -130,15 +139,17 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
-          <NavLink to="/website" className={({ isActive }) => linkClass(isActive)}>
-            <Svg html={ICONS["/website"]} />
-            <span>Website</span>
-          </NavLink>
+          {showWebsite && (
+            <NavLink to="/website" className={({ isActive }) => linkClass(isActive)}>
+              <Svg html={ICONS["/website"]} />
+              <span>Website</span>
+            </NavLink>
+          )}
           <div className="side-business">
-            <span className="side-business-mark" aria-hidden="true">{(summary?.username ?? "S").slice(0, 1).toUpperCase()}</span>
+            <span className="side-business-mark" aria-hidden="true">{(name || "S").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900">{summary?.username ?? ""}</p>
-              <p className="truncate text-xs text-slate-500">{plan ? (plan.state === "trial" ? "Pro trial" : `${plan.plan_name} plan`) : " "}</p>
+              <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
+              <p className="truncate text-xs text-slate-500">{isOwner ? (plan ? (plan.state === "trial" ? "Pro trial" : `${plan.plan_name} plan`) : " ") : (access?.role_label ? `${access.role_label} staff` : "Staff")}</p>
             </div>
           </div>
           <div className="side-foot">
@@ -151,19 +162,19 @@ export default function Layout() {
         </aside>
 
         <div className="desktop-content">
-          {plan && pathname !== "/plans" && plan.state === "trial" && (
+          {isOwner && plan && pathname !== "/plans" && plan.state === "trial" && (
             <div className="plan-banner plan-banner-trial" role="status">
               <span>Pro trial: {plan.days_left} day{plan.days_left === 1 ? "" : "s"} left. After that you move to the Free plan.</span>
               <Link to="/plans">See plans</Link>
             </div>
           )}
-          {plan && pathname !== "/plans" && plan.state === "grace" && (
+          {isOwner && plan && pathname !== "/plans" && plan.state === "grace" && (
             <div className="plan-banner plan-banner-grace" role="alert">
               <span>Your {plan.plan_name} renewal was not received. Everything keeps working until {plan.ends_at ? new Date(plan.ends_at).toLocaleDateString("en-NG", { day: "numeric", month: "long" }) : "soon"}.</span>
               <Link to="/plans">Renew now</Link>
             </div>
           )}
-          {plan && pathname === "/dashboard" && plan.state === "free" && (
+          {isOwner && plan && pathname === "/dashboard" && plan.state === "free" && (
             <div className="plan-banner plan-banner-free" role="note">
               <span>{plan.trial_used ? "Your trial has ended. You are on the Free plan." : "You are on the Free plan."} Reports, website, alerts and offline recording need Basic or Pro.</span>
               <Link to="/plans">See plans</Link>
@@ -201,7 +212,7 @@ export default function Layout() {
       <nav id="mobile-bottom-nav" aria-label="App pages"
         className="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-stretch bg-white border-t border-slate-200"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {MOBILE.map((n) => (
+        {MOBILE_SHOWN.map((n) => (
           <NavLink key={n.to} to={n.to} style={{ textDecoration: "none" }}
             className={({ isActive }) => `mobile-nav-btn ${isActive ? "text-blue-700" : "text-slate-500"}`}>
             <span className="relative">
@@ -213,12 +224,14 @@ export default function Layout() {
             <span className="mobile-nav-label">{n.label}</span>
           </NavLink>
         ))}
+        {MORE.length > 0 && (
         <button id="mobile-more-btn" type="button" aria-expanded={moreOpen} aria-controls="mobile-more-menu" aria-haspopup="true"
           onClick={() => setMoreOpen((o) => !o)}
           className={`mobile-nav-btn ${["reports", "budget", "profile", "plans"].includes(tab) ? "text-blue-700" : "text-slate-500"}`}>
           <span className="relative"><Svg html={ICONS.more} className="w-6 h-6" sw={1.9} /></span>
           <span className="mobile-nav-label">More</span>
         </button>
+        )}
         {moreOpen && (
           <div id="mobile-more-menu" className="w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl" role="menu" aria-label="More pages">
             {MORE.map((n) => (
