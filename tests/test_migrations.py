@@ -59,6 +59,7 @@ def test_startup_applies_the_real_migrations_only_once(monkeypatch):
     monkeypatch.setattr(database, "_baseline_schema", lambda: calls.append(1) or real_baseline())
     monkeypatch.setattr(database, "MIGRATIONS", [("0001_baseline", database._baseline_schema), ("0002_drop_floor_tables", database._drop_floor_tables)])
     monkeypatch.delenv("DROP_FLOOR_TABLES", raising=False)
+    _forget("0002_drop_floor_tables")          # another test may have set the flag earlier
     database.init_db()
     database.init_db()
     assert calls == []                             # baseline is already recorded, so it does not run again
