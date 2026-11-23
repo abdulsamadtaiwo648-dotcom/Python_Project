@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useData } from "../data";
-import { parseSaved } from "../format";
+import { money, parseSaved } from "../format";
 import { useSession } from "../session";
 import { EXPENSE_CATEGORIES } from "./Expenses";
 
 // Budgets live on this device (like the earlier version), one set per account.
 type Limits = Record<string, number>; // "YYYY-MM|Category" -> amount
 
-const cur = (v: number) => `₦${v.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+const cur = money;
 const thisMonth = () => {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;

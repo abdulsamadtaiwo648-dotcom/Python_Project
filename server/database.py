@@ -393,7 +393,9 @@ def init_website_tables():
         db.commit()
 
 
-def init_db():
+def _baseline_schema():
+    """Version 1 of the schema: every table, column, trigger and one-time repair the app
+    has ever needed. Each step is written to be safe to run again, but it now runs once."""
     init_push_subscriptions_table()
     init_client_ops_table()
     init_billing_tables()
@@ -818,16 +820,84 @@ def init_db():
         """)
         db.commit()
 
-    # The Floor (community feature) was removed. Its tables are dropped only
-    # when DROP_FLOOR_TABLES=1, so an older release that still has the Floor
-    # pages keeps working while both versions share this database (blue-green
-    # deploys). Set the variable once the old release is retired.
-    if (os.environ.get("DROP_FLOOR_TABLES") or "").strip().lower() in ("1", "true", "yes"):
-        # Children before parents so foreign keys never block the drop.
-        for table in ("community_vote", "sabi_plug_recommendation", "sabi_plug_request", "street_tip", "market_mood"):
+
+def _drop_floor_tables():
+    """Migration 0002: the community Floor tables. Runs only once DROP_FLOOR_TABLES is set,
+    so an older release that still uses them keeps working (blue-green deploys). Returns
+    False, so it is not recorded, until the variable is set."""
+    if (os.environ.get("DROP_FLOOR_TABLES") or "").strip().lower() not in ("1", "true", "yes"):
+        return False
+    # Children before parents so foreign keys never block the drop.
+    for table in ("community_vote", "sabi_plug_recommendation", "sabi_plug_request", "street_tip", "market_mood"):
+        try:
+            with get_db() as db:
+                db.execute(f"DROP TABLE IF EXISTS {table}")
+                db.commit()
+        except Exception as drop_error:
+            logging.warning("Could not drop removed Floor table %s: %s", table, drop_error)
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Schema migrations. Each step runs once per database and is recorded in
+# schema_migrations. A new change to the schema is a new function appended to
+# MIGRATIONS below. Never edit a migration that has already shipped.
+# ---------------------------------------------------------------------------
+MIGRATIONS = [
+    ("0001_baseline", _baseline_schema),
+    ("0002_drop_floor_tables", _drop_floor_tables),
+]
+
+_MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time
+
+
+def _ensure_migrations_table(db):
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS schema_migrations ("
+        "version TEXT PRIMARY KEY, applied_at TEXT NOT NULL)"
+    )
+    db.commit()
+
+
+def run_migrations(migrations=None):
+    """Apply every migration not yet recorded, in order. Returns the names applied now."""
+    migrations = MIGRATIONS if migrations is None else migrations
+    applied_now = []
+    is_postgres = bool(os.environ.get("DATABASE_URL") and HAS_PSYCOPG2)
+    lock_db = get_db()
+    try:
+        if is_postgres:
+            lock_db.execute("SELECT pg_advisory_lock(%s)" % _MIGRATION_LOCK_ID)
+        with get_db() as db:
+            _ensure_migrations_table(db)
+        for name, step in migrations:
+            with get_db() as db:
+                done = db.execute("SELECT 1 FROM schema_migrations WHERE version = ?", (name,)).fetchone()
+            if done:
+                continue
+            logging.info("Applying schema migration %s", name)
+            if step() is False:          # not ready yet (e.g. waiting for a flag): try again next start
+                continue
+            with get_db() as db:
+                db.execute(
+                    "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+                    (name, datetime.now(timezone.utc).isoformat()),
+                )
+                db.commit()
+            applied_now.append(name)
+    finally:
+        if is_postgres:
             try:
-                with get_db() as db:
-                    db.execute(f"DROP TABLE IF EXISTS {table}")
-                    db.commit()
-            except Exception as drop_error:
-                logging.warning("Could not drop removed Floor table %s: %s", table, drop_error)
+                lock_db.execute("SELECT pg_advisory_unlock(%s)" % _MIGRATION_LOCK_ID)
+            except Exception:
+                logging.exception("Could not release the migration lock")
+        try:
+            lock_db.close()
+        except Exception:
+            pass
+    return applied_now
+
+
+def init_db():
+    """Bring the database up to date. Safe to call on every start: only missing steps run."""
+    run_migrations()
