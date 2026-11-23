@@ -3,6 +3,7 @@ import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
+import { useSession } from "../session";
 import { money, parseSaved } from "../format";
 import { nextTempId, nowStamp } from "../offline";
 import type { BusinessProfile, Product, Sale } from "../types";
@@ -357,6 +358,8 @@ function SettleDebt(props: { receipt: Receipt; onClose: () => void }) {
 
 export default function Sales() {
   const { sales, products, profile, write, subscription, can } = useData();
+  const { access } = useSession();
+  const canDelete = !access || access.is_owner;
   const [quick, setQuick] = useState<Quick>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [product, setProduct] = useState("");
@@ -502,8 +505,10 @@ export default function Sales() {
                   {r.owed > 0 && <button type="button" className="btn-settle-debt sb-btn sb-btn-small sb-btn-warn" onClick={() => setSettling(r)}>Record payment</button>}
                   <button type="button" className="sb-btn sb-btn-small sb-btn-secondary"
                     onClick={() => (profile?.company_name ? printReceipt(r, profile, can("branding")) : setNeedProfile(true))}>Receipt</button>
-                  <button type="button" className="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale"
+                  {canDelete && (
+                                    <button type="button" className="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale"
                     onClick={() => { setDeleting(r); setDeleteError(""); }}>Delete</button>
+                  )}
                 </div>
               </article>
             );

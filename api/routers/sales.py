@@ -316,14 +316,16 @@ def api_checkout(request: Request, payload: Any = Body(None)):
                     bundle_size = int(product.get("bulk_quantity") or 0)
                     if bundle_size < 2 or product.get("bulk_price") is None:
                         raise ValueError(f"{product['item_name']} has no bulk price. Refresh inventory and try again.")
-                    bundle_price = float(item["requested_price"] if item["requested_price"] is not None else product["bulk_price"])
+                    # Inventory products are always sold at the price the owner set. The app's
+                    # price is ignored so a sale cannot be recorded at a lower price.
+                    bundle_price = float(product["bulk_price"])
                     if not math.isfinite(bundle_price) or bundle_price <= 0:
                         raise ValueError(f"{product['item_name']} has an invalid bulk price.")
                     units = item["quantity"] * bundle_size
                     line_total = bundle_price * item["quantity"]
                     bundle_count = item["quantity"]
                 else:
-                    unit_price = float(item["requested_price"] if item["requested_price"] is not None else product["price"])
+                    unit_price = float(product["price"])
                     if not math.isfinite(unit_price) or unit_price <= 0:
                         raise ValueError(f"{product['item_name']} has an invalid price.")
                     units = item["quantity"]

@@ -194,3 +194,28 @@ def test_staff_cannot_create_a_duplicate_or_weak_account():
     assert again.status_code == 400
     weak = owner.post("/api/staff", json={"name": "Weak", "email": "weak@example.com", "password": "short", "role": "sales"}, headers=oh)
     assert weak.status_code == 400
+
+
+def test_only_the_owner_can_delete_a_sale():
+    _, owner, oh = owner_client()
+    product = owner.post("/api/inventory-presets", json={"item_name": "Delete test", "price": 500, "stock": 5}, headers=oh).json()["preset"]
+    sale = owner.post("/api/checkout", json={"checkout_id": "del-check-1", "amount_paid": 500,
+                                             "items": [{"inventory_item_id": product["id"], "quantity": 1}]}, headers=oh).json()
+    sale_id = sale["items"][0]["id"]
+    created, email = add_staff(owner, oh, role="sales")
+    staff, sh = staff_client(email)
+    blocked = staff.delete(f"/api/income/{sale_id}", headers=sh)
+    assert blocked.status_code == 403 and blocked.json()["code"] == "owner_only"
+    with get_db() as db:
+        assert db.execute("SELECT 1 FROM income WHERE id = ?", (sale_id,)).fetchone() is not None
+    assert owner.delete(f"/api/income/{sale_id}", headers=oh).status_code == 200
+
+
+def test_sales_staff_can_still_take_payments_but_not_delete():
+    _, owner, oh = owner_client()
+    product = owner.post("/api/inventory-presets", json={"item_name": "Pay test", "price": 1000, "stock": 5}, headers=oh).json()["preset"]
+    sale = owner.post("/api/checkout", json={"checkout_id": "pay-check-1", "amount_paid": 0,
+                                             "items": [{"inventory_item_id": product["id"], "quantity": 1}]}, headers=oh).json()
+    created, email = add_staff(owner, oh, role="sales")
+    staff, sh = staff_client(email)
+    assert staff.post(f"/update_payment/{sale['items'][0]['id']}", json={"payment_amount": 400}, headers=sh).status_code == 200
