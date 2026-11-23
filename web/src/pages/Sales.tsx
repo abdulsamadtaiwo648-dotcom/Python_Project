@@ -151,11 +151,7 @@ export default function Sales() {
           <NewSale key={formKey} products={products} onClose={() => setCreating(false)}
             onDone={() => { setCreating(false); setFormKey((k) => k + 1); }} />
         </div>
-        <div id="sales-quick-filters" className="flex flex-wrap gap-2" role="group" aria-label="Quick filters">
-          {chips.map(([id, label]) => (
-            <button key={id} type="button" aria-pressed={quick === id} onClick={() => setQuick(id)}
-              className={`sales-quick-chip ${quick === id ? "is-active" : ""}`}>{label}</button>
-          ))}
+        <div id="sales-quick-filters" className="flex flex-wrap items-center gap-2" role="group" aria-label="Quick filters">
           <div className="list-toolbar sales-toolbar-inline">
             <button type="button" className="sb-chip" aria-expanded={filterOpen} aria-controls="sales-filter-panel" onClick={() => setFilterOpen(!filterOpen)}>
               <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M7 12h10M10 18h4" /></svg>
@@ -165,6 +161,12 @@ export default function Sales() {
               {filtered ? `Showing ${receipts.length} of ${totalReceipts} sales` : `${totalReceipts} ${totalReceipts === 1 ? "sale" : "sales"}`}
             </p>
             {filtered && <button type="button" className="sb-link" onClick={() => { setQuick("all"); setProduct(""); setPayment(""); setMin(""); setMax(""); }}>Clear</button>}
+          </div>
+          <div className="sales-chip-row">
+            {chips.map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={quick === id} onClick={() => setQuick(id)}
+                data-sales-quick={id} className={`sales-quick-chip ${quick === id ? "is-active" : ""}`}>{label}</button>
+            ))}
           </div>
         </div>
 
