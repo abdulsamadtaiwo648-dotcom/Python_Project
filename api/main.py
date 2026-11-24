@@ -76,6 +76,11 @@ def create_app() -> FastAPI:
         https_only=settings.secure_cookie,
     )
 
+    # Refuse script or active markup in JSON input before any route sees it.
+    from .input_guard import InputGuard
+
+    app.add_middleware(InputGuard)
+
     # Outermost: a business subdomain must never touch sessions or the app.
     app.add_middleware(BaseHTTPMiddleware, dispatch=pages.business_subdomain_middleware)
 
