@@ -26,7 +26,11 @@ access from a trusted shell.
 Create a second **Web Service** from this same repository. Use:
 
 - Build command: `pip install -r server/requirements.txt`
-- Start command: `gunicorn server.admin_run:admin_app`
+- Start command: `gunicorn server.admin_run:admin_app --bind 0.0.0.0:$PORT --worker-class sync`
+  (Render supplies `$PORT`. `--worker-class sync` is required: the root `gunicorn.conf.py`
+  selects the ASGI worker for the main app, but the admin app is Flask (WSGI).
+  Without `--bind`, Gunicorn listens on 127.0.0.1:8000
+  and Render cannot reach the service.)
 - Environment: set `DATABASE_URL` to the same Neon database as the main service,
   set `ADMIN_SECRET_KEY` to a new long random secret, and set
   `ADMIN_COOKIE_SECURE=true`.
