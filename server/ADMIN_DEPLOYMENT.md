@@ -26,7 +26,9 @@ access from a trusted shell.
 Create a second **Web Service** from this same repository. Use:
 
 - Build command: `pip install -r server/requirements.txt`
-- Start command: `gunicorn server.admin_run:admin_app`
+- Start command: `gunicorn server.admin_run:admin_app --bind 0.0.0.0:$PORT`
+  (Render supplies `$PORT`. Without `--bind`, Gunicorn listens on 127.0.0.1:8000
+  and Render cannot reach the service.)
 - Environment: set `DATABASE_URL` to the same Neon database as the main service,
   set `ADMIN_SECRET_KEY` to a new long random secret, and set
   `ADMIN_COOKIE_SECURE=true`.
