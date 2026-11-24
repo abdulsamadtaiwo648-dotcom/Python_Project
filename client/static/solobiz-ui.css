@@ -562,8 +562,8 @@ body.app-shell > header button:hover {
 .sb-error { border: 1px solid #fecdd3; background: #fff1f2; color: #9f1239; border-radius: var(--sb-radius-sm); padding: 10px 12px; font-size: .82rem; font-weight: 600; }
 .sb-error.hidden { display: none; }
 .sb-money { position: relative; }
-.sb-money span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--sb-muted); font-weight: 600; }
-.sb-money input { padding-left: 28px; }
+.sb-money span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--sb-muted); font-weight: 600; pointer-events: none; }
+.sb-money input { padding-left: 40px; }
 
 /* Dialogs: full-screen sheet on phones, centred card on larger screens */
 .sb-modal { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: flex-end; justify-content: center; background: rgba(15, 23, 42, .45); }
