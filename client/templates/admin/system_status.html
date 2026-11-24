@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 {% block title %}System status{% endblock %}
 {% block content %}
-<div class="heading"><div><p class="eyebrow">Monitoring</p><h1>System status</h1><p class="summary">Live checks, and metrics the app records. A value the app does not record is shown as “Not available”.</p></div></div>
+<div class="heading"><div><p class="eyebrow">Monitoring</p><h1>System status</h1><p class="summary">How the app is running over the period you choose, and each recent server error with its request ID.</p></div></div>
 
-<section class="metric-grid" aria-label="System status summary">
+<nav class="tabs" aria-label="Time window">
+  {% for key, item in windows.items() %}
+  <a href="{{ url_for('system_status', window=key) }}" {% if window == key %}aria-current="page"{% endif %}>{{ item[0] }}</a>
+  {% endfor %}
+</nav>
+
+<section class="metric-grid" style="margin-top:18px" aria-label="System status summary">
   <article class="metric">
     <div class="metric-label">Database</div>
     <div class="metric-value">{% if database_ok %}<span class="pill">Reachable</span>{% else %}<span class="pill paused">Unreachable</span>{% endif %}</div>
@@ -11,28 +17,52 @@
   </article>
   <article class="metric">
     <div class="metric-label">Requests</div>
-    <div class="metric-value">Not available</div>
-    <div class="metric-note">Time window: not available.</div>
+    <div class="metric-value">{% if telemetry %}{{ "{:,}".format(telemetry.requests) }}{% else %}Not available{% endif %}</div>
+    <div class="metric-note">{{ window_label }}.</div>
   </article>
   <article class="metric">
-    <div class="metric-label">Error rate</div>
-    <div class="metric-value">Not available</div>
-    <div class="metric-note">Share of requests that returned a server error.</div>
+    <div class="metric-label">Server errors</div>
+    <div class="metric-value">{% if telemetry %}{{ "{:,}".format(telemetry.errors) }}{% if telemetry.error_rate is not none %} <span class="muted" style="font-size:14px">{{ telemetry.error_rate }}%</span>{% endif %}{% else %}Not available{% endif %}</div>
+    <div class="metric-note">Responses with a 5xx status.</div>
   </article>
   <article class="metric">
-    <div class="metric-label">Slowest 5% (p95)</div>
-    <div class="metric-value">Not available</div>
-    <div class="metric-note">95% of requests finished within this time.</div>
+    <div class="metric-label">Slowest 5% of requests</div>
+    <div class="metric-value" style="font-size:17px">{% if telemetry and telemetry.slowest %}{{ telemetry.slowest }}{% elif telemetry %}No requests{% else %}Not available{% endif %}</div>
+    <div class="metric-note">Shown as a duration range, not an exact time.</div>
   </article>
 </section>
+
+{% if not telemetry %}
+<section class="notice warn" style="margin-top:18px">
+  <strong>Request logging is not available yet.</strong> The app has not recorded requests into this database. It starts once the main app runs its latest database migration.
+</section>
+{% endif %}
 
 <section class="panel">
-  <h2>Recent failures</h2>
-  <p class="summary">Each failure would show its time, route, status code and request ID.</p>
-  <p class="empty">Not available. The app does not record request logs yet, so failures cannot be listed here.</p>
+  <h2>Recent server errors</h2>
+  <p class="summary">Newest first. Use the request ID to find the matching entry in the server log.</p>
+  {% if telemetry %}
+    {% if failures %}
+    <div class="table-wrap stack-mobile" style="margin-top:12px"><table>
+      <thead><tr><th>When (UTC)</th><th>Route</th><th>Status</th><th>Took</th><th>Request ID</th></tr></thead>
+      <tbody>
+      {% for item in failures %}
+        <tr>
+          <td style="white-space:nowrap">{{ item.time|short_time }}</td>
+          <td><code>{{ item.route }}</code></td>
+          <td><span class="pill paused">{{ item.status }}</span></td>
+          <td>{{ item.duration_ms }} ms</td>
+          <td><code>{{ item.request_id }}</code></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="empty">No server errors in this period.</p>
+    {% endif %}
+  {% else %}
+    <p class="empty">Not available until request logging is set up.</p>
+  {% endif %}
 </section>
-
-<section class="notice warn">
-  <strong>Why most values are not available.</strong> The main SoloBiz app does not write per-request records that this portal can read. Adding them is a separate change. Until then, this page does not estimate values.
-</section>
+<p class="scope">Only route patterns and request IDs are stored, never full URLs, query values, cookies or request bodies. Errors are kept for 30 days and request totals for 90 days.</p>
 {% endblock %}

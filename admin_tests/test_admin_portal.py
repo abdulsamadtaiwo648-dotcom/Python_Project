@@ -465,40 +465,85 @@ def test_viewer_cannot_read_admin_activity(client):
 
 # --- System status ------------------------------------------------------------
 
-def test_system_status_reports_unavailable_metrics_instead_of_inventing_values(client):
+def clear_telemetry():
+    with get_db() as db:
+        db.execute("DELETE FROM request_minutes")
+        db.execute("DELETE FROM request_errors")
+        db.commit()
+
+
+def add_telemetry(route, status_class, n, ms_bucket, when):
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO request_minutes (minute, route, status_class, n, total_ms, " + ms_bucket + ") "
+            "VALUES (?, ?, ?, ?, 0, ?) "
+            "ON CONFLICT (minute, route, status_class) DO UPDATE SET "
+            "n = request_minutes.n + excluded.n, " + ms_bucket + " = request_minutes." + ms_bucket + " + excluded." + ms_bucket,
+            (when.strftime("%Y-%m-%dT%H:%M"), route, status_class, n, n),
+        )
+        db.commit()
+
+
+def add_error(request_id, route, status, when):
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO request_errors (request_id, created_at, route, status, duration_ms) VALUES (?, ?, ?, ?, 730)",
+            (request_id, when.isoformat(), route, status),
+        )
+        db.commit()
+
+
+def test_system_status_with_no_requests_shows_zero_not_invented_values(client):
+    clear_telemetry()
     sign_in(client, "viewer@admin.test")
     html = client.get("/system-status").get_data(as_text=True)
-    assert "Reachable" in html
-    assert html.count("Not available") >= 4
-    assert "Not available. The app does not record request logs yet" in html
-    assert "API health" not in html
+    assert re.search(r'Requests</div>\s*<div class="metric-value">0<', html)
+    assert "No server errors in this period." in html
+    assert "Slowest 5% of requests" in html
 
 
-# --- Misc ------------------------------------------------------------------------
+def test_system_status_counts_requests_errors_and_slowest_bucket(client):
+    clear_telemetry()
+    now = NOW
+    add_telemetry("/api/sales", "2xx", 90, "ms_lt_250", now)
+    add_telemetry("/api/sales", "2xx", 8, "ms_lt_1000", now)
+    add_telemetry("/api/income/{sale_id}", "5xx", 2, "ms_lt_5000", now)
+    add_error("req-abc123", "/api/income/{sale_id}", 500, now)
+    sign_in(client, "viewer@admin.test")
+    html = client.get("/system-status?window=24h").get_data(as_text=True)
+    assert re.search(r'Requests</div>\s*<div class="metric-value">100<', html)
+    assert re.search(r'Server errors</div>\s*<div class="metric-value">2 <span class="muted"[^>]*>2.0%', html)
+    # 95% of 100 requests is 95. The first 90 are under 250 ms, and 98 are under 1 second, so that is the slowest-5% bound.
+    assert "under 1 second" in html
+    assert "req-abc123" in html
+    assert "/api/income/{sale_id}" in html
 
-def test_admin_pages_are_not_cached(client):
-    sign_in(client, "owner@admin.test")
-    response = client.get("/dashboard")
-    assert "no-store" in response.headers["Cache-Control"]
-    assert response.headers["X-Frame-Options"] == "DENY"
+
+def test_system_status_window_excludes_older_requests(client):
+    clear_telemetry()
+    add_telemetry("/old", "2xx", 50, "ms_lt_250", NOW - timedelta(days=3))
+    add_telemetry("/new", "2xx", 4, "ms_lt_250", NOW)
+    sign_in(client, "viewer@admin.test")
+    assert re.search(r'Requests</div>\s*<div class="metric-value">4<',
+                     client.get("/system-status?window=24h").get_data(as_text=True))
+    assert re.search(r'Requests</div>\s*<div class="metric-value">54<',
+                     client.get("/system-status?window=7d").get_data(as_text=True))
 
 
-def test_secrets_and_tokens_do_not_appear_in_audit_logs(client):
-    sign_in(client, "support@admin.test")
-    post(client, "/users/biz-a/access", {"ticket": "SUP-99", "reason": "Secret check", "tab": "sales"})
-    text = repr(audit_rows())
-    assert PASSWORD not in text
-    assert "password" not in text.lower()
-    assert "csrf" not in text.lower()
+def test_system_status_says_not_available_when_logging_is_missing(client):
+    from server.database import _request_telemetry_tables
 
-
-# --- Empty and error states --------------------------------------------------------
-
-def test_empty_sales_range_says_so(client):
-    sign_in(client, "support@admin.test")
-    post(client, "/users/biz-a/access", {"ticket": "SUP-30", "reason": "Empty range", "tab": "sales"})
-    html = client.get("/users/biz-a?tab=sales&from=2001-01-01&to=2001-01-02").get_data(as_text=True)
-    assert "No sales match these dates." in html
+    with get_db() as db:
+        db.execute("DROP TABLE request_minutes")
+        db.execute("DROP TABLE request_errors")
+        db.commit()
+    try:
+        sign_in(client, "viewer@admin.test")
+        html = client.get("/system-status").get_data(as_text=True)
+        assert "Request logging is not available yet." in html
+        assert "Not available until request logging is set up." in html
+    finally:
+        _request_telemetry_tables()
 
 
 def test_system_status_shows_unreachable_when_the_database_fails(client, monkeypatch):

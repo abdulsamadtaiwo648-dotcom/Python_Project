@@ -29,7 +29,7 @@ class CursorWrapper:
 
 # Tables known to have no generated `id` column (their key is something else).
 # Anything else is looked up in the database once and remembered.
-_TABLES_WITHOUT_ID = {"otp_codes", "subscriptions", "client_ops", "provider_plans", "user_login_attempts", "staff_members"}
+_TABLES_WITHOUT_ID = {"otp_codes", "subscriptions", "client_ops", "provider_plans", "user_login_attempts", "staff_members", "request_minutes", "request_errors"}
 _TABLE_HAS_ID = {}
 
 
@@ -886,6 +886,29 @@ def _add_user_test_account():
     return True
 
 
+def _request_telemetry_tables():
+    """Migration 0004: per-minute request counts and server-error records for System status.
+    Stores route templates, status classes, durations and request IDs only."""
+    with get_db() as db:
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS request_minutes ("
+            "minute TEXT NOT NULL, route TEXT NOT NULL, status_class TEXT NOT NULL, "
+            "n INTEGER NOT NULL DEFAULT 0, total_ms INTEGER NOT NULL DEFAULT 0, "
+            "ms_lt_250 INTEGER NOT NULL DEFAULT 0, ms_lt_500 INTEGER NOT NULL DEFAULT 0, "
+            "ms_lt_1000 INTEGER NOT NULL DEFAULT 0, ms_lt_2500 INTEGER NOT NULL DEFAULT 0, "
+            "ms_lt_5000 INTEGER NOT NULL DEFAULT 0, ms_gte_5000 INTEGER NOT NULL DEFAULT 0, "
+            "PRIMARY KEY (minute, route, status_class))"
+        )
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS request_errors ("
+            "request_id TEXT PRIMARY KEY, created_at TEXT NOT NULL, route TEXT NOT NULL, "
+            "status INTEGER NOT NULL, duration_ms INTEGER NOT NULL)"
+        )
+        db.execute("CREATE INDEX IF NOT EXISTS idx_request_errors_created ON request_errors (created_at)")
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -895,6 +918,7 @@ MIGRATIONS = [
     ("0001_baseline", _baseline_schema),
     ("0002_drop_floor_tables", _drop_floor_tables),
     ("0003_user_test_account", _add_user_test_account),
+    ("0004_request_telemetry", _request_telemetry_tables),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time
