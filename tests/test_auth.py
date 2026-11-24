@@ -24,9 +24,11 @@ def test_hosted_app_refuses_to_start_without_secret_key(tmp_path):
     assert "SECRET_KEY" in result.stderr
 
 
-def test_local_app_starts_without_secret_key(tmp_path):
-    result = _import_app({}, tmp_path)
-    assert result.returncode == 0, result.stderr
+def test_local_app_needs_debug_mode_to_start_without_secret_key(tmp_path):
+    refused = _import_app({}, tmp_path)
+    assert refused.returncode != 0 and "SOLOBIZ_DEBUG" in refused.stderr
+    allowed = _import_app({"SOLOBIZ_DEBUG": "1"}, tmp_path)
+    assert allowed.returncode == 0, allowed.stderr
 
 
 def test_session_endpoint_reports_signed_out(client):
