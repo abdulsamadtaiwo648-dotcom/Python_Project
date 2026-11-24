@@ -2,7 +2,6 @@
 
 import logging
 import os
-from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
