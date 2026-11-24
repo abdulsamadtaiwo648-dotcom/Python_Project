@@ -2,7 +2,6 @@
 
 import logging
 import math
-import re
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -13,6 +12,7 @@ from server import push
 from server.database import get_db
 
 from .. import core
+from .. import record_rules as rules
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
 from ..plans import ALERTS
@@ -83,13 +83,20 @@ def api_income(request: Request, payload: Any = Body(None)):
         customer_name = str(data.get("customer_name", "Walk-in Customer")).strip() or "Walk-in Customer"
 
         description = str(data.get("description", "")).strip()
+        if rules.too_long(description, rules.MAX_DESCRIPTION):
+            return jsonify({"status": "error", "message": "Description must be 200 characters or fewer."}), 400
+        if rules.too_long(customer_name, rules.MAX_CUSTOMER_NAME):
+            return jsonify({"status": "error", "message": "Customer name must be 120 characters or fewer."}), 400
+        if rules.too_long(receipt_id, rules.MAX_RECEIPT_ID):
+            return jsonify({"status": "error", "message": "Receipt number must be 64 characters or fewer."}), 400
+        payment_mode = rules.payment_mode_or_none(data.get("payment_mode", "Cash"))
+        if payment_mode is None:
+            return jsonify({"status": "error", "message": "Choose a payment method: Cash, Transfer, POS, Card or Other."}), 400
         try:
             total_value = float(str(data.get("total_value", "0")).replace(',', ''))
             amount_paid = float(str(data.get("amount_paid", "0")).replace(',', ''))
         except (TypeError, ValueError):
             return jsonify({"status": "error", "message": "Invalid amount format"}), 400
-
-        payment_mode = str(data.get("payment_mode", "Cash")).strip() or "Cash"
 
         if (
             not description
@@ -212,7 +219,11 @@ def api_checkout(request: Request, payload: Any = Body(None)):
         return jsonify({"status": "error", "message": "Checkout details must be a JSON object."}), 400
     checkout_id = str(data.get("checkout_id") or "").strip()
     customer_name = str(data.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
-    payment_mode = str(data.get("payment_mode") or "Cash").strip() or "Cash"
+    if rules.too_long(customer_name, rules.MAX_CUSTOMER_NAME):
+        return jsonify({"status": "error", "message": "Customer name must be 120 characters or fewer."}), 400
+    payment_mode = rules.payment_mode_or_none(data.get("payment_mode"))
+    if payment_mode is None:
+        return jsonify({"status": "error", "message": "Choose a payment method: Cash, Transfer, POS, Card or Other."}), 400
     raw_items = data.get("items")
     if not checkout_id or len(checkout_id) > 120 or not isinstance(raw_items, list) or not raw_items or len(raw_items) > 50:
         return jsonify({"status": "error", "message": "A checkout ID and between 1 and 50 sale items are required."}), 400
@@ -270,6 +281,8 @@ def api_checkout(request: Request, payload: Any = Body(None)):
 
     sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
     receipt_id = str(data.get("receipt_id") or f"REC-{checkout_id[:12].upper()}").strip()
+    if rules.too_long(receipt_id, rules.MAX_RECEIPT_ID):
+        return jsonify({"status": "error", "message": "Receipt number must be 64 characters or fewer."}), 400
     try:
         with get_db() as db:
             existing_rows = db.execute(
@@ -456,6 +469,8 @@ def sync_sales(request: Request, payload: Any = Body(None)):
 
     if not sales_array or not isinstance(sales_array, list):
         return jsonify({"status": "success", "success": True, "message": "No sales to sync", "count": 0}), 200
+    if len(sales_array) > rules.MAX_SYNC_SALES:
+        return jsonify({"status": "error", "message": f"Sync at most {rules.MAX_SYNC_SALES} sales at a time."}), 400
 
     saved_items = []
     with get_db() as db:
@@ -469,12 +484,13 @@ def sync_sales(request: Request, payload: Any = Body(None)):
                 amount_paid = float(str(sale.get("amount_paid", sale.get("amount", 0))).replace(",", ""))
             except (TypeError, ValueError):
                 continue
-            payment_mode = str(sale.get("payment_mode", "Cash")).strip()
+            payment_mode = rules.payment_mode_or_none(sale.get("payment_mode", "Cash"))
             customer_name = str(sale.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
-            sale_date = str(sale.get("date") or "")[:40]
-            if not re.match(r"^\d{4}-\d{2}-\d{2}([ T]|$)", sale_date):
-                sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
+            sale_date = rules.sale_date_label(sale.get("date"))
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
+            if payment_mode is None or rules.too_long(description, rules.MAX_DESCRIPTION) \
+                    or rules.too_long(customer_name, rules.MAX_CUSTOMER_NAME) or rules.too_long(receipt_id, rules.MAX_RECEIPT_ID):
+                continue
 
             try:
                 if (
