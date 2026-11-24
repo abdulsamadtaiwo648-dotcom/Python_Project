@@ -27,13 +27,19 @@ class Settings:
 
 def load_settings() -> Settings:
     hosted = bool(os.environ.get("DATABASE_URL") or os.environ.get("RENDER"))
-    key = os.environ.get("SECRET_KEY")
+    key = (os.environ.get("SECRET_KEY") or "").strip()
     if not key:
-        if hosted:
-            # A known key would let anyone forge a session cookie.
-            raise RuntimeError("Set the SECRET_KEY environment variable before starting SoloBiz.")
+        # Never fall back to a known key: anyone who knows it can forge session cookies.
+        # A random key is only used when a developer explicitly asks for debug mode locally.
+        if hosted or not _truthy(os.environ.get("SOLOBIZ_DEBUG")):
+            raise RuntimeError(
+                "Set the SECRET_KEY environment variable before starting SoloBiz. "
+                "For local development only, set SOLOBIZ_DEBUG=1."
+            )
         key = secrets.token_urlsafe(48)
         logging.warning("SECRET_KEY is not set; using a random development key. Sessions will not survive a restart.")
+    elif len(key) < 32:
+        raise RuntimeError("SECRET_KEY must contain at least 32 characters.")
     secure = os.environ.get("SESSION_COOKIE_SECURE")
     return Settings(
         secret_key=key,
