@@ -11,6 +11,7 @@ import secrets
 import smtplib
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlsplit
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -61,17 +62,33 @@ def sanitize_brand_color(value):
     return "#1d4ed8"
 
 
+LOGO_URL_MAX_LENGTH = 500
+_LOGO_UNSAFE_CHARS = re.compile(r"[\s\"'<>\\`\x00-\x1f\x7f]")
+
+
 def sanitize_logo_url(value):
+    """Return the logo URL if it is safe to place in an href or src, otherwise an empty string.
+    Accepts our own /media/<token> and /static/uploads/logos/ paths, or an https URL with a real host."""
     url = str(value or "").strip()
-    if not url:
+    if not url or len(url) > LOGO_URL_MAX_LENGTH or _LOGO_UNSAFE_CHARS.search(url):
         return ""
-    if url.startswith("/static/uploads/logos/") and ".." not in url:
-        return url
-    if re.match(r"^/media/[A-Za-z0-9_-]{16,40}$", url):
-        return url
-    if url.startswith("https://") and " " not in url:
-        return url
-    return ""
+    if url.startswith("/media/"):
+        return url if re.fullmatch(r"/media/[A-Za-z0-9_-]{16,40}", url) else ""
+    if url.startswith("/static/uploads/logos/"):
+        return url if re.fullmatch(r"/static/uploads/logos/[A-Za-z0-9_-]+\.(png|jpe?g|webp)", url) else ""
+    try:
+        parts = urlsplit(url)
+        host = parts.hostname or ""
+        port = parts.port
+    except ValueError:
+        return ""
+    if parts.scheme != "https" or parts.username or parts.password or port not in (None, 443):
+        return ""
+    if re.fullmatch(r"[0-9.]+", host):
+        return ""  # IP addresses are not logo hosts
+    if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", host) or any(label.startswith("-") or label.endswith("-") for label in host.split(".")):
+        return ""
+    return url
 
 
 def parse_otp_datetime(value):
