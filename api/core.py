@@ -226,17 +226,24 @@ LOGIN_WINDOW = timedelta(minutes=15)
 LOGIN_LOCKOUT = timedelta(minutes=15)
 
 
-def _login_fingerprint(email):
-    normalized = (email or "").strip().lower().encode("utf-8")
-    return hmac.new(settings.secret_key.encode("utf-8"), normalized, hashlib.sha256).hexdigest()
+LOGIN_IP_MAX_ATTEMPTS = 30  # per address: higher than per account, because many people can share one address
 
 
-def login_locked_until(email):
-    """Return when the sign-in lockout for this email ends, or None."""
+def _attempt_key(kind, value):
+    """The key a sign-in counter is kept under. Email keys are unchanged from earlier releases."""
+    text = str(value or "").strip().lower()
+    return text if kind == "email" else f"{kind}:{text}"
+
+
+def _login_fingerprint(key):
+    return hmac.new(settings.secret_key.encode("utf-8"), key.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def _locked_until_key(key):
     with get_db() as db:
         row = db.execute(
             "SELECT blocked_until FROM user_login_attempts WHERE fingerprint = ?",
-            (_login_fingerprint(email),),
+            (_login_fingerprint(key),),
         ).fetchone()
     if not row or not row["blocked_until"]:
         return None
@@ -244,8 +251,8 @@ def login_locked_until(email):
     return until if until > utcnow() else None
 
 
-def record_login_failure(email):
-    fingerprint = _login_fingerprint(email)
+def _record_failure_key(key, max_attempts):
+    fingerprint = _login_fingerprint(key)
     now = utcnow()
     with get_db() as db:
         row = db.execute(
@@ -257,7 +264,7 @@ def record_login_failure(email):
             attempts, started = 1, now
         else:
             attempts = int(row["attempts"]) + 1
-        blocked_until = (now + LOGIN_LOCKOUT).isoformat() if attempts >= LOGIN_MAX_ATTEMPTS else None
+        blocked_until = (now + LOGIN_LOCKOUT).isoformat() if attempts >= max_attempts else None
         if row:
             db.execute(
                 "UPDATE user_login_attempts SET attempts = ?, window_started = ?, blocked_until = ? "
@@ -273,13 +280,33 @@ def record_login_failure(email):
         db.commit()
 
 
-def clear_login_failures(email):
+def _clear_key(key):
     with get_db() as db:
-        db.execute(
-            "DELETE FROM user_login_attempts WHERE fingerprint = ?",
-            (_login_fingerprint(email),),
-        )
+        db.execute("DELETE FROM user_login_attempts WHERE fingerprint = ?", (_login_fingerprint(key),))
         db.commit()
+
+
+def login_locked_until(email):
+    """Return when the sign-in lockout for this email ends, or None."""
+    return _locked_until_key(_attempt_key("email", email))
+
+
+def record_login_failure(email):
+    _record_failure_key(_attempt_key("email", email), LOGIN_MAX_ATTEMPTS)
+
+
+def clear_login_failures(email):
+    _clear_key(_attempt_key("email", email))
+
+
+def login_locked_until_ip(address):
+    """Return when the sign-in lockout for this address ends, or None."""
+    return _locked_until_key(_attempt_key("ip", address)) if address else None
+
+
+def record_login_ip_failure(address):
+    if address:
+        _record_failure_key(_attempt_key("ip", address), LOGIN_IP_MAX_ATTEMPTS)
 
 
 def otp_delivery_message(email, is_live, code):
@@ -437,3 +464,15 @@ def send_and_store_otp(email, purpose, payload=None, subject_type="Email Verific
 
 
 GENERIC_RESET_MESSAGE = "If an account exists for that email, we sent a verification PIN."
+
+
+def log_refused_input(user_id, path, reason):
+    """Keep a record that the app refused input from this account. The value is never stored."""
+    if not user_id:
+        return
+    try:
+        with get_db() as db:
+            record_user_activity(db, str(user_id), "input_rejected", f"Refused input on {path}: {reason}"[:240])
+            db.commit()
+    except Exception:
+        logging.exception("Could not record a refused input")

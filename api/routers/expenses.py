@@ -76,6 +76,7 @@ def add_expense(request: Request, payload: Any = Body(None)):
     if not category or not description:
         return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
     if rules.too_long(category, rules.MAX_CATEGORY) or rules.too_long(description, rules.MAX_DESCRIPTION):
+        core.log_refused_input(user_id, request.url.path, "category or description too long")
         return jsonify({"status": "error", "message": "Category must be 80 characters or fewer and description 200 or fewer."}), 400
 
     expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
@@ -133,6 +134,7 @@ def api_expense_detail(expense_id: int, request: Request, payload: Any = Body(No
         if not category or not description:
             return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
         if rules.too_long(category, rules.MAX_CATEGORY) or rules.too_long(description, rules.MAX_DESCRIPTION):
+            core.log_refused_input(user_id, request.url.path, "category or description too long")
             return jsonify({"status": "error", "message": "Category must be 80 characters or fewer and description 200 or fewer."}), 400
 
         expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")

@@ -191,7 +191,8 @@ def login(body: LoginRequest, request: Request):
     email, password = norm(body.email), body.password
     if not email or not password:
         return fail("Please enter both email and password.")
-    if core.login_locked_until(email):
+    address = request.client.host if request.client else ""
+    if core.login_locked_until(email) or core.login_locked_until_ip(address):
         return fail("Too many sign-in attempts. Please wait 15 minutes or reset your password.", 429)
     with get_db() as db:
         user = db.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,)).fetchone()
@@ -205,6 +206,7 @@ def login(body: LoginRequest, request: Request):
                 core.record_user_activity(db, user["id"], "sign_in_failed", "Unsuccessful sign-in attempt")
                 db.commit()
             core.record_login_failure(email)
+            core.record_login_ip_failure(address)
             return fail("Invalid email or password. Please try again.", 401)
         if user["account_status"] != "active":
             core.record_user_activity(db, user["id"], "sign_in_blocked", "Sign-in attempt blocked because the account is paused")

@@ -594,3 +594,46 @@ def test_timestamps_are_shown_without_microseconds_or_offsets(client):
     assert "+00:00" not in html
     assert "551977" not in html
     assert NOW.strftime("%Y-%m-%d %H:%M") in html
+
+
+# --- Refused input flags -------------------------------------------------------
+
+def add_refusals(uid, count, when=None):
+    when = (when or NOW).isoformat()
+    with get_db() as db:
+        for _ in range(count):
+            db.execute(
+                "INSERT INTO user_activity_logs (user_id, event_type, summary, created_at) VALUES (?, 'input_rejected', "
+                "'Refused input on /api/income: script or markup in description', ?)",
+                (uid, when),
+            )
+        db.commit()
+
+
+def test_a_business_with_twenty_or_more_refused_inputs_is_flagged(client):
+    add_refusals("biz-a", 21)
+    add_refusals("biz-d", 19)
+    sign_in(client, "viewer@admin.test")
+    dash = client.get("/dashboard").get_data(as_text=True)
+    assert "Flagged for review" in dash
+    assert "21 refused" in dash
+    assert "19 refused" not in dash
+    detail = client.get("/users/biz-a").get_data(as_text=True)
+    assert "Refused input, 7 days" in detail
+    assert "Flagged for review" in detail
+
+
+def test_refusals_older_than_seven_days_do_not_count(client):
+    add_refusals("biz-a", 25, when=NOW - timedelta(days=10))
+    sign_in(client, "viewer@admin.test")
+    dash = client.get("/dashboard").get_data(as_text=True)
+    assert "No business has reached the threshold this week." in dash
+
+
+def test_refusal_records_show_on_the_user_activity_page_without_values(client):
+    add_refusals("biz-a", 1)
+    sign_in(client, "support@admin.test")
+    html = client.get("/user-activity?group=security").get_data(as_text=True)
+    assert "Input refused" in html
+    assert "script or markup in description" in html
+    assert "<img" not in html

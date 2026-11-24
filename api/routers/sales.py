@@ -84,13 +84,17 @@ def api_income(request: Request, payload: Any = Body(None)):
 
         description = str(data.get("description", "")).strip()
         if rules.too_long(description, rules.MAX_DESCRIPTION):
+            core.log_refused_input(user_id, request.url.path, "description too long")
             return jsonify({"status": "error", "message": "Description must be 200 characters or fewer."}), 400
         if rules.too_long(customer_name, rules.MAX_CUSTOMER_NAME):
+            core.log_refused_input(user_id, request.url.path, "customer name too long")
             return jsonify({"status": "error", "message": "Customer name must be 120 characters or fewer."}), 400
         if rules.too_long(receipt_id, rules.MAX_RECEIPT_ID):
+            core.log_refused_input(user_id, request.url.path, "receipt number too long")
             return jsonify({"status": "error", "message": "Receipt number must be 64 characters or fewer."}), 400
         payment_mode = rules.payment_mode_or_none(data.get("payment_mode", "Cash"))
         if payment_mode is None:
+            core.log_refused_input(user_id, request.url.path, "payment method not allowed")
             return jsonify({"status": "error", "message": "Choose a payment method: Cash, Transfer, POS, Card or Other."}), 400
         try:
             total_value = float(str(data.get("total_value", "0")).replace(',', ''))
@@ -220,9 +224,11 @@ def api_checkout(request: Request, payload: Any = Body(None)):
     checkout_id = str(data.get("checkout_id") or "").strip()
     customer_name = str(data.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
     if rules.too_long(customer_name, rules.MAX_CUSTOMER_NAME):
+        core.log_refused_input(user_id, request.url.path, "customer name too long")
         return jsonify({"status": "error", "message": "Customer name must be 120 characters or fewer."}), 400
     payment_mode = rules.payment_mode_or_none(data.get("payment_mode"))
     if payment_mode is None:
+        core.log_refused_input(user_id, request.url.path, "payment method not allowed")
         return jsonify({"status": "error", "message": "Choose a payment method: Cash, Transfer, POS, Card or Other."}), 400
     raw_items = data.get("items")
     if not checkout_id or len(checkout_id) > 120 or not isinstance(raw_items, list) or not raw_items or len(raw_items) > 50:
@@ -282,6 +288,7 @@ def api_checkout(request: Request, payload: Any = Body(None)):
     sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
     receipt_id = str(data.get("receipt_id") or f"REC-{checkout_id[:12].upper()}").strip()
     if rules.too_long(receipt_id, rules.MAX_RECEIPT_ID):
+        core.log_refused_input(user_id, request.url.path, "receipt number too long")
         return jsonify({"status": "error", "message": "Receipt number must be 64 characters or fewer."}), 400
     try:
         with get_db() as db:

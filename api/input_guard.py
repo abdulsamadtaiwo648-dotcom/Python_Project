@@ -8,6 +8,7 @@ later code forgets to escape it. Output escaping remains the primary defence.
 """
 
 import json
+import logging
 import re
 
 from starlette.responses import JSONResponse
@@ -42,6 +43,25 @@ def find_unsafe(value, path: str = "") -> str | None:
             if hit:
                 return hit
     return None
+
+
+def _record_refusal(scope, location):
+    """Keep a record of the refusal against the signed-in account. The value itself is never stored."""
+    user_id = (scope.get("session") or {}).get("user_id")
+    if not user_id:
+        return
+    try:
+        from server.database import get_db
+        from .core import record_user_activity
+
+        with get_db() as db:
+            record_user_activity(
+                db, str(user_id), "input_rejected",
+                f"Refused input on {scope.get('path', '')}: script or markup in {location}",
+            )
+            db.commit()
+    except Exception:
+        logging.exception("Could not record a refused input")
 
 
 class InputGuard:
@@ -82,6 +102,7 @@ class InputGuard:
 
         location = find_unsafe(decoded)
         if location:
+            _record_refusal(scope, location)
             response = JSONResponse(
                 {"status": "error", "message": f"Remove script or markup from {location} and try again."},
                 status_code=400,

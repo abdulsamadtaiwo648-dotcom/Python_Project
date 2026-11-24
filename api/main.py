@@ -67,6 +67,11 @@ def create_app() -> FastAPI:
                 core.release_client_op(str(user_id), op_id)
         return response
 
+    # Inside the session middleware, so a refused request can be recorded against its signed-in account.
+    from .input_guard import InputGuard
+
+    app.add_middleware(InputGuard)
+
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.secret_key,
@@ -76,13 +81,13 @@ def create_app() -> FastAPI:
         https_only=settings.secure_cookie,
     )
 
-    # Refuse script or active markup in JSON input before any route sees it.
-    from .input_guard import InputGuard
-
-    app.add_middleware(InputGuard)
-
     # Outermost: a business subdomain must never touch sessions or the app.
     app.add_middleware(BaseHTTPMiddleware, dispatch=pages.business_subdomain_middleware)
+
+    # Outermost: every response carries the security headers, including early refusals.
+    from .security_headers import SecurityHeaders
+
+    app.add_middleware(SecurityHeaders)
 
     def wants_json(request: Request):
         return request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", "")
