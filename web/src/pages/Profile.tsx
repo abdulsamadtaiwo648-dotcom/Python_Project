@@ -4,6 +4,7 @@ import { ApiError, api, auth } from "../api";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { useSession } from "../session";
+import { clearDeviceData, signOutWarning } from "../offline";
 import type { BusinessProfile } from "../types";
 
 const REASONS: [string, string][] = [
@@ -15,7 +16,7 @@ interface SaveResult { status: string; message?: string }
 
 export default function Profile() {
   const nav = useNavigate();
-  const { refresh, access } = useSession();
+  const { refresh, access, user } = useSession();
   const { profile, summary, reload, pending, subscription } = useData();
   const plan = subscription?.current;
   const isOwnerAccount = !access || access.is_owner;
@@ -106,8 +107,13 @@ export default function Profile() {
   }
 
   async function signOut() {
-    if (pending > 0 && !window.confirm(`${pending} change${pending === 1 ? " is" : "s are"} saved on this device but not sent yet. They stay on this device and are sent the next time you sign in with internet. Sign out now?`)) return;
-    try { await auth.logout(); } finally { await refresh(); nav("/login", { replace: true }); }
+    const userId = user?.id;
+    if (pending > 0 && !window.confirm(signOutWarning(pending))) return;
+    try { await auth.logout(); } finally {
+      if (userId) await clearDeviceData(userId);
+      await refresh();
+      nav("/login", { replace: true });
+    }
   }
 
   const storeUrl = `${window.location.origin}/store/${p?.store_slug || ""}`;
