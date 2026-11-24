@@ -91,6 +91,60 @@ def sanitize_logo_url(value):
     return url
 
 
+CLIENT_OP_STALE_AFTER = timedelta(minutes=5)
+
+
+def claim_client_op(user_id, op_id):
+    """Reserve an offline operation before it is applied. Returns 'new' (apply it now), 'done'
+    (already applied; do not apply again) or 'busy' (another request is applying it right now).
+    A claim left pending for longer than CLIENT_OP_STALE_AFTER is taken over."""
+    now = utcnow()
+    with get_db() as db:
+        inserted = db.execute(
+            "INSERT INTO client_ops (user_id, op_id, created_at, status) VALUES (?, ?, ?, 'pending') "
+            "ON CONFLICT (user_id, op_id) DO NOTHING",
+            (str(user_id), op_id, now.isoformat()),
+        ).rowcount
+        if inserted == 1:
+            db.commit()
+            return "new"
+        row = db.execute(
+            "SELECT status, created_at FROM client_ops WHERE user_id = ? AND op_id = ?",
+            (str(user_id), op_id),
+        ).fetchone()
+        if row is None:
+            return "busy"
+        if row["status"] == "done":
+            return "done"
+        started = parse_otp_datetime(row["created_at"])
+        if now - started > CLIENT_OP_STALE_AFTER:
+            taken = db.execute(
+                "UPDATE client_ops SET created_at = ? WHERE user_id = ? AND op_id = ? "
+                "AND status = 'pending' AND created_at = ?",
+                (now.isoformat(), str(user_id), op_id, row["created_at"]),
+            ).rowcount
+            db.commit()
+            if taken == 1:
+                return "new"
+        return "busy"
+
+
+def finish_client_op(user_id, op_id):
+    with get_db() as db:
+        db.execute("UPDATE client_ops SET status = 'done' WHERE user_id = ? AND op_id = ?", (str(user_id), op_id))
+        db.commit()
+
+
+def release_client_op(user_id, op_id):
+    """The operation was not applied (it failed), so a later replay may apply it."""
+    with get_db() as db:
+        db.execute(
+            "DELETE FROM client_ops WHERE user_id = ? AND op_id = ? AND status = 'pending'",
+            (str(user_id), op_id),
+        )
+        db.commit()
+
+
 def parse_otp_datetime(value):
     if not value:
         return utcnow()

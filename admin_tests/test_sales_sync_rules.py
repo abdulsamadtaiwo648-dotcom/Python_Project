@@ -245,3 +245,68 @@ def test_replaying_an_expense_with_the_same_operation_id_is_not_applied_twice(ow
     assert status in (200, 201)
     assert body.get("duplicate") is True
     assert len(expense_rows(owner)) == 1
+
+
+# --- Operation claims (replay safety) ----------------------------------------------
+
+from api import core as api_core  # noqa: E402
+
+
+def claim_row(user_id, op_id, status, created_at):
+    with get_db() as db:
+        db.execute("DELETE FROM client_ops WHERE user_id = ? AND op_id = ?", (user_id, op_id))
+        db.execute("INSERT INTO client_ops (user_id, op_id, created_at, status) VALUES (?, ?, ?, ?)",
+                   (user_id, op_id, created_at.isoformat(), status))
+        db.commit()
+
+
+def test_claims_are_atomic_for_direct_calls(owner):
+    op = "op-atomic-" + owner
+    assert api_core.claim_client_op(owner, op) == "new"
+    assert api_core.claim_client_op(owner, op) == "busy"
+    api_core.finish_client_op(owner, op)
+    assert api_core.claim_client_op(owner, op) == "done"
+
+
+def test_a_replay_while_the_first_copy_is_in_progress_is_refused_with_503_and_writes_nothing(owner):
+    op = "op-busy-" + owner
+    assert api_core.claim_client_op(owner, op) == "new"  # the first copy is still running
+    status, body = call("POST", "/add", {"amount": 700, "category": "Fuel", "description": "Gen"}, owner, [("x-client-op", op)])
+    assert status == 503
+    assert "retried" in body["message"]
+    assert expense_rows(owner) == []
+
+
+def test_a_claim_left_pending_for_too_long_is_taken_over(owner):
+    op = "op-stale-" + owner
+    old = datetime.now(timezone.utc) - timedelta(minutes=30)
+    claim_row(owner, op, "pending", old)
+    status, _ = call("POST", "/add", {"amount": 700, "category": "Fuel", "description": "Gen"}, owner, [("x-client-op", op)])
+    assert status in (200, 201)
+    assert len(expense_rows(owner)) == 1
+    replay_status, replay = call("POST", "/add", {"amount": 700, "category": "Fuel", "description": "Gen"}, owner, [("x-client-op", op)])
+    assert replay.get("duplicate") is True
+    assert len(expense_rows(owner)) == 1
+
+
+def test_a_failed_change_releases_its_claim_so_a_corrected_retry_is_applied(owner):
+    op = "op-retry-" + owner
+    bad = {"amount": 700, "category": "c" * 81, "description": "Gen"}
+    status, _ = call("POST", "/add", bad, owner, [("x-client-op", op)])
+    assert status == 400
+    assert expense_rows(owner) == []
+    good = {"amount": 700, "category": "Fuel", "description": "Gen"}
+    status, _ = call("POST", "/add", good, owner, [("x-client-op", op)])
+    assert status in (200, 201)
+    assert len(expense_rows(owner)) == 1
+
+
+def test_a_claim_belongs_to_one_business_only(owner):
+    other = "rules-other-" + uuid.uuid4().hex[:8]
+    with get_db() as db:
+        db.execute("INSERT INTO users (id, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)",
+                   (other, f"{other}@example.test", "x", "Other", "Tester"))
+        db.commit()
+    op = "op-shared-" + owner
+    assert api_core.claim_client_op(owner, op) == "new"
+    assert api_core.claim_client_op(other, op) == "new"
