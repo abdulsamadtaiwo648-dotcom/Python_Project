@@ -43,6 +43,8 @@ export default function Plans() {
     setError("");
     try {
       const r = await api.post<{ link: string }>("/api/subscription/checkout", { plan: plan.key });
+      // Only follow a secure link from the payment provider; never a relative or script URL.
+      if (!/^https:\/\//i.test(r.link)) throw new Error("Could not start the payment. Try again.");
       window.location.href = r.link;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not start the payment. Try again.");

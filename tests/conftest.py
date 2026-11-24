@@ -120,6 +120,14 @@ import httpx  # noqa: E402
 
 httpx.Response.get_json = lambda self: self.json()
 httpx.Response.get_data = lambda self, as_text=False: self.text if as_text else self.content
+# Starlette's test client now returns httpx2 responses, so give those the same helpers.
+try:
+    import httpx2
+
+    httpx2.Response.get_json = lambda self: self.json()
+    httpx2.Response.get_data = lambda self, as_text=False: self.text if as_text else self.content
+except ImportError:  # httpx2 is only needed by newer Starlette versions
+    pass
 
 
 class _AppShim:

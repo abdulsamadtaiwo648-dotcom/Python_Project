@@ -2,7 +2,6 @@
 
 import logging
 import os
-from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -13,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from server import websites
 from server.database import get_db, init_db
 
+from . import core
 from .deps import csrf_ok
 from . import pages
 from .settings import CLIENT_ROOT, WEB_DIST, settings
@@ -40,23 +40,36 @@ def create_app() -> FastAPI:
         denied = permission_error(request)
         if denied is not None:
             return denied
+        # An offline change is claimed before it is applied, so two copies of the same
+        # replay cannot both apply it. A failed change releases its claim for a later retry.
         op_id = (request.headers.get("X-Client-Op") or "")[:80]
         user_id = request.session.get("user_id") if op_id and request.method not in SAFE_METHODS else None
-        if user_id:
-            with get_db() as db:
-                seen = db.execute("SELECT 1 FROM client_ops WHERE user_id = ? AND op_id = ?", (str(user_id), op_id)).fetchone()
-            if seen:
-                return JSONResponse({"status": "success", "duplicate": True, "message": "Already saved."})
-        response = await call_next(request)
-        if user_id and response.status_code < 400:
-            try:
-                with get_db() as db:
-                    db.execute("INSERT INTO client_ops (user_id, op_id, created_at) VALUES (?, ?, ?)",
-                               (str(user_id), op_id, datetime.now(timezone.utc).isoformat()))
-                    db.commit()
-            except Exception:
-                logging.exception("Could not remember offline operation %s", op_id)
+        claim = core.claim_client_op(str(user_id), op_id) if user_id else None
+        if claim == "done":
+            return JSONResponse({"status": "success", "duplicate": True, "message": "Already saved."})
+        if claim == "busy":
+            # 503 is retried by the app's offline queue; 409 would be treated as a permanent failure.
+            return JSONResponse(
+                {"status": "error", "message": "This change is still being saved. It will be retried."},
+                status_code=503, headers={"Retry-After": "5"},
+            )
+        try:
+            response = await call_next(request)
+        except Exception:
+            if claim:
+                core.release_client_op(str(user_id), op_id)
+            raise
+        if claim:
+            if response.status_code < 400:
+                core.finish_client_op(str(user_id), op_id)
+            else:
+                core.release_client_op(str(user_id), op_id)
         return response
+
+    # Inside the session middleware, so a refused request can be recorded against its signed-in account.
+    from .input_guard import InputGuard
+
+    app.add_middleware(InputGuard)
 
     app.add_middleware(
         SessionMiddleware,
@@ -69,6 +82,11 @@ def create_app() -> FastAPI:
 
     # Outermost: a business subdomain must never touch sessions or the app.
     app.add_middleware(BaseHTTPMiddleware, dispatch=pages.business_subdomain_middleware)
+
+    # Outermost: every response carries the security headers, including early refusals.
+    from .security_headers import SecurityHeaders
+
+    app.add_middleware(SecurityHeaders)
 
     def wants_json(request: Request):
         return request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", "")

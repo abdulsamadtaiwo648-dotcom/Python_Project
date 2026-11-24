@@ -9,6 +9,7 @@ from fastapi import Body, Request
 from server.database import get_db
 
 from .. import core
+from .. import record_rules as rules
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
 from ..subscriptions import history_cutoff
@@ -74,6 +75,9 @@ def add_expense(request: Request, payload: Any = Body(None)):
     description = str(description_val).strip()
     if not category or not description:
         return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
+    if rules.too_long(category, rules.MAX_CATEGORY) or rules.too_long(description, rules.MAX_DESCRIPTION):
+        core.log_refused_input(user_id, request.url.path, "category or description too long")
+        return jsonify({"status": "error", "message": "Category must be 80 characters or fewer and description 200 or fewer."}), 400
 
     expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
     with get_db() as db:
@@ -129,6 +133,9 @@ def api_expense_detail(expense_id: int, request: Request, payload: Any = Body(No
         description = str(data.get("description", "")).strip()
         if not category or not description:
             return jsonify({"status": "error", "message": "Category and description cannot be empty"}), 400
+        if rules.too_long(category, rules.MAX_CATEGORY) or rules.too_long(description, rules.MAX_DESCRIPTION):
+            core.log_refused_input(user_id, request.url.path, "category or description too long")
+            return jsonify({"status": "error", "message": "Category must be 80 characters or fewer and description 200 or fewer."}), 400
 
         expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
         with get_db() as db:

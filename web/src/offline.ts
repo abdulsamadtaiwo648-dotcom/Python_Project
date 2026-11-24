@@ -128,3 +128,35 @@ export function nowStamp(d = new Date()): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(h)}:${p(d.getUTCMinutes())} ${d.getUTCHours() >= 12 ? "PM" : "AM"}`;
 }
+
+/**
+ * Remove one account's offline data from this device: queued changes, failed changes and
+ * budget limits. Other accounts that used this device are left alone.
+ */
+export async function clearDeviceData(userId: string): Promise<void> {
+  try {
+    localStorage.removeItem(key(userId, "outbox"));
+    localStorage.removeItem(key(userId, "failed"));
+    localStorage.removeItem(`solobiz:budgets:${userId}`);
+  } catch {
+    /* storage blocked: nothing stored here to remove */
+  }
+  try {
+    const db = await idb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("queues", "readwrite");
+      tx.objectStore("queues").delete(key(userId, "outbox"));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch {
+    /* IndexedDB unavailable: the localStorage copy above was the only one */
+  }
+}
+
+/** The warning shown before signing out when changes are still waiting to be sent. */
+export function signOutWarning(pending: number): string {
+  return `${pending} change${pending === 1 ? " is" : "s are"} on this device and not sent yet. ` +
+    `If you sign out now, ${pending === 1 ? "it is" : "they are"} deleted from this device and will not be saved. Sign out and delete?`;
+}

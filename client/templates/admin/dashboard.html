@@ -35,6 +35,23 @@
   </dl>
 </section>
 
+<section class="panel" aria-label="Accounts flagged for refused input">
+  <h2>Flagged for review</h2>
+  <p class="summary">Businesses with {{ flag_threshold }} or more inputs refused in the last 7 days. The app refuses script or markup, and input that breaks the limits. Each refusal is recorded against the account, never with the value.</p>
+  {% if flagged %}
+  <div class="activity-list" style="margin-top:12px">
+    {% for item in flagged %}
+    <div class="activity-item">
+      <span><a class="link" href="{{ url_for('user_detail', user_id=item.user_id) }}">{{ item.company_name or 'Unnamed business' }}</a></span>
+      <span class="pill paused">{{ item.refused }} refused</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No business has reached the threshold this week.</p>
+  {% endif %}
+</section>
+
 <section class="notice" aria-label="About these figures">
   Sales, expense and cash totals across all businesses are not shown on this page. Those amounts belong to merchants, not SoloBiz. Open a business to see its own records, with a support reason.
 </section>

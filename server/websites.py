@@ -516,11 +516,14 @@ def format_naira(value):
 
 
 def sniff_image_type(data):
-    """Content type from the file's own bytes; None if not a supported image."""
-    if data[:8] == b"\x89PNG\r\n\x1a\n":
+    """Content type from the file's own bytes; None unless the header structure is intact.
+    Pillow is not installed, so this checks each format's required header, not every pixel."""
+    if len(data) < 32:
+        return None
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
         return "image/png"
-    if data[:3] == b"\xff\xd8\xff":
+    if data[:3] == b"\xff\xd8\xff" and (b"\xff\xc0" in data or b"\xff\xc2" in data):
         return "image/jpeg"
-    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP" and int.from_bytes(data[4:8], "little") <= len(data) - 8:
         return "image/webp"
     return None
