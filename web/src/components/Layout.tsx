@@ -34,6 +34,8 @@ const MORE_ALL = [
   { to: "/website", label: "Website" },
 ] as const;
 
+// `html` must always be a constant icon from ICONS below, never user or server data:
+// it is inserted as raw markup.
 const Svg = ({ html, className = "w-4 h-4 flex-shrink-0", sw = 2 }: { html: string; className?: string; sw?: number }) => (
   <svg className={className} aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={sw}
     strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: html }} />

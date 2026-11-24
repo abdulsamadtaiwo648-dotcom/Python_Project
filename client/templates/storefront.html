@@ -145,7 +145,7 @@
     function shareStorefront() {
       if (navigator.share) {
         navigator.share({
-          title: "{{ profile.company_name }} Storefront",
+          title: {{ ((profile.company_name or "SoloBiz") ~ " Storefront")|tojson }},
           url: window.location.href
         }).catch(() => {});
       } else {

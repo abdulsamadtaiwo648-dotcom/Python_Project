@@ -6,6 +6,7 @@ import { useData } from "../data";
 import { useSession } from "../session";
 import { money, parseSaved } from "../format";
 import type { BusinessProfile, Sale } from "../types";
+import { escapeHtml } from "../escape";
 
 type Quick = "all" | "today" | "week" | "bulk";
 const STATUS: Record<Status, { label: string; cls: string }> = {
@@ -45,7 +46,7 @@ const saleDate = (v: string) => {
 function printReceipt(r: Receipt, profile: BusinessProfile | null, branded: boolean) {
   const w = window.open("", "_blank", "width=420,height=640");
   if (!w) return;
-  const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  const esc = escapeHtml;
   const first = r.items[0];
   w.document.write(`<!doctype html><title>Receipt ${esc(first.receipt_id)}</title>
 <style>body{font:14px Inter,system-ui,sans-serif;padding:24px;color:#0f172a}h1{font-size:18px;margin:0}p{margin:2px 0;color:#475569}
