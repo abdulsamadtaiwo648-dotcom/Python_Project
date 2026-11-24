@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Platform report {{ start }} to {{ end }} · SoloBiz</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; color: #172033; margin: 32px; font-size: 13px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    p { margin: 4px 0 12px; color: #444f63; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #d5dbe5; vertical-align: top; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #596579; }
+    .muted { color: #687386; }
+    .print-bar { margin-bottom: 16px; }
+    @media print { .print-bar { display: none; } body { margin: 12mm; } }
+  </style>
+</head>
+<body>
+  <div class="print-bar"><button onclick="window.print()">Print</button></div>
+  <h1>SoloBiz platform report</h1>
+  <p>{{ start }} to {{ end }} · Reason: {{ reason }} · Anonymised totals only. Figures built from fewer than 5 businesses are withheld.</p>
+  <table>
+    <thead><tr><th>Figure</th><th>Value</th><th>What it counts</th></tr></thead>
+    <tbody>
+    {% for label, key, note in [
+      ("Businesses registered", "total_businesses", "All accounts, excluding test accounts"),
+      ("Businesses that signed in", "signed_in", "Signed in during the period"),
+      ("Active businesses", "active", "Sales on 3 or more different days in the 7 days to the end date"),
+      ("Active businesses as a share of all", "active_pct", "Active businesses divided by all businesses, in percent"),
+      ("Sales recorded", "sales_count", "Sales dated in the period"),
+      ("Total sales value", "sales_value", "Total of the sales dated in the period"),
+      ("Marked as received", "received", "Amounts entered as paid on those sales"),
+      ("Still owed", "owed", "Balances still outstanding on those sales"),
+      ("Businesses using stock tracking", "stock_tracking", "Currently tracking stock on at least one product"),
+      ("Businesses recording expenses", "recording_expenses", "Recorded at least one expense in the period")] %}
+      <tr><td>{{ label }}</td>
+        <td>{% set v = report[key] %}{% if v is string %}{{ v }}{% elif key in ('sales_value','received','owed') %}₦{{ "{:,.2f}".format(v) }}{% elif key == 'active_pct' %}{{ v }}%{% else %}{{ "{:,}".format(v) }}{% endif %}</td>
+        <td class="muted">{{ note }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h2 style="font-size:15px;margin-top:22px">Active businesses, week by week</h2>
+  <table>
+    <thead><tr><th>Week ending</th><th>From</th><th>Active businesses</th></tr></thead>
+    <tbody>
+    {% for week in report.weeks %}
+      <tr><td>{{ week.end }}</td><td>{{ week.start }}</td><td>{% if week.active is string %}{{ week.active }}{% else %}{{ "{:,}".format(week.active) }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

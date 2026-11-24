@@ -13,8 +13,10 @@ Access model
   to the admin audit log with the admin, the business, the reason and the ticket.
 """
 
+import csv
 import hashlib
 import hmac
+import io
 import logging
 import os
 import re
@@ -23,7 +25,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from urllib.parse import urlsplit
 
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from .database import get_db, init_admin_db
@@ -454,6 +456,15 @@ def dashboard(admin):
             "GROUP BY a.user_id, bp.company_name HAVING COUNT(*) >= ? ORDER BY refused DESC LIMIT 10",
             (cutoff, REJECTED_INPUT_FLAG),
         ).fetchall()
+    today = utcnow().date().isoformat()
+    with get_db() as db:
+        total_businesses = _businesses_total(db)
+        active_3 = _active_between(db, _window_start(today, 7), today)
+        metrics["active_3_days"] = active_3
+        metrics["active_3_days_pct"] = round(active_3 * 100 / total_businesses, 1) if total_businesses else None
+        metrics["signups_7d"] = _signups_between(db, _window_start(today, 7), today)
+        metrics["signups_30d"] = _signups_between(db, _window_start(today, 30), today)
+        metrics["total_businesses"] = total_businesses
     return render_template("dashboard.html", admin_email=admin["email"], metrics=metrics, cutoff=cutoff,
                            flagged=flagged, flag_threshold=REJECTED_INPUT_FLAG)
 
@@ -973,6 +984,192 @@ def user_activity(admin):
         groups=EVENT_GROUPS,
         filters={"business": business_filter, "group": group_filter, "date_from": start, "date_to": end},
     )
+
+
+# --- Business activity, sign-ups and the platform report (Priority 5 and 6) -----
+
+ACTIVE_MIN_DAYS = 3          # a business is active with sales on this many different days ...
+ACTIVE_WINDOW_DAYS = 7       # ... within this many days
+SMALL_GROUP = 5              # any figure built from fewer businesses is withheld
+SUPPRESSED_TEXT = "fewer than 5"
+REPORT_PURPOSES = {
+    "board": "Board or investor update",
+    "product": "Product review",
+    "operations": "Service operations",
+    "other": "Other",
+}
+
+
+def _window_start(end_day, days):
+    return (date.fromisoformat(end_day) - timedelta(days=days - 1)).isoformat()
+
+
+def _businesses_total(db):
+    return db.execute("SELECT COUNT(*) AS n FROM users WHERE is_test_account = 0").fetchone()["n"]
+
+
+def _active_between(db, start, end, min_days=ACTIVE_MIN_DAYS):
+    """Businesses with sales on at least min_days different days between start and end, inclusive."""
+    return db.execute(
+        "SELECT COUNT(*) AS n FROM (SELECT i.user_id FROM income i JOIN users u ON u.id = i.user_id "
+        "WHERE u.is_test_account = 0 AND substr(i.date, 1, 10) BETWEEN ? AND ? "
+        "GROUP BY i.user_id HAVING COUNT(DISTINCT substr(i.date, 1, 10)) >= ?) AS active",
+        (start, end, min_days),
+    ).fetchone()["n"]
+
+
+def _signups_between(db, start, end):
+    return db.execute(
+        "SELECT COUNT(DISTINCT a.user_id) AS n FROM user_activity_logs a JOIN users u ON u.id = a.user_id "
+        "WHERE u.is_test_account = 0 AND a.event_type = 'account_created' "
+        "AND substr(a.created_at, 1, 10) BETWEEN ? AND ?",
+        (start, end),
+    ).fetchone()["n"]
+
+
+def shown(value, group_size):
+    """The figure, or the suppression text when it is built from fewer than SMALL_GROUP businesses."""
+    return SUPPRESSED_TEXT if group_size < SMALL_GROUP else value
+
+
+def platform_report(db, start, end):
+    """Anonymised totals for the period. No business, person, customer or transaction is returned."""
+    total = _businesses_total(db)
+    signed_in = db.execute(
+        "SELECT COUNT(DISTINCT a.user_id) AS n FROM user_activity_logs a JOIN users u ON u.id = a.user_id "
+        "WHERE u.is_test_account = 0 AND a.event_type = 'sign_in' AND substr(a.created_at, 1, 10) BETWEEN ? AND ?",
+        (start, end),
+    ).fetchone()["n"]
+    active = _active_between(db, _window_start(end, ACTIVE_WINDOW_DAYS), end)
+    sales = db.execute(
+        "SELECT COUNT(DISTINCT i.user_id) AS businesses, COUNT(*) AS n, "
+        "COALESCE(SUM(i.total_value), 0) AS value, COALESCE(SUM(i.amount_paid), 0) AS received, "
+        "COALESCE(SUM(CASE WHEN i.total_value > i.amount_paid THEN i.total_value - i.amount_paid ELSE 0 END), 0) AS owed "
+        "FROM income i JOIN users u ON u.id = i.user_id "
+        "WHERE u.is_test_account = 0 AND substr(i.date, 1, 10) BETWEEN ? AND ?",
+        (start, end),
+    ).fetchone()
+    stock = db.execute(
+        "SELECT COUNT(DISTINCT p.user_id) AS n FROM inventory_presets p JOIN users u ON u.id = p.user_id "
+        "WHERE u.is_test_account = 0 AND p.track_stock = 1"
+    ).fetchone()["n"]
+    expenses = db.execute(
+        "SELECT COUNT(DISTINCT e.user_id) AS n FROM expenses e JOIN users u ON u.id = e.user_id "
+        "WHERE u.is_test_account = 0 AND substr(e.date, 1, 10) BETWEEN ? AND ?",
+        (start, end),
+    ).fetchone()["n"]
+
+    # One figure per 7-day window, ending on the report's end date and stepping back through the range.
+    weeks = []
+    window_end = date.fromisoformat(end)
+    range_start = date.fromisoformat(start)
+    while window_end >= range_start:
+        window_start = max(window_end - timedelta(days=ACTIVE_WINDOW_DAYS - 1), range_start)
+        count = _active_between(db, window_start.isoformat(), window_end.isoformat())
+        weeks.append({"start": window_start.isoformat(), "end": window_end.isoformat(),
+                      "active": shown(count, count)})
+        window_end = window_start - timedelta(days=1)
+
+    active_pct = None
+    if total >= SMALL_GROUP and active >= SMALL_GROUP:
+        active_pct = round(active * 100 / total, 1)
+    return {
+        "start": start,
+        "end": end,
+        "total_businesses": shown(total, total),
+        "signed_in": shown(signed_in, signed_in),
+        "active": shown(active, active),
+        "active_pct": active_pct if active_pct is not None else SUPPRESSED_TEXT,
+        "sales_count": shown(sales["n"], sales["businesses"]),
+        "sales_value": shown(float(sales["value"]), sales["businesses"]),
+        "received": shown(float(sales["received"]), sales["businesses"]),
+        "owed": shown(float(sales["owed"]), sales["businesses"]),
+        "stock_tracking": shown(stock, stock),
+        "recording_expenses": shown(expenses, expenses),
+        "weeks": weeks,
+    }
+
+
+def _report_request():
+    today = utcnow().date().isoformat()
+    end = parse_day(request.args.get("end")) or today
+    start = parse_day(request.args.get("start")) or (date.fromisoformat(end) - timedelta(days=29)).isoformat()
+    if start > end:
+        start, end = end, start
+    if (date.fromisoformat(end) - date.fromisoformat(start)).days > 366:
+        start = (date.fromisoformat(end) - timedelta(days=366)).isoformat()
+    purpose = request.args.get("purpose", "")
+    note = request.args.get("note", "").strip()[:120]
+    return start, end, purpose, note
+
+
+def _report_response(admin, mode):
+    start, end, purpose, note = _report_request()
+    base = {"admin_email": admin["email"], "start": start, "end": end, "purposes": REPORT_PURPOSES,
+            "purpose": purpose, "note": note}
+    if purpose not in REPORT_PURPOSES or (purpose == "other" and len(note) < 5):
+        return render_template("platform_report.html", reason_needed=True, report=None, **base)
+    reason = REPORT_PURPOSES[purpose] + (f": {note}" if purpose == "other" else "")
+    action = {"html": "viewed platform report", "print": "printed platform report",
+              "csv": "downloaded platform report (CSV)"}[mode]
+    with get_db() as db:
+        report = platform_report(db, start, end)
+        log_admin_action(db, admin["id"], action, "platform_report", f"{start}..{end}", reason)
+        db.commit()
+    if mode == "csv":
+        return Response(_report_csv(report), mimetype="text/csv", headers={
+            "Content-Disposition": f'attachment; filename="platform-report-{start}-{end}.csv"',
+            "Cache-Control": "no-store"})
+    if mode == "print":
+        return render_template("platform_report_print.html", report=report, reason=reason, **base)
+    return render_template("platform_report.html", reason_needed=False, report=report, reason=reason, **base)
+
+
+FIGURES = (
+    ("Businesses registered", "total_businesses", "All accounts, excluding test accounts"),
+    ("Businesses that signed in", "signed_in", "Signed in during the period"),
+    ("Active businesses", "active", "Sales on 3 or more different days in the 7 days to the end date"),
+    ("Active businesses as a share of all", "active_pct", "Active businesses divided by all businesses, in percent"),
+    ("Sales recorded", "sales_count", "Sales dated in the period"),
+    ("Total sales value (₦)", "sales_value", "Total of the sales dated in the period"),
+    ("Marked as received (₦)", "received", "Amounts entered as paid on those sales"),
+    ("Still owed (₦)", "owed", "Balances still outstanding on those sales"),
+    ("Businesses using stock tracking", "stock_tracking", "Currently tracking stock on at least one product"),
+    ("Businesses recording expenses", "recording_expenses", "Recorded at least one expense in the period"),
+)
+
+
+def _report_csv(report):
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["Platform report", f"{report['start']} to {report['end']}"])
+    writer.writerow([])
+    writer.writerow(["Figure", "Value", "Note"])
+    for label, key, note in FIGURES:
+        writer.writerow([label, report[key], note])
+    writer.writerow([])
+    writer.writerow(["Week start", "Week end", "Active businesses"])
+    for week in report["weeks"]:
+        writer.writerow([week["start"], week["end"], week["active"]])
+    return buffer.getvalue()
+
+
+@admin_app.get("/platform-report")
+@require_roles(*ANY_ROLE)
+def platform_report_page(admin):
+    return _report_response(admin, "html")
+
+
+@admin_app.get("/platform-report/print")
+@require_roles(*ANY_ROLE)
+def platform_report_print(admin):
+    return _report_response(admin, "print")
+
+
+@admin_app.get("/platform-report.csv")
+@require_roles(*ANY_ROLE)
+def platform_report_csv(admin):
+    return _report_response(admin, "csv")
 
 
 @admin_app.get("/admins")
