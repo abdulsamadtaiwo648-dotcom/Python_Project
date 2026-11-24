@@ -11,30 +11,28 @@
 </section>
 
 <section class="panel" style="padding:0">
-  <div class="table-wrap"><table>
+  <div class="table-wrap stack-mobile"><table>
     <thead><tr><th>Admin</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Change</th></tr></thead>
     <tbody>
     {% for item in admins %}
       <tr>
-        <td>{{ item.email }}{% if item.id == current_id %} <span class="pill neutral">You</span>{% endif %}</td>
-        <td>{{ roles.get(item.role, item.role) }}</td>
-        <td>{% if item.is_active %}<span class="pill">Active</span>{% else %}<span class="pill paused">Disabled</span>{% endif %}</td>
-        <td>{{ item.last_sign_in or 'Never' }}</td>
-        <td>
+        <td data-label="Admin">{{ item.email }}{% if item.id == current_id %} <span class="pill neutral">You</span>{% endif %}</td>
+        <td data-label="Role">{{ roles.get(item.role, item.role) }}</td>
+        <td data-label="Status">{% if item.is_active %}<span class="pill">Active</span>{% else %}<span class="pill paused">Disabled</span>{% endif %}</td>
+        <td data-label="Last sign-in">{{ (item.last_sign_in|short_time) if item.last_sign_in else 'Never' }}</td>
+        <td data-label="Change">
           {% if item.id != current_id %}
-          <form class="inline-form" method="post" action="{{ url_for('change_admin_role', admin_id=item.id) }}" style="margin-top:0">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <select class="field" name="role" aria-label="Role for {{ item.email }}" style="min-width:120px">
-              {% for key, label in roles.items() %}<option value="{{ key }}" {% if key == item.role %}selected{% endif %}>{{ label }}</option>{% endfor %}
-            </select>
-            <input class="field" name="reason" required minlength="3" maxlength="200" placeholder="Reason" aria-label="Reason" style="min-width:160px">
-            <button type="submit">Save role</button>
-          </form>
-          <form class="inline-form" method="post" action="{{ url_for('change_admin_status', admin_id=item.id) }}" style="margin-top:6px">
+          <form class="admin-row-form" method="post" action="{{ url_for('change_admin_role', admin_id=item.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="active" value="{{ 0 if item.is_active else 1 }}">
-            <input class="field" name="reason" required minlength="3" maxlength="200" placeholder="Reason" aria-label="Reason" style="min-width:160px">
-            <button type="submit" class="{% if item.is_active %}danger{% endif %}">{% if item.is_active %}Disable access{% else %}Restore access{% endif %}</button>
+            <label class="sr-only" for="role-{{ item.id }}">Role for {{ item.email }}</label>
+            <select class="field" id="role-{{ item.id }}" name="role" style="min-width:120px">
+              {% for key, label in roles.items() %}<option value="{{ key }}" {% if key == item.role %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <label class="sr-only" for="reason-{{ item.id }}">Reason</label>
+            <input class="field" id="reason-{{ item.id }}" name="reason" required minlength="3" maxlength="200" placeholder="Reason for change" style="min-width:200px">
+            <button type="submit">Save role</button>
+            <button type="submit" formaction="{{ url_for('change_admin_status', admin_id=item.id) }}" class="{% if item.is_active %}danger{% endif %}">{% if item.is_active %}Disable access{% else %}Restore access{% endif %}</button>
           </form>
           {% else %}
           <span class="muted">Your own access cannot be changed here.</span>

@@ -243,6 +243,13 @@ def drop_grant(user_id):
 
 # --- Request hooks ----------------------------------------------------------
 
+@admin_app.template_filter("short_time")
+def short_time(value):
+    """Show a stored UTC timestamp as YYYY-MM-DD HH:MM, whatever format it was saved in."""
+    text = str(value or "").replace("T", " ")
+    return text[:16] if text else "—"
+
+
 @admin_app.context_processor
 def inject_context():
     token = session.get("admin_csrf_token")
@@ -741,19 +748,127 @@ def activity(admin):
     )
 
 
-@admin_app.get("/api-health")
+@admin_app.get("/system-status")
 @require_roles(*ANY_ROLE)
-def api_health(admin):
+def system_status(admin):
     database_ok = True
     try:
         with get_db() as db:
             db.execute("SELECT 1").fetchone()
     except Exception:
-        logging.exception("API health check could not reach the database")
+        logging.exception("System status check could not reach the database")
         database_ok = False
-    # The SoloBiz API does not record request telemetry yet, so request volume,
+    # The SoloBiz app does not record request telemetry yet, so request volume,
     # error rate, latency and recent failures are reported as not available.
-    return render_template("api_health.html", admin_email=admin["email"], database_ok=database_ok)
+    return render_template("system_status.html", admin_email=admin["email"], database_ok=database_ok)
+
+
+# Friendly labels for activity events written by the SoloBiz app.
+EVENT_LABELS = {
+    "sign_in": "Signed in",
+    "sign_in_failed": "Failed sign-in",
+    "sign_in_blocked": "Sign-in blocked (paused)",
+    "account_created": "Account created",
+    "password_changed": "Password changed",
+    "profile_change_code_requested": "Profile change requested",
+    "profile_change_rejected": "Profile change rejected",
+    "profile_change_verification_failed": "Profile verification failed",
+    "business_profile_created": "Business profile created",
+    "business_profile_updated": "Business profile updated",
+    "sale_created": "Sale recorded",
+    "sale_deleted": "Sale deleted",
+    "sale_payment_updated": "Payment recorded",
+    "expense_created": "Expense recorded",
+    "expense_updated": "Expense updated",
+    "expense_deleted": "Expense deleted",
+    "inventory_item_created": "Inventory item added",
+    "inventory_item_updated": "Inventory item updated",
+    "inventory_item_deleted": "Inventory item removed",
+    "website_published": "Website published",
+    "website_unpublished": "Website taken offline",
+    "push_enabled": "Stock alerts turned on",
+    "push_disabled": "Stock alerts turned off",
+    "staff_added": "Staff member added",
+    "staff_updated": "Staff member updated",
+    "staff_removed": "Staff member removed",
+}
+
+# Filter groups for the User activity page. Values are constants, never user input.
+EVENT_GROUPS = {
+    "sales": ("Sales", ["sale_created", "sale_deleted", "sale_payment_updated"]),
+    "expenses": ("Expenses", ["expense_created", "expense_updated", "expense_deleted"]),
+    "inventory": ("Inventory", ["inventory_item_created", "inventory_item_updated", "inventory_item_deleted"]),
+    "sign_ins": ("Sign-ins and security", ["sign_in", "sign_in_failed", "sign_in_blocked", "password_changed"]),
+    "profile": ("Profile and account", ["account_created", "business_profile_created", "business_profile_updated",
+                                        "profile_change_code_requested", "profile_change_rejected",
+                                        "profile_change_verification_failed"]),
+    "website": ("Website", ["website_published", "website_unpublished"]),
+    "team": ("Team and alerts", ["staff_added", "staff_updated", "staff_removed",
+                                 "push_enabled", "push_disabled"]),
+}
+
+
+def event_label(event_type):
+    return EVENT_LABELS.get(event_type, (event_type or "").replace("_", " ").capitalize())
+
+
+@admin_app.get("/user-activity")
+@require_roles(*SUPPORT_ROLES)
+def user_activity(admin):
+    business_filter = request.args.get("business", "").strip()[:100]
+    group_filter = request.args.get("group", "").strip()
+    start = parse_day(request.args.get("from"))
+    end = parse_day(request.args.get("to"))
+    where = ["1 = 1"]
+    params = []
+    if business_filter:
+        where.append("(LOWER(COALESCE(bp.company_name, '')) LIKE LOWER(?) OR a.user_id = ?)")
+        params.extend([f"%{business_filter}%", business_filter])
+    if group_filter in EVENT_GROUPS:
+        types = EVENT_GROUPS[group_filter][1]
+        where.append("a.event_type IN (" + ",".join("?" for _ in types) + ")")
+        params.extend(types)
+    else:
+        group_filter = ""
+    if start:
+        where.append("substr(a.created_at, 1, 10) >= ?")
+        params.append(start)
+    if end:
+        where.append("substr(a.created_at, 1, 10) <= ?")
+        params.append(end)
+    clause = " AND ".join(where)
+    from_sql = "FROM user_activity_logs a JOIN users u ON u.id = a.user_id LEFT JOIN business_profiles bp ON bp.user_id = a.user_id"
+    with get_db() as db:
+        total = db.execute(f"SELECT COUNT(*) AS n {from_sql} WHERE {clause}", params).fetchone()["n"]
+        page = pager(total, page_number(), RECORDS_PAGE_SIZE)
+        rows = db.execute(
+            "SELECT a.user_id, a.event_type, a.summary, a.created_at, bp.company_name, u.is_test_account "
+            f"{from_sql} WHERE {clause} ORDER BY a.id DESC LIMIT ? OFFSET ?",
+            params + [page["limit"], page["offset"]],
+        ).fetchall()
+        log_admin_action(
+            db, admin["id"],
+            f"viewed user activity: {total} matching, page {page['page']}"
+            + (f", group {group_filter}" if group_filter else ""),
+            "activity", None, None,
+        )
+        db.commit()
+    events = [
+        {
+            "user_id": row["user_id"],
+            "company_name": row["company_name"],
+            "is_test_account": row["is_test_account"],
+            "created_at": row["created_at"],
+            "label": event_label(row["event_type"]),
+            "summary": row["summary"],
+        }
+        for row in rows
+    ]
+    return render_template(
+        "user_activity.html", admin_email=admin["email"], events=events, page=page,
+        groups=EVENT_GROUPS,
+        filters={"business": business_filter, "group": group_filter, "date_from": start, "date_to": end},
+    )
 
 
 @admin_app.get("/admins")

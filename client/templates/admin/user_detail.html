@@ -30,8 +30,8 @@
       <dt>Business phone</dt><dd>{{ business.business_phone or 'Not provided' }}</dd>
       <dt>Business address</dt><dd>{{ business.business_address or 'Not provided' }}</dd>
       <dt>Store address</dt><dd>{{ business.store_slug or 'Not set' }}</dd>
-      <dt>Last sign-in</dt><dd>{{ last_sign_in or 'Never' }}</dd>
-      <dt>Last business activity</dt><dd>{{ last_activity or 'No activity recorded' }}</dd>
+      <dt>Last sign-in</dt><dd>{{ (last_sign_in|short_time) if last_sign_in else 'Never' }}</dd>
+      <dt>Last business activity</dt><dd>{{ (last_activity|short_time) if last_activity else 'No activity recorded' }}</dd>
     </dl>
   </div>
 
@@ -78,7 +78,7 @@
     {% for item in audit %}
     <div class="activity-item">
       <span>{{ item.action }}{% if item.ticket_ref %} · ticket {{ item.ticket_ref }}{% endif %}{% if item.reason %}<span class="muted"> — {{ item.reason }}</span>{% endif %}<span class="muted"> · {{ item.email }}</span></span>
-      <time class="muted">{{ item.created_at }}</time>
+      <time class="muted">{{ item.created_at|short_time }}</time>
     </div>
     {% endfor %}
   </div>
@@ -139,19 +139,19 @@
     </div>
     <section class="panel" style="padding:0;margin-top:14px">
       {% if rec.rows %}
-      <div class="table-wrap"><table>
+      <div class="table-wrap stack-mobile"><table>
         <thead><tr><th>Date</th><th>Sale</th><th>Customer</th><th>Total</th><th>Marked as received</th><th>Outstanding</th><th>Status</th></tr></thead>
         <tbody>
         {% for row in rec.rows %}
           {% set outstanding = (row.total_value or 0) - (row.amount_paid or 0) %}
           <tr>
-            <td>{{ row.date }}</td>
-            <td>{{ row.description or 'Sale' }}<div class="muted">{{ row.receipt_id or '' }}</div></td>
-            <td>{{ row.customer_name or 'Walk-in' }}</td>
-            <td>₦{{ "{:,.2f}".format(row.total_value or 0) }}</td>
-            <td>₦{{ "{:,.2f}".format(row.amount_paid or 0) }}</td>
-            <td>₦{{ "{:,.2f}".format(outstanding if outstanding > 0 else 0) }}</td>
-            <td>{% if (row.amount_paid or 0) >= (row.total_value or 0) %}<span class="pill">Paid</span>{% elif (row.amount_paid or 0) <= 0 %}<span class="pill paused">Unpaid</span>{% else %}<span class="pill warn">Part paid</span>{% endif %}</td>
+            <td data-label="Date">{{ row.date }}</td>
+            <td data-label="Sale">{{ row.description or 'Sale' }}<div class="muted">{{ row.receipt_id or '' }}</div></td>
+            <td data-label="Customer">{{ row.customer_name or 'Walk-in' }}</td>
+            <td data-label="Total">₦{{ "{:,.2f}".format(row.total_value or 0) }}</td>
+            <td data-label="Marked as received">₦{{ "{:,.2f}".format(row.amount_paid or 0) }}</td>
+            <td data-label="Outstanding">₦{{ "{:,.2f}".format(outstanding if outstanding > 0 else 0) }}</td>
+            <td data-label="Status">{% if (row.amount_paid or 0) >= (row.total_value or 0) %}<span class="pill">Paid</span>{% elif (row.amount_paid or 0) <= 0 %}<span class="pill paused">Unpaid</span>{% else %}<span class="pill warn">Part paid</span>{% endif %}</td>
           </tr>
         {% endfor %}
         </tbody>
@@ -169,11 +169,11 @@
     </div>
     <section class="panel" style="padding:0;margin-top:14px">
       {% if rec.rows %}
-      <div class="table-wrap"><table>
+      <div class="table-wrap stack-mobile"><table>
         <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
         <tbody>
         {% for row in rec.rows %}
-          <tr><td>{{ row.date }}</td><td>{{ row.category }}</td><td>{{ row.description or '' }}</td><td>₦{{ "{:,.2f}".format(row.amount) }}</td></tr>
+          <tr><td data-label="Date">{{ row.date }}</td><td data-label="Category">{{ row.category }}</td><td data-label="Description">{{ row.description or '' }}</td><td data-label="Amount">₦{{ "{:,.2f}".format(row.amount) }}</td></tr>
         {% endfor %}
         </tbody>
       </table></div>
@@ -185,11 +185,11 @@
   {% else %}
     <section class="panel" style="padding:0;margin-top:14px">
       {% if rec.rows %}
-      <div class="table-wrap"><table>
+      <div class="table-wrap stack-mobile"><table>
         <thead><tr><th>When (UTC)</th><th>Event</th><th>Detail</th></tr></thead>
         <tbody>
         {% for row in rec.rows %}
-          <tr><td>{{ row.created_at }}</td><td>{{ row.event_type }}</td><td>{{ row.summary }}</td></tr>
+          <tr><td data-label="When (UTC)">{{ row.created_at|short_time }}</td><td data-label="Event">{{ row.event_type }}</td><td data-label="Detail">{{ row.summary }}</td></tr>
         {% endfor %}
         </tbody>
       </table></div>

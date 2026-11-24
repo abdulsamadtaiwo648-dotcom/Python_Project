@@ -70,6 +70,24 @@
     .key-value dt { color: #687386; }
     .key-value dd { margin: 0; overflow-wrap: anywhere; }
     .scope { margin: 14px 0 0; color: #687386; font-size: 12px; }
+    .sub { margin: 6px 0 0; color: #687386; font-size: 12px; }
+    .admin-row-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .tag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    @media (max-width: 560px) {
+      nav { flex-wrap: wrap; gap: 2px; overflow: visible; }
+      nav a { padding: 7px 9px; font-size: 12px; }
+      .stack-mobile table, .stack-mobile thead, .stack-mobile tbody, .stack-mobile tr, .stack-mobile td { display: block; width: 100%; }
+      .stack-mobile thead { display: none; }
+      .stack-mobile tr { padding: 12px 0; border-top: 1px solid #edf0f4; }
+      .stack-mobile tr:first-child { border-top: 0; }
+      .stack-mobile td { border: 0; padding: 3px 14px; }
+      .stack-mobile td[data-label]::before { content: attr(data-label); display: block; color: #7b8493; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 2px; }
+      .stack-mobile td.empty { padding: 20px 14px; }
+      .toolbar label { flex: 1 1 140px; }
+      .toolbar input, .toolbar select { width: 100%; min-width: 0; }
+      .toolbar button, .toolbar .button { flex: 1 1 auto; }
+    }
     @media (max-width: 950px) { header { flex-wrap: wrap; } nav { order: 3; width: 100%; overflow-x: auto; } .metric-grid, .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid-2 { grid-template-columns: 1fr; } }
     @media (max-width: 560px) { header { padding: 13px 16px; } main { width: min(100% - 28px, 1160px); margin-top: 28px; } .account span { display: none; } .heading { align-items: start; flex-direction: column; } .metric-grid, .stats { gap: 9px; } .metric { min-height: 102px; padding: 14px; } .metric-value { font-size: 20px; } .panel { padding: 15px; } .key-value { grid-template-columns: 1fr; } }
   </style>
@@ -80,7 +98,8 @@
     <nav aria-label="Admin navigation">
       <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>Overview</a>
       <a href="{{ url_for('users') }}" {% if request.endpoint in ('users', 'user_detail') %}aria-current="page"{% endif %}>Businesses</a>
-      <a href="{{ url_for('api_health') }}" {% if request.endpoint == 'api_health' %}aria-current="page"{% endif %}>API health</a>
+      {% if admin_role in ('Owner', 'Support') %}<a href="{{ url_for('user_activity') }}" {% if request.endpoint == 'user_activity' %}aria-current="page"{% endif %}>User activity</a>{% endif %}
+      <a href="{{ url_for('system_status') }}" {% if request.endpoint == 'system_status' %}aria-current="page"{% endif %}>System status</a>
       {% if admin_role in ('Owner', 'Support') %}<a href="{{ url_for('activity') }}" {% if request.endpoint == 'activity' %}aria-current="page"{% endif %}>Admin activity</a>{% endif %}
       {% if admin_role == 'Owner' %}<a href="{{ url_for('admins') }}" {% if request.endpoint == 'admins' %}aria-current="page"{% endif %}>Admins</a>{% endif %}
     </nav>
