@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}API health{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Monitoring</p><h1>API health</h1><p class="summary">A read-only view of the SoloBiz API. Values appear only when the API records them. Anything not recorded is shown as “Not available”.</p></div></div>
+
+<section class="metric-grid" aria-label="API health summary">
+  <article class="metric">
+    <div class="metric-label">Database connection</div>
+    <div class="metric-value">{% if database_ok %}<span class="pill">Reachable</span>{% else %}<span class="pill paused">Unreachable</span>{% endif %}</div>
+    <div class="metric-note">Checked live from the admin portal when this page loads.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Request volume</div>
+    <div class="metric-value">Not available</div>
+    <div class="metric-note">Time window: not available.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Error rate</div>
+    <div class="metric-value">Not available</div>
+    <div class="metric-note">Share of requests that returned 5xx.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">p95 response time</div>
+    <div class="metric-value">Not available</div>
+    <div class="metric-note">95% of requests finished within this time.</div>
+  </article>
+</section>
+
+<section class="panel">
+  <h2>Recent failures</h2>
+  <p class="summary">Each failure shows its time, route template, status code and request ID.</p>
+  <p class="empty">Not available. The SoloBiz API does not record request telemetry yet, so failures cannot be listed here.</p>
+</section>
+
+<section class="notice warn">
+  <strong>Why most values are not available.</strong> The main SoloBiz app writes no per-request log that this portal can read. Connecting request telemetry is a separate change; until then, this page does not estimate values.
+</section>
+{% endblock %}

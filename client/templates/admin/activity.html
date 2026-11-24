@@ -1,9 +1,58 @@
 {% extends "base.html" %}
 {% block title %}Admin activity{% endblock %}
 {% block content %}
-<div class="heading"><div><p class="eyebrow">Security and oversight</p><h1>Admin activity</h1><p class="summary">A record of administrator sign-ins and account actions.</p></div></div>
-<section class="panel"><div class="table-wrap"><table><thead><tr><th>Time</th><th>Administrator</th><th>Action</th><th>Target</th><th>Reason</th></tr></thead><tbody>
-{% for event in events %}<tr><td>{{ event.created_at }}</td><td>{{ event.email }}</td><td>{{ event.action }}</td><td>{{ event.target_type }}{% if event.target_id %} · {{ event.target_id }}{% endif %}</td><td>{{ event.reason or '—' }}</td></tr>
-{% else %}<tr><td colspan="5" class="empty">No activity recorded yet.</td></tr>{% endfor %}
-</tbody></table></div><p class="muted" style="font-size:12px">Showing the 200 most recent admin events.</p></section>
+<div class="heading"><div><p class="eyebrow">Audit</p><h1>Admin activity</h1><p class="summary">Every detailed view, support access grant, and account change made in this portal. Credentials and session data are never recorded.</p></div></div>
+
+<form class="toolbar" method="get" action="{{ url_for('activity') }}">
+  <label>Admin
+    <select class="field" name="admin">
+      <option value="">All admins</option>
+      {% for item in admins %}<option value="{{ item.id }}" {% if filters.admin == item.id|string %}selected{% endif %}>{{ item.email }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Business ID
+    <input class="field" name="business" value="{{ filters.business }}" maxlength="64" placeholder="Business ID">
+  </label>
+  <label>Action
+    <input class="field" name="action" value="{{ filters.action }}" maxlength="80" placeholder="e.g. viewed sales">
+  </label>
+  <label>From <input class="field" type="date" name="from" value="{{ filters.date_from }}"></label>
+  <label>To <input class="field" type="date" name="to" value="{{ filters.date_to }}"></label>
+  <button type="submit" class="primary">Filter</button>
+  <a class="button" href="{{ url_for('activity') }}">Reset</a>
+</form>
+
+<section class="panel" style="padding:0">
+  {% if events %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>When (UTC)</th><th>Admin</th><th>Action</th><th>Business</th><th>Ticket</th><th>Reason</th></tr></thead>
+    <tbody>
+    {% for item in events %}
+      <tr>
+        <td>{{ item.created_at }}</td>
+        <td>{{ item.email }}</td>
+        <td>{{ item.action }}</td>
+        <td>{% if item.target_type in ('user', 'business') and item.target_id %}<a class="link" href="{{ url_for('user_detail', user_id=item.target_id) }}">{{ item.target_id }}</a>{% else %}{{ item.target_type }}{% endif %}</td>
+        <td>{{ item.ticket_ref or '—' }}</td>
+        <td>{{ item.reason or '—' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="empty">No admin activity matches these filters.</p>
+  {% endif %}
+</section>
+
+{% if page.pages > 1 %}
+<nav class="pager" aria-label="Pages">
+  <span>{{ page.total }} entries · page {{ page.page }} of {{ page.pages }}</span>
+  <span>
+    {% if page.has_prev %}<a href="{{ page_link(page.page - 1) }}">Previous</a>{% endif %}
+    {% if page.has_prev and page.has_next %} · {% endif %}
+    {% if page.has_next %}<a href="{{ page_link(page.page + 1) }}">Next</a>{% endif %}
+  </span>
+</nav>
+{% endif %}
+<p class="scope">Admin activity is kept for about one year.</p>
 {% endblock %}

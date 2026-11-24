@@ -39,10 +39,63 @@ python -m server.create_admin
 
 Add `admin.solobiz.dev` as a custom domain on this second service and configure
 the DNS record Render provides. Keep the existing SoloBiz web service on its
-current domain. The portal includes a platform overview, searchable business
-accounts, cross-business sales and expense views, amount and payment-status
-filters, reversible account pausing, reason-gated data views, login throttling,
-an administrator audit history, and a user activity feed for sign-ins, password
-resets, transactions, inventory changes, and profile updates or requests.
-Financial records can be reviewed but are not changed through the portal.
-Admin and user activity records are retained for approximately one year.
+current domain. The portal includes an adoption overview, a searchable business
+directory, per-business account pages with sales, expenses and activity behind a
+support grant, reversible account pausing, test-account marking, admin access review,
+an admin activity log, and an API health page. Financial records are read-only in the
+portal. Admin and business activity records are retained for approximately one year.
+
+## Roles and access
+
+Every admin route checks the signed-in admin's role on the server, on each request.
+Changes to a role or to access take effect at the next request.
+
+| Role | Overview, businesses, business overview, API health | Sales, expenses, business activity | Pause or restore accounts, mark test accounts | Admin activity | Manage admins |
+|---|---|---|---|---|---|
+| Owner | Yes | With a support grant | Yes | Yes | Yes |
+| Support | Yes | With a support grant | Yes | Yes | No |
+| Viewer | Yes | No | No | No | No |
+
+Existing admins were set to Owner by the migration, so nothing changes for them.
+New admins can be given a role from the server shell:
+
+```text
+python -m server.create_admin --role support
+```
+
+## Support access to a business
+
+Sales, expenses and business activity are hidden until an admin enters a support
+ticket reference and a reason on that business's page. The access lasts 20 minutes,
+applies to that business only, and every view is written to the admin activity log
+with the ticket and reason. A reason alone does not open access.
+
+## Test accounts
+
+Test and demo accounts are excluded from the overview figures. An admin marks an
+account with a reason on its business page. The portal never infers this from a name
+or email address.
+
+## Adoption figures
+
+- **Active businesses, last 7 days:** businesses with a sale, sale payment, expense or
+  inventory change in the last 7 calendar days, counted once each. Sign-ins are shown
+  separately and are not counted.
+- **Registered accounts, business profiles, paused accounts:** exclude test accounts.
+
+## API health
+
+The page checks that the database answers. Request volume, error rate, p95 response
+time and recent failures show "Not available": the SoloBiz API does not record
+request telemetry yet.
+
+## Running the admin tests
+
+From the repository root, after installing `server/requirements.txt`:
+
+```bash
+python -m pytest admin_tests -q
+```
+
+These tests use Flask's test client and a temporary SQLite database. They do not
+need the FastAPI test client.

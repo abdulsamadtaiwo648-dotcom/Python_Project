@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Admins{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Access review</p><h1>Admin accounts</h1><p class="summary">Who can use this portal, what they can do, and when they last signed in. Changes need a reason and take effect at the next request.</p></div></div>
+
+<section class="notice">
+  <strong>Roles.</strong>
+  <strong>Owner</strong> manages admins and everything below.
+  <strong>Support</strong> opens support access to a business with a ticket and reason, pauses or restores accounts, marks test accounts, and reads admin activity.
+  <strong>Viewer</strong> sees the overview, the business list, and each business's profile and account status. Viewers cannot see detailed sales, expenses or activity.
+</section>
+
+<section class="panel" style="padding:0">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Admin</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Change</th></tr></thead>
+    <tbody>
+    {% for item in admins %}
+      <tr>
+        <td>{{ item.email }}{% if item.id == current_id %} <span class="pill neutral">You</span>{% endif %}</td>
+        <td>{{ roles.get(item.role, item.role) }}</td>
+        <td>{% if item.is_active %}<span class="pill">Active</span>{% else %}<span class="pill paused">Disabled</span>{% endif %}</td>
+        <td>{{ item.last_sign_in or 'Never' }}</td>
+        <td>
+          {% if item.id != current_id %}
+          <form class="inline-form" method="post" action="{{ url_for('change_admin_role', admin_id=item.id) }}" style="margin-top:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <select class="field" name="role" aria-label="Role for {{ item.email }}" style="min-width:120px">
+              {% for key, label in roles.items() %}<option value="{{ key }}" {% if key == item.role %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <input class="field" name="reason" required minlength="3" maxlength="200" placeholder="Reason" aria-label="Reason" style="min-width:160px">
+            <button type="submit">Save role</button>
+          </form>
+          <form class="inline-form" method="post" action="{{ url_for('change_admin_status', admin_id=item.id) }}" style="margin-top:6px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="active" value="{{ 0 if item.is_active else 1 }}">
+            <input class="field" name="reason" required minlength="3" maxlength="200" placeholder="Reason" aria-label="Reason" style="min-width:160px">
+            <button type="submit" class="{% if item.is_active %}danger{% endif %}">{% if item.is_active %}Disable access{% else %}Restore access{% endif %}</button>
+          </form>
+          {% else %}
+          <span class="muted">Your own access cannot be changed here.</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+<p class="scope">New admin accounts are still created from the server shell with <code>python -m server.create_admin</code>.</p>
+{% endblock %}

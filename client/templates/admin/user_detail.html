@@ -1,11 +1,214 @@
 {% extends "base.html" %}
-{% block title %}Business account{% endblock %}
+{% block title %}{{ business.company_name or 'Business' }}{% endblock %}
 {% block content %}
-<div class="heading"><div><p class="eyebrow"><a class="link" href="{{ url_for('users') }}">Businesses</a> / Account</p><h1>{{ user.company_name or ((user.first_name or '') ~ ' ' ~ (user.last_name or '')) or user.email }}</h1><p class="summary">{{ user.email }} · <span class="pill {% if user.account_status != 'active' %}paused{% endif %}">{{ user.account_status|capitalize }}</span></p></div></div>
-<section class="panel"><h2>Business profile</h2><div class="metric-grid" style="margin-top:14px"><div><div class="metric-label">Phone</div><p>{{ user.business_phone or 'Not provided' }}</p></div><div><div class="metric-label">Address</div><p>{{ user.business_address or 'Not provided' }}</p></div><div><div class="metric-label">Store address</div><p>{{ user.store_slug or 'Not set' }}</p></div></div></section>
-<section class="panel"><h2>Account access</h2><p class="summary">Pausing prevents the account from signing in. The change can be reversed.</p><form class="toolbar" method="post" action="{{ url_for('update_user_status', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="status" value="{% if user.account_status == 'active' %}paused{% else %}active{% endif %}"><input class="field" name="reason" maxlength="200" required placeholder="Reason for this change" aria-label="Reason for this change"><button class="{% if user.account_status == 'active' %}danger{% else %}primary{% endif %}" type="submit">{% if user.account_status == 'active' %}Pause account{% else %}Restore account{% endif %}</button></form></section>
-<section class="panel"><h2>Account activity</h2><p class="summary">Recent sign-ins and important account changes. Up to 100 events are shown.</p><div class="activity-list">{% for item in user_activity %}<div class="activity-item"><span>{{ item.summary }}</span><time class="muted">{{ item.created_at }}</time></div>{% else %}<p class="muted">No activity has been recorded for this account.</p>{% endfor %}</div></section>
-<section class="panel"><h2>Sales</h2><div class="table-wrap"><table><thead><tr><th>Description</th><th>Total</th><th>Paid</th><th>Date</th></tr></thead><tbody>{% for row in sales %}<tr><td>{{ row.description or 'Sale' }}</td><td>₦{{ "{:,.2f}".format(row.total_value) }}</td><td>₦{{ "{:,.2f}".format(row.amount_paid) }}</td><td>{{ row.date or '—' }}</td></tr>{% else %}<tr><td colspan="4" class="empty">No sales recorded.</td></tr>{% endfor %}</tbody></table></div></section>
-<section class="panel"><h2>Expenses</h2><div class="table-wrap"><table><thead><tr><th>Category</th><th>Description</th><th>Amount</th><th>Date</th></tr></thead><tbody>{% for row in expenses %}<tr><td>{{ row.category }}</td><td>{{ row.description or '—' }}</td><td>₦{{ "{:,.2f}".format(row.amount) }}</td><td>{{ row.date or '—' }}</td></tr>{% else %}<tr><td colspan="4" class="empty">No expenses recorded.</td></tr>{% endfor %}</tbody></table></div></section>
-<section class="panel"><h2>Admin history</h2><div class="activity-list">{% for item in audit %}<div class="activity-item"><span>{{ item.action }}{% if item.reason %} · {{ item.reason }}{% endif %}</span><time class="muted">{{ item.created_at }}</time></div>{% else %}<p class="muted">No account actions recorded.</p>{% endfor %}</div></section>
+<div class="heading">
+  <div>
+    <p class="eyebrow">Business</p>
+    <h1>{{ business.company_name or 'Unnamed business' }}</h1>
+    <p class="summary">
+      {% if business.account_status == 'paused' %}<span class="pill paused">Paused</span>{% else %}<span class="pill">Access enabled</span>{% endif %}
+      {% if business.is_test_account %}<span class="pill test">Test account · excluded from adoption</span>{% endif %}
+    </p>
+  </div>
+  <a class="link" href="{{ url_for('users') }}">Back to businesses</a>
+</div>
+
+<nav class="tabs" aria-label="Business sections">
+  <a href="{{ url_for('user_detail', user_id=business.id, tab='overview') }}" {% if tab == 'overview' %}aria-current="page"{% endif %}>Overview</a>
+  <a href="{{ url_for('user_detail', user_id=business.id, tab='sales') }}" {% if tab == 'sales' %}aria-current="page"{% endif %}>Sales</a>
+  <a href="{{ url_for('user_detail', user_id=business.id, tab='expenses') }}" {% if tab == 'expenses' %}aria-current="page"{% endif %}>Expenses</a>
+  <a href="{{ url_for('user_detail', user_id=business.id, tab='activity') }}" {% if tab == 'activity' %}aria-current="page"{% endif %}>Activity</a>
+</nav>
+
+{% if tab == 'overview' %}
+<section class="grid-2" style="margin-top:20px">
+  <div class="panel" style="margin-top:0">
+    <h2>Account</h2>
+    <dl class="key-value" style="margin-top:14px">
+      <dt>Email</dt><dd>{{ business.email }}</dd>
+      <dt>Person</dt><dd>{{ ((business.first_name or '') ~ ' ' ~ (business.last_name or ''))|trim or 'Not provided' }}</dd>
+      <dt>Business phone</dt><dd>{{ business.business_phone or 'Not provided' }}</dd>
+      <dt>Business address</dt><dd>{{ business.business_address or 'Not provided' }}</dd>
+      <dt>Store address</dt><dd>{{ business.store_slug or 'Not set' }}</dd>
+      <dt>Last sign-in</dt><dd>{{ last_sign_in or 'Never' }}</dd>
+      <dt>Last business activity</dt><dd>{{ last_activity or 'No activity recorded' }}</dd>
+    </dl>
+  </div>
+
+  <div class="panel" style="margin-top:0">
+    <h2>Account access</h2>
+    <p class="summary">Pausing blocks sign-in for this business. Restoring access reverses it. Each change needs a reason and is recorded.</p>
+    {% if admin_role in ('Owner', 'Support') %}
+    <form class="inline-form" method="post" action="{{ url_for('update_user_status', user_id=business.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label class="field-label">Change to
+        <select class="field" name="status">
+          {% if business.account_status == 'paused' %}<option value="active">Restore access</option>{% else %}<option value="paused">Pause access</option>{% endif %}
+        </select>
+      </label>
+      <label class="field-label" style="flex:1 1 220px">Reason
+        <input class="field" name="reason" minlength="3" maxlength="200" required style="min-width:0;width:100%">
+      </label>
+      <button type="submit" class="{% if business.account_status == 'paused' %}primary{% else %}danger{% endif %}">Save</button>
+    </form>
+    {% else %}
+    <p class="notice">Your role cannot change account access.</p>
+    {% endif %}
+
+    <h2 style="margin-top:22px">Test account</h2>
+    <p class="summary">Test and demo accounts are excluded from adoption figures. This marker is set by an admin only; it is never inferred from name or email.</p>
+    {% if admin_role in ('Owner', 'Support') %}
+    <form class="inline-form" method="post" action="{{ url_for('update_test_marker', user_id=business.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="marked" value="{{ 0 if business.is_test_account else 1 }}">
+      <label class="field-label" style="flex:1 1 220px">Reason
+        <input class="field" name="reason" minlength="3" maxlength="200" required style="min-width:0;width:100%">
+      </label>
+      <button type="submit">{% if business.is_test_account %}Remove test marker{% else %}Mark as test account{% endif %}</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Admin history for this business</h2>
+  <p class="summary">Changes and detailed views recorded against this business.</p>
+  {% if audit %}
+  <div class="activity-list" style="margin-top:12px">
+    {% for item in audit %}
+    <div class="activity-item">
+      <span>{{ item.action }}{% if item.ticket_ref %} · ticket {{ item.ticket_ref }}{% endif %}{% if item.reason %}<span class="muted"> — {{ item.reason }}</span>{% endif %}<span class="muted"> · {{ item.email }}</span></span>
+      <time class="muted">{{ item.created_at }}</time>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No admin actions have been recorded for this business.</p>
+  {% endif %}
+</section>
+
+{% else %}
+  {% if locked == 'role' %}
+  <section class="notice warn" style="margin-top:20px">
+    <strong>Your role cannot view detailed records.</strong> Sales, expenses and activity need the Support or Owner role. Ask an owner if you need access.
+  </section>
+
+  {% elif locked == 'grant' %}
+  <section class="panel" style="margin-top:20px">
+    <h2>Open support access</h2>
+    <p class="summary">Detailed records for this business are hidden until you give a support ticket and a reason. Access lasts 20 minutes and every view is recorded with your ticket and reason. A reason alone does not open access.</p>
+    <form class="inline-form" method="post" action="{{ url_for('open_support_access', user_id=business.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <label class="field-label">Ticket reference
+        <input class="field" name="ticket" required maxlength="40" placeholder="SUP-1042" pattern="[A-Za-z0-9][A-Za-z0-9_\-/.#]{2,39}">
+      </label>
+      <label class="field-label" style="flex:1 1 260px">Reason
+        <input class="field" name="reason" required minlength="5" maxlength="160" placeholder="e.g. Customer reports a missing sale" style="min-width:0;width:100%">
+      </label>
+      <button type="submit" class="primary">Open access</button>
+    </form>
+  </section>
+
+  {% else %}
+  <section class="notice" style="margin-top:20px">
+    <div class="inline-form" style="margin-top:0;justify-content:space-between;align-items:center">
+      <span>Support access open · ticket <strong>{{ grant.ticket }}</strong> · {{ grant.reason }}</span>
+      <form method="post" action="{{ url_for('close_support_access', user_id=business.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Close access</button>
+      </form>
+    </div>
+  </section>
+
+  <form class="toolbar" method="get" action="{{ url_for('user_detail', user_id=business.id) }}">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <label>From <input class="field" type="date" name="from" value="{{ date_from }}"></label>
+    <label>To <input class="field" type="date" name="to" value="{{ date_to }}"></label>
+    <button type="submit" class="primary">Apply dates</button>
+    {% if date_from or date_to %}<a class="button" href="{{ url_for('user_detail', user_id=business.id, tab=tab) }}">Clear</a>{% endif %}
+  </form>
+
+  {% set rec = records %}
+  {% if tab == 'sales' %}
+    <div class="stats" aria-label="Sales totals for this period">
+      <div class="metric"><div class="metric-label">Sales</div><div class="metric-value">{{ rec.summary.n }}</div></div>
+      <div class="metric"><div class="metric-label">Total value</div><div class="metric-value">₦{{ "{:,.2f}".format(rec.summary.total) }}</div></div>
+      <div class="metric"><div class="metric-label">Marked as received</div><div class="metric-value">₦{{ "{:,.2f}".format(rec.summary.received) }}</div></div>
+      <div class="metric"><div class="metric-label">Outstanding balance</div><div class="metric-value">₦{{ "{:,.2f}".format(rec.summary.outstanding) }}</div></div>
+    </div>
+    <section class="panel" style="padding:0;margin-top:14px">
+      {% if rec.rows %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Sale</th><th>Customer</th><th>Total</th><th>Marked as received</th><th>Outstanding</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for row in rec.rows %}
+          {% set outstanding = (row.total_value or 0) - (row.amount_paid or 0) %}
+          <tr>
+            <td>{{ row.date }}</td>
+            <td>{{ row.description or 'Sale' }}<div class="muted">{{ row.receipt_id or '' }}</div></td>
+            <td>{{ row.customer_name or 'Walk-in' }}</td>
+            <td>₦{{ "{:,.2f}".format(row.total_value or 0) }}</td>
+            <td>₦{{ "{:,.2f}".format(row.amount_paid or 0) }}</td>
+            <td>₦{{ "{:,.2f}".format(outstanding if outstanding > 0 else 0) }}</td>
+            <td>{% if (row.amount_paid or 0) >= (row.total_value or 0) %}<span class="pill">Paid</span>{% elif (row.amount_paid or 0) <= 0 %}<span class="pill paused">Unpaid</span>{% else %}<span class="pill warn">Part paid</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <p class="empty">No sales match these dates.</p>
+      {% endif %}
+    </section>
+    <p class="scope">“Marked as received” is the amount entered in SoloBiz. SoloBiz does not process these payments.</p>
+
+  {% elif tab == 'expenses' %}
+    <div class="stats" aria-label="Expense totals for this period">
+      <div class="metric"><div class="metric-label">Expenses</div><div class="metric-value">{{ rec.summary.n }}</div></div>
+      <div class="metric"><div class="metric-label">Total</div><div class="metric-value">₦{{ "{:,.2f}".format(rec.summary.total) }}</div></div>
+    </div>
+    <section class="panel" style="padding:0;margin-top:14px">
+      {% if rec.rows %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
+        <tbody>
+        {% for row in rec.rows %}
+          <tr><td>{{ row.date }}</td><td>{{ row.category }}</td><td>{{ row.description or '' }}</td><td>₦{{ "{:,.2f}".format(row.amount) }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <p class="empty">No expenses match these dates.</p>
+      {% endif %}
+    </section>
+
+  {% else %}
+    <section class="panel" style="padding:0;margin-top:14px">
+      {% if rec.rows %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>When (UTC)</th><th>Event</th><th>Detail</th></tr></thead>
+        <tbody>
+        {% for row in rec.rows %}
+          <tr><td>{{ row.created_at }}</td><td>{{ row.event_type }}</td><td>{{ row.summary }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <p class="empty">No business activity matches these dates.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if rec and rec.page.pages > 1 %}
+  <nav class="pager" aria-label="Pages">
+    <span>{{ rec.page.total }} records · page {{ rec.page.page }} of {{ rec.page.pages }}</span>
+    <span>
+      {% if rec.page.has_prev %}<a href="{{ page_link(rec.page.page - 1) }}">Previous</a>{% endif %}
+      {% if rec.page.has_prev and rec.page.has_next %} · {% endif %}
+      {% if rec.page.has_next %}<a href="{{ page_link(rec.page.page + 1) }}">Next</a>{% endif %}
+    </span>
+  </nav>
+  {% endif %}
+  {% endif %}
+{% endif %}
 {% endblock %}
