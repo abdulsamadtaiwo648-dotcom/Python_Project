@@ -78,7 +78,7 @@
     {% for item in audit %}
     <div class="activity-item">
       <span>{{ item.action }}{% if item.ticket_ref %} · ticket {{ item.ticket_ref }}{% endif %}{% if item.reason %}<span class="muted"> — {{ item.reason }}</span>{% endif %}<span class="muted"> · {{ item.email }}</span></span>
-      <time class="muted">{{ item.created_at }}</time>
+      <time class="muted">{{ item.created_at|short_time }}</time>
     </div>
     {% endfor %}
   </div>
@@ -189,7 +189,7 @@
         <thead><tr><th>When (UTC)</th><th>Event</th><th>Detail</th></tr></thead>
         <tbody>
         {% for row in rec.rows %}
-          <tr><td>{{ row.created_at }}</td><td>{{ row.event_type }}</td><td>{{ row.summary }}</td></tr>
+          <tr><td>{{ row.created_at|short_time }}</td><td>{{ row.event_type }}</td><td>{{ row.summary }}</td></tr>
         {% endfor %}
         </tbody>
       </table></div>

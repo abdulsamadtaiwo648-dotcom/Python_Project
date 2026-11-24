@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}User activity{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Activity</p><h1>User activity</h1><p class="summary">What businesses are doing in SoloBiz, across all accounts: sales, expenses, inventory, sign-ins and profile changes. Event summaries only, with no amounts or customer names.</p></div></div>
+
+<form class="toolbar" method="get" action="{{ url_for('user_activity') }}" role="search">
+  <label>Business
+    <input class="field" type="search" name="business" value="{{ filters.business }}" maxlength="100" placeholder="Business name" style="min-width:220px">
+  </label>
+  <label>Activity
+    <select class="field" name="group">
+      <option value="">All activity</option>
+      {% for key, item in groups.items() %}<option value="{{ key }}" {% if filters.group == key %}selected{% endif %}>{{ item[0] }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>From <input class="field" type="date" name="from" value="{{ filters.date_from }}"></label>
+  <label>To <input class="field" type="date" name="to" value="{{ filters.date_to }}"></label>
+  <button type="submit" class="primary">Apply</button>
+  {% if filters.business or filters.group or filters.date_from or filters.date_to %}<a class="button" href="{{ url_for('user_activity') }}">Clear</a>{% endif %}
+</form>
+
+<section class="panel" style="padding:0">
+  {% if events %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>When (UTC)</th><th>Business</th><th>Activity</th><th>Details</th></tr></thead>
+    <tbody>
+    {% for item in events %}
+      <tr>
+        <td style="white-space:nowrap">{{ item.created_at|short_time }}</td>
+        <td>
+          <a class="link" href="{{ url_for('user_detail', user_id=item.user_id) }}">{{ item.company_name or 'Unnamed business' }}</a>
+          {% if item.is_test_account %}<span class="pill test">Test</span>{% endif %}
+        </td>
+        <td><span class="pill neutral">{{ item.label }}</span></td>
+        <td class="muted">{{ item.summary }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="empty">{% if filters.business or filters.group or filters.date_from or filters.date_to %}No activity matches these filters.{% else %}No business activity has been recorded yet.{% endif %}</p>
+  {% endif %}
+</section>
+
+{% if page.pages > 1 %}
+<nav class="pager" aria-label="Pages">
+  <span>{{ page.total }} events · page {{ page.page }} of {{ page.pages }}</span>
+  <span>
+    {% if page.has_prev %}<a href="{{ page_link(page.page - 1) }}">Previous</a>{% endif %}
+    {% if page.has_prev and page.has_next %} · {% endif %}
+    {% if page.has_next %}<a href="{{ page_link(page.page + 1) }}">Next</a>{% endif %}
+  </span>
+</nav>
+{% endif %}
+<p class="scope">Activity is kept for about one year. Each view is recorded in Admin activity.</p>
+{% endblock %}

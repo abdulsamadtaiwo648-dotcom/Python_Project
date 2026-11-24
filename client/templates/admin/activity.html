@@ -29,7 +29,7 @@
     <tbody>
     {% for item in events %}
       <tr>
-        <td>{{ item.created_at }}</td>
+        <td>{{ item.created_at|short_time }}</td>
         <td>{{ item.email }}</td>
         <td>{{ item.action }}</td>
         <td>{% if item.target_type in ('user', 'business') and item.target_id %}<a class="link" href="{{ url_for('user_detail', user_id=item.target_id) }}">{{ item.target_id }}</a>{% else %}{{ item.target_type }}{% endif %}</td>

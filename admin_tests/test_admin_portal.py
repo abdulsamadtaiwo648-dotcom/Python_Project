@@ -210,7 +210,7 @@ def test_marking_a_business_as_test_changes_the_adoption_figures(client):
 # --- Access control ------------------------------------------------------------
 
 def test_merchant_or_signed_out_visitor_cannot_reach_admin_pages(client):
-    for path in ("/dashboard", "/users", "/users/biz-a", "/activity", "/admins", "/api-health"):
+    for path in ("/dashboard", "/users", "/users/biz-a", "/activity", "/admins", "/system-status"):
         response = client.get(path)
         assert response.status_code == 302, path
         assert "/login" in response.headers["Location"], path
@@ -463,14 +463,15 @@ def test_viewer_cannot_read_admin_activity(client):
     assert client.get("/activity").status_code == 403
 
 
-# --- API health ----------------------------------------------------------------
+# --- System status ------------------------------------------------------------
 
-def test_api_health_reports_unavailable_metrics_instead_of_inventing_values(client):
+def test_system_status_reports_unavailable_metrics_instead_of_inventing_values(client):
     sign_in(client, "viewer@admin.test")
-    html = client.get("/api-health").get_data(as_text=True)
+    html = client.get("/system-status").get_data(as_text=True)
     assert "Reachable" in html
     assert html.count("Not available") >= 4
-    assert "Not available. The SoloBiz API does not record request telemetry" in html
+    assert "Not available. The app does not record request logs yet" in html
+    assert "API health" not in html
 
 
 # --- Misc ------------------------------------------------------------------------
@@ -500,7 +501,7 @@ def test_empty_sales_range_says_so(client):
     assert "No sales match these dates." in html
 
 
-def test_api_health_shows_unreachable_when_the_database_fails(client, monkeypatch):
+def test_system_status_shows_unreachable_when_the_database_fails(client, monkeypatch):
     sign_in(client, "viewer@admin.test")
     real_get_db = portal.get_db
 
@@ -527,5 +528,69 @@ def test_api_health_shows_unreachable_when_the_database_fails(client, monkeypatc
             return self._cm.__exit__(*exc)
 
     monkeypatch.setattr(portal, "get_db", lambda: Wrapper())
-    html = client.get("/api-health").get_data(as_text=True)
+    html = client.get("/system-status").get_data(as_text=True)
     assert "Unreachable" in html
+
+
+# --- User activity -------------------------------------------------------------
+
+def test_viewer_cannot_open_user_activity(client):
+    sign_in(client, "viewer@admin.test")
+    assert client.get("/user-activity").status_code == 403
+
+
+def test_user_activity_lists_events_with_friendly_labels_and_no_emails(client):
+    sign_in(client, "support@admin.test")
+    html = client.get("/user-activity").get_data(as_text=True)
+    assert "Sale recorded" in html
+    assert "Signed in" in html
+    assert "Sample Stores" in html
+    assert "Unnamed business" in html  # biz-c has no profile
+    assert "owner-a@example.test" not in html
+    assert "owner-c@example.test" not in html
+
+
+def test_user_activity_group_filter_limits_the_events(client):
+    sign_in(client, "support@admin.test")
+    html = client.get("/user-activity?group=expenses").get_data(as_text=True)
+    assert "Expense recorded" in html
+    assert "Sale recorded" not in html
+    assert "Signed in" not in html
+
+
+def test_user_activity_business_filter_matches_the_name(client):
+    sign_in(client, "support@admin.test")
+    html = client.get("/user-activity?business=Quiet").get_data(as_text=True)
+    assert "Quiet Shop" in html
+    assert "Sample Stores" not in html
+
+
+def test_user_activity_views_are_audited(client):
+    sign_in(client, "support@admin.test")
+    client.get("/user-activity?group=sales")
+    last = audit_rows()[-1]
+    assert last["action"].startswith("viewed user activity")
+    assert "group sales" in last["action"]
+    assert last["email"] == "support@admin.test"
+
+
+def test_user_activity_empty_filter_says_so(client):
+    sign_in(client, "support@admin.test")
+    html = client.get("/user-activity?business=no-such-business-xyz").get_data(as_text=True)
+    assert "No activity matches these filters." in html
+
+
+def test_system_status_is_named_correctly_in_navigation(client):
+    sign_in(client, "viewer@admin.test")
+    html = client.get("/dashboard").get_data(as_text=True)
+    assert ">System status<" in html
+    assert "API health" not in html
+    assert "User activity" not in html  # viewers do not see it
+
+
+def test_timestamps_are_shown_without_microseconds_or_offsets(client):
+    sign_in(client, "support@admin.test")
+    html = client.get("/user-activity").get_data(as_text=True)
+    assert "+00:00" not in html
+    assert "551977" not in html
+    assert NOW.strftime("%Y-%m-%d %H:%M") in html

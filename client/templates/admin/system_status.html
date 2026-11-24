@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}System status{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Monitoring</p><h1>System status</h1><p class="summary">Live checks, and metrics the app records. A value the app does not record is shown as “Not available”.</p></div></div>
+
+<section class="metric-grid" aria-label="System status summary">
+  <article class="metric">
+    <div class="metric-label">Database</div>
+    <div class="metric-value">{% if database_ok %}<span class="pill">Reachable</span>{% else %}<span class="pill paused">Unreachable</span>{% endif %}</div>
+    <div class="metric-note">Checked live when this page loads.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Requests</div>
+    <div class="metric-value">Not available</div>
+    <div class="metric-note">Time window: not available.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Error rate</div>
+    <div class="metric-value">Not available</div>
+    <div class="metric-note">Share of requests that returned a server error.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Slowest 5% (p95)</div>
+    <div class="metric-value">Not available</div>
+    <div class="metric-note">95% of requests finished within this time.</div>
+  </article>
+</section>
+
+<section class="panel">
+  <h2>Recent failures</h2>
+  <p class="summary">Each failure would show its time, route, status code and request ID.</p>
+  <p class="empty">Not available. The app does not record request logs yet, so failures cannot be listed here.</p>
+</section>
+
+<section class="notice warn">
+  <strong>Why most values are not available.</strong> The main SoloBiz app does not write per-request records that this portal can read. Adding them is a separate change. Until then, this page does not estimate values.
+</section>
+{% endblock %}
