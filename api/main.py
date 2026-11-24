@@ -88,6 +88,11 @@ def create_app() -> FastAPI:
 
     app.add_middleware(SecurityHeaders)
 
+    # Outermost of all: records every request (route template, status, duration, request ID).
+    from server.telemetry import RequestTelemetry
+
+    app.add_middleware(RequestTelemetry, routes_getter=lambda: app.router.routes)
+
     def wants_json(request: Request):
         return request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", "")
 

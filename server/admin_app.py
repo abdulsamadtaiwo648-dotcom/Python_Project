@@ -766,9 +766,61 @@ def activity(admin):
     )
 
 
+TELEMETRY_WINDOWS = {
+    "1h": ("Last hour", timedelta(hours=1)),
+    "24h": ("Last 24 hours", timedelta(hours=24)),
+    "7d": ("Last 7 days", timedelta(days=7)),
+}
+# Duration buckets written by the app (server/telemetry.py), fastest first.
+LATENCY_BUCKETS = (
+    ("ms_lt_250", "under 250 ms"),
+    ("ms_lt_500", "under 500 ms"),
+    ("ms_lt_1000", "under 1 second"),
+    ("ms_lt_2500", "under 2.5 seconds"),
+    ("ms_lt_5000", "under 5 seconds"),
+    ("ms_gte_5000", "5 seconds or more"),
+)
+
+
+def telemetry_summary(db, window):
+    now = utcnow()
+    minute_cut = (now - window).strftime("%Y-%m-%dT%H:%M")
+    iso_cut = (now - window).isoformat()
+    bucket_sums = ", ".join(f"COALESCE(SUM({column}), 0) AS {column}" for column, _ in LATENCY_BUCKETS)
+    totals = db.execute(
+        "SELECT COALESCE(SUM(n), 0) AS requests, "
+        "COALESCE(SUM(CASE WHEN status_class = '5xx' THEN n ELSE 0 END), 0) AS errors, "
+        f"{bucket_sums} FROM request_minutes WHERE minute >= ?",
+        (minute_cut,),
+    ).fetchone()
+    failures = db.execute(
+        "SELECT request_id, created_at, route, status, duration_ms FROM request_errors "
+        "WHERE created_at >= ? ORDER BY created_at DESC LIMIT 50",
+        (iso_cut,),
+    ).fetchall()
+    return totals, failures
+
+
+def slowest_five_percent(totals):
+    counts = [(label, int(totals[column])) for column, label in LATENCY_BUCKETS]
+    total = sum(count for _, count in counts)
+    if not total:
+        return None
+    running = 0
+    for label, count in counts:
+        running += count
+        if running >= 0.95 * total:
+            return label
+    return None
+
+
 @admin_app.get("/system-status")
 @require_roles(*ANY_ROLE)
 def system_status(admin):
+    window_key = request.args.get("window", "24h")
+    if window_key not in TELEMETRY_WINDOWS:
+        window_key = "24h"
+    window_label, window = TELEMETRY_WINDOWS[window_key]
     database_ok = True
     try:
         with get_db() as db:
@@ -776,9 +828,39 @@ def system_status(admin):
     except Exception:
         logging.exception("System status check could not reach the database")
         database_ok = False
-    # The SoloBiz app does not record request telemetry yet, so request volume,
-    # error rate, latency and recent failures are reported as not available.
-    return render_template("system_status.html", admin_email=admin["email"], database_ok=database_ok)
+    telemetry = None
+    failures = []
+    if database_ok:
+        try:
+            with get_db() as db:
+                totals, failure_rows = telemetry_summary(db, window)
+            requests_total = int(totals["requests"])
+            errors_total = int(totals["errors"])
+            telemetry = {
+                "requests": requests_total,
+                "errors": errors_total,
+                "error_rate": round(errors_total * 100 / requests_total, 2) if requests_total else None,
+                "slowest": slowest_five_percent(totals),
+            }
+            failures = [
+                {
+                    "request_id": row["request_id"],
+                    "time": row["created_at"],
+                    "route": row["route"],
+                    "status": row["status"],
+                    "duration_ms": row["duration_ms"],
+                }
+                for row in failure_rows
+            ]
+        except Exception:
+            # Usually means request logging has not been set up yet (migration 0004 has not run).
+            logging.exception("System status could not read request telemetry")
+            telemetry = None
+    return render_template(
+        "system_status.html", admin_email=admin["email"], database_ok=database_ok,
+        telemetry=telemetry, failures=failures, window=window_key,
+        window_label=window_label, windows=TELEMETRY_WINDOWS,
+    )
 
 
 # Friendly labels for activity events written by the SoloBiz app.
