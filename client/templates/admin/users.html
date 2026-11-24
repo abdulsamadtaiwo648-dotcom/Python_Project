@@ -13,7 +13,7 @@
 
 <section class="panel" style="padding:0">
   {% if users %}
-  <div class="table-wrap">
+  <div class="table-wrap stack-mobile">
     <table>
       <thead>
         <tr>
@@ -27,14 +27,14 @@
       <tbody>
         {% for row in users %}
         <tr>
-          <td>
+          <td data-label="Business">
             <a class="link" href="{{ url_for('user_detail', user_id=row.id) }}">{{ row.company_name or 'Unnamed business' }}</a>
             {% if row.is_test_account %}<span class="pill test" title="Excluded from adoption figures">Test account</span>{% endif %}
           </td>
-          <td>{% if row.company_name %}<span class="pill neutral">Profile added</span>{% else %}<span class="muted">No profile yet</span>{% endif %}</td>
-          <td>{{ row.last_sign_in or 'Never' }}</td>
-          <td>{{ row.last_activity or 'No activity recorded' }}</td>
-          <td>{% if row.account_status == 'paused' %}<span class="pill paused">Paused</span>{% else %}<span class="pill">Access enabled</span>{% endif %}</td>
+          <td data-label="Profile">{% if row.company_name %}<span class="pill neutral">Profile added</span>{% else %}<span class="muted">No profile yet</span>{% endif %}</td>
+          <td data-label="Last sign-in">{{ (row.last_sign_in|short_time) if row.last_sign_in else 'Never' }}</td>
+          <td data-label="Last business activity">{{ (row.last_activity|short_time) if row.last_activity else 'No activity recorded' }}</td>
+          <td data-label="Access">{% if row.account_status == 'paused' %}<span class="pill paused">Paused</span>{% else %}<span class="pill">Access enabled</span>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
