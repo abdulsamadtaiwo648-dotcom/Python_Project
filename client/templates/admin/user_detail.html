@@ -30,6 +30,7 @@
       <dt>Business phone</dt><dd>{{ business.business_phone or 'Not provided' }}</dd>
       <dt>Business address</dt><dd>{{ business.business_address or 'Not provided' }}</dd>
       <dt>Store address</dt><dd>{{ business.store_slug or 'Not set' }}</dd>
+      <dt>Refused input, 7 days</dt><dd>{{ refused_7d }}{% if refused_7d >= 20 %} <span class="pill paused">Flagged for review</span>{% endif %}</dd>
       <dt>Last sign-in</dt><dd>{{ (last_sign_in|short_time) if last_sign_in else 'Never' }}</dd>
       <dt>Last business activity</dt><dd>{{ (last_activity|short_time) if last_activity else 'No activity recorded' }}</dd>
     </dl>

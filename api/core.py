@@ -11,6 +11,7 @@ import secrets
 import smtplib
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlsplit
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -61,17 +62,87 @@ def sanitize_brand_color(value):
     return "#1d4ed8"
 
 
+LOGO_URL_MAX_LENGTH = 500
+_LOGO_UNSAFE_CHARS = re.compile(r"[\s\"'<>\\`\x00-\x1f\x7f]")
+
+
 def sanitize_logo_url(value):
+    """Return the logo URL if it is safe to place in an href or src, otherwise an empty string.
+    Accepts our own /media/<token> and /static/uploads/logos/ paths, or an https URL with a real host."""
     url = str(value or "").strip()
-    if not url:
+    if not url or len(url) > LOGO_URL_MAX_LENGTH or _LOGO_UNSAFE_CHARS.search(url):
         return ""
-    if url.startswith("/static/uploads/logos/") and ".." not in url:
-        return url
-    if re.match(r"^/media/[A-Za-z0-9_-]{16,40}$", url):
-        return url
-    if url.startswith("https://") and " " not in url:
-        return url
-    return ""
+    if url.startswith("/media/"):
+        return url if re.fullmatch(r"/media/[A-Za-z0-9_-]{16,40}", url) else ""
+    if url.startswith("/static/uploads/logos/"):
+        return url if re.fullmatch(r"/static/uploads/logos/[A-Za-z0-9_-]+\.(png|jpe?g|webp)", url) else ""
+    try:
+        parts = urlsplit(url)
+        host = parts.hostname or ""
+        port = parts.port
+    except ValueError:
+        return ""
+    if parts.scheme != "https" or parts.username or parts.password or port not in (None, 443):
+        return ""
+    if re.fullmatch(r"[0-9.]+", host):
+        return ""  # IP addresses are not logo hosts
+    if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", host) or any(label.startswith("-") or label.endswith("-") for label in host.split(".")):
+        return ""
+    return url
+
+
+CLIENT_OP_STALE_AFTER = timedelta(minutes=5)
+
+
+def claim_client_op(user_id, op_id):
+    """Reserve an offline operation before it is applied. Returns 'new' (apply it now), 'done'
+    (already applied; do not apply again) or 'busy' (another request is applying it right now).
+    A claim left pending for longer than CLIENT_OP_STALE_AFTER is taken over."""
+    now = utcnow()
+    with get_db() as db:
+        inserted = db.execute(
+            "INSERT INTO client_ops (user_id, op_id, created_at, status) VALUES (?, ?, ?, 'pending') "
+            "ON CONFLICT (user_id, op_id) DO NOTHING",
+            (str(user_id), op_id, now.isoformat()),
+        ).rowcount
+        if inserted == 1:
+            db.commit()
+            return "new"
+        row = db.execute(
+            "SELECT status, created_at FROM client_ops WHERE user_id = ? AND op_id = ?",
+            (str(user_id), op_id),
+        ).fetchone()
+        if row is None:
+            return "busy"
+        if row["status"] == "done":
+            return "done"
+        started = parse_otp_datetime(row["created_at"])
+        if now - started > CLIENT_OP_STALE_AFTER:
+            taken = db.execute(
+                "UPDATE client_ops SET created_at = ? WHERE user_id = ? AND op_id = ? "
+                "AND status = 'pending' AND created_at = ?",
+                (now.isoformat(), str(user_id), op_id, row["created_at"]),
+            ).rowcount
+            db.commit()
+            if taken == 1:
+                return "new"
+        return "busy"
+
+
+def finish_client_op(user_id, op_id):
+    with get_db() as db:
+        db.execute("UPDATE client_ops SET status = 'done' WHERE user_id = ? AND op_id = ?", (str(user_id), op_id))
+        db.commit()
+
+
+def release_client_op(user_id, op_id):
+    """The operation was not applied (it failed), so a later replay may apply it."""
+    with get_db() as db:
+        db.execute(
+            "DELETE FROM client_ops WHERE user_id = ? AND op_id = ? AND status = 'pending'",
+            (str(user_id), op_id),
+        )
+        db.commit()
 
 
 def parse_otp_datetime(value):
@@ -155,17 +226,24 @@ LOGIN_WINDOW = timedelta(minutes=15)
 LOGIN_LOCKOUT = timedelta(minutes=15)
 
 
-def _login_fingerprint(email):
-    normalized = (email or "").strip().lower().encode("utf-8")
-    return hmac.new(settings.secret_key.encode("utf-8"), normalized, hashlib.sha256).hexdigest()
+LOGIN_IP_MAX_ATTEMPTS = 30  # per address: higher than per account, because many people can share one address
 
 
-def login_locked_until(email):
-    """Return when the sign-in lockout for this email ends, or None."""
+def _attempt_key(kind, value):
+    """The key a sign-in counter is kept under. Email keys are unchanged from earlier releases."""
+    text = str(value or "").strip().lower()
+    return text if kind == "email" else f"{kind}:{text}"
+
+
+def _login_fingerprint(key):
+    return hmac.new(settings.secret_key.encode("utf-8"), key.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def _locked_until_key(key):
     with get_db() as db:
         row = db.execute(
             "SELECT blocked_until FROM user_login_attempts WHERE fingerprint = ?",
-            (_login_fingerprint(email),),
+            (_login_fingerprint(key),),
         ).fetchone()
     if not row or not row["blocked_until"]:
         return None
@@ -173,8 +251,8 @@ def login_locked_until(email):
     return until if until > utcnow() else None
 
 
-def record_login_failure(email):
-    fingerprint = _login_fingerprint(email)
+def _record_failure_key(key, max_attempts):
+    fingerprint = _login_fingerprint(key)
     now = utcnow()
     with get_db() as db:
         row = db.execute(
@@ -186,7 +264,7 @@ def record_login_failure(email):
             attempts, started = 1, now
         else:
             attempts = int(row["attempts"]) + 1
-        blocked_until = (now + LOGIN_LOCKOUT).isoformat() if attempts >= LOGIN_MAX_ATTEMPTS else None
+        blocked_until = (now + LOGIN_LOCKOUT).isoformat() if attempts >= max_attempts else None
         if row:
             db.execute(
                 "UPDATE user_login_attempts SET attempts = ?, window_started = ?, blocked_until = ? "
@@ -202,13 +280,33 @@ def record_login_failure(email):
         db.commit()
 
 
-def clear_login_failures(email):
+def _clear_key(key):
     with get_db() as db:
-        db.execute(
-            "DELETE FROM user_login_attempts WHERE fingerprint = ?",
-            (_login_fingerprint(email),),
-        )
+        db.execute("DELETE FROM user_login_attempts WHERE fingerprint = ?", (_login_fingerprint(key),))
         db.commit()
+
+
+def login_locked_until(email):
+    """Return when the sign-in lockout for this email ends, or None."""
+    return _locked_until_key(_attempt_key("email", email))
+
+
+def record_login_failure(email):
+    _record_failure_key(_attempt_key("email", email), LOGIN_MAX_ATTEMPTS)
+
+
+def clear_login_failures(email):
+    _clear_key(_attempt_key("email", email))
+
+
+def login_locked_until_ip(address):
+    """Return when the sign-in lockout for this address ends, or None."""
+    return _locked_until_key(_attempt_key("ip", address)) if address else None
+
+
+def record_login_ip_failure(address):
+    if address:
+        _record_failure_key(_attempt_key("ip", address), LOGIN_IP_MAX_ATTEMPTS)
 
 
 def otp_delivery_message(email, is_live, code):
@@ -366,3 +464,15 @@ def send_and_store_otp(email, purpose, payload=None, subject_type="Email Verific
 
 
 GENERIC_RESET_MESSAGE = "If an account exists for that email, we sent a verification PIN."
+
+
+def log_refused_input(user_id, path, reason):
+    """Keep a record that the app refused input from this account. The value is never stored."""
+    if not user_id:
+        return
+    try:
+        with get_db() as db:
+            record_user_activity(db, str(user_id), "input_rejected", f"Refused input on {path}: {reason}"[:240])
+            db.commit()
+    except Exception:
+        logging.exception("Could not record a refused input")

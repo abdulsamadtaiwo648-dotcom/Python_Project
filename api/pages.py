@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from server import websites
 from server.database import get_db
 
+from .core import sanitize_logo_url
 from .deps import current_user_id
 from .plans import BRANDING, WEBSITE
 from .subscriptions import has_feature
@@ -254,7 +255,7 @@ def public_storefront(store_slug: str, request: Request):
         return render(request, "landing.html", status=404)
     profile_dict = dict(profile)
     base_url = f"{request.url.scheme}://{request.headers.get('host', '')}"
-    logo_path = profile_dict.get("logo_url")
+    logo_path = sanitize_logo_url(profile_dict.get("logo_url"))  # re-check: older rows may predate the rules
     if logo_path:
         logo_absolute_url = logo_path if logo_path.startswith(("http://", "https://")) else base_url + (
             logo_path if logo_path.startswith("/") else "/" + logo_path)

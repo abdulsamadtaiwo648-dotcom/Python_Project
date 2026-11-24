@@ -4,6 +4,7 @@ import { auth } from "../api";
 import { useData } from "../data";
 import { useSession } from "../session";
 import { ICONS } from "../icons";
+import { clearDeviceData, signOutWarning } from "../offline";
 import { canUse } from "../access";
 
 const NAV = [
@@ -34,6 +35,8 @@ const MORE_ALL = [
   { to: "/website", label: "Website" },
 ] as const;
 
+// `html` must always be a constant icon from ICONS below, never user or server data:
+// it is inserted as raw markup.
 const Svg = ({ html, className = "w-4 h-4 flex-shrink-0", sw = 2 }: { html: string; className?: string; sw?: number }) => (
   <svg className={className} aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={sw}
     strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: html }} />
@@ -76,10 +79,12 @@ export default function Layout() {
   }, [pending, pathname]);
 
   async function signOut() {
-    if (pending > 0 && !window.confirm(`${pending} change${pending === 1 ? " is" : "s are"} saved on this device but not sent yet. They stay on this device and are sent the next time you sign in with internet. Sign out now?`)) return;
+    const userId = user?.id;
+    if (pending > 0 && !window.confirm(signOutWarning(pending))) return;
     try {
       await auth.logout();
     } finally {
+      if (userId) await clearDeviceData(userId);
       await refresh();
       nav("/login", { replace: true });
     }

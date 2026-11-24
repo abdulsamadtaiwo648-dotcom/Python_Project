@@ -446,7 +446,16 @@ def dashboard(admin):
                 "SELECT COUNT(*) AS n FROM users WHERE is_test_account = 0 AND account_status = 'paused'"
             ),
         }
-    return render_template("dashboard.html", admin_email=admin["email"], metrics=metrics, cutoff=cutoff)
+    with get_db() as db:
+        flagged = db.execute(
+            "SELECT a.user_id, COUNT(*) AS refused, bp.company_name "
+            "FROM user_activity_logs a LEFT JOIN business_profiles bp ON bp.user_id = a.user_id "
+            "WHERE a.event_type = 'input_rejected' AND substr(a.created_at, 1, 10) >= ? "
+            "GROUP BY a.user_id, bp.company_name HAVING COUNT(*) >= ? ORDER BY refused DESC LIMIT 10",
+            (cutoff, REJECTED_INPUT_FLAG),
+        ).fetchall()
+    return render_template("dashboard.html", admin_email=admin["email"], metrics=metrics, cutoff=cutoff,
+                           flagged=flagged, flag_threshold=REJECTED_INPUT_FLAG)
 
 
 @admin_app.get("/users")
@@ -478,6 +487,10 @@ def users(admin):
             params + (page["limit"], page["offset"]),
         ).fetchall()
     return render_template("users.html", admin_email=admin["email"], users=rows, query=query, page=page)
+
+
+def cutoff_7d():
+    return (utcnow() - timedelta(days=6)).date().isoformat()
 
 
 def business_or_404(db, user_id):
@@ -593,6 +606,11 @@ def user_detail(admin, user_id):
                 f"AND event_type IN ({ACTIVITY_EVENTS_SQL})",
                 (user_id,),
             ).fetchone()["t"]
+            context["refused_7d"] = db.execute(
+                "SELECT COUNT(*) AS n FROM user_activity_logs WHERE user_id = ? AND event_type = 'input_rejected' "
+                "AND substr(created_at, 1, 10) >= ?",
+                (user_id, cutoff_7d()),
+            ).fetchone()["n"]
             context["audit"] = db.execute(
                 "SELECT a.action, a.reason, a.ticket_ref, a.created_at, s.email "
                 "FROM admin_audit_logs a JOIN super_admins s ON s.id = a.admin_id "
@@ -873,6 +891,7 @@ EVENT_LABELS = {
     "staff_added": "Staff member added",
     "staff_updated": "Staff member updated",
     "staff_removed": "Staff member removed",
+    "input_rejected": "Input refused",
 }
 
 # Filter groups for the User activity page. Values are constants, never user input.
@@ -887,7 +906,10 @@ EVENT_GROUPS = {
     "website": ("Website", ["website_published", "website_unpublished"]),
     "team": ("Team and alerts", ["staff_added", "staff_updated", "staff_removed",
                                  "push_enabled", "push_disabled"]),
+    "security": ("Refused input", ["input_rejected"]),
 }
+# Accounts with this many refused inputs in 7 days are flagged for review.
+REJECTED_INPUT_FLAG = 20
 
 
 def event_label(event_type):

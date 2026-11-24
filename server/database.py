@@ -905,6 +905,22 @@ def _request_telemetry_tables():
             "status INTEGER NOT NULL, duration_ms INTEGER NOT NULL)"
         )
         db.execute("CREATE INDEX IF NOT EXISTS idx_request_errors_created ON request_errors (created_at)")
+
+def _client_op_status_column():
+    """Migration 0005: offline operations are claimed (pending) before they are applied, then
+    marked done. Rows that already exist were applied, so they start as done."""
+    with get_db() as db:
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS client_ops ("
+            "user_id TEXT NOT NULL, op_id TEXT NOT NULL, created_at TEXT NOT NULL, "
+            "status TEXT NOT NULL DEFAULT 'done', PRIMARY KEY (user_id, op_id))"
+        )
+        if db.is_postgres:
+            db.execute("ALTER TABLE client_ops ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'done'")
+        else:
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(client_ops)").fetchall()}
+            if "status" not in columns:
+                db.execute("ALTER TABLE client_ops ADD COLUMN status TEXT NOT NULL DEFAULT 'done'")
         db.commit()
     return True
 
@@ -919,6 +935,7 @@ MIGRATIONS = [
     ("0002_drop_floor_tables", _drop_floor_tables),
     ("0003_user_test_account", _add_user_test_account),
     ("0004_request_telemetry", _request_telemetry_tables),
+    ("0005_client_op_status", _client_op_status_column),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time
