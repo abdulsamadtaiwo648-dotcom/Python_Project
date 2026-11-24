@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Platform report{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Platform report</p><h1>Platform summary</h1><p class="summary">Anonymised totals for SoloBiz. No business name, person, customer or single transaction is shown. Any figure built from fewer than 5 businesses is withheld.</p></div></div>
+
+<form class="toolbar" method="get" action="{{ url_for('platform_report_page') }}">
+  <label>From <input class="field" type="date" name="start" value="{{ start }}"></label>
+  <label>To <input class="field" type="date" name="end" value="{{ end }}"></label>
+  <label>Reason
+    <select class="field" name="purpose" required>
+      <option value="">Choose a reason</option>
+      {% for key, label in purposes.items() %}<option value="{{ key }}" {% if purpose == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Details (for Other)
+    <input class="field" name="note" value="{{ note }}" maxlength="120" placeholder="Describe the reason">
+  </label>
+  <button type="submit" class="primary">Show report</button>
+</form>
+
+{% if reason_needed %}
+<section class="notice warn">Choose a reason before the report is shown. Every view, download and print is recorded in the admin activity log with the reason.</section>
+{% else %}
+<p class="scope">Showing {{ start }} to {{ end }}. Viewing as: {{ reason }}.</p>
+<div class="toolbar" style="margin-top:8px">
+  <a class="button" href="{{ url_for('platform_report_csv', start=start, end=end, purpose=purpose, note=note) }}">Download CSV</a>
+  <a class="button" href="{{ url_for('platform_report_print', start=start, end=end, purpose=purpose, note=note) }}" target="_blank" rel="noopener">Printable view</a>
+</div>
+
+<section class="panel" style="padding:0;margin-top:14px">
+  <div class="table-wrap stack-mobile"><table>
+    <thead><tr><th>Figure</th><th>Value</th><th>What it counts</th></tr></thead>
+    <tbody>
+    {% for label, key, note in [
+      ("Businesses registered", "total_businesses", "All accounts, excluding test accounts"),
+      ("Businesses that signed in", "signed_in", "Signed in during the period"),
+      ("Active businesses", "active", "Sales on 3 or more different days in the 7 days to the end date"),
+      ("Active businesses as a share of all", "active_pct", "Active businesses divided by all businesses, in percent"),
+      ("Sales recorded", "sales_count", "Sales dated in the period"),
+      ("Total sales value", "sales_value", "Total of the sales dated in the period"),
+      ("Marked as received", "received", "Amounts entered as paid on those sales"),
+      ("Still owed", "owed", "Balances still outstanding on those sales"),
+      ("Businesses using stock tracking", "stock_tracking", "Currently tracking stock on at least one product"),
+      ("Businesses recording expenses", "recording_expenses", "Recorded at least one expense in the period")] %}
+      <tr>
+        <td data-label="Figure">{{ label }}</td>
+        <td data-label="Value">{% set v = report[key] %}{% if v is string %}{{ v }}{% elif key in ('sales_value','received','owed') %}₦{{ "{:,.2f}".format(v) }}{% elif key == 'active_pct' %}{{ v }}%{% else %}{{ "{:,}".format(v) }}{% endif %}</td>
+        <td data-label="What it counts" class="muted">{{ note }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="panel">
+  <h2>Active businesses, week by week</h2>
+  <p class="summary">Each row counts businesses with sales on 3 or more different days in the 7 days ending on that date, within the selected range.</p>
+  <div class="table-wrap stack-mobile" style="margin-top:12px"><table>
+    <thead><tr><th>Week ending</th><th>From</th><th>Active businesses</th></tr></thead>
+    <tbody>
+    {% for week in report.weeks %}
+      <tr><td data-label="Week ending">{{ week.end }}</td><td data-label="From">{{ week.start }}</td>
+        <td data-label="Active businesses">{% if week.active is string %}{{ week.active }}{% else %}{{ "{:,}".format(week.active) }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+<p class="scope">Small groups can still be worked out by comparing overlapping periods. Keep reports to the purpose chosen.</p>
+{% endif %}
+{% endblock %}

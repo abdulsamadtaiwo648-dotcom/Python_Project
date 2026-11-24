@@ -26,6 +26,28 @@
   </article>
 </section>
 
+<section class="metric-grid" style="margin-top:14px" aria-label="Business activity and sign-ups">
+  <article class="metric">
+    <div class="metric-label">Active, sales on 3+ days in 7 days</div>
+    <div class="metric-value">{{ metrics.active_3_days }}{% if metrics.active_3_days_pct is not none %} <span class="muted" style="font-size:14px">{{ metrics.active_3_days_pct }}%</span>{% endif %}</div>
+    <div class="metric-note">Of {{ metrics.total_businesses }} businesses. Test accounts excluded.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">New sign-ups, last 7 days</div>
+    <div class="metric-value">{{ metrics.signups_7d }}</div>
+    <div class="metric-note">Accounts created in the last 7 days.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">New sign-ups, last 30 days</div>
+    <div class="metric-value">{{ metrics.signups_30d }}</div>
+    <div class="metric-note">Accounts created in the last 30 days.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Platform report</div>
+    <div class="metric-value" style="font-size:15px"><a class="link" href="{{ url_for('platform_report_page') }}">Open anonymised report</a></div>
+    <div class="metric-note">Totals only. Each view is logged.</div>
+  </article>
+</section>
 <section class="panel" aria-label="Sign-ins compared with activity">
   <h2>Sign-ins compared with activity</h2>
   <p class="summary">Signing in is not counted as use. A business that only signs in is shown here, but not in the active count above.</p>

@@ -100,6 +100,7 @@
       <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>Overview</a>
       <a href="{{ url_for('users') }}" {% if request.endpoint in ('users', 'user_detail') %}aria-current="page"{% endif %}>Businesses</a>
       {% if admin_role in ('Owner', 'Support') %}<a href="{{ url_for('user_activity') }}" {% if request.endpoint == 'user_activity' %}aria-current="page"{% endif %}>User activity</a>{% endif %}
+      <a href="{{ url_for('platform_report_page') }}" {% if request.endpoint == 'platform_report_page' %}aria-current="page"{% endif %}>Platform report</a>
       <a href="{{ url_for('system_status') }}" {% if request.endpoint == 'system_status' %}aria-current="page"{% endif %}>System status</a>
       {% if admin_role in ('Owner', 'Support') %}<a href="{{ url_for('activity') }}" {% if request.endpoint == 'activity' %}aria-current="page"{% endif %}>Admin activity</a>{% endif %}
       {% if admin_role == 'Owner' %}<a href="{{ url_for('admins') }}" {% if request.endpoint == 'admins' %}aria-current="page"{% endif %}>Admins</a>{% endif %}
