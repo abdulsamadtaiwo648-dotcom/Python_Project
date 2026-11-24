@@ -1,21 +1,41 @@
 {% extends "base.html" %}
 {% block title %}Overview{% endblock %}
 {% block content %}
-<div class="heading"><div><p class="eyebrow">Platform overview</p><h1>Business activity</h1><p class="summary">A view of activity across SoloBiz.</p></div></div>
-<section class="metric-grid" aria-label="Platform totals">
-  <article class="metric"><div class="metric-label">Registered accounts</div><div class="metric-value">{{ metrics.users }}</div><div class="metric-note">{{ metrics.businesses }} business profiles</div></article>
-  <article class="metric"><div class="metric-label">Sales recorded</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.sales) }}</div><div class="metric-note">All recorded sales</div></article>
-  <article class="metric"><div class="metric-label">Payments collected</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.collected) }}</div><div class="metric-note">₦{{ "{:,.2f}".format(metrics.outstanding) }} outstanding</div></article>
-  <article class="metric"><div class="metric-label">Expenses recorded</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.expenses) }}</div><div class="metric-note">Across all accounts</div></article>
+<div class="heading"><div><p class="eyebrow">Adoption</p><h1>Platform overview</h1><p class="summary">How many businesses are registered and using SoloBiz. Test accounts are excluded everywhere on this page.</p></div></div>
+
+<section class="metric-grid" aria-label="Adoption">
+  <article class="metric">
+    <div class="metric-label">Registered accounts</div>
+    <div class="metric-value">{{ metrics.accounts }}</div>
+    <div class="metric-note">Every sign-up except accounts marked as test accounts ({{ metrics.test_accounts }} marked).</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Business profiles</div>
+    <div class="metric-value">{{ metrics.profiles }}</div>
+    <div class="metric-note">Accounts that have saved a business name.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Active businesses, last 7 days</div>
+    <div class="metric-value">{{ metrics.active_7d }}</div>
+    <div class="metric-note">Businesses that recorded a sale, expense or inventory change since {{ cutoff }}. Each business is counted once.</div>
+  </article>
+  <article class="metric">
+    <div class="metric-label">Paused accounts</div>
+    <div class="metric-value">{{ metrics.paused }}</div>
+    <div class="metric-note"><a class="link" href="{{ url_for('users') }}">Review businesses</a></div>
+  </article>
 </section>
-<section class="metric-grid" style="margin-top:14px" aria-label="Current month and account status">
-  <article class="metric"><div class="metric-label">Collected this month</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.month_sales) }}</div></article>
-  <article class="metric"><div class="metric-label">Expenses this month</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.month_expenses) }}</div></article>
-  <article class="metric"><div class="metric-label">Net cash movement this month</div><div class="metric-value">₦{{ "{:,.2f}".format(metrics.month_sales - metrics.month_expenses) }}</div></article>
-  <article class="metric"><div class="metric-label">Paused accounts</div><div class="metric-value">{{ metrics.paused }}</div><div class="metric-note"><a class="link" href="{{ url_for('users') }}">Review accounts</a></div></article>
+
+<section class="panel" aria-label="Sign-ins compared with activity">
+  <h2>Sign-ins compared with activity</h2>
+  <p class="summary">Signing in is not counted as use. A business that only signs in is shown here, but not in the active count above.</p>
+  <dl class="key-value" style="margin-top:14px">
+    <dt>Signed in, last 7 days</dt><dd>{{ metrics.signed_in_7d }} businesses (not counted as active)</dd>
+    <dt>Active, last 7 days</dt><dd>{{ metrics.active_7d }} businesses (counted)</dd>
+  </dl>
 </section>
-<section class="panel"><div class="heading" style="margin-bottom:10px"><div><h2>Recent user activity</h2><p class="summary">Sign-ins, password changes, transactions and business profile requests.</p></div><a class="link" href="{{ url_for('user_activity') }}">View all activity</a></div>
-{% if metrics.recent_user_activity %}<div class="activity-list">{% for item in metrics.recent_user_activity %}<div class="activity-item"><span><a class="link" href="{{ url_for('user_detail', user_id=item.user_id) }}">{{ item.company_name or (((item.first_name or '') ~ ' ' ~ (item.last_name or ''))|trim) or item.email }}</a><span class="muted"> · {{ item.summary }}</span></span><time class="muted">{{ item.created_at }}</time></div>{% endfor %}</div>{% else %}<p class="muted">No user activity has been recorded yet.</p>{% endif %}</section>
-<section class="panel"><div class="heading" style="margin-bottom:10px"><div><h2>Recent admin activity</h2><p class="summary">Account actions performed in this portal.</p></div><a class="link" href="{{ url_for('activity') }}">View activity</a></div>
-{% if metrics.recent_activity %}<div class="activity-list">{% for item in metrics.recent_activity %}<div class="activity-item"><span>{{ item.action }} · {{ item.target_type }}{% if item.target_id %} {{ item.target_id }}{% endif %}{% if item.reason %}<span class="muted"> — {{ item.reason }}</span>{% endif %}</span><time class="muted">{{ item.created_at }}</time></div>{% endfor %}</div>{% else %}<p class="muted">No admin actions recorded yet.</p>{% endif %}</section>
+
+<section class="notice" aria-label="About these figures">
+  Sales, expense and cash totals across all businesses are not shown on this page. Those amounts belong to merchants, not SoloBiz. Open a business to see its own records, with a support reason.
+</section>
 {% endblock %}

@@ -1,10 +1,59 @@
 {% extends "base.html" %}
 {% block title %}Businesses{% endblock %}
 {% block content %}
-<div class="heading"><div><p class="eyebrow">Accounts</p><h1>Businesses</h1><p class="summary">Find an account, review its business information and recorded activity.</p></div></div>
-<form class="toolbar" method="get"><input type="search" name="q" value="{{ query }}" placeholder="Search name or email" aria-label="Search name or email"><button class="primary" type="submit">Search</button>{% if query %}<a class="button" href="{{ url_for('users') }}">Clear</a>{% endif %}</form>
-<section class="panel"><div class="table-wrap"><table><thead><tr><th>Business or account</th><th>Email</th><th>Last sign-in</th><th>Access</th><th></th></tr></thead><tbody>
-{% for user in users %}<tr><td>{{ user.company_name or ((user.first_name or '') ~ ' ' ~ (user.last_name or '')) or 'Business profile not set' }}</td><td>{{ user.email }}</td><td>{{ user.last_login or 'Never' }}</td><td><span class="pill {% if user.account_status != 'active' %}paused{% endif %}">{{ user.account_status|capitalize }}</span></td><td><a class="link" href="{{ url_for('user_detail', user_id=user.id) }}">View account</a></td></tr>
-{% else %}<tr><td colspan="4" class="empty">No matching accounts found.</td></tr>{% endfor %}
-</tbody></table></div><p class="muted" style="font-size:12px">Showing up to 200 matching accounts.</p></section>
+<div class="heading"><div><p class="eyebrow">Support</p><h1>Businesses</h1><p class="summary">Search by business name, person name or email. Email addresses are shown on each business's own page.</p></div></div>
+
+<form class="toolbar" method="get" action="{{ url_for('users') }}" role="search">
+  <label>Search
+    <input class="field" type="search" name="q" value="{{ query }}" placeholder="Business, name or email" maxlength="120" style="min-width:300px">
+  </label>
+  <button type="submit" class="primary">Search</button>
+  {% if query %}<a class="button" href="{{ url_for('users') }}">Clear</a>{% endif %}
+</form>
+
+<section class="panel" style="padding:0">
+  {% if users %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Business</th>
+          <th scope="col">Profile</th>
+          <th scope="col">Last sign-in</th>
+          <th scope="col">Last business activity</th>
+          <th scope="col">Access</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in users %}
+        <tr>
+          <td>
+            <a class="link" href="{{ url_for('user_detail', user_id=row.id) }}">{{ row.company_name or 'Unnamed business' }}</a>
+            {% if row.is_test_account %}<span class="pill test" title="Excluded from adoption figures">Test account</span>{% endif %}
+          </td>
+          <td>{% if row.company_name %}<span class="pill neutral">Profile added</span>{% else %}<span class="muted">No profile yet</span>{% endif %}</td>
+          <td>{{ row.last_sign_in or 'Never' }}</td>
+          <td>{{ row.last_activity or 'No activity recorded' }}</td>
+          <td>{% if row.account_status == 'paused' %}<span class="pill paused">Paused</span>{% else %}<span class="pill">Access enabled</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">{% if query %}No businesses match “{{ query }}”.{% else %}No businesses have registered yet.{% endif %}</p>
+  {% endif %}
+</section>
+
+{% if page.pages > 1 %}
+<nav class="pager" aria-label="Pages">
+  <span>{{ page.total }} businesses · page {{ page.page }} of {{ page.pages }}</span>
+  <span>
+    {% if page.has_prev %}<a href="{{ page_link(page.page - 1) }}">Previous</a>{% endif %}
+    {% if page.has_prev and page.has_next %} · {% endif %}
+    {% if page.has_next %}<a href="{{ page_link(page.page + 1) }}">Next</a>{% endif %}
+  </span>
+</nav>
+{% endif %}
+<p class="scope">Last business activity counts sales, expenses and inventory changes only. Sign-ins are shown separately.</p>
 {% endblock %}

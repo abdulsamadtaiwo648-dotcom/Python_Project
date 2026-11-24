@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Error</p><h1>This page could not be loaded</h1><p class="summary">Nothing was changed. Try again in a moment. If it keeps happening, check the admin service logs.</p></div></div>
+<p><a class="link" href="{{ url_for('dashboard') }}">Return to overview</a></p>
+{% endblock %}

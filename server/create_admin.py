@@ -16,7 +16,13 @@ def main():
     parser.add_argument(
         "action", nargs="?", choices=("create", "reset", "disable", "enable", "check"), default="create"
     )
-    action = parser.parse_args().action
+    parser.add_argument(
+        "--role", choices=("owner", "support", "viewer"), default="owner",
+        help="Role for a new account: owner manages admins, support handles records and accounts, "
+             "viewer sees overview and business status only. Ignored for other actions.",
+    )
+    args = parser.parse_args()
+    action = args.action
     database_url = os.environ.get("DATABASE_URL", "").strip()
     if database_url and not HAS_PSYCOPG2:
         print(
@@ -68,8 +74,8 @@ def main():
                 return 1
             if action == "create":
                 db.execute(
-                    "INSERT INTO super_admins (email, password_hash) VALUES (?, ?)",
-                    (email, password_hash),
+                    "INSERT INTO super_admins (email, password_hash, role) VALUES (?, ?, ?)",
+                    (email, password_hash, args.role),
                 )
                 target = db.execute(
                     "SELECT id FROM super_admins WHERE LOWER(email) = LOWER(?)", (email,)
@@ -110,7 +116,7 @@ def main():
         return 1
 
     messages = {
-        "create": f"Super-admin account created for {email}.",
+        "create": f"Super-admin account created for {email} with the {args.role} role.",
         "reset": f"Super-admin password reset for {email}.",
         "disable": f"Super-admin access disabled for {email}.",
         "enable": f"Super-admin access enabled for {email}.",

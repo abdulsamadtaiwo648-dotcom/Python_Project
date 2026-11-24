@@ -1,16 +1,29 @@
-"""Standalone Flask application for the SoloBiz super-admin portal."""
+"""Standalone Flask application for the SoloBiz internal admin portal.
 
-import hmac
+Access model
+------------
+* Every route declares the roles allowed to use it, and the check runs here on the
+  server. Hiding a link in the page is not a control.
+* Roles are read from the database on every request, so a role change or a
+  deactivation takes effect immediately.
+* Detailed merchant records (sales, expenses, activity) need a role that allows
+  them AND an open support grant for that one business. The grant needs a ticket
+  reference and a reason, and lasts 20 minutes. A reason alone never grants access.
+* Every detailed view, every grant, and every change to account access is written
+  to the admin audit log with the admin, the business, the reason and the ticket.
+"""
+
 import hashlib
+import hmac
 import logging
 import os
+import re
 import secrets
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from urllib.parse import urlsplit
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from .database import get_db, init_admin_db
@@ -47,17 +60,27 @@ admin_app.config.update(
 
 init_admin_db()
 
-ACCESS_PURPOSES = {
-    "support": "Customer support",
-    "security": "Security review",
-    "operations": "Service operations",
-    "legal": "Legal request",
-    "other": "Other",
+ROLE_LABELS = {
+    "owner": "Owner",
+    "support": "Support",
+    "viewer": "Viewer",
 }
-SENSITIVE_ENDPOINTS = {
-    "dashboard", "users", "user_detail", "update_user_status",
-    "sales", "expenses", "activity", "user_activity",
-}
+ROLES = tuple(ROLE_LABELS)
+
+# Activity that counts as a business using SoloBiz. A sign-in does not.
+ACTIVITY_EVENTS = (
+    "sale_created", "sale_deleted", "sale_payment_updated",
+    "expense_created", "expense_updated", "expense_deleted",
+    "inventory_item_created", "inventory_item_updated", "inventory_item_deleted",
+)
+ACTIVITY_EVENTS_SQL = ",".join(f"'{event}'" for event in ACTIVITY_EVENTS)  # constants only
+
+GRANT_MINUTES = 20
+TICKET_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_\-/.#]{2,39}")
+DIRECTORY_PAGE_SIZE = 25
+RECORDS_PAGE_SIZE = 50
+TABS = ("overview", "sales", "expenses", "activity")
+
 ADMIN_LOGIN_WINDOW = timedelta(minutes=15)
 ADMIN_LOGIN_LOCKOUT = timedelta(minutes=15)
 ADMIN_LOGIN_MAX_ATTEMPTS = 5
@@ -78,6 +101,37 @@ def parse_utc(value):
     except (TypeError, ValueError):
         return None
 
+
+def parse_day(value):
+    """A YYYY-MM-DD date from user input, or '' when it is not a date."""
+    try:
+        return date.fromisoformat((value or "").strip()[:10]).isoformat()
+    except ValueError:
+        return ""
+
+
+def page_number():
+    try:
+        return max(1, int(request.args.get("page", "1")))
+    except ValueError:
+        return 1
+
+
+def pager(total, page, per_page):
+    pages = max(1, -(-total // per_page))
+    page = min(page, pages)
+    return {
+        "page": page,
+        "pages": pages,
+        "total": total,
+        "offset": (page - 1) * per_page,
+        "limit": per_page,
+        "has_prev": page > 1,
+        "has_next": page < pages,
+    }
+
+
+# --- Login throttling -------------------------------------------------------
 
 def admin_login_fingerprint(email):
     normalized = (email or "").strip().lower().encode("utf-8")
@@ -137,43 +191,75 @@ def clear_admin_login_failures(email):
         )
 
 
-def access_purpose_text():
-    access = session.get("admin_data_access") or {}
-    purpose = access.get("purpose", "")
-    if purpose == "other":
-        return f"Other: {access.get('note', '')}"[:140]
-    return ACCESS_PURPOSES.get(purpose, "Not provided")
+# --- Audit ------------------------------------------------------------------
 
-
-def log_sensitive_view(db, admin, action, target_type, target_id=None, count=None):
-    details = f"Purpose: {access_purpose_text()}"
-    if count is not None:
-        details += f"; records shown: {count}"
-    log_admin_action(db, admin["id"], action, target_type, target_id, details)
-
-
-def log_admin_action(db, admin_id, action, target_type, target_id=None, reason=None):
-    cutoff = (utcnow() - timedelta(days=365)).date().isoformat()
+def log_admin_action(db, admin_id, action, target_type, target_id=None, reason=None, ticket_ref=None):
+    cutoff = (utcnow() - timedelta(days=AUDIT_RETENTION_DAYS)).date().isoformat()
     db.execute("DELETE FROM admin_audit_logs WHERE created_at < ?", (cutoff,))
     db.execute(
-        "INSERT INTO admin_audit_logs (admin_id, action, target_type, target_id, reason) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (admin_id, action, target_type, str(target_id) if target_id is not None else None, reason),
+        "INSERT INTO admin_audit_logs (admin_id, action, target_type, target_id, reason, ticket_ref) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            admin_id, action[:120], target_type,
+            str(target_id) if target_id is not None else None,
+            (reason or "")[:300] or None,
+            (ticket_ref or "")[:40] or None,
+        ),
     )
 
 
+# --- Support grants (per business, time limited) ----------------------------
+
+def active_grant(user_id):
+    grants = session.get("admin_grants") or {}
+    grant = grants.get(str(user_id))
+    if not grant:
+        return None
+    expires = parse_utc(grant.get("expires_at"))
+    if not expires or expires <= utcnow():
+        return None
+    return grant
+
+
+def store_grant(user_id, ticket, reason):
+    now = utcnow()
+    grants = {
+        key: value for key, value in (session.get("admin_grants") or {}).items()
+        if (parse_utc(value.get("expires_at")) or now) > now
+    }
+    grants[str(user_id)] = {
+        "ticket": ticket,
+        "reason": reason,
+        "expires_at": (now + timedelta(minutes=GRANT_MINUTES)).isoformat(),
+    }
+    session["admin_grants"] = grants
+
+
+def drop_grant(user_id):
+    grants = dict(session.get("admin_grants") or {})
+    grants.pop(str(user_id), None)
+    session["admin_grants"] = grants
+
+
+# --- Request hooks ----------------------------------------------------------
+
 @admin_app.context_processor
-def inject_csrf_token():
+def inject_context():
     token = session.get("admin_csrf_token")
     if not token:
         token = secrets.token_urlsafe(32)
         session["admin_csrf_token"] = token
-    access = session.get("admin_data_access") or {}
-    purpose = access.get("purpose", "")
-    purpose_label = ACCESS_PURPOSES.get(purpose, "Not selected")
-    if purpose == "other" and access.get("note"):
-        purpose_label = f"Other: {access['note']}"
-    return {"csrf_token": token, "data_access_purpose": purpose_label}
+    def page_link(number):
+        args = dict(request.view_args or {})
+        args.update(request.args.to_dict())
+        args["page"] = number
+        return url_for(request.endpoint, **args)
+
+    return {
+        "csrf_token": token,
+        "admin_role": ROLE_LABELS.get(session.get("admin_role", ""), ""),
+        "page_link": page_link,
+    }
 
 
 @admin_app.before_request
@@ -185,19 +271,6 @@ def protect_post_requests():
     if not expected or not hmac.compare_digest(expected, supplied):
         return "Invalid request token. Refresh the page and try again.", 400
     return None
-
-
-@admin_app.before_request
-def require_data_access_purpose():
-    if request.endpoint not in SENSITIVE_ENDPOINTS or not session.get("super_admin_id"):
-        return None
-    access = session.get("admin_data_access") or {}
-    expires = parse_utc(access.get("expires_at"))
-    if access.get("purpose") in ACCESS_PURPOSES and expires and expires > utcnow():
-        return None
-    session.pop("admin_data_access", None)
-    target = request.full_path.rstrip("?")
-    return redirect(url_for("access_purpose", next=target))
 
 
 @admin_app.before_request
@@ -229,7 +302,10 @@ def protect_admin_responses(response):
     return response
 
 
+# --- Authorisation ----------------------------------------------------------
+
 def require_super_admin(view):
+    """Loads the signed-in admin fresh from the database and checks the session is current."""
     @wraps(view)
     def wrapped(*args, **kwargs):
         admin_id = session.get("super_admin_id")
@@ -238,7 +314,7 @@ def require_super_admin(view):
         try:
             with get_db() as db:
                 admin = db.execute(
-                    "SELECT id, email, session_version FROM super_admins "
+                    "SELECT id, email, role, session_version FROM super_admins "
                     "WHERE id = ? AND is_active = 1",
                     (admin_id,),
                 ).fetchone()
@@ -248,10 +324,31 @@ def require_super_admin(view):
         if not admin or admin["session_version"] != session.get("admin_session_version"):
             session.clear()
             return redirect(url_for("login"))
+        session["admin_role"] = admin["role"]
         return view(admin, *args, **kwargs)
 
     return wrapped
 
+
+def require_roles(*roles):
+    """Allows the view only for the listed roles. Checked on every request."""
+    def decorator(view):
+        @require_super_admin
+        def checked(admin, *args, **kwargs):
+            if admin["role"] not in roles:
+                return render_template("forbidden.html", admin_email=admin["email"]), 403
+            return view(admin, *args, **kwargs)
+
+        return wraps(view)(checked)
+
+    return decorator
+
+
+ANY_ROLE = ("owner", "support", "viewer")
+SUPPORT_ROLES = ("owner", "support")
+
+
+# --- Routes -----------------------------------------------------------------
 
 @admin_app.get("/")
 def home():
@@ -265,27 +362,6 @@ def safe_admin_return_path(value):
     if parsed.scheme or parsed.netloc or not parsed.path.startswith("/") or parsed.path.startswith("//") or "\\" in parsed.path:
         return url_for("dashboard")
     return value
-
-
-@admin_app.route("/access-purpose", methods=["GET", "POST"])
-@require_super_admin
-def access_purpose(admin):
-    next_path = safe_admin_return_path(request.values.get("next", ""))
-    if request.method == "POST":
-        purpose = request.form.get("purpose", "").strip()
-        note = request.form.get("note", "").strip()
-        if purpose not in ACCESS_PURPOSES or (purpose == "other" and not 5 <= len(note) <= 120):
-            flash("Choose a purpose and add a short note when selecting Other.", "error")
-        else:
-            session["admin_data_access"] = {
-                "purpose": purpose,
-                "note": note[:120] if purpose == "other" else "",
-                "expires_at": (utcnow() + timedelta(minutes=20)).isoformat(),
-            }
-            return redirect(next_path)
-    return render_template(
-        "access_purpose.html", admin_email=admin["email"], next_path=next_path,
-    )
 
 
 @admin_app.route("/login", methods=["GET", "POST"])
@@ -302,7 +378,7 @@ def login():
                 return render_template("login.html"), 429
             with get_db() as db:
                 admin = db.execute(
-                    "SELECT id, email, password_hash, session_version FROM super_admins "
+                    "SELECT id, email, password_hash, role, session_version FROM super_admins "
                     "WHERE LOWER(email) = LOWER(?) AND is_active = 1",
                     (email,),
                 ).fetchone()
@@ -310,9 +386,11 @@ def login():
                 clear_admin_login_failures(email)
                 with get_db() as db:
                     log_admin_action(db, admin["id"], "signed in", "admin", admin["id"])
+                    db.commit()
                 session.clear()
                 session["super_admin_id"] = admin["id"]
                 session["admin_session_version"] = admin["session_version"]
+                session["admin_role"] = admin["role"]
                 session.permanent = True
                 return redirect(url_for("dashboard"))
             record_admin_login_failure(email)
@@ -322,111 +400,260 @@ def login():
     return render_template("login.html")
 
 
+@admin_app.post("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @admin_app.get("/dashboard")
-@require_super_admin
+@require_roles(*ANY_ROLE)
 def dashboard(admin):
-    current_month = datetime.now().strftime("%Y-%m")
+    cutoff = (utcnow() - timedelta(days=6)).date().isoformat()  # 7 calendar days, including today
     with get_db() as db:
+        def count(sql, params=()):
+            return db.execute(sql, params).fetchone()["n"]
+
         metrics = {
-            "users": db.execute("SELECT COUNT(*) AS total FROM users").fetchone()["total"],
-            "businesses": db.execute("SELECT COUNT(*) AS total FROM business_profiles").fetchone()["total"],
-            "sales": db.execute("SELECT COALESCE(SUM(total_value), 0) AS total FROM income").fetchone()["total"],
-            "collected": db.execute("SELECT COALESCE(SUM(amount_paid), 0) AS total FROM income").fetchone()["total"],
-            "outstanding": db.execute(
-                "SELECT COALESCE(SUM(CASE WHEN total_value > amount_paid "
-                "THEN total_value - amount_paid ELSE 0 END), 0) AS total FROM income"
-            ).fetchone()["total"],
-            "expenses": db.execute("SELECT COALESCE(SUM(amount), 0) AS total FROM expenses").fetchone()["total"],
-            "month_sales": db.execute(
-                "SELECT COALESCE(SUM(amount_paid), 0) AS total FROM income WHERE date LIKE ?",
-                (f"{current_month}%",),
-            ).fetchone()["total"],
-            "month_expenses": db.execute(
-                "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE date LIKE ?",
-                (f"{current_month}%",),
-            ).fetchone()["total"],
-            "paused": db.execute(
-                "SELECT COUNT(*) AS total FROM users WHERE account_status = 'paused'"
-            ).fetchone()["total"],
-            "recent_activity": db.execute(
-                "SELECT action, target_type, target_id, reason, created_at "
-                "FROM admin_audit_logs ORDER BY id DESC LIMIT 6"
-            ).fetchall(),
-            "recent_user_activity": db.execute(
-                "SELECT a.user_id, a.event_type, a.summary, a.created_at, "
-                "u.email, u.first_name, u.last_name, bp.company_name "
-                "FROM user_activity_logs a JOIN users u ON u.id = a.user_id "
-                "LEFT JOIN business_profiles bp ON bp.user_id = u.id "
-                "ORDER BY a.id DESC LIMIT 10"
-            ).fetchall(),
+            "accounts": count("SELECT COUNT(*) AS n FROM users WHERE is_test_account = 0"),
+            "test_accounts": count("SELECT COUNT(*) AS n FROM users WHERE is_test_account = 1"),
+            "profiles": count(
+                "SELECT COUNT(*) AS n FROM business_profiles bp JOIN users u ON u.id = bp.user_id "
+                "WHERE u.is_test_account = 0 AND COALESCE(bp.company_name, '') <> ''"
+            ),
+            "active_7d": count(
+                "SELECT COUNT(DISTINCT a.user_id) AS n FROM user_activity_logs a "
+                "JOIN users u ON u.id = a.user_id "
+                f"WHERE u.is_test_account = 0 AND a.event_type IN ({ACTIVITY_EVENTS_SQL}) "
+                "AND substr(a.created_at, 1, 10) >= ?",
+                (cutoff,),
+            ),
+            "signed_in_7d": count(
+                "SELECT COUNT(DISTINCT a.user_id) AS n FROM user_activity_logs a "
+                "JOIN users u ON u.id = a.user_id "
+                "WHERE u.is_test_account = 0 AND a.event_type = 'sign_in' "
+                "AND substr(a.created_at, 1, 10) >= ?",
+                (cutoff,),
+            ),
+            "paused": count(
+                "SELECT COUNT(*) AS n FROM users WHERE is_test_account = 0 AND account_status = 'paused'"
+            ),
         }
-        log_sensitive_view(db, admin, "viewed platform overview", "analytics")
-        db.commit()
-    return render_template("dashboard.html", admin_email=admin["email"], metrics=metrics)
+    return render_template("dashboard.html", admin_email=admin["email"], metrics=metrics, cutoff=cutoff)
 
 
 @admin_app.get("/users")
-@require_super_admin
+@require_roles(*ANY_ROLE)
 def users(admin):
     query = request.args.get("q", "").strip()[:120]
     pattern = f"%{query}%"
+    where = (
+        "(? = '' OR LOWER(u.email) LIKE LOWER(?) "
+        "OR LOWER(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) LIKE LOWER(?) "
+        "OR LOWER(COALESCE(bp.company_name, '')) LIKE LOWER(?))"
+    )
+    params = (query, pattern, pattern, pattern)
     with get_db() as db:
+        total = db.execute(
+            "SELECT COUNT(*) AS n FROM users u LEFT JOIN business_profiles bp ON bp.user_id = u.id "
+            f"WHERE {where}",
+            params,
+        ).fetchone()["n"]
+        page = pager(total, page_number(), DIRECTORY_PAGE_SIZE)
         rows = db.execute(
-            "SELECT u.id, u.email, u.first_name, u.last_name, u.account_status, bp.company_name, "
+            "SELECT u.id, u.email, u.account_status, u.is_test_account, bp.company_name, "
             "(SELECT MAX(a.created_at) FROM user_activity_logs a "
-            "WHERE a.user_id = u.id AND a.event_type = 'sign_in') AS last_login "
+            " WHERE a.user_id = u.id AND a.event_type = 'sign_in') AS last_sign_in, "
+            "(SELECT MAX(a.created_at) FROM user_activity_logs a "
+            " WHERE a.user_id = u.id AND a.event_type IN (" + ACTIVITY_EVENTS_SQL + ")) AS last_activity "
             "FROM users u LEFT JOIN business_profiles bp ON bp.user_id = u.id "
-            "WHERE (? = '' OR LOWER(u.email) LIKE LOWER(?) "
-            "OR LOWER(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) LIKE LOWER(?) "
-            "OR LOWER(COALESCE(bp.company_name, '')) LIKE LOWER(?)) "
-            "ORDER BY u.id DESC LIMIT 200",
-            (query, pattern, pattern, pattern),
+            f"WHERE {where} ORDER BY u.id DESC LIMIT ? OFFSET ?",
+            params + (page["limit"], page["offset"]),
         ).fetchall()
-        log_sensitive_view(db, admin, "viewed business directory", "business_directory", count=len(rows))
-        db.commit()
-    return render_template("users.html", admin_email=admin["email"], users=rows, query=query)
+    return render_template("users.html", admin_email=admin["email"], users=rows, query=query, page=page)
+
+
+def business_or_404(db, user_id):
+    return db.execute(
+        "SELECT u.id, u.email, u.first_name, u.last_name, u.account_status, u.is_test_account, "
+        "bp.company_name, bp.business_phone, bp.business_address, bp.store_slug "
+        "FROM users u LEFT JOIN business_profiles bp ON bp.user_id = u.id WHERE u.id = ?",
+        (user_id,),
+    ).fetchone()
+
+
+def sales_records(db, user_id, start, end, page):
+    where = ["i.user_id = ?"]
+    params = [user_id]
+    if start:
+        where.append("substr(i.date, 1, 10) >= ?")
+        params.append(start)
+    if end:
+        where.append("substr(i.date, 1, 10) <= ?")
+        params.append(end)
+    clause = " AND ".join(where)
+    summary = db.execute(
+        "SELECT COUNT(*) AS n, COALESCE(SUM(i.total_value), 0) AS total, "
+        "COALESCE(SUM(i.amount_paid), 0) AS received, "
+        "COALESCE(SUM(CASE WHEN i.total_value > i.amount_paid THEN i.total_value - i.amount_paid ELSE 0 END), 0) AS outstanding "
+        f"FROM income i WHERE {clause}",
+        params,
+    ).fetchone()
+    pg = pager(summary["n"], page, RECORDS_PAGE_SIZE)
+    rows = db.execute(
+        "SELECT i.id, i.description, i.customer_name, i.total_value, i.amount_paid, "
+        "i.payment_mode, i.date, i.receipt_id "
+        f"FROM income i WHERE {clause} ORDER BY i.id DESC LIMIT ? OFFSET ?",
+        params + [pg["limit"], pg["offset"]],
+    ).fetchall()
+    return {"summary": summary, "rows": rows, "page": pg}
+
+
+def expense_records(db, user_id, start, end, page):
+    where = ["e.user_id = ?"]
+    params = [user_id]
+    if start:
+        where.append("substr(e.date, 1, 10) >= ?")
+        params.append(start)
+    if end:
+        where.append("substr(e.date, 1, 10) <= ?")
+        params.append(end)
+    clause = " AND ".join(where)
+    summary = db.execute(
+        f"SELECT COUNT(*) AS n, COALESCE(SUM(e.amount), 0) AS total FROM expenses e WHERE {clause}",
+        params,
+    ).fetchone()
+    pg = pager(summary["n"], page, RECORDS_PAGE_SIZE)
+    rows = db.execute(
+        "SELECT e.id, e.category, e.description, e.amount, e.date "
+        f"FROM expenses e WHERE {clause} ORDER BY e.id DESC LIMIT ? OFFSET ?",
+        params + [pg["limit"], pg["offset"]],
+    ).fetchall()
+    return {"summary": summary, "rows": rows, "page": pg}
+
+
+def activity_records(db, user_id, start, end, page):
+    where = ["a.user_id = ?"]
+    params = [user_id]
+    if start:
+        where.append("substr(a.created_at, 1, 10) >= ?")
+        params.append(start)
+    if end:
+        where.append("substr(a.created_at, 1, 10) <= ?")
+        params.append(end)
+    clause = " AND ".join(where)
+    total = db.execute(f"SELECT COUNT(*) AS n FROM user_activity_logs a WHERE {clause}", params).fetchone()["n"]
+    pg = pager(total, page, RECORDS_PAGE_SIZE)
+    rows = db.execute(
+        "SELECT a.event_type, a.summary, a.created_at FROM user_activity_logs a "
+        f"WHERE {clause} ORDER BY a.id DESC LIMIT ? OFFSET ?",
+        params + [pg["limit"], pg["offset"]],
+    ).fetchall()
+    return {"summary": {"n": total}, "rows": rows, "page": pg}
+
+
+RECORD_TABS = {
+    "sales": ("viewed sales records", sales_records),
+    "expenses": ("viewed expense records", expense_records),
+    "activity": ("viewed business activity", activity_records),
+}
 
 
 @admin_app.get("/users/<user_id>")
-@require_super_admin
+@require_roles(*ANY_ROLE)
 def user_detail(admin, user_id):
+    tab = request.args.get("tab", "overview")
+    if tab not in TABS:
+        tab = "overview"
+    start = parse_day(request.args.get("from"))
+    end = parse_day(request.args.get("to"))
+    page = page_number()
     with get_db() as db:
-        user = db.execute(
-            "SELECT u.id, u.email, u.first_name, u.last_name, u.account_status, "
-            "bp.company_name, bp.business_phone, bp.business_address, bp.store_slug "
-            "FROM users u LEFT JOIN business_profiles bp ON bp.user_id = u.id WHERE u.id = ?",
-            (user_id,),
-        ).fetchone()
-        if not user:
+        business = business_or_404(db, user_id)
+        if not business:
             return render_template("not_found.html"), 404
-        sales = db.execute(
-            "SELECT id, description, total_value, amount_paid, date "
-            "FROM income WHERE user_id = ? ORDER BY id DESC LIMIT 100", (user_id,)
-        ).fetchall()
-        expenses = db.execute(
-            "SELECT id, category, description, amount, date "
-            "FROM expenses WHERE user_id = ? ORDER BY id DESC LIMIT 100", (user_id,)
-        ).fetchall()
-        user_activity = db.execute(
-            "SELECT event_type, summary, created_at FROM user_activity_logs "
-            "WHERE user_id = ? ORDER BY id DESC LIMIT 100", (user_id,)
-        ).fetchall()
-        log_sensitive_view(
-            db, admin, "viewed business account and transactions", "user", user_id,
-            count=len(sales) + len(expenses) + len(user_activity),
-        )
-        audit = db.execute(
-            "SELECT action, reason, created_at FROM admin_audit_logs "
-            "WHERE target_type = 'user' AND target_id = ? ORDER BY id DESC LIMIT 20", (user_id,)
-        ).fetchall()
-    return render_template(
-        "user_detail.html", admin_email=admin["email"], user=user,
-        sales=sales, expenses=expenses, user_activity=user_activity, audit=audit,
-    )
+        context = {
+            "admin_email": admin["email"], "business": business, "tab": tab,
+            "date_from": start, "date_to": end, "grant": None, "locked": None, "records": None,
+        }
+        if tab == "overview":
+            context["last_sign_in"] = db.execute(
+                "SELECT MAX(created_at) AS t FROM user_activity_logs WHERE user_id = ? AND event_type = 'sign_in'",
+                (user_id,),
+            ).fetchone()["t"]
+            context["last_activity"] = db.execute(
+                "SELECT MAX(created_at) AS t FROM user_activity_logs WHERE user_id = ? "
+                f"AND event_type IN ({ACTIVITY_EVENTS_SQL})",
+                (user_id,),
+            ).fetchone()["t"]
+            context["audit"] = db.execute(
+                "SELECT a.action, a.reason, a.ticket_ref, a.created_at, s.email "
+                "FROM admin_audit_logs a JOIN super_admins s ON s.id = a.admin_id "
+                "WHERE a.target_type IN ('user', 'business') AND a.target_id = ? "
+                "ORDER BY a.id DESC LIMIT 20",
+                (user_id,),
+            ).fetchall()
+        else:
+            grant = active_grant(user_id)
+            context["grant"] = grant
+            if admin["role"] not in SUPPORT_ROLES:
+                context["locked"] = "role"
+            elif not grant:
+                context["locked"] = "grant"
+            else:
+                action, loader = RECORD_TABS[tab]
+                records = loader(db, user_id, start, end, page)
+                context["records"] = records
+                log_admin_action(
+                    db, admin["id"],
+                    f"{action}: {records['summary']['n']} matching, page {records['page']['page']}",
+                    "business", user_id, grant["reason"], grant["ticket"],
+                )
+                db.commit()
+    return render_template("user_detail.html", **context)
+
+
+@admin_app.post("/users/<user_id>/access")
+@require_roles(*SUPPORT_ROLES)
+def open_support_access(admin, user_id):
+    ticket = request.form.get("ticket", "").strip()
+    reason = request.form.get("reason", "").strip()
+    tab = request.form.get("tab", "sales")
+    if tab not in RECORD_TABS:
+        tab = "sales"
+    if not TICKET_PATTERN.fullmatch(ticket):
+        flash("Enter a support ticket reference, such as SUP-1042.", "error")
+        return redirect(url_for("user_detail", user_id=user_id, tab=tab))
+    if not 5 <= len(reason) <= 160:
+        flash("Describe the reason in 5 to 160 characters.", "error")
+        return redirect(url_for("user_detail", user_id=user_id, tab=tab))
+    with get_db() as db:
+        if not business_or_404(db, user_id):
+            return render_template("not_found.html"), 404
+        log_admin_action(db, admin["id"], "opened support access", "business", user_id, reason, ticket)
+        db.commit()
+    store_grant(user_id, ticket, reason)
+    flash(f"Support access opened for {GRANT_MINUTES} minutes. It is recorded in the audit log.", "success")
+    return redirect(url_for("user_detail", user_id=user_id, tab=tab))
+
+
+@admin_app.post("/users/<user_id>/access/close")
+@require_roles(*SUPPORT_ROLES)
+def close_support_access(admin, user_id):
+    grant = active_grant(user_id)
+    drop_grant(user_id)
+    if grant:
+        with get_db() as db:
+            log_admin_action(
+                db, admin["id"], "closed support access", "business", user_id,
+                grant["reason"], grant["ticket"],
+            )
+            db.commit()
+    return redirect(url_for("user_detail", user_id=user_id, tab="overview"))
 
 
 @admin_app.post("/users/<user_id>/status")
-@require_super_admin
+@require_roles(*SUPPORT_ROLES)
 def update_user_status(admin, user_id):
     new_status = request.form.get("status", "").strip()
     reason = request.form.get("reason", "").strip()[:200]
@@ -434,155 +661,186 @@ def update_user_status(admin, user_id):
         flash("Choose a valid account status and provide a short reason.", "error")
         return redirect(url_for("user_detail", user_id=user_id))
     with get_db() as db:
-        user = db.execute("SELECT id FROM users WHERE id = ?", (user_id,)).fetchone()
-        if not user:
+        if not business_or_404(db, user_id):
             return render_template("not_found.html"), 404
         db.execute("UPDATE users SET account_status = ? WHERE id = ?", (new_status, user_id))
         log_admin_action(
-            db, admin["id"], "account " + new_status, "user", user_id,
-            f"{reason} (access purpose: {access_purpose_text()})",
+            db, admin["id"], "account " + new_status, "business", user_id, reason,
         )
         db.commit()
-    flash("Account access updated.", "success")
+    flash("Account access updated and recorded.", "success")
     return redirect(url_for("user_detail", user_id=user_id))
 
 
-def transaction_rows(table, filters, limit=200):
-    query = filters.get("q", "").strip()[:100]
-    category = filters.get("category", "").strip()[:80]
-    minimum = filters.get("min_amount", "").strip()[:30]
-    maximum = filters.get("max_amount", "").strip()[:30]
-    pattern = f"%{query}%"
-    where = [
-        "(? = '' OR LOWER(source.label) LIKE LOWER(?) OR LOWER(source.email) LIKE LOWER(?) "
-        "OR LOWER(COALESCE(source.company_name, '')) LIKE LOWER(?))"
-    ]
-    params = [query, pattern, pattern, pattern]
-    try:
-        if minimum:
-            min_value = Decimal(minimum)
-            if not min_value.is_finite() or min_value < 0:
-                raise InvalidOperation
-            where.append("source.amount >= ?")
-            params.append(str(min_value))
-    except InvalidOperation:
-        minimum = ""
-    try:
-        if maximum:
-            max_value = Decimal(maximum)
-            if not max_value.is_finite() or max_value < 0:
-                raise InvalidOperation
-            where.append("source.amount <= ?")
-            params.append(str(max_value))
-    except InvalidOperation:
-        maximum = ""
-    if minimum and maximum and Decimal(minimum) > Decimal(maximum):
-        minimum, maximum = "", ""
-        where = [part for part in where if part not in {"source.amount >= ?", "source.amount <= ?"}]
-        params = params[:4]
-    if table == "sales":
-        from_sql = (
-            "FROM income i JOIN users u ON u.id = i.user_id "
-            "LEFT JOIN business_profiles bp ON bp.user_id = u.id"
-        )
-        select_sql = (
-            "SELECT i.id, i.description AS label, i.total_value AS amount, "
-            "i.amount_paid AS paid, i.date, i.payment_mode AS detail, u.email, bp.company_name "
-        )
-        if category == "paid":
-            where.append("i.amount_paid >= i.total_value")
-        elif category == "unpaid":
-            where.append("i.amount_paid <= 0")
-        elif category == "partial":
-            where.append("i.amount_paid > 0 AND i.amount_paid < i.total_value")
-        else:
-            category = ""
-        where_sql = " AND ".join(where).replace("source.label", "i.description").replace("source.email", "u.email").replace("source.company_name", "bp.company_name").replace("source.amount", "i.total_value")
-    else:
-        from_sql = (
-            "FROM expenses e JOIN users u ON u.id = e.user_id "
-            "LEFT JOIN business_profiles bp ON bp.user_id = u.id"
-        )
-        select_sql = (
-            "SELECT e.id, COALESCE(e.description, e.category) AS label, e.amount, "
-            "NULL AS paid, e.date, e.category AS detail, u.email, bp.company_name "
-        )
-        if category:
-            where.append("LOWER(e.category) = LOWER(?)")
-            params.append(category)
-        where_sql = " AND ".join(where).replace("source.label", "e.description").replace("source.email", "u.email").replace("source.company_name", "bp.company_name").replace("source.amount", "e.amount")
-    params.append(limit)
+@admin_app.post("/users/<user_id>/test-account")
+@require_roles(*SUPPORT_ROLES)
+def update_test_marker(admin, user_id):
+    marked = request.form.get("marked", "") == "1"
+    reason = request.form.get("reason", "").strip()[:200]
+    if len(reason) < 3:
+        flash("Give a short reason for changing the test-account marker.", "error")
+        return redirect(url_for("user_detail", user_id=user_id))
     with get_db() as db:
-        rows = db.execute(
-            f"{select_sql}{from_sql} WHERE {where_sql} ORDER BY 1 DESC LIMIT ?", params
-        ).fetchall()
-    return rows, query, category, minimum, maximum
-
-
-@admin_app.get("/sales")
-@require_super_admin
-def sales(admin):
-    rows, query, status_filter, minimum, maximum = transaction_rows("sales", request.args)
-    with get_db() as db:
-        log_sensitive_view(db, admin, "viewed sales records", "sales", count=len(rows))
+        if not business_or_404(db, user_id):
+            return render_template("not_found.html"), 404
+        db.execute("UPDATE users SET is_test_account = ? WHERE id = ?", (1 if marked else 0, user_id))
+        log_admin_action(
+            db, admin["id"],
+            "marked as test account" if marked else "removed test-account marker",
+            "business", user_id, reason,
+        )
         db.commit()
-    return render_template(
-        "transactions.html", admin_email=admin["email"], heading="Sales",
-        rows=rows, query=query, detail_filter=status_filter, is_sales=True,
-        min_amount=minimum, max_amount=maximum,
-    )
-
-
-@admin_app.get("/expenses")
-@require_super_admin
-def expenses(admin):
-    rows, query, category_filter, minimum, maximum = transaction_rows("expenses", request.args)
-    with get_db() as db:
-        log_sensitive_view(db, admin, "viewed expense records", "expenses", count=len(rows))
-        db.commit()
-    return render_template(
-        "transactions.html", admin_email=admin["email"], heading="Expenses",
-        rows=rows, query=query, detail_filter=category_filter, is_sales=False,
-        min_amount=minimum, max_amount=maximum,
-    )
+    flash("Test-account marker updated. Adoption figures now reflect this.", "success")
+    return redirect(url_for("user_detail", user_id=user_id))
 
 
 @admin_app.get("/activity")
-@require_super_admin
+@require_roles(*SUPPORT_ROLES)
 def activity(admin):
+    admin_filter = request.args.get("admin", "").strip()
+    business_filter = request.args.get("business", "").strip()[:64]
+    action_filter = request.args.get("action", "").strip()[:80]
+    start = parse_day(request.args.get("from"))
+    end = parse_day(request.args.get("to"))
+    where = ["1 = 1"]
+    params = []
+    if admin_filter.isdigit():
+        where.append("a.admin_id = ?")
+        params.append(int(admin_filter))
+    if business_filter:
+        where.append("a.target_type IN ('user', 'business') AND a.target_id = ?")
+        params.append(business_filter)
+    if action_filter:
+        where.append("LOWER(a.action) LIKE LOWER(?)")
+        params.append(f"%{action_filter}%")
+    if start:
+        where.append("substr(a.created_at, 1, 10) >= ?")
+        params.append(start)
+    if end:
+        where.append("substr(a.created_at, 1, 10) <= ?")
+        params.append(end)
+    clause = " AND ".join(where)
     with get_db() as db:
-        log_sensitive_view(db, admin, "viewed admin audit history", "admin_audit_logs")
-        db.commit()
+        total = db.execute(
+            f"SELECT COUNT(*) AS n FROM admin_audit_logs a WHERE {clause}", params
+        ).fetchone()["n"]
+        page = pager(total, page_number(), RECORDS_PAGE_SIZE)
         rows = db.execute(
-            "SELECT a.action, a.target_type, a.target_id, a.reason, a.created_at, s.email "
+            "SELECT a.action, a.target_type, a.target_id, a.reason, a.ticket_ref, a.created_at, s.email "
             "FROM admin_audit_logs a JOIN super_admins s ON s.id = a.admin_id "
-            "ORDER BY a.id DESC LIMIT 200"
+            f"WHERE {clause} ORDER BY a.id DESC LIMIT ? OFFSET ?",
+            params + [page["limit"], page["offset"]],
         ).fetchall()
-    return render_template("activity.html", admin_email=admin["email"], events=rows)
+        admins = db.execute("SELECT id, email FROM super_admins ORDER BY email").fetchall()
+    return render_template(
+        "activity.html", admin_email=admin["email"], events=rows, page=page, admins=admins,
+        filters={
+            "admin": admin_filter, "business": business_filter, "action": action_filter,
+            "date_from": start, "date_to": end,
+        },
+    )
 
 
-@admin_app.get("/user-activity")
-@require_super_admin
-def user_activity(admin):
+@admin_app.get("/api-health")
+@require_roles(*ANY_ROLE)
+def api_health(admin):
+    database_ok = True
+    try:
+        with get_db() as db:
+            db.execute("SELECT 1").fetchone()
+    except Exception:
+        logging.exception("API health check could not reach the database")
+        database_ok = False
+    # The SoloBiz API does not record request telemetry yet, so request volume,
+    # error rate, latency and recent failures are reported as not available.
+    return render_template("api_health.html", admin_email=admin["email"], database_ok=database_ok)
+
+
+@admin_app.get("/admins")
+@require_roles("owner")
+def admins(admin):
     with get_db() as db:
         rows = db.execute(
-            "SELECT a.event_type, a.summary, a.created_at, a.user_id, u.email, "
-            "u.first_name, u.last_name, bp.company_name "
-            "FROM user_activity_logs a JOIN users u ON u.id = a.user_id "
-            "LEFT JOIN business_profiles bp ON bp.user_id = u.id "
-            "ORDER BY a.id DESC LIMIT 200"
+            "SELECT s.id, s.email, s.role, s.is_active, s.created_at, "
+            "(SELECT MAX(a.created_at) FROM admin_audit_logs a "
+            " WHERE a.admin_id = s.id AND a.action = 'signed in') AS last_sign_in "
+            "FROM super_admins s ORDER BY s.id"
         ).fetchall()
-        log_sensitive_view(db, admin, "viewed user activity history", "user_activity", count=len(rows))
+    return render_template("admins.html", admin_email=admin["email"], admins=rows, current_id=admin["id"],
+                           roles=ROLE_LABELS)
+
+
+def active_owner_count(db):
+    return db.execute(
+        "SELECT COUNT(*) AS n FROM super_admins WHERE role = 'owner' AND is_active = 1"
+    ).fetchone()["n"]
+
+
+@admin_app.post("/admins/<int:admin_id>/role")
+@require_roles("owner")
+def change_admin_role(admin, admin_id):
+    new_role = request.form.get("role", "").strip()
+    reason = request.form.get("reason", "").strip()[:200]
+    if new_role not in ROLES or len(reason) < 3:
+        flash("Choose a role and give a short reason.", "error")
+        return redirect(url_for("admins"))
+    with get_db() as db:
+        target = db.execute("SELECT id, email, role, is_active FROM super_admins WHERE id = ?", (admin_id,)).fetchone()
+        if not target:
+            abort(404)
+        if target["id"] == admin["id"]:
+            flash("You cannot change your own role.", "error")
+            return redirect(url_for("admins"))
+        if target["role"] == "owner" and new_role != "owner" and target["is_active"] and active_owner_count(db) <= 1:
+            flash("At least one active owner must remain.", "error")
+            return redirect(url_for("admins"))
+        db.execute(
+            "UPDATE super_admins SET role = ?, session_version = session_version + 1 WHERE id = ?",
+            (new_role, admin_id),
+        )
+        log_admin_action(db, admin["id"], f"changed admin role to {new_role}", "admin", admin_id, reason)
         db.commit()
-    return render_template("user_activity.html", admin_email=admin["email"], events=rows)
+    flash("Admin role updated. That admin must sign in again.", "success")
+    return redirect(url_for("admins"))
 
 
-@admin_app.post("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+@admin_app.post("/admins/<int:admin_id>/status")
+@require_roles("owner")
+def change_admin_status(admin, admin_id):
+    active = request.form.get("active", "") == "1"
+    reason = request.form.get("reason", "").strip()[:200]
+    if len(reason) < 3:
+        flash("Give a short reason for changing admin access.", "error")
+        return redirect(url_for("admins"))
+    with get_db() as db:
+        target = db.execute("SELECT id, role, is_active FROM super_admins WHERE id = ?", (admin_id,)).fetchone()
+        if not target:
+            abort(404)
+        if target["id"] == admin["id"]:
+            flash("You cannot change your own access.", "error")
+            return redirect(url_for("admins"))
+        if not active and target["role"] == "owner" and target["is_active"] and active_owner_count(db) <= 1:
+            flash("At least one active owner must remain.", "error")
+            return redirect(url_for("admins"))
+        db.execute(
+            "UPDATE super_admins SET is_active = ?, session_version = session_version + 1 WHERE id = ?",
+            (1 if active else 0, admin_id),
+        )
+        log_admin_action(
+            db, admin["id"], "admin access " + ("enabled" if active else "disabled"),
+            "admin", admin_id, reason,
+        )
+        db.commit()
+    flash("Admin access updated and recorded.", "success")
+    return redirect(url_for("admins"))
 
 
 @admin_app.errorhandler(404)
 def admin_not_found(_error):
     return render_template("not_found.html"), 404
+
+
+@admin_app.errorhandler(500)
+def admin_server_error(_error):
+    logging.exception("Admin portal error")
+    return render_template("error.html"), 500

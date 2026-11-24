@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Access denied{% endblock %}
+{% block content %}
+<div class="heading"><div><p class="eyebrow">Access denied</p><h1>Your role cannot open this page</h1><p class="summary">Ask an owner if you need this access. The attempt was not recorded as a view of any business.</p></div></div>
+<p><a class="link" href="{{ url_for('dashboard') }}">Return to overview</a></p>
+{% endblock %}

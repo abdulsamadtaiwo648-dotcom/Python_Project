@@ -261,7 +261,34 @@ def init_admin_db():
                     db.execute(
                         "ALTER TABLE users ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active'"
                     )
+        # Admin portal: test-account marker, admin roles, support ticket references.
+        # Existing admins become owners, so nobody loses access when this runs.
+        if db.is_postgres:
+            db.execute(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
+                "is_test_account INTEGER NOT NULL DEFAULT 0"
+            )
+            db.execute(
+                "ALTER TABLE super_admins ADD COLUMN IF NOT EXISTS "
+                "role TEXT NOT NULL DEFAULT 'owner'"
+            )
+            db.execute("ALTER TABLE admin_audit_logs ADD COLUMN IF NOT EXISTS ticket_ref TEXT")
+        else:
+            _add_sqlite_column_if_missing(db, "super_admins", "role", "TEXT NOT NULL DEFAULT 'owner'")
+            _add_sqlite_column_if_missing(db, "admin_audit_logs", "ticket_ref", "TEXT")
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'").fetchone():
+                _add_sqlite_column_if_missing(db, "users", "is_test_account", "INTEGER NOT NULL DEFAULT 0")
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_user_activity_event_time "
+            "ON user_activity_logs (event_type, created_at)"
+        )
         db.commit()
+
+
+def _add_sqlite_column_if_missing(db, table, column, definition):
+    columns = {row["name"] for row in db.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in columns:
+        db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 def init_push_subscriptions_table():
     """Browser push subscriptions: one row per device that turned on alerts.
@@ -838,6 +865,27 @@ def _drop_floor_tables():
     return True
 
 
+def _add_user_test_account():
+    """Migration 0003: the admin test-account marker on users. Users are excluded from
+    adoption figures only when an admin sets this. Returns False while the users table
+    does not exist yet, so the step is retried on a later start instead of being skipped."""
+    with get_db() as db:
+        if db.is_postgres:
+            table = db.execute("SELECT 1 FROM information_schema.tables WHERE table_name = 'users'").fetchone()
+            if not table:
+                return False
+            db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_test_account INTEGER NOT NULL DEFAULT 0")
+        else:
+            table = db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'").fetchone()
+            if not table:
+                return False
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(users)").fetchall()}
+            if "is_test_account" not in columns:
+                db.execute("ALTER TABLE users ADD COLUMN is_test_account INTEGER NOT NULL DEFAULT 0")
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -846,6 +894,7 @@ def _drop_floor_tables():
 MIGRATIONS = [
     ("0001_baseline", _baseline_schema),
     ("0002_drop_floor_tables", _drop_floor_tables),
+    ("0003_user_test_account", _add_user_test_account),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time
