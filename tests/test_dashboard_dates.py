@@ -66,7 +66,7 @@ def test_a_sale_dated_last_month_is_not_in_this_months_income():
 
 def test_money_in_is_not_income_or_profit():
     client, headers = signed_user()
-    body = {"amount": 40000, "kind": "Owner's capital", "description": "Put in", "entry_date": first_of_this_month().isoformat()}
+    body = {"amount": 40000, "kind": "Owner contribution", "description": "Put in", "entry_date": first_of_this_month().isoformat()}
     assert client.post("/api/money-in", json=body, headers=headers).status_code == 201
     data = dashboard(client)
     assert data["month_income"] == 0

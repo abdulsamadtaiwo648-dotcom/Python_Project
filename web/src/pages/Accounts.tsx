@@ -4,15 +4,9 @@ import { isNairaAmount } from "../accounts";
 import { useData } from "../data";
 import { minEntryIso, todayIso } from "../offline";
 import { money } from "../format";
+import type { AccountView } from "../types";
 
-export interface AccountView {
-  id: number;
-  name: string;
-  is_default: boolean;
-  archived: boolean;
-  opening_balance: string;
-  opening_date: string;
-}
+export type { AccountView } from "../types";
 
 /** Where the business's money is held. Owners add, rename, archive and choose the default. */
 export default function Accounts() {

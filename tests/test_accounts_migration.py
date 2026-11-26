@@ -17,7 +17,7 @@ def expense_row(user_id, account_id=None):
 def money_in_row(user_id, account_id=None):
     with get_db() as db:
         db.execute("INSERT INTO money_in (user_id, amount, kind, description, date, entry_date, account_id) "
-                   "VALUES (?, 4000, 'Loan received', 'Ada', '2026-01-13 09:00 AM', '2026-01-13', ?)", (user_id, account_id))
+                   "VALUES (?, 4000, 'Loan', 'Ada', '2026-01-13 09:00 AM', '2026-01-13', ?)", (user_id, account_id))
         db.commit()
 
 

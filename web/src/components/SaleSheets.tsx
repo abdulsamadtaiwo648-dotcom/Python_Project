@@ -263,6 +263,7 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
 export function SettleDebt(props: { receipt: Receipt; onClose: () => void }) {
   const { receipt } = props;
   const { write } = useData();
+  const [day, setDay] = useState(todayIso());
   const line = receipt.items.find((s) => s.total_value - s.amount_paid > 0.005)!;
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
@@ -282,7 +283,7 @@ export function SettleDebt(props: { receipt: Receipt; onClose: () => void }) {
         const owing = s.total_value - s.amount_paid;
         if (owing <= 0.005 || left <= 0) continue;
         const part = Math.min(owing, left);
-        await write({ kind: "payment", method: "POST", url: `/update_payment/${s.id}`, body: { payment_amount: part },
+        await write({ kind: "payment", method: "POST", url: `/update_payment/${s.id}`, body: { payment_amount: part, payment_date: day },
           meta: { saleId: s.id, amount: part } });
         left -= part;
       }
@@ -318,6 +319,10 @@ export function SettleDebt(props: { receipt: Receipt; onClose: () => void }) {
           </div>
         </div>
         {error && <p className="sb-error" role="alert">{error}</p>}
+        <div className="sb-field">
+          <label htmlFor="payment-day">Date of payment</label>
+          <input id="payment-day" type="date" required value={day} min={minEntryIso()} max={todayIso()} onChange={(e) => setDay(e.target.value)} />
+        </div>
         <div className="sb-sheet-foot">
           <button type="button" className="sb-btn sb-btn-secondary" onClick={props.onClose}>Cancel</button>
           <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}>Record payment</button>

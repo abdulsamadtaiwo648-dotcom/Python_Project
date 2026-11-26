@@ -5,7 +5,7 @@ import {
 } from "./offline";
 import { parseSaved } from "./format";
 import { useSession } from "./session";
-import type { BusinessProfile, DashboardSummary, Expense, FeatureKey, MoneyInItem, Product, Sale, Subscription } from "./types";
+import type { AccountView, BusinessProfile, DashboardSummary, Expense, FeatureKey, MoneyInItem, Product, Sale, Subscription } from "./types";
 
 type NewOp = Omit<Op, "id" | "at">;
 
@@ -15,6 +15,8 @@ interface DataState {
   expenses: Expense[];
   /** Money in that is not a sale. */
   moneyIn: MoneyInItem[];
+  /** The business's accounts, including archived ones. */
+  accounts: AccountView[];
   products: Product[];
   profile: BusinessProfile | null;
   subscription: Subscription | null;
@@ -115,6 +117,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [rawSales, setSales] = useState<Sale[]>([]);
   const [rawExpenses, setExpenses] = useState<Expense[]>([]);
   const [moneyIn, setMoneyIn] = useState<MoneyInItem[]>([]);
+  const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [rawProducts, setProducts] = useState<Product[]>([]);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -135,7 +138,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const reload = useCallback(async () => {
-    const [s, i, e, p, b, sub, mi] = await Promise.allSettled([
+    const [s, i, e, p, b, sub, mi, acct] = await Promise.allSettled([
       api.get<DashboardSummary & { status: string }>("/api/dashboard"),
       api.get<{ income: Sale[] }>("/api/income"),
       api.get<{ expenses: Expense[] }>("/api/expenses"),
@@ -143,8 +146,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       api.get<{ profile: BusinessProfile }>("/api/business_profile"),
       api.get<Subscription & { status: string }>("/api/subscription"),
       api.get<{ money_in: MoneyInItem[] }>("/api/money-in"),
+      api.get<{ accounts: AccountView[] }>("/api/accounts"),
     ]);
     if (mi.status === "fulfilled") setMoneyIn(mi.value.money_in);
+    if (acct.status === "fulfilled") setAccounts(acct.value.accounts);
     if (s.status === "fulfilled") setSummary(s.value);
     if (i.status === "fulfilled") setSales(i.value.income);
     if (e.status === "fulfilled") setExpenses(e.value.expenses);
@@ -264,11 +269,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const shownSummary = useMemo(() => adjustSummary(summary, outbox, view.products), [summary, outbox, view.products]);
 
   const value = useMemo<DataState>(() => ({
-    summary: shownSummary, sales: view.sales, expenses: view.expenses, moneyIn, products: view.products, profile, loading, subscription,
+    summary: shownSummary, sales: view.sales, expenses: view.expenses, moneyIn, accounts, products: view.products, profile, loading, subscription,
     can: (feature) => !subscription || subscription.current.features.includes(feature),
     pending: outbox.length, pendingOps: outbox, failed, online, syncNow, reload, write,
     dismissFailed: () => { saveFailed(userId, []); setFailed([]); },
-  }), [shownSummary, view, moneyIn, profile, loading, subscription, outbox, outbox.length, failed, online, syncNow, reload, write, userId]);
+  }), [shownSummary, view, moneyIn, accounts, profile, loading, subscription, outbox, outbox.length, failed, online, syncNow, reload, write, userId]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

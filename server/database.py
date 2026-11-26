@@ -1002,6 +1002,19 @@ def _money_in():
     return True
 
 
+def _create_missing_default_accounts(db):
+    """Give every business owner a default Cash account if they have no accounts. Staff members are
+    not businesses and get none. Safe to call often."""
+    now = datetime.now(timezone.utc)
+    db.execute(
+        """INSERT INTO accounts (user_id, name, is_default, archived, opening_kobo, opening_date, created_at)
+           SELECT u.id, 'Cash', 1, 0, 0, ?, ? FROM users u
+           WHERE u.id NOT IN (SELECT user_id FROM staff_members)
+             AND NOT EXISTS (SELECT 1 FROM accounts a WHERE a.user_id = u.id)""",
+        (now.strftime("%Y-%m-%d"), now.isoformat()),
+    )
+
+
 def _accounts():
     """Migration 0010: accounts. Each business gets one default account named Cash. Expenses and
     Money In are linked to the default account. Safe to rerun: every step checks what is there."""
@@ -1035,15 +1048,7 @@ def _accounts():
         # At most one default per business, enforced by the database itself.
         db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_one_default ON accounts (user_id) WHERE is_default = 1")
         db.execute("CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts (user_id)")
-        # Every business owner (staff members are not businesses) gets a default Cash account.
-        now = datetime.now(timezone.utc)
-        db.execute(
-            """INSERT INTO accounts (user_id, name, is_default, archived, opening_kobo, opening_date, created_at)
-               SELECT u.id, 'Cash', 1, 0, 0, ?, ? FROM users u
-               WHERE u.id NOT IN (SELECT user_id FROM staff_members)
-                 AND NOT EXISTS (SELECT 1 FROM accounts a WHERE a.user_id = u.id)""",
-            (now.strftime("%Y-%m-%d"), now.isoformat()),
-        )
+        _create_missing_default_accounts(db)
         # Existing records belong to the default account. Only rows without an account are touched.
         for table in ("expenses", "money_in"):
             db.execute(
@@ -1051,6 +1056,54 @@ def _accounts():
                        SELECT a.id FROM accounts a WHERE a.user_id = {table}.user_id AND a.is_default = 1)
                    WHERE account_id IS NULL"""
             )
+        db.commit()
+    return True
+
+
+def _account_flows():
+    """Migration 0011: the sale payments ledger, transfers, and the Money In type names.
+    Each sale that already has a paid amount gets one approximate payment, dated to the sale and
+    counted on the default account. Safe to rerun."""
+    import logging
+    from api.payments import backfill_sale_payments  # local import: api imports this module
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""CREATE TABLE IF NOT EXISTS sale_payments (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                income_id INTEGER NOT NULL,
+                account_id INTEGER,
+                amount_kobo BIGINT NOT NULL,
+                payment_date TEXT NOT NULL,
+                is_approximate INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT
+            )""")
+            db.execute("ALTER TABLE money_in ADD COLUMN IF NOT EXISTS from_account_id INTEGER")
+        else:
+            db.execute("""CREATE TABLE IF NOT EXISTS sale_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                income_id INTEGER NOT NULL,
+                account_id INTEGER,
+                amount_kobo INTEGER NOT NULL,
+                payment_date TEXT NOT NULL,
+                is_approximate INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT
+            )""")
+            _add_sqlite_column_if_missing(db, "money_in", "from_account_id", "INTEGER")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_sale_payments_income ON sale_payments (user_id, income_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_sale_payments_account ON sale_payments (user_id, account_id)")
+        # Money In types: the old kinds become the labels the owner now chooses from.
+        for old, new in (("Owner's capital", "Owner contribution"), ("Loan received", "Loan"), ("Other money in", "Other income")):
+            db.execute("UPDATE money_in SET kind = ? WHERE kind = ?", (new, old))
+        _create_missing_default_accounts(db)
+        db.execute(
+            """UPDATE sale_payments SET account_id = (
+                   SELECT a.id FROM accounts a WHERE a.user_id = sale_payments.user_id AND a.is_default = 1)
+               WHERE account_id IS NULL"""
+        )
+        added = backfill_sale_payments(db)
+        logging.getLogger("solobiz.migrations").info("0011: %s sale payment(s) backfilled as approximate", added)
         db.commit()
     return True
 
@@ -1070,6 +1123,7 @@ MIGRATIONS = [
     ("0008_expense_categories", _expense_categories),
     ("0009_money_in", _money_in),
     ("0010_accounts", _accounts),
+    ("0011_account_flows", _account_flows),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time

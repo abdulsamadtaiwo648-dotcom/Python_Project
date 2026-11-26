@@ -21,8 +21,9 @@ DEFAULT_NAME = "Cash"
 NAME_MAX = 60
 
 
-def ensure_default(db, owner_id):
-    """Create the business's default Cash account if it has no accounts yet. Safe to call often."""
+def ensure_default(db, owner_id, commit=True):
+    """Create the business's default Cash account if it has no accounts yet. Safe to call often.
+    Pass commit=False inside a larger transaction."""
     if db.execute("SELECT 1 FROM accounts WHERE user_id = ? LIMIT 1", (owner_id,)).fetchone():
         return
     now = datetime.now(timezone.utc)
@@ -31,7 +32,8 @@ def ensure_default(db, owner_id):
         "VALUES (?, ?, 1, 0, 0, ?, ?)",
         (owner_id, DEFAULT_NAME, today_iso(now), now.isoformat()),
     )
-    db.commit()
+    if commit:
+        db.commit()
 
 
 def all_accounts(db, owner_id):
@@ -102,3 +104,22 @@ def view(row):
         "opening_balance": naira_text(row["opening_kobo"]),
         "opening_date": row["opening_date"],
     }
+
+
+def resolve_for_entry(db, owner_id, raw, current_id=None):
+    """The account a new or edited entry uses: (account_id, None), or (None, message).
+
+    Blank means the entry keeps its current account, or the default for a new entry. An account from
+    another business is never accepted. An archived account is refused, unless it is the account the
+    entry already uses (so old entries can still be saved without being moved silently)."""
+    if raw in (None, ""):
+        if current_id is not None:
+            return current_id, None
+        default = default_account(db, owner_id)
+        return (default["id"], None) if default else (None, "The business has no default account.")
+    row = account_for_business(db, owner_id, raw)
+    if row is None:
+        return None, "Choose an account from your list."
+    if row["archived"] and row["id"] != current_id:
+        return None, f"{row['name']} is archived. Choose another account."
+    return row["id"], None

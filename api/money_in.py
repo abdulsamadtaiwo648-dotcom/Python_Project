@@ -1,4 +1,9 @@
-"""Money in that is not a sale: owner capital, loans received, refunds and other receipts.
-It is kept apart from sales, so it never counts as revenue or profit."""
+"""Money in: owner contributions, loans, refunds and other income, plus transfers between accounts.
 
-KINDS = ["Owner's capital", "Loan received", "Refund received", "Other money in"]
+A transfer is one record: it is received into one account and paid out of another. It appears in
+both accounts' histories, but it is not money in for the business: it is left out of business-wide
+Money In, sales, expenses and profit."""
+
+INCOME_KINDS = ["Owner contribution", "Loan", "Refund received", "Other income"]
+TRANSFER = "Transfer"
+KINDS = INCOME_KINDS + [TRANSFER]

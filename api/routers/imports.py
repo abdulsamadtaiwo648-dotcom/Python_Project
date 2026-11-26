@@ -16,6 +16,7 @@ from .. import expense_categories as cats
 from .. import record_rules as rules
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
+from ..payments import record_sale_payment
 
 record_user_activity = core.record_user_activity
 router = JsonRouter()
@@ -146,12 +147,13 @@ def import_sales(request: Request, payload: Any = Body(None)):
                 continue
 
             receipt_id = f"IMP-{day.replace('-', '')}-{number}-{int(datetime.now(timezone.utc).timestamp())}"
-            db.execute(
+            cursor = db.execute(
                 """INSERT INTO income (user_id, description, total_value, amount_paid, customer_name, payment_mode,
                    date, receipt_id, entry_date, entered_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (user_id, description, total, total, customer, mode, rules.display_stamp(day), receipt_id, day,
+                (user_id, description, total, 0, customer, mode, rules.display_stamp(day), receipt_id, day,
                  datetime.now(timezone.utc).isoformat()),
             )
+            record_sale_payment(db, user_id, cursor.lastrowid, total, day)
             imported += 1
         if imported:
             record_user_activity(db, user_id, "sales_imported", f"Imported {imported} sales")

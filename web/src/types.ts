@@ -41,8 +41,18 @@ export interface CashSummary {
 }
 
 /** Money in that is not a sale (owner capital, loans, refunds, other). */
+export interface AccountView {
+  id: number;
+  name: string;
+  is_default: boolean;
+  archived: boolean;
+  opening_balance: string;
+  opening_date: string;
+}
+
 export interface MoneyInItem {
   id: number;
+  account_id?: number | null;
   amount: number;
   kind: string;
   description: string | null;
@@ -80,6 +90,7 @@ export interface Expense {
   description: string;
   date: string;
   entry_date?: string;
+  account_id?: number | null;
   synced: boolean;
 }
 

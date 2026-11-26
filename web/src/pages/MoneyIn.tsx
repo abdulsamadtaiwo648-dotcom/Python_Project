@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, api } from "../api";
-import { moneyInFor, moneyInTotal, MONEY_IN_KINDS } from "../moneyIn";
+import { moneyInFor, moneyInTotal, MONEY_IN_KINDS, TRANSFER_KIND } from "../moneyIn";
+import { canTransfer, hasOneAccount, pickableAccounts } from "../accounts";
 import MonthPicker from "../components/MonthPicker";
 import Sheet from "../components/Sheet";
 import { useDashboardMonth } from "../dashboardMonth";
@@ -97,8 +98,15 @@ export default function MoneyIn() {
 
 function MoneyInForm(props: { initial?: MoneyInItem; onClose: () => void; onSaved: () => void }) {
   const { initial } = props;
+  const { accounts } = useData();
+  const defaultId = accounts.find((a) => a.is_default)?.id ?? null;
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [kind, setKind] = useState(initial?.kind ?? MONEY_IN_KINDS[0]);
+  const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? defaultId);
+  const [fromId, setFromId] = useState<number | null>(null);
+  const kinds = canTransfer(accounts) ? [...MONEY_IN_KINDS, TRANSFER_KIND] : MONEY_IN_KINDS;
+  const isTransfer = kind === TRANSFER_KIND;
+  const active = pickableAccounts(accounts, initial?.account_id);
   const [note, setNote] = useState(initial?.description ?? "");
   const [day, setDay] = useState(initial?.entry_date ?? todayIso());
   const [error, setError] = useState("");
@@ -109,9 +117,11 @@ function MoneyInForm(props: { initial?: MoneyInItem; onClose: () => void; onSave
     const n = Number(amount.replace(/,/g, ""));
     if (!Number.isFinite(n) || n <= 0) return setError("Enter an amount greater than zero.");
     if (!day) return setError("Choose the date.");
+    if (isTransfer && (fromId === null || fromId === accountId)) return setError("A transfer needs two different accounts: where the money came from, and where it went.");
     setBusy(true);
     setError("");
-    const body = { amount: n, kind, description: note.trim(), entry_date: day };
+    const body = { amount: n, kind, description: note.trim(), entry_date: day, account_id: accountId,
+      from_account_id: isTransfer ? fromId : null };
     try {
       if (initial) await api.put(`/api/money-in/${initial.id}`, body);
       else await api.post("/api/money-in", body);
@@ -137,9 +147,26 @@ function MoneyInForm(props: { initial?: MoneyInItem; onClose: () => void; onSave
         <div className="sb-field">
           <label htmlFor="money-in-kind">What kind of money?</label>
           <select id="money-in-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
-            {MONEY_IN_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+            {kinds.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
         </div>
+        {isTransfer && (
+          <div className="sb-field">
+            <label htmlFor="money-in-from">Came from</label>
+            <select id="money-in-from" required value={fromId ?? ""} onChange={(e) => setFromId(Number(e.target.value))}>
+              <option value="" disabled>Choose an account</option>
+              {active.filter((a) => !a.archived).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+        )}
+        {!hasOneAccount(accounts) && (
+          <div className="sb-field">
+            <label htmlFor="money-in-account">{isTransfer ? "Went into" : "Received into"}</label>
+            <select id="money-in-account" required value={accountId ?? ""} onChange={(e) => setAccountId(Number(e.target.value))}>
+              {active.filter((a) => !a.archived).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+        )}
         <div className="sb-field">
           <label htmlFor="money-in-day">Date</label>
           <input id="money-in-day" type="date" required value={day} min={minEntryIso()} max={todayIso()}

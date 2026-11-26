@@ -143,7 +143,7 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
             month_expenses = _sum(db, expense_sql, (user_id, selected + "%"))
             month_money_in = _sum(
                 db,
-                "SELECT COALESCE(SUM(amount), 0) AS total FROM money_in WHERE user_id = ? AND entry_date LIKE ?",
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM money_in WHERE user_id = ? AND entry_date LIKE ? AND kind != 'Transfer'",
                 (user_id, selected + "%"),
             )
             prev_income = _sum(db, income_sql, (user_id, previous + "%"))

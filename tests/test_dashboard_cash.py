@@ -40,7 +40,7 @@ def expense(client, headers, day, amount):
 
 
 def money_in(client, headers, day, amount):
-    body = {"amount": amount, "kind": "Owner's capital", "description": "In", "entry_date": day}
+    body = {"amount": amount, "kind": "Owner contribution", "description": "In", "entry_date": day}
     assert client.post("/api/money-in", json=body, headers=headers).status_code == 201
 
 
