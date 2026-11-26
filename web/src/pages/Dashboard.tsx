@@ -149,7 +149,7 @@ export default function Dashboard() {
       {summary?.cash && (
         <CashCard cash={summary.cash} phrase={summary.selected_month === summary.current_month ? "this month" : `in ${ymLabel(summary.selected_month)}`} />
       )}
-      <Analysis page="dashboard" />
+      <Analysis page="dashboard" range={{ kind: "month", ym: dm.selected ?? monthNow() }} />
       <RecentSales month={dm.selected} current={dm.current} />
     </>
   );

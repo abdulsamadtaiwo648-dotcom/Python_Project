@@ -1,15 +1,31 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import type { Range } from "../analytics";
 import Analysis from "../components/Analysis";
+import MonthPicker from "../components/MonthPicker";
+import YearPicker from "../components/YearPicker";
+import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { money } from "../format";
 import { LockedPage } from "../components/Upgrade";
+import { monthNow } from "../month";
 import { KpiRow } from "./Dashboard";
 
 export default function Reports() {
   const { summary: s, can } = useData();
+  const dm = useDashboardMonth();
+  const [kind, setKind] = useState<"month" | "year">("month");
+  const [pickedYear, setPickedYear] = useState<string | null>(null);
   useEffect(() => { document.title = "Reports | SoloBiz"; }, []);
+
+  const currentYm = dm.current ?? monthNow();
+  const currentYear = currentYm.slice(0, 4);
+  const ym = dm.selected ?? currentYm;
+  const year = pickedYear ?? currentYear;
+  const range: Range = kind === "month" ? { kind: "month", ym } : { kind: "year", year };
+  const years = Array.from(new Set(dm.months.map((m) => m.slice(0, 4))));
   const stock = s?.low_stock_items ?? [];
+
   if (!can("reports")) {
     return <LockedPage title="Reports" plan="Basic" text="See trends, sales by period and today at a glance. Reports come with the Basic and Pro plans." />;
   }
@@ -18,7 +34,22 @@ export default function Reports() {
       <section id="tab-reports-content" className="tab-content" aria-labelledby="reports-title">
         <div className="dash-head reports-head"><h2 className="dash-title" id="reports-title">Reports</h2></div>
       </section>
-      <div id="cfo-dashboard"><KpiRow /></div>
+
+      <section className="mb-4 flex flex-wrap items-center gap-3" aria-label="Choose the period to report on">
+        <div role="group" aria-label="Report range" className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+          {(["month", "year"] as const).map((k) => (
+            <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${kind === k ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
+              {k === "month" ? "Month" : "Year"}
+            </button>
+          ))}
+        </div>
+        {kind === "month"
+          ? <MonthPicker value={ym} current={currentYm} months={dm.months} onChange={dm.setMonth} />
+          : <YearPicker value={year} current={currentYear} years={years} onChange={setPickedYear} />}
+      </section>
+
+      {kind === "month" && <div id="cfo-dashboard"><KpiRow summary={dm.summary ?? s} /></div>}
       <section id="tab-dashboard-content" className="tab-content space-y-6">
         <div className="flex items-center justify-between gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7 sm:py-6">
           <div className="min-w-0">
@@ -30,7 +61,7 @@ export default function Reports() {
           </div>
         </div>
       </section>
-      <Analysis page="reports" />
+      <Analysis page="reports" range={range} />
       <section id="daily-business-checkin" className="dash-panel mb-6 w-full max-w-[1080px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="daily-checkin-heading">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { chartBuckets, groupSales, PERIOD_PHRASE, totalsFor, type Period } from "../analytics";
+import { chartBuckets, groupSales, lastMonths, rangeLabel, totalsInRange, type Period, type Range } from "../analytics";
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
 import TrendChart from "./TrendChart";
@@ -8,20 +8,29 @@ import TrendChart from "./TrendChart";
 const PERIODS: [Period, string][] = [["daily", "Day"], ["weekly", "Week"], ["monthly", "Month"], ["yearly", "Year"]];
 const LABELS: Record<Period, string> = { daily: "Per Day", weekly: "Per Week", monthly: "Per Month", yearly: "Per Year" };
 
-/** "Business analysis": period totals, the chart, low stock and sales by period. */
-export default function Analysis({ page }: { page: "dashboard" | "reports" }) {
+/**
+ * Business analysis for one range (a month or a year). On Reports the period tabs group the chart
+ * and the sales list inside the range; on the dashboard the chart shows the 12 months to the month shown.
+ */
+export default function Analysis({ page, range }: { page: "dashboard" | "reports"; range: Range }) {
   const { sales, expenses, summary } = useData();
-  const [period, setPeriod] = useState<Period>("daily");
+  const [period, setPeriod] = useState<Period>("monthly");
   const [open, setOpen] = useState<string | null>(null);
-  const totals = useMemo(() => totalsFor(sales, expenses, period), [sales, expenses, period]);
-  const buckets = useMemo(() => chartBuckets(sales, expenses, period), [sales, expenses, period]);
-  const groups = useMemo(() => groupSales(sales, period), [sales, period]);
+  const rangeKey = range.kind === "month" ? `m:${range.ym}` : `y:${range.year}`;
+  const totals = useMemo(() => totalsInRange(sales, expenses, range), [sales, expenses, rangeKey]);
+  const buckets = useMemo(
+    () => (page === "dashboard" && range.kind === "month"
+      ? lastMonths(sales, expenses, range.ym, 12)
+      : chartBuckets(sales, expenses, period, range)),
+    [sales, expenses, rangeKey, page, period],
+  );
+  const groups = useMemo(() => groupSales(sales, period, range), [sales, period, rangeKey]);
   const low = summary?.low_stock_items ?? [];
-  const summaryText = period === "daily" ? "Analysis totals for today." : `Analysis totals for ${PERIOD_PHRASE[period]} to date.`;
+  const label = rangeLabel(range);
 
-  const card = (label: string, value: string, color = "text-slate-900") => (
+  const card = (title: string, value: string, color = "text-slate-900") => (
     <article className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
       <p className={`mt-1 text-base font-bold ${color}`}>{value}</p>
     </article>
   );
@@ -31,16 +40,18 @@ export default function Analysis({ page }: { page: "dashboard" | "reports" }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="dashboard-insights-heading" className="text-base font-bold text-slate-900">Business analysis</h2>
-          <p className="mt-1 text-xs text-slate-500">Review sales and expenses for the selected period.</p>
+          <p className="mt-1 text-xs text-slate-500">Sales and expenses for {label}.</p>
         </div>
-        <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Choose reporting period">
-          {PERIODS.map(([p, label]) => (
-            <button key={p} type="button" data-period={p} onClick={() => setPeriod(p)}
-              className={`analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold ${period === p ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
-              {label}
-            </button>
-          ))}
-        </div>
+        {page === "reports" && (
+          <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Choose grouping">
+            {PERIODS.map(([p, text]) => (
+              <button key={p} type="button" data-period={p} aria-pressed={period === p} onClick={() => setPeriod(p)}
+                className={`analytics-tab-btn rounded-lg px-3 py-1.5 text-xs font-semibold ${period === p ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
+                {text}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -50,7 +61,7 @@ export default function Analysis({ page }: { page: "dashboard" | "reports" }) {
         {card("Balance due", money(totals.balance), "text-amber-700")}
         {card(totals.net < 0 ? "Net cash loss" : "Net cash flow", money(totals.net), totals.net < 0 ? "text-rose-700" : "text-emerald-700")}
       </div>
-      <p className="-mt-2 text-[10px] text-slate-400">{summaryText}</p>
+      <p className="-mt-2 text-[10px] text-slate-400">Totals for {label}.</p>
       {totals.balance > 0 && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">
           Some sales still have an outstanding balance.
@@ -62,7 +73,7 @@ export default function Analysis({ page }: { page: "dashboard" | "reports" }) {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 id="analytics-trend-heading" className="text-base font-semibold text-slate-900">Income vs expenses</h3>
-              <p className="mt-1 text-xs text-slate-500">{page === "dashboard" ? "Last 12 months" : LABELS[period]}</p>
+              <p className="mt-1 text-xs text-slate-500">{page === "dashboard" ? "The 12 months to the month shown" : LABELS[period]}</p>
             </div>
             <div className="flex items-center gap-3 text-[10px] font-medium text-slate-500" aria-label="Chart legend">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-600" />Sales collected</span>
@@ -95,7 +106,7 @@ export default function Analysis({ page }: { page: "dashboard" | "reports" }) {
           <h3 id="analytics-history-heading" className="text-base font-bold text-slate-900">Sales by period</h3>
           <p className="mt-0.5 text-[11px] text-slate-500">Open a period to see its recorded sales.</p>
           <div className="mt-3 max-h-[340px] space-y-2 overflow-y-auto" aria-live="polite">
-            {groups.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No sales data available.</p>}
+            {groups.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No sales in {label}.</p>}
             {groups.map((g) => (
               <div key={g.label} className="rounded-xl border border-slate-200">
                 <button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
