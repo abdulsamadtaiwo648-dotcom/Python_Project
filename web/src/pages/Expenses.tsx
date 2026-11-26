@@ -3,6 +3,7 @@ import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
 import CategoriesSheet from "../components/CategoriesSheet";
+import ImportSheet from "../components/ImportSheet";
 import { useExpenseCategories } from "../categories";
 import { useData } from "../data";
 import { money, parseSaved, relativeDay } from "../format";
@@ -126,9 +127,10 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 }
 
 export default function Expenses() {
-  const { expenses, subscription } = useData();
+  const { expenses, subscription, reload } = useData();
   const cats = useExpenseCategories();
   const [managing, setManaging] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
@@ -171,6 +173,7 @@ export default function Expenses() {
     <section id="tab-expenses-content" className="tab-content page-stack" aria-labelledby="expenses-title">
       <div className="page-head">
         <div className="min-w-0"><h2 className="page-title" id="expenses-title">Expenses</h2><p className="page-sub">Where your money goes each month.</p></div>
+        <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>
         <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setManaging(true)}>Categories</button>
         <button type="button" id="btn-new-expense" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
@@ -286,6 +289,7 @@ export default function Expenses() {
       {editing && (
         <ExpenseForm initial={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />
       )}
+      {importing && <ImportSheet kind="expenses" onDone={() => void reload()} onClose={() => setImporting(false)} />}
       {managing && <CategoriesSheet categories={cats.all} onChanged={() => void cats.reload()} onClose={() => setManaging(false)} />}
     </section>
   );

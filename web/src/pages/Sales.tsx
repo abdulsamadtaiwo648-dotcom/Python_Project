@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import { NewSale, SettleDebt, type Receipt, type Status } from "../components/SaleSheets";
+import ImportSheet from "../components/ImportSheet";
 import { useData } from "../data";
 import { useSession } from "../session";
 import { money, parseSaved } from "../format";
@@ -67,7 +68,7 @@ ${r.owed > 0 ? `<tr class="t"><td>Balance due</td><td>${esc(money(r.owed))}</td>
 }
 
 export default function Sales() {
-  const { sales, products, profile, write, subscription, can } = useData();
+  const { sales, products, profile, write, subscription, can, reload } = useData();
   const { access } = useSession();
   const canDelete = !access || access.is_owner;
   const [quick, setQuick] = useState<Quick>("all");
@@ -77,6 +78,7 @@ export default function Sales() {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [settling, setSettling] = useState<Receipt | null>(null);
   const [deleting, setDeleting] = useState<Receipt | null>(null);
@@ -136,6 +138,7 @@ export default function Sales() {
     <section id="tab-income-content" className="tab-content page-stack" aria-labelledby="sales-title">
       <div className="page-head">
         <div className="min-w-0"><h2 className="page-title" id="sales-title">Sales</h2><p className="page-sub">Record every sale, unit or bulk.</p></div>
+        <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>
         <button type="button" id="btn-new-sale" className="sb-btn sb-btn-primary" onClick={() => setCreating(true)}>
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
           New sale
@@ -152,6 +155,7 @@ export default function Sales() {
           <NewSale key={formKey} products={products} onClose={() => setCreating(false)}
             onDone={() => { setCreating(false); setFormKey((k) => k + 1); }} />
         </div>
+        {importing && <ImportSheet kind="sales" onDone={() => void reload()} onClose={() => setImporting(false)} />}
         <div id="sales-quick-filters" className="flex flex-wrap items-center gap-2" role="group" aria-label="Quick filters">
           <div className="list-toolbar sales-toolbar-inline">
             <button type="button" className="sb-chip" aria-expanded={filterOpen} aria-controls="sales-filter-panel" onClick={() => setFilterOpen(!filterOpen)}>
