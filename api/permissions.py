@@ -54,6 +54,11 @@ def required(method, path):
     if path == "/api/income" or path.startswith("/api/income/") or path.startswith("/update_payment/") \
             or path in ("/add_income", "/api/checkout", "/api/sync-sales"):
         return frozenset({"sales", "dashboard", "reports"}) if read else frozenset({"sales"})
+    # Money in is recorded with sales. Removing it is owner-only, as removing a sale is.
+    if path.startswith("/api/money-in"):
+        if method.upper() == "DELETE":
+            return OWNER
+        return frozenset({"sales", "dashboard", "reports"}) if read else frozenset({"sales"})
     if path.startswith("/api/inventory-presets"):
         return frozenset({"inventory", "sales", "dashboard"}) if read else frozenset({"inventory"})
     if path.startswith("/api/expenses") or path == "/add":

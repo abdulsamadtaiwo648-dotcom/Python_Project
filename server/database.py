@@ -972,6 +972,36 @@ def _expense_categories():
     return True
 
 
+def _money_in():
+    """Migration 0009: money in that is not a sale (owner capital, loans, refunds, other)."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""CREATE TABLE IF NOT EXISTS money_in (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                amount NUMERIC NOT NULL,
+                kind TEXT NOT NULL,
+                description TEXT,
+                date TEXT,
+                entry_date TEXT,
+                entered_at TEXT
+            )""")
+        else:
+            db.execute("""CREATE TABLE IF NOT EXISTS money_in (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                amount REAL NOT NULL,
+                kind TEXT NOT NULL,
+                description TEXT,
+                date TEXT,
+                entry_date TEXT,
+                entered_at TEXT
+            )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_money_in_user_day ON money_in (user_id, entry_date)")
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -985,6 +1015,7 @@ MIGRATIONS = [
     ("0005_client_op_status", _client_op_status_column),
     ("0007_business_dates", _business_dates),
     ("0008_expense_categories", _expense_categories),
+    ("0009_money_in", _money_in),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time

@@ -131,7 +131,7 @@ def create_app() -> FastAPI:
             headers={"Cache-Control": "no-store"},
         )
 
-    from .routers import auth, billing, dashboard, expense_categories, expenses, inventory, profile, push, sales, staff, website
+    from .routers import auth, billing, dashboard, expense_categories, expenses, inventory, money_in, profile, push, sales, staff, website
 
     from fastapi.staticfiles import StaticFiles
 
@@ -139,7 +139,7 @@ def create_app() -> FastAPI:
     if (WEB_DIST / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=str(WEB_DIST / "assets")), name="assets")
     app.include_router(pages.router)
-    for module in (auth, push, dashboard, sales, expenses, expense_categories, inventory, profile, website, billing, staff):
+    for module in (auth, push, dashboard, sales, expenses, expense_categories, money_in, inventory, profile, website, billing, staff):
         app.include_router(module.router)
     return app
 
