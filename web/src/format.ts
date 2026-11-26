@@ -1,10 +1,11 @@
 /** Naira amount that drops the kobo when there are none: 52600 -> ₦52,600. */
 export function money(value: number | null | undefined): string {
   const amount = Number.isFinite(value as number) ? (value as number) : 0;
+  // The minus goes before the naira sign: -₦1,500, not ₦-1,500.
   const sign = amount < 0 ? "-" : "";
   const abs = Math.abs(amount);
   const whole = Math.abs(abs - Math.round(abs)) < 0.005;
-  return `₦${sign}${abs.toLocaleString("en-NG", whole ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${sign}₦${abs.toLocaleString("en-NG", whole ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /** Parse a saved "YYYY-MM-DD hh:mm AM" (or ISO) date into a Date, or null. The server stores UTC. */

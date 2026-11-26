@@ -50,8 +50,10 @@ export default function Reports() {
           </article>
           <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-medium text-slate-500">Net cash today</p>
-            <p className={`mt-2 text-xl font-semibold tracking-tight ${(s?.today_net ?? 0) >= 0 ? "text-slate-900" : "text-amber-700"}`}>{money(s?.today_net)}</p>
-            <p className="mt-1 text-[11px] text-slate-500">Collected minus expenses</p>
+            <p className={`mt-2 text-xl font-semibold tracking-tight ${(s?.today_net ?? 0) >= 0 ? "text-slate-900" : "text-rose-700"}`}>{money(s?.today_net)}</p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              {(s?.today_net ?? 0) < 0 ? "More went out than came in today" : "Collected minus expenses"}
+            </p>
           </article>
         </div>
         <div className="mt-4 border-t border-slate-100 pt-4">
