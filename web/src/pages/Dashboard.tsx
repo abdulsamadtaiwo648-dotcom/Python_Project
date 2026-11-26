@@ -6,7 +6,32 @@ import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
 import { monthNow, monthOfRecord, ymLabel } from "../month";
-import type { DashboardSummary } from "../types";
+import type { CashSummary, DashboardSummary } from "../types";
+
+/** Cash for the month shown: what came in, what went out, and the balance. */
+export function CashCard({ cash, phrase }: { cash: CashSummary; phrase: string }) {
+  const rows: [string, number, string][] = [
+    ["Sales collected", cash.sales_collected, "text-slate-900"],
+    ["Money in", cash.money_in, "text-slate-900"],
+    ["Expenses", cash.expenses, "text-rose-700"],
+    ["Profit (sales − expenses)", cash.profit, cash.profit < 0 ? "text-rose-700" : "text-slate-900"],
+    ["Cash balance (sales + money in − expenses)", cash.cash_balance, cash.cash_balance < 0 ? "text-rose-700" : "text-slate-900"],
+  ];
+  return (
+    <section id="dashboard-cash" className="dash-panel mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-cash-heading">
+      <h3 id="dashboard-cash-heading" className="text-base font-bold text-slate-900">Cash {phrase}</h3>
+      <p className="mt-1 text-xs text-slate-500">Money in is cash but not a sale, so it changes the balance and not the profit.</p>
+      <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+        {rows.map(([label, value, color]) => (
+          <div key={label} className="flex items-baseline justify-between gap-3 border-b border-slate-100 py-2">
+            <dt className="text-sm text-slate-600">{label}</dt>
+            <dd className={`text-sm font-semibold ${color}`}>{money(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
 
 export function KpiRow({ summary: given }: { summary?: DashboardSummary | null } = {}) {
   const { summary: fromContext } = useData();
@@ -121,6 +146,9 @@ export default function Dashboard() {
         )}
         <KpiRow summary={summary} />
       </div>
+      {summary?.cash && (
+        <CashCard cash={summary.cash} phrase={summary.selected_month === summary.current_month ? "this month" : `in ${ymLabel(summary.selected_month)}`} />
+      )}
       <Analysis page="dashboard" />
       <RecentSales month={dm.selected} current={dm.current} />
     </>

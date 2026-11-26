@@ -50,14 +50,22 @@ export function remember(ym: string): void {
  * month shown. Only changes dated in that month count.
  */
 export function withPendingForMonth(s: DashboardSummary, ops: Op[], ym: string): DashboardSummary {
-  let income = s.month_income, spend = s.month_expenses;
+  let addIncome = 0, addSpend = 0;
   for (const op of ops) {
     if (op.kind === "checkout") {
-      for (const sale of op.meta.sales ?? []) if (monthOfRecord(sale) === ym) income += sale.amount_paid;
+      for (const sale of op.meta.sales ?? []) if (monthOfRecord(sale) === ym) addIncome += sale.amount_paid;
     }
     if (op.kind === "expense_add" && op.meta.expense && monthOfRecord(op.meta.expense) === ym) {
-      spend += op.meta.expense.amount;
+      addSpend += op.meta.expense.amount;
     }
   }
-  return { ...s, month_income: income, month_expenses: spend, month_net: income - spend };
+  const income = s.month_income + addIncome, spend = s.month_expenses + addSpend;
+  const cash = s.cash && {
+    ...s.cash,
+    sales_collected: s.cash.sales_collected + addIncome,
+    expenses: s.cash.expenses + addSpend,
+    profit: income - spend,
+    cash_balance: s.cash.cash_balance + addIncome - addSpend,
+  };
+  return { ...s, month_income: income, month_expenses: spend, month_net: income - spend, cash };
 }

@@ -10,6 +10,8 @@ export interface DashboardSummary {
   months_with_data: string[];
   /** Set when this month was empty and an earlier month is shown instead. */
   notice: { current_month: string; shown_month: string; message: string } | null;
+  /** Cash for the month shown. Money in is cash but not a sale, so it is not in profit. */
+  cash?: CashSummary;
   total_sales: number;
   total_expenses: number;
   net_profit: number;
@@ -25,6 +27,17 @@ export interface DashboardSummary {
   today_expenses: number;
   today_net: number;
   low_stock_items: { item_name: string; stock: number; threshold: number }[];
+}
+
+export interface CashSummary {
+  month: string;
+  sales_collected: number;
+  money_in: number;
+  expenses: number;
+  /** Sales collected minus expenses. */
+  profit: number;
+  /** Sales collected plus money in minus expenses. */
+  cash_balance: number;
 }
 
 export interface Sale {

@@ -141,6 +141,11 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
 
             month_income = _sum(db, income_sql, (user_id, selected + "%"))
             month_expenses = _sum(db, expense_sql, (user_id, selected + "%"))
+            month_money_in = _sum(
+                db,
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM money_in WHERE user_id = ? AND entry_date LIKE ?",
+                (user_id, selected + "%"),
+            )
             prev_income = _sum(db, income_sql, (user_id, previous + "%"))
             prev_expenses = _sum(db, expense_sql, (user_id, previous + "%"))
             low_stock = [
@@ -156,6 +161,15 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
         logging.exception("Dashboard data fetch failed for user %s", user_id)
         raise
     month_net = month_income - month_expenses
+    # Cash: what came in and went out. Money in is cash but not a sale, so it is not in profit.
+    cash = {
+        "month": selected,
+        "sales_collected": month_income,
+        "money_in": month_money_in,
+        "expenses": month_expenses,
+        "profit": month_net,
+        "cash_balance": month_income + month_money_in - month_expenses,
+    }
     return {
         "status": "success",
         "username": name,
@@ -175,6 +189,7 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
         "income_note": compare_note(month_income, prev_income, "income", selected, previous, current),
         "expense_note": compare_note(month_expenses, prev_expenses, "expenses", selected, previous, current),
         "net_note": margin_note(month_income, month_expenses, month_net),
+        "cash": cash,
         "today_collected": today_collected,
         "today_expenses": today_expenses,
         "today_net": today_collected - today_expenses,
