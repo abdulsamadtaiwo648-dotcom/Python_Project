@@ -1108,6 +1108,51 @@ def _account_flows():
     return True
 
 
+def _import_batches():
+    """Migration 0012: import batches, so an import can be undone and can't be applied twice."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""CREATE TABLE IF NOT EXISTS import_batches (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                batch_key TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT,
+                undone_at TEXT,
+                kept_count INTEGER NOT NULL DEFAULT 0
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS import_batch_rows (
+                id SERIAL PRIMARY KEY,
+                batch_id INTEGER NOT NULL,
+                table_name TEXT NOT NULL,
+                record_id INTEGER NOT NULL,
+                fingerprint TEXT NOT NULL
+            )""")
+        else:
+            db.execute("""CREATE TABLE IF NOT EXISTS import_batches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                batch_key TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT,
+                undone_at TEXT,
+                kept_count INTEGER NOT NULL DEFAULT 0
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS import_batch_rows (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                batch_id INTEGER NOT NULL,
+                table_name TEXT NOT NULL,
+                record_id INTEGER NOT NULL,
+                fingerprint TEXT NOT NULL
+            )""")
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_import_batches_key ON import_batches (user_id, batch_key)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_import_batch_rows_batch ON import_batch_rows (batch_id)")
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -1124,6 +1169,7 @@ MIGRATIONS = [
     ("0009_money_in", _money_in),
     ("0010_accounts", _accounts),
     ("0011_account_flows", _account_flows),
+    ("0012_import_batches", _import_batches),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time

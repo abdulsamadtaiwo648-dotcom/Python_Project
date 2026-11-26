@@ -1,3 +1,4 @@
+import { parseCsv, toObjects } from "./csv";
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { moneyInFor, moneyInTotal, MONEY_IN_KINDS } from "./moneyIn";
@@ -29,5 +30,21 @@ describe("money in for a month or a year", () => {
 
   test("the kinds match the ones the server accepts", () => {
     assert.deepEqual(MONEY_IN_KINDS, ["Owner contribution", "Loan", "Refund received", "Other income"]);
+  });
+});
+
+describe("money in import columns", () => {
+  test("a transfer row names both accounts", () => {
+    const table = parseCsv("date,amount,type,received_into,from_account,description\n2026-01-13,3000,Transfer,Petty Cash,Cash,Top up");
+    const { rows, missing } = toObjects("money_in", table);
+    assert.deepEqual(missing, []);
+    assert.equal(rows[0].type, "Transfer");
+    assert.equal(rows[0].received_into, "Petty Cash");
+    assert.equal(rows[0].from_account, "Cash");
+  });
+
+  test("a money-in file without a type column is refused by name", () => {
+    const { missing } = toObjects("money_in", parseCsv("date,amount\n2026-01-13,3000"));
+    assert.deepEqual(missing, ["type"]);
   });
 });

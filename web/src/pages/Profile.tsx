@@ -1,3 +1,4 @@
+import TestReset from "../components/TestReset";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api, auth } from "../api";
@@ -306,6 +307,7 @@ export default function Profile() {
           </form>
         </Sheet>
       )}
+      {user?.is_test_business && <TestReset />}
     </section>
   );
 }

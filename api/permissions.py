@@ -61,6 +61,9 @@ def required(method, path):
         return OWNER
     # Imports write rows, so they need the page they write to. Only the owner may import
     # by default, but the page keys below let staff who hold that page import too.
+    # Preview and commit carry the kind in the body, so either page may use them.
+    if path in ("/api/import/preview", "/api/import/commit"):
+        return frozenset({"sales", "expenses"})
     if path == "/api/import/sales":
         return frozenset({"sales"})
     if path == "/api/import/expenses":

@@ -101,7 +101,7 @@ def test_a_sale_with_an_unknown_payment_mode_is_skipped():
 
 def test_too_many_rows_are_refused():
     _, client, headers = signed_user()
-    rows = [expense_row()] * 201
+    rows = [expense_row()] * 501
     assert client.post("/api/import/expenses", json={"rows": rows}, headers=headers).status_code == 400
 
 

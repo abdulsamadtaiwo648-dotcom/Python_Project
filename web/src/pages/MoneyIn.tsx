@@ -4,6 +4,7 @@ import { moneyInFor, moneyInTotal, MONEY_IN_KINDS, TRANSFER_KIND } from "../mone
 import { canTransfer, hasOneAccount, pickableAccounts } from "../accounts";
 import MonthPicker from "../components/MonthPicker";
 import Sheet from "../components/Sheet";
+import ImportSheet from "../components/ImportSheet";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { money, relativeDay } from "../format";
@@ -18,6 +19,7 @@ export default function MoneyIn() {
   const { moneyIn, reload } = useData();
   const dm = useDashboardMonth();
   const [editing, setEditing] = useState<MoneyInItem | "new" | null>(null);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => { document.title = "Money in | SoloBiz"; }, []);
 
@@ -46,7 +48,10 @@ export default function MoneyIn() {
           <h2 className="page-title" id="money-in-title">Money in</h2>
           <p className="page-sub">Owner capital, loans and refunds. This is not a sale, so it does not change sales totals or profit.</p>
         </div>
-        <button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>Record money in</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>
+          <button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>Record money in</button>
+        </div>
       </div>
 
       <MonthPicker value={ym} current={current} months={dm.months} onChange={dm.setMonth} />
@@ -88,6 +93,7 @@ export default function MoneyIn() {
         )}
       </div>
 
+      {importing && <ImportSheet kind="money_in" onDone={() => void reload()} onClose={() => setImporting(false)} />}
       {editing && (
         <MoneyInForm initial={editing === "new" ? undefined : editing}
           onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void reload(); }} />

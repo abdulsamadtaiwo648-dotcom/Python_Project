@@ -12,6 +12,8 @@ export interface SessionUser {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  /** The owner's business is a test business: test reset is available to its owner. */
+  is_test_business?: boolean;
 }
 
 export interface Access {
