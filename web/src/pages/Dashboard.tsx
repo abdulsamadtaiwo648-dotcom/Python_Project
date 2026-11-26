@@ -40,7 +40,7 @@ export function KpiRow({ summary: given }: { summary?: DashboardSummary | null }
   // "this month", or the name of the month being shown
   const phrase = !s || s.selected_month === s.current_month ? "this month" : `in ${ymLabel(s.selected_month)}`;
   return (
-    <div id="kpi-row" className="grid grid-cols-2 lg:grid-cols-4">
+    <div id="kpi-row" className="grid grid-cols-2 lg:grid-cols-3">
       <div className="kpi-card">
         <p className="kpi-label">Income {phrase}</p>
         <span className="stat-value" id="top-sales">{money(s?.month_income)}</span>
@@ -61,6 +61,16 @@ export function KpiRow({ summary: given }: { summary?: DashboardSummary | null }
               ? `Spending is ${money(Math.abs(s?.month_net ?? 0))} more than income ${phrase}.`
               : (s?.net_note ?? "")}
         </p>
+      </div>
+      <div className="kpi-card">
+        <p className="kpi-label">Money in {phrase}</p>
+        <span className="stat-value" id="top-money-in">{money(s?.cash?.money_in)}</span>
+        <p className="kpi-note">Owner capital, loans and refunds. Not sales.</p>
+      </div>
+      <div className="kpi-card">
+        <p className="kpi-label">Cash balance {phrase}</p>
+        <span className={`stat-value ${(s?.cash?.cash_balance ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-cash-balance">{money(s?.cash?.cash_balance)}</span>
+        <p className="kpi-note">Sales collected + money in − expenses.</p>
       </div>
       <div className="kpi-card">
         <p className="kpi-label">Low stock</p>

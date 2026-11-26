@@ -21,13 +21,13 @@ const year = { kind: "year", year: "2026" } as const;
 describe("totals for a range", () => {
   test("a month counts records by their business day", () => {
     assert.deepEqual(totalsInRange(sales, expenses, nov), {
-      value: 800, collected: 500, expenses: 150, balance: 300, net: 350,
+      value: 800, collected: 500, moneyIn: 0, expenses: 150, balance: 300, net: 350,
     });
   });
 
   test("a year covers both months", () => {
     assert.deepEqual(totalsInRange(sales, expenses, year), {
-      value: 1800, collected: 1500, expenses: 550, balance: 300, net: 950,
+      value: 1800, collected: 1500, moneyIn: 0, expenses: 550, balance: 300, net: 950,
     });
   });
 });
@@ -66,5 +66,59 @@ describe("sales by period", () => {
 
   test("days are newest first", () => {
     assert.deepEqual(groupSales(sales, "daily", nov).map((x) => x.label), ["3 Nov 2026", "2 Nov 2026"]);
+  });
+});
+
+// --- money in ---------------------------------------------------------------------------------
+
+import type { MoneyInItem } from "./types";
+
+const moneyIn = [
+  { id: 1, amount: 4000, kind: "Owner's capital", description: null, date: "2026-11-02 09:00 AM", entry_date: "2026-11-02" },
+  { id: 2, amount: 9000, kind: "Loan received", description: null, date: "2026-10-12 09:00 AM", entry_date: "2026-10-12" },
+] as unknown as MoneyInItem[];
+
+describe("money in in the analysis", () => {
+  test("cash flow is sales collected plus money in minus expenses, not profit", () => {
+    const t = totalsInRange(sales, expenses, nov, moneyIn);
+    assert.equal(t.moneyIn, 4000);
+    assert.equal(t.net, 500 + 4000 - 150);
+  });
+
+  test("the year includes money in from both months", () => {
+    const t = totalsInRange(sales, expenses, year, moneyIn);
+    assert.equal(t.moneyIn, 13000);
+    assert.equal(t.net, 1500 + 13000 - 550);
+  });
+
+  test("without money in the totals are unchanged", () => {
+    assert.equal(totalsInRange(sales, expenses, nov).net, 350);
+  });
+
+  test("each chart bucket carries money in and its own net", () => {
+    const b = chartBuckets(sales, expenses, "monthly", year, moneyIn);
+    assert.deepEqual(b.map((x) => [x.label, x.moneyIn, x.net]), [["Oct 26", 9000, 1000 + 9000 - 400], ["Nov 26", 4000, 500 + 4000 - 150]]);
+  });
+
+  test("a day with money in and no sale still gets a bucket", () => {
+    const b = chartBuckets([], [], "daily", nov, moneyIn);
+    assert.deepEqual(b.map((x) => [x.label, x.moneyIn, x.net]), [["2 Nov", 4000, 4000]]);
+  });
+
+  test("the last 12 months include money in", () => {
+    const last = lastMonths(sales, expenses, "2026-11", 12, moneyIn);
+    assert.equal(last[last.length - 1].moneyIn, 4000);
+    assert.equal(last[last.length - 1].net, 500 + 4000 - 150);
+    assert.equal(last.find((x) => x.label === "Oct 26")?.moneyIn, 9000);
+  });
+
+  test("a period with only money in appears in sales by period, with its own line", () => {
+    const g = groupSales([], "monthly", nov, moneyIn);
+    assert.deepEqual(g.map((x) => [x.label, x.volume, x.moneyIn, x.moneyInItems.length]), [["November 2026", 0, 4000, 1]]);
+  });
+
+  test("a period with sales and money in keeps both", () => {
+    const g = groupSales(sales, "monthly", nov, moneyIn);
+    assert.deepEqual(g.map((x) => [x.label, x.volume, x.moneyIn]), [["November 2026", 800, 4000]]);
   });
 });

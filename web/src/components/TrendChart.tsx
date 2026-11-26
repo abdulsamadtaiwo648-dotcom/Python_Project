@@ -3,7 +3,12 @@ import type { Bucket } from "../analytics";
 
 const compact = (v: number) => "₦" + new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 
-/** Income vs expenses bars, drawn on a canvas so it stays crisp at any width. */
+export const SERIES_COLORS = { sales: "#1d4ed8", moneyIn: "#059669", expenses: "#cbd5e1", net: "#0f172a" };
+
+/**
+ * Sales, money in and expenses as bars, and net cash flow (sales + money in − expenses) as a line.
+ * The scale goes below zero when a period has a loss.
+ */
 export default function TrendChart({ buckets, limit }: { buckets: Bucket[]; limit: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const data = buckets.slice(-limit);
@@ -24,33 +29,52 @@ export default function TrendChart({ buckets, limit }: { buckets: Bucket[]; limi
       c.clearRect(0, 0, width, height);
       if (!data.length) {
         c.fillStyle = "#64748b"; c.font = "13px Inter, system-ui, sans-serif"; c.textAlign = "center";
-        c.fillText("No sales or expense data for this period yet.", width / 2, height / 2);
+        c.fillText("No sales, money in or expenses for this period yet.", width / 2, height / 2);
         return;
       }
-      const pad = { top: 12, right: 12, bottom: 36, left: 48 };
+      const pad = { top: 12, right: 12, bottom: 36, left: 56 };
       const pw = width - pad.left - pad.right, ph = height - pad.top - pad.bottom;
-      const max = Math.max(1, ...data.flatMap((d) => [d.sales, d.expenses]));
+      const hi = Math.max(1, ...data.flatMap((d) => [d.sales, d.moneyIn, d.expenses, d.net]));
+      const lo = Math.min(0, ...data.map((d) => d.net));
+      const span = hi - lo;
+      const yOf = (v: number) => pad.top + (ph * (hi - v)) / span;
+      const zero = yOf(0);
+
       c.font = "12px Inter, system-ui, sans-serif"; c.textAlign = "right"; c.textBaseline = "middle";
       for (let i = 0; i <= 4; i++) {
-        const y = pad.top + ph - (ph * i) / 4;
+        const value = lo + (span * i) / 4;
+        const y = yOf(value);
         c.strokeStyle = "#f1f5f9"; c.lineWidth = 1; c.beginPath(); c.moveTo(pad.left, y); c.lineTo(width - pad.right, y); c.stroke();
-        c.fillStyle = "#94a3b8"; c.fillText(compact((max * i) / 4), pad.left - 7, y);
+        c.fillStyle = "#94a3b8"; c.fillText(compact(value), pad.left - 7, y);
       }
-      const slot = pw / data.length, bw = Math.min(10, slot * 0.3);
-      const bar = (x: number, y: number, w: number, h: number) => {
+      const slot = pw / data.length, bw = Math.min(8, slot * 0.2);
+      const bar = (x: number, value: number) => {
+        const top = yOf(value), h = Math.abs(zero - top);
         if (h <= 0) return;
-        const r = Math.min(4, w / 2, h);
+        const r = Math.min(3, bw / 2, h);
         c.beginPath();
-        if (c.roundRect) c.roundRect(x, y, w, h, [r, r, r, r]); else c.rect(x, y, w, h);
+        const y = Math.min(zero, top);
+        if (c.roundRect) c.roundRect(x, y, bw, h, [r, r, r, r]); else c.rect(x, y, bw, h);
         c.fill();
       };
       data.forEach((d, i) => {
         const cx = pad.left + slot * (i + 0.5);
-        const sh = Math.max(0, (d.sales / max) * ph), eh = Math.max(0, (d.expenses / max) * ph);
-        c.fillStyle = "#1d4ed8"; bar(cx - bw - 1.5, pad.top + ph - sh, bw, sh);
-        c.fillStyle = "#cbd5e1"; bar(cx + 1.5, pad.top + ph - eh, bw, eh);
+        c.fillStyle = SERIES_COLORS.sales; bar(cx - bw - 2, d.sales);
+        c.fillStyle = SERIES_COLORS.moneyIn; bar(cx, d.moneyIn);
+        c.fillStyle = SERIES_COLORS.expenses; bar(cx + bw + 2, d.expenses);
         c.fillStyle = "#64748b"; c.textAlign = "center"; c.textBaseline = "top";
         c.fillText(d.label, cx, pad.top + ph + 9, slot - 2);
+      });
+      // Net cash flow: a line across the buckets, with a dot at each.
+      c.strokeStyle = SERIES_COLORS.net; c.lineWidth = 2; c.beginPath();
+      data.forEach((d, i) => {
+        const x = pad.left + slot * (i + 0.5), y = yOf(d.net);
+        if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      });
+      c.stroke();
+      data.forEach((d, i) => {
+        const x = pad.left + slot * (i + 0.5), y = yOf(d.net);
+        c.fillStyle = SERIES_COLORS.net; c.beginPath(); c.arc(x, y, 3, 0, Math.PI * 2); c.fill();
       });
     };
     draw();
@@ -59,11 +83,11 @@ export default function TrendChart({ buckets, limit }: { buckets: Bucket[]; limi
   }, [data]);
 
   const summary = data.length
-    ? data.map((d) => `${d.label}: sales ${compact(d.sales)}, expenses ${compact(d.expenses)}`).join(". ")
-    : "No sales or expense data for this period yet.";
+    ? data.map((d) => `${d.label}: sales ${compact(d.sales)}, money in ${compact(d.moneyIn)}, expenses ${compact(d.expenses)}, net ${compact(d.net)}`).join(". ")
+    : "No sales, money in or expenses for this period yet.";
   return (
     <>
-      <canvas ref={ref} id="analytics-trend-chart" className="block h-64 w-full sm:h-80" aria-label="Sales and expenses trend chart" />
+      <canvas ref={ref} id="analytics-trend-chart" className="block h-64 w-full sm:h-80" aria-label="Sales, money in, expenses and net cash flow chart" />
       <p className="sr-only" aria-live="polite">{summary}</p>
     </>
   );
