@@ -102,12 +102,12 @@ export default function MoneyIn() {
   );
 }
 
-function MoneyInForm(props: { initial?: MoneyInItem; onClose: () => void; onSaved: () => void }) {
+export function MoneyInForm(props: { initial?: MoneyInItem; defaultKind?: string; onClose: () => void; onSaved: () => void }) {
   const { initial } = props;
   const { accounts } = useData();
   const defaultId = accounts.find((a) => a.is_default)?.id ?? null;
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
-  const [kind, setKind] = useState(initial?.kind ?? MONEY_IN_KINDS[0]);
+  const [kind, setKind] = useState(initial?.kind ?? props.defaultKind ?? MONEY_IN_KINDS[0]);
   const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? defaultId);
   const [fromId, setFromId] = useState<number | null>(null);
   const kinds = canTransfer(accounts) ? [...MONEY_IN_KINDS, TRANSFER_KIND] : MONEY_IN_KINDS;

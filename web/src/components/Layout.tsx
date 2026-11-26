@@ -7,36 +7,30 @@ import { ICONS } from "../icons";
 import { clearDeviceData, signOutWarning } from "../offline";
 import { canUse } from "../access";
 
+// Five main pages, then More. Money is one page with tabs (Accounts, Money in, Transfers).
 const NAV = [
-  { to: "/dashboard", label: "Dashboard", tab: "dashboard" },
+  { to: "/dashboard", label: "Home", tab: "dashboard" },
   { to: "/sales", label: "Sales", tab: "income" },
-  { to: "/money-in", label: "Money in", tab: "money-in", page: "sales" },
-  { to: "/accounts", label: "Accounts", tab: "accounts", page: "accounts" },
-  { to: "/inventory", label: "Inventory", tab: "inventory" },
   { to: "/expenses", label: "Expenses", tab: "expenses" },
-  { to: "/budget", label: "Budget", tab: "budget" },
-  { to: "/reports", label: "Reports", tab: "reports" },
-  { to: "/profile", label: "Profile", tab: "profile" },
-  { to: "/team", label: "Team", tab: "team" },
-  { to: "/plans", label: "Plans", tab: "plans" },
+  { to: "/money", label: "Money", tab: "money", page: "sales" },
+  { to: "/inventory", label: "Stock", tab: "inventory" },
 ] as const;
 
 const MOBILE = [
   { to: "/dashboard", label: "Home" },
   { to: "/sales", label: "Sales" },
-  { to: "/inventory", label: "Inventory" },
   { to: "/expenses", label: "Expenses" },
+  { to: "/money", label: "Money", page: "sales" },
+  { to: "/inventory", label: "Stock" },
 ] as const;
 
 const MORE_ALL = [
-  { to: "/money-in", label: "Money in", page: "sales" },
-  { to: "/accounts", label: "Accounts", page: "accounts" },
   { to: "/reports", label: "Reports" },
-  { to: "/budget", label: "Budget" },
-  { to: "/profile", label: "Profile" },
   { to: "/team", label: "Team" },
-  { to: "/plans", label: "Plans" },
   { to: "/website", label: "Website" },
+  { to: "/profile", label: "Settings" },
+  { to: "/plans", label: "Plans" },
+  { to: "/budget", label: "Budget" },
 ] as const;
 
 // `html` must always be a constant icon from ICONS below, never user or server data:
@@ -63,7 +57,6 @@ export default function Layout() {
   const NAV_SHOWN = NAV.filter((n) => canUse(access, pageOf(n)));
   const MOBILE_SHOWN = MOBILE.filter((n) => canUse(access, pageOf(n)));
   const MORE = MORE_ALL.filter((n) => canUse(access, pageOf(n)));
-  const showWebsite = canUse(access, "website");
   const [moreOpen, setMoreOpen] = useState(false);
   const tab = tabFor(pathname);
   const lowCount = summary?.low_stock_items.length ?? 0;
@@ -150,12 +143,13 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
-          {showWebsite && (
-            <NavLink to="/website" className={({ isActive }) => linkClass(isActive)}>
-              <Svg html={ICONS["/website"]} />
-              <span>Website</span>
+          {MORE.length > 0 && <p className="nav-group">More</p>}
+          {MORE.map((n) => (
+            <NavLink key={n.to} to={n.to} className={({ isActive }) => linkClass(isActive)}>
+              <Svg html={ICONS["m" + n.to]} />
+              <span>{n.label}</span>
             </NavLink>
-          )}
+          ))}
           <div className="side-business">
             <span className="side-business-mark" aria-hidden="true">{(name || "S").slice(0, 1).toUpperCase()}</span>
             <div className="min-w-0">
@@ -238,7 +232,7 @@ export default function Layout() {
         {MORE.length > 0 && (
         <button id="mobile-more-btn" type="button" aria-expanded={moreOpen} aria-controls="mobile-more-menu" aria-haspopup="true"
           onClick={() => setMoreOpen((o) => !o)}
-          className={`mobile-nav-btn ${["reports", "budget", "profile", "plans"].includes(tab) ? "text-blue-700" : "text-slate-500"}`}>
+          className={`mobile-nav-btn ${["reports", "budget", "profile", "plans", "team", "website"].includes(tab) ? "text-blue-700" : "text-slate-500"}`}>
           <span className="relative"><Svg html={ICONS.more} className="w-6 h-6" sw={1.9} /></span>
           <span className="mobile-nav-label">More</span>
         </button>

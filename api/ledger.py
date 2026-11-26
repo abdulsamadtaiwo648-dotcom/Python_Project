@@ -114,8 +114,13 @@ def statement(db, owner_id, account_row, kind, anchor):
     receipts_total = sum(x["kobo"] for x in receipts)
     payments_total = sum(x["kobo"] for x in payments)
     closing = opening + receipts_total - payments_total
+    # The date shown for the starting balance: the account's opening date, or the first movement if
+    # money moved before it. Only the label changes; the balances above are not affected.
+    earliest = min((x["day"] for x in entries(db, owner_id, account_row["id"]) if x["day"]), default=None)
+    shown_date = min(d for d in (od, earliest) if d) if (od or earliest) else None
     return {
         "start": s, "end": e,
+        "starting_balance_date": shown_date,
         "previous_anchor": (start - timedelta(days=1)).isoformat(),
         "next_anchor": (end + timedelta(days=1)).isoformat(),
         "opening": opening,
