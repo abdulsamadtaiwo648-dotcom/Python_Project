@@ -1002,6 +1002,59 @@ def _money_in():
     return True
 
 
+def _accounts():
+    """Migration 0010: accounts. Each business gets one default account named Cash. Expenses and
+    Money In are linked to the default account. Safe to rerun: every step checks what is there."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""CREATE TABLE IF NOT EXISTS accounts (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                archived INTEGER NOT NULL DEFAULT 0,
+                opening_kobo BIGINT NOT NULL DEFAULT 0,
+                opening_date TEXT,
+                created_at TEXT
+            )""")
+            db.execute("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS account_id INTEGER")
+            db.execute("ALTER TABLE money_in ADD COLUMN IF NOT EXISTS account_id INTEGER")
+        else:
+            db.execute("""CREATE TABLE IF NOT EXISTS accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                archived INTEGER NOT NULL DEFAULT 0,
+                opening_kobo INTEGER NOT NULL DEFAULT 0,
+                opening_date TEXT,
+                created_at TEXT
+            )""")
+            for table in ("expenses", "money_in"):
+                _add_sqlite_column_if_missing(db, table, "account_id", "INTEGER")
+        # At most one default per business, enforced by the database itself.
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_one_default ON accounts (user_id) WHERE is_default = 1")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts (user_id)")
+        # Every business owner (staff members are not businesses) gets a default Cash account.
+        now = datetime.now(timezone.utc)
+        db.execute(
+            """INSERT INTO accounts (user_id, name, is_default, archived, opening_kobo, opening_date, created_at)
+               SELECT u.id, 'Cash', 1, 0, 0, ?, ? FROM users u
+               WHERE u.id NOT IN (SELECT user_id FROM staff_members)
+                 AND NOT EXISTS (SELECT 1 FROM accounts a WHERE a.user_id = u.id)""",
+            (now.strftime("%Y-%m-%d"), now.isoformat()),
+        )
+        # Existing records belong to the default account. Only rows without an account are touched.
+        for table in ("expenses", "money_in"):
+            db.execute(
+                f"""UPDATE {table} SET account_id = (
+                       SELECT a.id FROM accounts a WHERE a.user_id = {table}.user_id AND a.is_default = 1)
+                   WHERE account_id IS NULL"""
+            )
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -1016,6 +1069,7 @@ MIGRATIONS = [
     ("0007_business_dates", _business_dates),
     ("0008_expense_categories", _expense_categories),
     ("0009_money_in", _money_in),
+    ("0010_accounts", _accounts),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time

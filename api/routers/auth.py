@@ -160,6 +160,8 @@ def register_verify(body: VerifyRequest):
             )
             core.record_user_activity(db, user_id, "account_created", "Created a SoloBiz account")
             db.commit()
+            from ..accounts import ensure_default  # the business's default Cash account
+            ensure_default(db, user_id)
     except Exception as exc:
         logging.error("register_verify error: %s", exc, exc_info=True)
         if core.is_unique_violation(exc):

@@ -11,6 +11,7 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", tab: "dashboard" },
   { to: "/sales", label: "Sales", tab: "income" },
   { to: "/money-in", label: "Money in", tab: "money-in", page: "sales" },
+  { to: "/accounts", label: "Accounts", tab: "accounts", page: "accounts" },
   { to: "/inventory", label: "Inventory", tab: "inventory" },
   { to: "/expenses", label: "Expenses", tab: "expenses" },
   { to: "/budget", label: "Budget", tab: "budget" },
@@ -29,6 +30,7 @@ const MOBILE = [
 
 const MORE_ALL = [
   { to: "/money-in", label: "Money in", page: "sales" },
+  { to: "/accounts", label: "Accounts", page: "accounts" },
   { to: "/reports", label: "Reports" },
   { to: "/budget", label: "Budget" },
   { to: "/profile", label: "Profile" },

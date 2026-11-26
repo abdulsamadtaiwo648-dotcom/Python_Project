@@ -6,6 +6,7 @@ import Budget from "./pages/Budget";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
 import MoneyIn from "./pages/MoneyIn";
+import Accounts from "./pages/Accounts";
 import Inventory from "./pages/Inventory";
 import Login from "./pages/Login";
 import Plans from "./pages/Plans";
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="/inventory" element={<Guard page="inventory"><Inventory /></Guard>} />
             <Route path="/expenses" element={<Guard page="expenses"><Expenses /></Guard>} />
             <Route path="/money-in" element={<Guard page="sales"><MoneyIn /></Guard>} />
+            <Route path="/accounts" element={<Guard page="accounts"><Accounts /></Guard>} />
             <Route path="/budget" element={<Guard page="budget"><Budget /></Guard>} />
             <Route path="/profile" element={<Guard page="profile"><Profile /></Guard>} />
             <Route path="/website" element={<Guard page="website"><Website /></Guard>} />

@@ -54,6 +54,11 @@ def required(method, path):
     if path == "/api/income" or path.startswith("/api/income/") or path.startswith("/update_payment/") \
             or path in ("/add_income", "/api/checkout", "/api/sync-sales"):
         return frozenset({"sales", "dashboard", "reports"}) if read else frozenset({"sales"})
+    # Accounts: anyone who sees the money pages can read them; only the owner changes them.
+    if path == "/api/accounts" or path.startswith("/api/accounts/"):
+        if read:
+            return frozenset({"sales", "expenses", "dashboard", "reports"})
+        return OWNER
     # Imports write rows, so they need the page they write to. Only the owner may import
     # by default, but the page keys below let staff who hold that page import too.
     if path == "/api/import/sales":

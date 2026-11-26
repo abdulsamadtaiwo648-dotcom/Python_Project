@@ -13,7 +13,7 @@ export const PAGE_ROUTES: { path: string; page: string; label: string }[] = [
 ];
 
 /** Owner-only areas: staff never see these, whatever their pages. */
-export const OWNER_ONLY = new Set(["team", "plans"]);
+export const OWNER_ONLY = new Set(["team", "plans", "accounts"]);
 
 export function canUse(access: Access | null, page: string): boolean {
   if (!access) return true;              // still loading: the server decides
