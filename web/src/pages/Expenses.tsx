@@ -5,6 +5,7 @@ import Sheet from "../components/Sheet";
 import CategoriesSheet from "../components/CategoriesSheet";
 import ImportSheet from "../components/ImportSheet";
 import { useExpenseCategories } from "../categories";
+import { hasOneAccount, pickableAccounts } from "../accounts";
 import { useData } from "../data";
 import { money, parseSaved, relativeDay } from "../format";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
@@ -14,7 +15,9 @@ const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
 function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
-  const { write } = useData();
+  const { write, accounts } = useData();
+  const defaultAccountId = accounts.find((a) => a.is_default)?.id ?? null;
+  const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? defaultAccountId);
   const cats = useExpenseCategories();
   // A category is pickable if it is active, or if this expense already uses it (even when archived).
   const pickable = cats.all.filter((c) => !c.archived || c.name === initial?.category).map((c) => c.name);
@@ -38,7 +41,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     setBusy(true);
     setError("");
     try {
-      const body = { amount: n, category, description: description.trim(), entry_date: entryDay };
+      const body = { amount: n, category, description: description.trim(), entry_date: entryDay, account_id: accountId };
       if (initial) {
         await write({ kind: "expense_edit", method: "PUT", url: `/api/expenses/${initial.server_id}`, body,
           meta: { expenseId: initial.server_id, patch: { ...body, date: dayStamp(entryDay) } } });
@@ -88,6 +91,16 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
               value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
           </div>
         </div>
+        {!hasOneAccount(accounts) && (
+          <div className="sb-field">
+            <label htmlFor="expense-account">Paid from</label>
+            <select id="expense-account" required value={accountId ?? ""} onChange={(e) => setAccountId(Number(e.target.value))}>
+              {pickableAccounts(accounts, initial?.account_id).map((a) => (
+                <option key={a.id} value={a.id}>{a.name}{a.archived ? " (archived)" : ""}{a.is_default ? " · default" : ""}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="sb-field">
           <label htmlFor="expense-day">Date</label>
           <input id="expense-day" type="date" required value={entryDay} min={minEntryIso()} max={todayIso()}
@@ -127,13 +140,14 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 }
 
 export default function Expenses() {
-  const { expenses, subscription, reload } = useData();
+  const { expenses, subscription, reload, accounts } = useData();
   const cats = useExpenseCategories();
   const [managing, setManaging] = useState(false);
   const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
+  const [account, setAccount] = useState("");
   const [exact, setExact] = useState("");
 
   useEffect(() => { document.title = "Expenses | SoloBiz"; }, []);
@@ -165,8 +179,8 @@ export default function Expenses() {
   }, [expenses]);
 
   const visible = expenses.filter((e) =>
-    (!category || e.category === category) && (!exact || Math.abs(e.amount - Number(exact)) < 0.005));
-  const filtered = Boolean(category || exact);
+    (!category || e.category === category) && (!account || String(e.account_id) === account) && (!exact || Math.abs(e.amount - Number(exact)) < 0.005));
+  const filtered = Boolean(category || exact || account);
   const filterTotal = visible.reduce((s, e) => s + e.amount, 0);
 
   return (
@@ -217,6 +231,15 @@ export default function Expenses() {
                 {cats.all.map((c) => <option key={c.id} value={c.name}>{c.name}{c.archived ? " (archived)" : ""}</option>)}
               </select>
             </div>
+            {!hasOneAccount(accounts) && (
+              <div className="sb-field">
+                <label htmlFor="filter-account">Paid from</label>
+                <select id="filter-account" value={account} onChange={(e) => setAccount(e.target.value)}>
+                  <option value="">All accounts</option>
+                  {accounts.map((a) => <option key={a.id} value={String(a.id)}>{a.name}{a.archived ? " (archived)" : ""}</option>)}
+                </select>
+              </div>
+            )}
             <div className="sb-field">
               <label htmlFor="filter-amount-exact">Exact amount (₦)</label>
               <input id="filter-amount-exact" type="number" min={0} step="any" inputMode="decimal" placeholder="Any"
@@ -242,7 +265,7 @@ export default function Expenses() {
                 Filter {filtered && <span className="sb-chip-count">{[category, exact].filter(Boolean).length}</span>}
               </button>
               <p className="list-toolbar-text" aria-live="polite">{filtered ? `${visible.length} of ${expenses.length}` : ""}</p>
-              {filtered && <button type="button" className="sb-link" onClick={() => { setCategory(""); setExact(""); }}>Clear</button>}
+              {filtered && <button type="button" className="sb-link" onClick={() => { setCategory(""); setExact(""); setAccount(""); }}>Clear</button>}
             </div>
           </div>
           <div className="sb-list-card" id="transaction-list">

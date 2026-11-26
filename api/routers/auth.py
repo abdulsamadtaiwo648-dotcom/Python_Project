@@ -108,11 +108,12 @@ def session_info(request: Request):
     if who:
         with get_db() as db:
             row = db.execute("SELECT id, email, first_name, last_name FROM users WHERE id = ?", (who["user_id"],)).fetchone()
-            owner = db.execute("SELECT first_name, email FROM users WHERE id = ?", (who["owner_id"],)).fetchone()
+            owner = db.execute("SELECT first_name, email, is_test_account FROM users WHERE id = ?", (who["owner_id"],)).fetchone()
         if row:
             user = {"id": row["id"], "email": row["email"], "first_name": row["first_name"], "last_name": row["last_name"]}
         if owner:
             user["business_owner"] = owner["first_name"] or owner["email"].split("@")[0]
+            user["is_test_business"] = bool(owner["is_test_account"]) and not who["is_staff"]
     access = access_for(who)
     if access and access["is_staff"]:
         access["role_label"] = ROLES.get(access["role"], {}).get("label", "Staff")
@@ -160,6 +161,8 @@ def register_verify(body: VerifyRequest):
             )
             core.record_user_activity(db, user_id, "account_created", "Created a SoloBiz account")
             db.commit()
+            from ..accounts import ensure_default  # the business's default Cash account
+            ensure_default(db, user_id)
     except Exception as exc:
         logging.error("register_verify error: %s", exc, exc_info=True)
         if core.is_unique_violation(exc):

@@ -15,6 +15,8 @@ from .. import core
 from .. import record_rules as rules
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
+from ..payments import paid_kobo, record_sale_payment, remove_sale_payments
+from ..money import kobo_from_amount
 from ..plans import ALERTS
 from ..subscriptions import has_feature, history_cutoff
 
@@ -119,8 +121,9 @@ def api_income(request: Request, payload: Any = Body(None)):
         with get_db() as db:
             cursor = db.execute(
                 "INSERT INTO income (user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id, entry_date, entered_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (user_id, description, total_value, amount_paid, customer_name, payment_mode, income_date, receipt_id, entry_day, datetime.now(timezone.utc).isoformat())
+                (user_id, description, total_value, 0, customer_name, payment_mode, income_date, receipt_id, entry_day, datetime.now(timezone.utc).isoformat())
             )
+            record_sale_payment(db, user_id, cursor.lastrowid, amount_paid, entry_day)
             saved_item = {
                 "id": cursor.lastrowid,
                 "user_id": user_id,
@@ -171,14 +174,16 @@ def api_delete_income(income_id: int, request: Request, payload: Any = Body(None
             checkout_id = target.get("checkout_id")
             if checkout_id:
                 deleted_items = db.execute(
-                    "DELETE FROM income WHERE user_id = ? AND checkout_id = ? RETURNING inventory_item_id, quantity",
+                    "DELETE FROM income WHERE user_id = ? AND checkout_id = ? RETURNING id, inventory_item_id, quantity",
                     (user_id, checkout_id)
                 ).fetchall()
+                remove_sale_payments(db, user_id, [r["id"] for r in deleted_items])
             else:
                 deleted_items = db.execute(
-                    "DELETE FROM income WHERE id = ? AND user_id = ? RETURNING inventory_item_id, quantity",
+                    "DELETE FROM income WHERE id = ? AND user_id = ? RETURNING id, inventory_item_id, quantity",
                     (income_id, user_id)
                 ).fetchall()
+                remove_sale_payments(db, user_id, [r["id"] for r in deleted_items])
 
             quantities_by_product = {}
             for deleted_item in deleted_items:
@@ -401,11 +406,12 @@ def api_checkout(request: Request, payload: Any = Body(None)):
                         receipt_id, checkout_id, checkout_line_id, inventory_item_id, quantity, unit_price,
                         sale_type, bundle_count, bundle_size, entry_date, entered_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (user_id, line["name"], line_total, line_paid, customer_name, payment_mode, sale_date,
+                    (user_id, line["name"], line_total, 0, customer_name, payment_mode, sale_date,
                      receipt_id, checkout_id, line["line_id"], line["preset_id"], line["units"], unit_price,
                      line["sale_type"], line["bundle_count"], line["bundle_size"], entry_day,
                      datetime.now(timezone.utc).isoformat())
                 )
+                record_sale_payment(db, user_id, cursor.lastrowid, line_paid, entry_day)
                 saved_items.append({
                     "id": cursor.lastrowid, "checkout_line_id": line["line_id"], "inventory_item_id": line["preset_id"],
                     "description": line["name"], "quantity": line["units"], "unit_price": unit_price,
@@ -436,6 +442,8 @@ def api_checkout(request: Request, payload: Any = Body(None)):
 
 @router.api_route("/update_payment/{receipt_id}", methods=['POST'])
 def update_payment(receipt_id: int, request: Request, payload: Any = Body(None)):
+    """Record a payment against a sale. It is one dated payment row on the default account. It can
+    never be more than what is still owed: the amount actually recorded is returned."""
     user_id = current_user_id(request)
     if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -451,27 +459,32 @@ def update_payment(receipt_id: int, request: Request, payload: Any = Body(None))
     if not math.isfinite(payment_amount) or payment_amount <= 0:
         return jsonify({"status": "error", "message": "Payment must be greater than zero."}), 400
 
+    payment_day, day_error = rules.check_entry_date(data.get("payment_date"))
+    if day_error:
+        return jsonify({"status": "error", "message": f"Choose a valid payment date: {day_error}."}), 400
+
     with get_db() as db:
         row = db.execute("SELECT * FROM income WHERE id = ? AND user_id = ?", (receipt_id, user_id)).fetchone()
         if not row:
             return jsonify({"status": "error", "message": "Receipt not found."}), 404
 
         item = dict(row)
-        total_value = float(item.get("total_value") if item.get("total_value") is not None else item.get("amount", 0))
-        current_paid = float(item.get("amount_paid") if item.get("amount_paid") is not None else item.get("amount", 0))
-        updated_paid = min(total_value, current_paid + payment_amount)
-        db.execute(
-            "UPDATE income SET amount_paid = ? WHERE id = ? AND user_id = ?",
-            (updated_paid, receipt_id, user_id)
-        )
-        record_user_activity(db, user_id, "sale_payment_updated", "Recorded a payment against a sale")
+        total_kobo = kobo_from_amount(item.get("total_value") if item.get("total_value") is not None else item.get("amount", 0))
+        paid_before = paid_kobo(db, user_id, receipt_id)
+        owed_kobo = max(total_kobo - paid_before, 0)
+        applied_kobo = min(kobo_from_amount(payment_amount), owed_kobo)
+        recorded = record_sale_payment(db, user_id, receipt_id, applied_kobo / 100.0, payment_day) if applied_kobo else 0
+        if recorded:
+            record_user_activity(db, user_id, "sale_payment_updated", "Recorded a payment against a sale")
         db.commit()
 
+    paid_now = paid_before + recorded
     return jsonify({
         "status": "success",
-        "message": "Payment added successfully.",
-        "updated_amount_paid": updated_paid,
-        "balance_owed": max(total_value - updated_paid, 0)
+        "message": "Payment added successfully." if recorded else "This sale is already fully paid.",
+        "applied_amount": recorded / 100.0,
+        "updated_amount_paid": paid_now / 100.0,
+        "balance_owed": max(total_kobo - paid_now, 0) / 100.0,
     }), 200
 
 
@@ -533,9 +546,10 @@ def sync_sales(request: Request, payload: Any = Body(None)):
                     user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id,
                     entry_date, entered_at
                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (user_id, description, total_value, amount_paid, customer_name, payment_mode, sale_date, receipt_id,
+                (user_id, description, total_value, 0, customer_name, payment_mode, sale_date, receipt_id,
                  entry_day, datetime.now(timezone.utc).isoformat())
             )
+            record_sale_payment(db, user_id, cursor.lastrowid, amount_paid, entry_day)
             saved_items.append({
                 "id": cursor.lastrowid, "user_id": user_id,
                 "description": description, "total_value": total_value, "amount_paid": amount_paid,

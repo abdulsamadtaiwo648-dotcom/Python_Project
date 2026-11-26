@@ -10,12 +10,13 @@ import type { CashSummary, DashboardSummary } from "../types";
 
 /** Cash for the month shown: what came in, what went out, and the balance. */
 export function CashCard({ cash, phrase }: { cash: CashSummary; phrase: string }) {
+  const net = cash.net_cash_movement ?? cash.cash_balance;
   const rows: [string, number, string][] = [
-    ["Sales collected", cash.sales_collected, "text-slate-900"],
-    ["Money in", cash.money_in, "text-slate-900"],
-    ["Expenses", cash.expenses, "text-rose-700"],
+    ["Sales payments received", cash.payments_received ?? cash.sales_collected, "text-slate-900"],
+    ["Money in (not transfers)", cash.money_in, "text-slate-900"],
+    ["Expenses paid", cash.expenses, "text-rose-700"],
     ["Profit (sales − expenses)", cash.profit, cash.profit < 0 ? "text-rose-700" : "text-slate-900"],
-    ["Cash balance (sales + money in − expenses)", cash.cash_balance, cash.cash_balance < 0 ? "text-rose-700" : "text-slate-900"],
+    ["Net cash movement (payments + money in − expenses)", net, net < 0 ? "text-rose-700" : "text-slate-900"],
   ];
   return (
     <section id="dashboard-cash" className="dash-panel mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-cash-heading">
@@ -68,9 +69,9 @@ export function KpiRow({ summary: given }: { summary?: DashboardSummary | null }
         <p className="kpi-note">Owner capital, loans and refunds. Not sales.</p>
       </div>
       <div className="kpi-card">
-        <p className="kpi-label">Cash balance {phrase}</p>
-        <span className={`stat-value ${(s?.cash?.cash_balance ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-cash-balance">{money(s?.cash?.cash_balance)}</span>
-        <p className="kpi-note">Sales collected + money in − expenses.</p>
+        <p className="kpi-label">Net cash movement {phrase}</p>
+        <span className={`stat-value ${(s?.cash?.net_cash_movement ?? s?.cash?.cash_balance ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-cash-balance">{money(s?.cash?.net_cash_movement ?? s?.cash?.cash_balance)}</span>
+        <p className="kpi-note">Sales payments received + money in − expenses paid.</p>
       </div>
       <div className="kpi-card">
         <p className="kpi-label">Low stock</p>
@@ -156,6 +157,17 @@ export default function Dashboard() {
         )}
         <KpiRow summary={summary} />
       </div>
+      {summary?.account_balances && summary.account_balances.length > 0 && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Account balances">
+          {summary.account_balances.map((a) => (
+            <div key={a.id} className="kpi-card">
+              <p className="kpi-label">{a.name} balance</p>
+              <span className={`stat-value ${a.balance < 0 ? "text-rose-700" : ""}`}>{money(a.balance)}</span>
+              <p className="kpi-note">At the end of {ymLabel(summary.selected_month)}.</p>
+            </div>
+          ))}
+        </div>
+      )}
       {summary?.cash && (
         <CashCard cash={summary.cash} phrase={summary.selected_month === summary.current_month ? "this month" : `in ${ymLabel(summary.selected_month)}`} />
       )}

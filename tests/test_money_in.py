@@ -21,7 +21,7 @@ def today():
 
 
 def body(**over):
-    data = {"amount": 50000, "kind": "Owner's capital", "description": "Put in to restock", "entry_date": today().isoformat()}
+    data = {"amount": 50000, "kind": "Owner contribution", "description": "Put in to restock", "entry_date": today().isoformat()}
     data.update(over)
     return data
 
@@ -37,7 +37,7 @@ def test_money_in_is_recorded_with_its_business_date():
     response = client.post("/api/money-in", json=body(entry_date=past), headers=headers)
     assert response.status_code == 201, response.text
     row = stored(user_id)[0]
-    assert row["entry_date"] == past and row["kind"] == "Owner's capital" and row["entered_at"]
+    assert row["entry_date"] == past and row["kind"] == "Owner contribution" and row["entered_at"]
 
 
 def test_money_in_is_not_a_sale_and_does_not_appear_in_sales():
@@ -75,10 +75,10 @@ def test_money_in_can_be_edited_and_deleted():
     user_id, client, headers = signed_user()
     client.post("/api/money-in", json=body(), headers=headers)
     item_id = stored(user_id)[0]["id"]
-    edited = client.put(f"/api/money-in/{item_id}", json=body(kind="Loan received", amount=12000), headers=headers)
+    edited = client.put(f"/api/money-in/{item_id}", json=body(kind="Loan", amount=12000), headers=headers)
     assert edited.status_code == 200, edited.text
     row = stored(user_id)[0]
-    assert row["kind"] == "Loan received" and row["amount"] == 12000
+    assert row["kind"] == "Loan" and row["amount"] == 12000
     assert client.delete(f"/api/money-in/{item_id}", headers=headers).status_code == 200
     assert stored(user_id) == []
 

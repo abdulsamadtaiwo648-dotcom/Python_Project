@@ -1,10 +1,11 @@
 /** Reads a CSV spreadsheet export and turns its rows into objects keyed by header. */
 
-export type ImportKind = "expenses" | "sales";
+export type ImportKind = "expenses" | "sales" | "money_in";
 
 export const COLUMNS: Record<ImportKind, { required: string[]; optional: string[] }> = {
-  expenses: { required: ["date", "amount", "category", "description"], optional: [] },
+  expenses: { required: ["date", "amount", "category", "description"], optional: ["paid_from"] },
   sales: { required: ["date", "description", "amount"], optional: ["customer", "payment_mode"] },
+  money_in: { required: ["date", "amount", "type"], optional: ["description", "received_into", "from_account"] },
 };
 
 /** A small CSV reader: quoted fields, commas and line breaks inside quotes, CRLF or LF. */

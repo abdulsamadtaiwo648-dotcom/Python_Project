@@ -74,8 +74,8 @@ describe("sales by period", () => {
 import type { MoneyInItem } from "./types";
 
 const moneyIn = [
-  { id: 1, amount: 4000, kind: "Owner's capital", description: null, date: "2026-11-02 09:00 AM", entry_date: "2026-11-02" },
-  { id: 2, amount: 9000, kind: "Loan received", description: null, date: "2026-10-12 09:00 AM", entry_date: "2026-10-12" },
+  { id: 1, amount: 4000, kind: "Owner contribution", description: null, date: "2026-11-02 09:00 AM", entry_date: "2026-11-02" },
+  { id: 2, amount: 9000, kind: "Loan", description: null, date: "2026-10-12 09:00 AM", entry_date: "2026-10-12" },
 ] as unknown as MoneyInItem[];
 
 describe("money in in the analysis", () => {

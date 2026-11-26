@@ -98,7 +98,7 @@ def test_a_month_with_data_is_shown_without_a_notice():
 
 def test_money_in_alone_counts_as_data_for_the_current_month():
     client, headers = signed_user()
-    body = {"amount": 5000, "kind": "Owner's capital", "description": "In", "entry_date": utc_today().isoformat()}
+    body = {"amount": 5000, "kind": "Owner contribution", "description": "In", "entry_date": utc_today().isoformat()}
     assert client.post("/api/money-in", json=body, headers=headers).status_code == 201
     data = dashboard(client)
     assert data["selected_month"] == this_month()
