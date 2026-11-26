@@ -1,3 +1,5 @@
+import EmptyState from "../components/EmptyState";
+import Skeleton from "../components/Skeleton";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApiError, api } from "../api";
 import PushCard from "../components/PushCard";
@@ -151,7 +153,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
 }
 
 export default function Inventory() {
-  const { products, reload } = useData();
+  const { products, reload, loading } = useData();
   const [chip, setChip] = useState<Chip>("all");
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"cards" | "table">("cards");
@@ -260,7 +262,8 @@ export default function Inventory() {
           <table>
             <thead><tr><th>Product</th><th>Status</th><th>Stock</th><th>Price</th></tr></thead>
             <tbody id="presets-grid">
-              {products.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-slate-500">No products yet. Select “Add product” to get started.</td></tr>}
+              {loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><Skeleton rows={3} label="Loading stock" /></td></tr>}
+              {!loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><EmptyState message="No products yet. Add the things you sell to track stock." /></td></tr>}
               {products.length > 0 && rows.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-slate-500">No products match.</td></tr>}
               {rows.map((p) => {
                 const level = stockLevel(p);

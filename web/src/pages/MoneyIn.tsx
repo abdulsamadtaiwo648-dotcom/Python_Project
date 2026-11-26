@@ -1,3 +1,4 @@
+import EmptyState from "../components/EmptyState";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, api } from "../api";
 import { moneyInFor, moneyInTotal, MONEY_IN_KINDS, TRANSFER_KIND } from "../moneyIn";
@@ -73,7 +74,7 @@ export default function MoneyIn() {
 
       <div className="sb-panel">
         {monthItems.length === 0 ? (
-          <p className="text-sm text-slate-500">No money in recorded for {ymLabel(ym)}.</p>
+          <EmptyState message={`No money in recorded for ${ymLabel(ym)}.`} action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>Record money in</button>} />
         ) : (
           <ul className="divide-y divide-slate-100" aria-label="Money in entries">
             {monthItems.map((i) => (

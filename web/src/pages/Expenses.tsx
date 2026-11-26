@@ -1,3 +1,4 @@
+import Skeleton from "../components/Skeleton";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "../api";
@@ -145,7 +146,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 }
 
 export default function Expenses() {
-  const { expenses, subscription, reload, accounts } = useData();
+  const { expenses, subscription, reload, accounts, loading } = useData();
   const dm = useDashboardMonth();
   const cats = useExpenseCategories();
   const [managing, setManaging] = useState(false);
@@ -265,7 +266,8 @@ export default function Expenses() {
       )}
 
       <div id="transaction-list" className="space-y-5">
-        {inScope.length === 0 && (
+        {loading && expenses.length === 0 && <Skeleton rows={4} label="Loading expenses" />}
+        {!loading && inScope.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
             <p className="text-sm text-slate-600">{dateRange ? "No expenses in these dates." : `No expenses in ${monthName}.`}</p>
             <button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => setEditing("new")}>Add one</button>

@@ -1,3 +1,5 @@
+import EmptyState from "../components/EmptyState";
+import Skeleton from "../components/Skeleton";
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
@@ -68,7 +70,7 @@ ${r.owed > 0 ? `<tr class="t"><td>Balance due</td><td>${esc(money(r.owed))}</td>
 }
 
 export default function Sales() {
-  const { sales, products, profile, write, subscription, can, reload } = useData();
+  const { sales, products, profile, write, subscription, can, reload, loading } = useData();
   const { access } = useSession();
   const canDelete = !access || access.is_owner;
   const [quick, setQuick] = useState<Quick>("all");
@@ -195,8 +197,11 @@ export default function Sales() {
         )}
 
         <div id="income-list" className="sale-list" aria-live="polite">
-          {receipts.length === 0 && (
-            <p className="list-empty">{sales.length === 0 ? "No sales yet. Tap “New sale” to record one." : "No sales match these filters."}</p>
+          {loading && sales.length === 0 && <Skeleton rows={4} label="Loading sales" />}
+          {!loading && receipts.length === 0 && (
+            sales.length === 0
+              ? <EmptyState message="No sales yet." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setCreating(true)}>New sale</button>} />
+              : <p className="list-empty">No sales match these filters.</p>
           )}
           {receipts.map((r) => {
             const first = r.items[0];
