@@ -5,7 +5,7 @@ import MonthPicker from "../components/MonthPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
-import { monthOfRecord, ymLabel } from "../month";
+import { monthNow, monthOfRecord, ymLabel } from "../month";
 import type { DashboardSummary } from "../types";
 
 export function KpiRow({ summary: given }: { summary?: DashboardSummary | null } = {}) {
@@ -100,7 +100,7 @@ export default function Dashboard() {
         <div className="page-head mb-4">
           <div className="min-w-0">
             <h2 className="page-title">Dashboard</h2>
-            <p className="page-sub">Here is how your business is doing today.</p>
+            <p className="page-sub">Here is how your business is doing in {ymLabel(dm.selected ?? monthNow())}.</p>
           </div>
           <Link to="/sales" className="sb-btn sb-btn-primary">
             <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
