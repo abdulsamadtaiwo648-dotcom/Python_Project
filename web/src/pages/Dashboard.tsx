@@ -21,9 +21,13 @@ export function KpiRow() {
         <p className="kpi-note">{s?.expense_note ?? ""}</p>
       </div>
       <div id="kpi-net-cash-flow" className="kpi-card">
-        <p className="kpi-label">Net profit</p>
-        <span className={`stat-value ${(s?.month_net ?? 0) < 0 ? "text-amber-600" : ""}`} id="top-profit">{money(s?.month_net)}</span>
-        <p className="kpi-note">{s?.net_note ?? ""}</p>
+        <p className="kpi-label">{(s?.month_net ?? 0) < 0 ? "Net loss this month" : "Net profit"}</p>
+        <span className={`stat-value ${(s?.month_net ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-profit">{money(s?.month_net)}</span>
+        <p className="kpi-note">
+          {(s?.month_net ?? 0) < 0
+            ? `Spending is ${money(Math.abs(s?.month_net ?? 0))} more than income this month.`
+            : (s?.net_note ?? "")}
+        </p>
       </div>
       <div className="kpi-card">
         <p className="kpi-label">Low stock</p>

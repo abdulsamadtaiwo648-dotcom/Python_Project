@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
 import Sheet from "./Sheet";
 import { useData } from "../data";
 import { money } from "../format";
-import { nextTempId, nowStamp } from "../offline";
+import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import type { Product, Sale } from "../types";
 
 export type Status = "paid" | "partial" | "unpaid";
@@ -23,16 +23,22 @@ interface Line {
 let lineSeq = 0;
 const blankLine = (): Line => ({ key: `l${++lineSeq}`, presetId: null, name: "", price: "", qty: "1", bulk: false });
 
+const newCheckoutId = () => (crypto.randomUUID ? crypto.randomUUID() : `co-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
 export function NewSale(props: { products: Product[]; onClose: () => void; onDone: () => void }) {
   const { products } = props;
   const { write } = useData();
   const [lines, setLines] = useState<Line[]>([blankLine()]);
   const [customer, setCustomer] = useState("");
   const [mode, setMode] = useState("Cash");
+  const [saleDay, setSaleDay] = useState(todayIso());
   const [paid, setPaid] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [checkoutId] = useState(() => (crypto.randomUUID ? crypto.randomUUID() : `co-${Date.now()}-${Math.random().toString(36).slice(2)}`));
+  // Each recorded sale needs its own checkout id: the server treats a repeated id as a replay.
+  const [checkoutId, setCheckoutId] = useState(newCheckoutId);
+  const [notice, setNotice] = useState("");
+  const addAnother = useRef(false);
 
   const product = (id: number | null) => products.find((p) => p.id === id);
   const unitsUsed = (id: number, skip?: string) =>
@@ -90,11 +96,12 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
       if (q > limit(l) + 0) return setError(`Only ${limit(l)} available for ${l.name}.`);
     }
     if (paidValue < 0 || paidValue > total + 0.005) return setError("Amount paid cannot be more than the total.");
+    if (!saleDay) return setError("Choose the date of this sale.");
     setBusy(true);
     setError("");
     try {
       const customerName = customer.trim() || "Walk-in Customer";
-      const date = nowStamp();
+      const date = dayStamp(saleDay);
       const receiptId = `REC-${checkoutId.slice(0, 12).toUpperCase()}`;
       let remaining = paidValue;
       const stock: Record<number, number> = {};
@@ -118,6 +125,7 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         kind: "checkout", method: "POST", url: "/api/checkout",
         body: {
           checkout_id: checkoutId, customer_name: customerName, payment_mode: mode, amount_paid: paidValue,
+          entry_date: saleDay,
           items: items.map((l, i) => ({
             checkout_line_id: `line-${i + 1}`, inventory_item_id: l.presetId, item_name: l.presetId ? undefined : l.name.trim(),
             quantity: Number(l.qty), unit_price: Number(l.price.replace(/,/g, "")), sale_type: l.bulk ? "bulk" : "unit",
@@ -125,6 +133,16 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         },
         meta: { sales: rows, stock },
       });
+      if (addAnother.current) {
+        // Keep the date, customer and payment mode; start a fresh sale.
+        addAnother.current = false;
+        setLines([blankLine()]);
+        setPaid(null);
+        setCheckoutId(newCheckoutId());
+        setNotice("Sale recorded. Add the next one.");
+        setBusy(false);
+        return;
+      }
       props.onDone();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not record the sale. Try again.");
@@ -141,6 +159,13 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         </button>
       </div>
       <form onSubmit={submit} className="sb-sheet-body" noValidate>
+        {notice && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</p>}
+        <div className="sb-field">
+          <label htmlFor="sale-day">Date of sale</label>
+          <input id="sale-day" type="date" value={saleDay} min={minEntryIso()} max={todayIso()}
+            onChange={(e) => setSaleDay(e.target.value)} />
+          <p className="sb-help">Up to two years back; not in the future.</p>
+        </div>
         <div className="sb-field">
           <label htmlFor="sales-inventory-select">Add a product</label>
           <select id="sales-inventory-select" value="" onChange={(e) => e.target.value && addProduct(Number(e.target.value))}>
@@ -225,7 +250,10 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         </div>
         {error && <p className="sb-error" role="alert">{error}</p>}
         <div className="sb-sheet-foot">
-          <button type="submit" className="sb-btn sb-btn-primary sb-btn-block" disabled={busy}>{busy ? "Saving…" : "Record sale"}</button>
+          <button type="submit" className="sb-btn sb-btn-secondary" disabled={busy}
+            onClick={() => { addAnother.current = true; }}>Save and add another</button>
+          <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}
+            onClick={() => { addAnother.current = false; }}>{busy ? "Saving…" : "Record sale"}</button>
         </div>
       </form>
     </div>

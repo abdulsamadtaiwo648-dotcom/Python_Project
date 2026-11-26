@@ -44,7 +44,7 @@ def api_income(request: Request, payload: Any = Body(None)):
         with get_db() as db:
             cutoff = history_cutoff(user_id)
             if cutoff:
-                rows = db.execute("SELECT * FROM income WHERE user_id = ? AND date >= ? ORDER BY id DESC", (user_id, cutoff)).fetchall()
+                rows = db.execute("SELECT * FROM income WHERE user_id = ? AND entry_date >= ? ORDER BY id DESC", (user_id, cutoff)).fetchall()
             else:
                 rows = db.execute("SELECT * FROM income WHERE user_id = ? ORDER BY id DESC", (user_id,)).fetchall()
             income_list = []
@@ -78,7 +78,11 @@ def api_income(request: Request, payload: Any = Body(None)):
         if not isinstance(data, dict):
             data = {}
 
-        income_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
+        entry_day, entry_err = rules.check_entry_date(data.get("entry_date"))
+        if entry_err:
+            core.log_refused_input(user_id, request.url.path, "sale date " + entry_err)
+            return jsonify({"status": "error", "message": f"Choose a valid sale date: {entry_err}."}), 400
+        income_date = rules.display_stamp(entry_day)
         receipt_id = data.get("receipt_id") or f"REC-{int(time.time())}"
         customer_name = str(data.get("customer_name", "Walk-in Customer")).strip() or "Walk-in Customer"
 
@@ -114,8 +118,8 @@ def api_income(request: Request, payload: Any = Body(None)):
 
         with get_db() as db:
             cursor = db.execute(
-                "INSERT INTO income (user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (user_id, description, total_value, amount_paid, customer_name, payment_mode, income_date, receipt_id)
+                "INSERT INTO income (user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id, entry_date, entered_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (user_id, description, total_value, amount_paid, customer_name, payment_mode, income_date, receipt_id, entry_day, datetime.now(timezone.utc).isoformat())
             )
             saved_item = {
                 "id": cursor.lastrowid,
@@ -126,6 +130,7 @@ def api_income(request: Request, payload: Any = Body(None)):
                 "customer_name": customer_name,
                 "payment_mode": payment_mode,
                 "date": income_date,
+                "entry_date": entry_day,
                 "receipt_id": receipt_id
             }
             record_user_activity(db, user_id, "sale_created", "Recorded a sale")
@@ -285,7 +290,11 @@ def api_checkout(request: Request, payload: Any = Body(None)):
             return jsonify({"status": "error", "message": "A custom cart item needs a unit price."}), 400
         parsed_items.append({"preset_id": preset_id, "quantity": quantity, "line_id": line_id, "requested_price": requested_price, "item_name": item_name, "sale_type": sale_type})
 
-    sale_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
+    entry_day, entry_err = rules.check_entry_date(data.get("entry_date"))
+    if entry_err:
+        core.log_refused_input(user_id, request.url.path, "sale date " + entry_err)
+        return jsonify({"status": "error", "message": f"Choose a valid sale date: {entry_err}."}), 400
+    sale_date = rules.display_stamp(entry_day)
     receipt_id = str(data.get("receipt_id") or f"REC-{checkout_id[:12].upper()}").strip()
     if rules.too_long(receipt_id, rules.MAX_RECEIPT_ID):
         core.log_refused_input(user_id, request.url.path, "receipt number too long")
@@ -390,17 +399,18 @@ def api_checkout(request: Request, payload: Any = Body(None)):
                     """INSERT INTO income (
                         user_id, description, total_value, amount_paid, customer_name, payment_mode, date,
                         receipt_id, checkout_id, checkout_line_id, inventory_item_id, quantity, unit_price,
-                        sale_type, bundle_count, bundle_size
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        sale_type, bundle_count, bundle_size, entry_date, entered_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (user_id, line["name"], line_total, line_paid, customer_name, payment_mode, sale_date,
                      receipt_id, checkout_id, line["line_id"], line["preset_id"], line["units"], unit_price,
-                     line["sale_type"], line["bundle_count"], line["bundle_size"])
+                     line["sale_type"], line["bundle_count"], line["bundle_size"], entry_day,
+                     datetime.now(timezone.utc).isoformat())
                 )
                 saved_items.append({
                     "id": cursor.lastrowid, "checkout_line_id": line["line_id"], "inventory_item_id": line["preset_id"],
                     "description": line["name"], "quantity": line["units"], "unit_price": unit_price,
                     "total_value": line_total, "amount_paid": line_paid, "customer_name": customer_name,
-                    "payment_mode": payment_mode, "date": sale_date, "receipt_id": receipt_id, "checkout_id": checkout_id,
+                    "payment_mode": payment_mode, "date": sale_date, "entry_date": entry_day, "receipt_id": receipt_id, "checkout_id": checkout_id,
                     "sale_type": line["sale_type"], "bundle_count": line["bundle_count"], "bundle_size": line["bundle_size"],
                 })
             record_user_activity(db, user_id, "sale_created", f"Recorded a sale with {len(saved_items)} item(s)")
@@ -493,7 +503,13 @@ def sync_sales(request: Request, payload: Any = Body(None)):
                 continue
             payment_mode = rules.payment_mode_or_none(sale.get("payment_mode", "Cash"))
             customer_name = str(sale.get("customer_name") or "Walk-in Customer").strip() or "Walk-in Customer"
-            sale_date = rules.sale_date_label(sale.get("date"))
+            # The business day: the explicit entry_date, else the day in the sale's own date, else today.
+            own_day = str(sale.get("date") or "")[:10]
+            # A sale recorded offline is never dropped: a date that is not allowed falls back to today.
+            entry_day, entry_err = rules.check_entry_date(sale.get("entry_date") or (own_day if rules.entry_day_or_none(own_day) else None))
+            if entry_err:
+                entry_day, _ = rules.check_entry_date(None)
+            sale_date = rules.display_stamp(entry_day)
             receipt_id = sale.get("receipt_id") or f"REC-{int(time.time())}"
             if payment_mode is None or rules.too_long(description, rules.MAX_DESCRIPTION) \
                     or rules.too_long(customer_name, rules.MAX_CUSTOMER_NAME) or rules.too_long(receipt_id, rules.MAX_RECEIPT_ID):
@@ -514,15 +530,17 @@ def sync_sales(request: Request, payload: Any = Body(None)):
 
             cursor = db.execute(
                 """INSERT INTO income (
-                    user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (user_id, description, total_value, amount_paid, customer_name, payment_mode, sale_date, receipt_id)
+                    user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id,
+                    entry_date, entered_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, description, total_value, amount_paid, customer_name, payment_mode, sale_date, receipt_id,
+                 entry_day, datetime.now(timezone.utc).isoformat())
             )
             saved_items.append({
                 "id": cursor.lastrowid, "user_id": user_id,
                 "description": description, "total_value": total_value, "amount_paid": amount_paid,
                 "customer_name": customer_name, "payment_mode": payment_mode,
-                "date": sale_date, "receipt_id": receipt_id
+                "date": sale_date, "entry_date": entry_day, "receipt_id": receipt_id
             })
         if saved_items:
             record_user_activity(db, user_id, "sale_created", f"Synced {len(saved_items)} sale item(s)")

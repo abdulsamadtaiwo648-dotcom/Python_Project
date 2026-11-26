@@ -153,7 +153,7 @@ def test_receipt_id_over_64_characters_is_refused(owner):
 
 
 def test_expense_category_and_description_limits(owner):
-    base = {"amount": 500, "category": "Transport", "description": "Okada"}
+    base = {"amount": 500, "category": "Delivery & Logistics", "description": "Okada"}
     assert call("POST", "/add", {**base, "category": "c" * 81}, owner)[0] == 400
     assert call("POST", "/add", {**base, "description": "d" * 201}, owner)[0] == 400
     assert call("POST", "/add", base, owner)[0] in (200, 201)
@@ -239,7 +239,7 @@ def test_replaying_the_same_checkout_does_not_record_it_twice(owner):
 
 def test_replaying_an_expense_with_the_same_operation_id_is_not_applied_twice(owner):
     headers = [("x-client-op", "op-expense-" + owner)]
-    payload = {"amount": 900, "category": "Fuel", "description": "Generator"}
+    payload = {"amount": 900, "category": "Fuel & Electricity", "description": "Generator"}
     call("POST", "/add", payload, owner, headers)
     status, body = call("POST", "/add", payload, owner, headers)
     assert status in (200, 201)
@@ -271,7 +271,7 @@ def test_claims_are_atomic_for_direct_calls(owner):
 def test_a_replay_while_the_first_copy_is_in_progress_is_refused_with_503_and_writes_nothing(owner):
     op = "op-busy-" + owner
     assert api_core.claim_client_op(owner, op) == "new"  # the first copy is still running
-    status, body = call("POST", "/add", {"amount": 700, "category": "Fuel", "description": "Gen"}, owner, [("x-client-op", op)])
+    status, body = call("POST", "/add", {"amount": 700, "category": "Fuel & Electricity", "description": "Gen"}, owner, [("x-client-op", op)])
     assert status == 503
     assert "retried" in body["message"]
     assert expense_rows(owner) == []
@@ -281,10 +281,10 @@ def test_a_claim_left_pending_for_too_long_is_taken_over(owner):
     op = "op-stale-" + owner
     old = datetime.now(timezone.utc) - timedelta(minutes=30)
     claim_row(owner, op, "pending", old)
-    status, _ = call("POST", "/add", {"amount": 700, "category": "Fuel", "description": "Gen"}, owner, [("x-client-op", op)])
+    status, _ = call("POST", "/add", {"amount": 700, "category": "Fuel & Electricity", "description": "Gen"}, owner, [("x-client-op", op)])
     assert status in (200, 201)
     assert len(expense_rows(owner)) == 1
-    replay_status, replay = call("POST", "/add", {"amount": 700, "category": "Fuel", "description": "Gen"}, owner, [("x-client-op", op)])
+    replay_status, replay = call("POST", "/add", {"amount": 700, "category": "Fuel & Electricity", "description": "Gen"}, owner, [("x-client-op", op)])
     assert replay.get("duplicate") is True
     assert len(expense_rows(owner)) == 1
 
@@ -295,7 +295,7 @@ def test_a_failed_change_releases_its_claim_so_a_corrected_retry_is_applied(owne
     status, _ = call("POST", "/add", bad, owner, [("x-client-op", op)])
     assert status == 400
     assert expense_rows(owner) == []
-    good = {"amount": 700, "category": "Fuel", "description": "Gen"}
+    good = {"amount": 700, "category": "Fuel & Electricity", "description": "Gen"}
     status, _ = call("POST", "/add", good, owner, [("x-client-op", op)])
     assert status in (200, 201)
     assert len(expense_rows(owner)) == 1

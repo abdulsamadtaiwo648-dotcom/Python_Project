@@ -48,7 +48,7 @@ export default function Analysis({ page }: { page: "dashboard" | "reports" }) {
         {card("Collected", money(totals.collected), "text-emerald-700")}
         {card("Expenses", money(totals.expenses), "text-rose-700")}
         {card("Balance due", money(totals.balance), "text-amber-700")}
-        {card("Net cash flow", money(totals.net), totals.net < 0 ? "text-rose-700" : "text-emerald-700")}
+        {card(totals.net < 0 ? "Net cash loss" : "Net cash flow", money(totals.net), totals.net < 0 ? "text-rose-700" : "text-emerald-700")}
       </div>
       <p className="-mt-2 text-[10px] text-slate-400">{summaryText}</p>
       {totals.balance > 0 && (

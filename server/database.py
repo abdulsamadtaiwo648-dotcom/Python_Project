@@ -925,6 +925,83 @@ def _client_op_status_column():
     return True
 
 
+def _business_dates():
+    """Migration 0007: sales and expenses get the business date they belong to (entry_date,
+    YYYY-MM-DD) and the real time they were entered (entered_at). Existing rows keep their
+    saved date; their business date is the day they were saved."""
+    with get_db() as db:
+        for table in ("income", "expenses"):
+            if db.is_postgres:
+                db.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS entry_date TEXT")
+                db.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS entered_at TEXT")
+            else:
+                existing = {row["name"] for row in db.execute(f"PRAGMA table_info({table})").fetchall()}
+                if "entry_date" not in existing:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN entry_date TEXT")
+                if "entered_at" not in existing:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN entered_at TEXT")
+            db.execute(f"UPDATE {table} SET entry_date = substr(date, 1, 10) WHERE entry_date IS NULL")
+            db.execute(f"CREATE INDEX IF NOT EXISTS idx_{table}_entry_date ON {table} (user_id, entry_date)")
+        db.commit()
+    return True
+
+
+def _expense_categories():
+    """Migration 0008: each business keeps its own expense categories. The table starts empty;
+    a business's list is created the first time it is needed, with the defaults and the names
+    it already used."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""CREATE TABLE IF NOT EXISTS expense_categories (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                archived INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT
+            )""")
+        else:
+            db.execute("""CREATE TABLE IF NOT EXISTS expense_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                archived INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT
+            )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_expense_categories_user ON expense_categories (user_id)")
+        db.commit()
+    return True
+
+
+def _money_in():
+    """Migration 0009: money in that is not a sale (owner capital, loans, refunds, other)."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""CREATE TABLE IF NOT EXISTS money_in (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                amount NUMERIC NOT NULL,
+                kind TEXT NOT NULL,
+                description TEXT,
+                date TEXT,
+                entry_date TEXT,
+                entered_at TEXT
+            )""")
+        else:
+            db.execute("""CREATE TABLE IF NOT EXISTS money_in (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                amount REAL NOT NULL,
+                kind TEXT NOT NULL,
+                description TEXT,
+                date TEXT,
+                entry_date TEXT,
+                entered_at TEXT
+            )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_money_in_user_day ON money_in (user_id, entry_date)")
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -936,6 +1013,9 @@ MIGRATIONS = [
     ("0003_user_test_account", _add_user_test_account),
     ("0004_request_telemetry", _request_telemetry_tables),
     ("0005_client_op_status", _client_op_status_column),
+    ("0007_business_dates", _business_dates),
+    ("0008_expense_categories", _expense_categories),
+    ("0009_money_in", _money_in),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time

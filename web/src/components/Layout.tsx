@@ -10,6 +10,7 @@ import { canUse } from "../access";
 const NAV = [
   { to: "/dashboard", label: "Dashboard", tab: "dashboard" },
   { to: "/sales", label: "Sales", tab: "income" },
+  { to: "/money-in", label: "Money in", tab: "money-in", page: "sales" },
   { to: "/inventory", label: "Inventory", tab: "inventory" },
   { to: "/expenses", label: "Expenses", tab: "expenses" },
   { to: "/budget", label: "Budget", tab: "budget" },
@@ -27,6 +28,7 @@ const MOBILE = [
 ] as const;
 
 const MORE_ALL = [
+  { to: "/money-in", label: "Money in", page: "sales" },
   { to: "/reports", label: "Reports" },
   { to: "/budget", label: "Budget" },
   { to: "/profile", label: "Profile" },
@@ -54,9 +56,11 @@ export default function Layout() {
   const plan = subscription?.current;
   const isOwner = !access || access.is_owner;
   const name = user?.first_name || summary?.username || "";
-  const NAV_SHOWN = NAV.filter((n) => canUse(access, n.to.slice(1)));
-  const MOBILE_SHOWN = MOBILE.filter((n) => canUse(access, n.to.slice(1)));
-  const MORE = MORE_ALL.filter((n) => canUse(access, n.to.slice(1)));
+  // A nav item is shown when the person may use its page. Most items are named after their route.
+  const pageOf = (n: { to: string; page?: string }) => n.page ?? n.to.slice(1);
+  const NAV_SHOWN = NAV.filter((n) => canUse(access, pageOf(n)));
+  const MOBILE_SHOWN = MOBILE.filter((n) => canUse(access, pageOf(n)));
+  const MORE = MORE_ALL.filter((n) => canUse(access, pageOf(n)));
   const showWebsite = canUse(access, "website");
   const [moreOpen, setMoreOpen] = useState(false);
   const tab = tabFor(pathname);

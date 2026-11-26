@@ -22,7 +22,7 @@ def test_expense_add_update_delete(client, signed_in):
 
     added = client.post(
         "/add",
-        json={"amount": 150.5, "category": "Fuel", "description": "Generator fuel"},
+        json={"amount": 150.5, "category": "Fuel & Electricity", "description": "Generator fuel"},
         headers=headers,
     )
     assert added.status_code == 201
@@ -46,7 +46,7 @@ def test_expense_add_update_delete(client, signed_in):
 
 
 def test_expense_requires_csrf_token(client, signed_in):
-    response = client.post("/add", json={"amount": 10, "category": "x", "description": "y"})
+    response = client.post("/add", json={"amount": 10, "category": "Others", "description": "y"})
     assert response.status_code == 400
 
 
@@ -107,7 +107,7 @@ def test_users_cannot_see_each_others_data(client, app, signed_in):
     _, token = signed_in
     client.post(
         "/add",
-        json={"amount": 42, "category": "Private", "description": "Mine"},
+        json={"amount": 42, "category": "Owner's Draw (Personal)", "description": "Mine"},
         headers={"X-CSRFToken": token},
     )
 
@@ -140,8 +140,8 @@ def test_replayed_offline_operation_is_applied_once(client, signed_in):
 def test_failed_operation_is_not_remembered(client, signed_in):
     _, token = signed_in
     headers = {"X-CSRFToken": token, "X-Client-Op": "op-bad-1"}
-    assert client.post("/add", json={"amount": -1, "category": "x", "description": "y"}, headers=headers).status_code == 400
-    ok = client.post("/add", json={"amount": 5, "category": "x", "description": "y"}, headers=headers)
+    assert client.post("/add", json={"amount": -1, "category": "Others", "description": "y"}, headers=headers).status_code == 400
+    ok = client.post("/add", json={"amount": 5, "category": "Others", "description": "y"}, headers=headers)
     assert ok.status_code == 201
 
 

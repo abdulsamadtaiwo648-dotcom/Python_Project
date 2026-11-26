@@ -1,43 +1,58 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
+import CategoriesSheet from "../components/CategoriesSheet";
+import ImportSheet from "../components/ImportSheet";
+import { useExpenseCategories } from "../categories";
 import { useData } from "../data";
 import { money, parseSaved, relativeDay } from "../format";
-import { nextTempId, nowStamp } from "../offline";
+import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import type { Expense } from "../types";
-
-export const EXPENSE_CATEGORIES = [
-  "Inventory & Materials", "Delivery & Logistics", "Fuel & Electricity",
-  "Data & Airtime", "Owner's Draw (Personal)", "Others",
-];
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
 function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
   const { write } = useData();
+  const cats = useExpenseCategories();
+  // A category is pickable if it is active, or if this expense already uses it (even when archived).
+  const pickable = cats.all.filter((c) => !c.archived || c.name === initial?.category).map((c) => c.name);
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [category, setCategory] = useState(initial?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [entryDay, setEntryDay] = useState(initial?.entry_date ?? todayIso());
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const addAnother = useRef(false);
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    const again = addAnother.current && !initial;
+    addAnother.current = false;
     const n = toAmount(amount);
     if (!Number.isFinite(n) || n <= 0) return setError("Enter an amount greater than zero.");
     if (!category || !description.trim()) return setError("Choose a category and say what it was for.");
+    if (!entryDay) return setError("Choose the date of this expense.");
     setBusy(true);
     setError("");
     try {
-      const body = { amount: n, category, description: description.trim() };
+      const body = { amount: n, category, description: description.trim(), entry_date: entryDay };
       if (initial) {
         await write({ kind: "expense_edit", method: "PUT", url: `/api/expenses/${initial.server_id}`, body,
-          meta: { expenseId: initial.server_id, patch: body } });
+          meta: { expenseId: initial.server_id, patch: { ...body, date: dayStamp(entryDay) } } });
       } else {
-        const expense: Expense = { server_id: nextTempId(), ...body, date: nowStamp(), synced: false };
+        const expense: Expense = { server_id: nextTempId(), ...body, date: dayStamp(entryDay), synced: false };
         await write({ kind: "expense_add", method: "POST", url: "/add", body, meta: { expense } });
+      }
+      if (again) {
+        // Keep the date and category; start the next expense.
+        setAmount("");
+        setDescription("");
+        setNotice("Saved. Add the next one.");
+        document.getElementById("expense-amount")?.focus();
+        return;
       }
       props.onClose();
     } catch (err) {
@@ -64,6 +79,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     <Sheet title={initial ? "Edit expense" : "Add expense"} onClose={props.onClose} compact>
       <form onSubmit={save} className="sb-sheet-body">
         {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{error}</p>}
+        {notice && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</p>}
         <div className="sb-field">
           <label htmlFor="expense-amount">Amount</label>
           <div className="sb-money">
@@ -73,10 +89,16 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
           </div>
         </div>
         <div className="sb-field">
+          <label htmlFor="expense-day">Date</label>
+          <input id="expense-day" type="date" required value={entryDay} min={minEntryIso()} max={todayIso()}
+            onChange={(e) => setEntryDay(e.target.value)} />
+          <p className="sb-help">The day this expense belongs to. Up to two years back; not in the future.</p>
+        </div>
+        <div className="sb-field">
           <label htmlFor="expense-category">Category</label>
           <select id="expense-category" required value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="" disabled>Choose a category</option>
-            {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {pickable.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="sb-field">
@@ -92,7 +114,11 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
               <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}>Save changes</button>
             </>
           ) : (
-            <button type="submit" className="sb-btn sb-btn-primary sb-btn-block" disabled={busy}>{busy ? "Saving…" : "Save expense"}</button>
+            <>
+              <button type="submit" className="sb-btn sb-btn-secondary" disabled={busy}
+                onClick={() => { addAnother.current = true; }}>Save and add another</button>
+              <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}>{busy ? "Saving…" : "Save expense"}</button>
+            </>
           )}
         </div>
       </form>
@@ -101,7 +127,10 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 }
 
 export default function Expenses() {
-  const { expenses, subscription } = useData();
+  const { expenses, subscription, reload } = useData();
+  const cats = useExpenseCategories();
+  const [managing, setManaging] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
@@ -144,6 +173,8 @@ export default function Expenses() {
     <section id="tab-expenses-content" className="tab-content page-stack" aria-labelledby="expenses-title">
       <div className="page-head">
         <div className="min-w-0"><h2 className="page-title" id="expenses-title">Expenses</h2><p className="page-sub">Where your money goes each month.</p></div>
+        <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>
+        <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setManaging(true)}>Categories</button>
         <button type="button" id="btn-new-expense" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
           Add expense
@@ -183,7 +214,7 @@ export default function Expenses() {
               <label htmlFor="filter-category">Category</label>
               <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="">All categories</option>
-                {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {cats.all.map((c) => <option key={c.id} value={c.name}>{c.name}{c.archived ? " (archived)" : ""}</option>)}
               </select>
             </div>
             <div className="sb-field">
@@ -258,6 +289,8 @@ export default function Expenses() {
       {editing && (
         <ExpenseForm initial={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />
       )}
+      {importing && <ImportSheet kind="expenses" onDone={() => void reload()} onClose={() => setImporting(false)} />}
+      {managing && <CategoriesSheet categories={cats.all} onChanged={() => void cats.reload()} onClose={() => setManaging(false)} />}
     </section>
   );
 }

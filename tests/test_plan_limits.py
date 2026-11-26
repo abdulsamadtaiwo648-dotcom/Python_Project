@@ -51,9 +51,10 @@ def test_sales_and_expenses_older_than_the_plan_history_are_hidden_not_deleted()
     user = free_user()
     client, headers = signed(user)
     old = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d %I:%M %p")
+    oldday = (datetime.now(timezone.utc) - timedelta(days=90)).date().isoformat()
     with get_db() as db:
-        db.execute("INSERT INTO income (user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id) VALUES (?, 'Old sale', 10, 10, 'x', 'Cash', ?, 'R1')", (user[0], old))
-        db.execute("INSERT INTO expenses (user_id, amount, category, description, date) VALUES (?, 5, 'Others', 'Old cost', ?)", (user[0], old))
+        db.execute("INSERT INTO income (user_id, description, total_value, amount_paid, customer_name, payment_mode, date, receipt_id, entry_date) VALUES (?, 'Old sale', 10, 10, 'x', 'Cash', ?, 'R1', ?)", (user[0], old, oldday))
+        db.execute("INSERT INTO expenses (user_id, amount, category, description, date, entry_date) VALUES (?, 5, 'Others', 'Old cost', ?, ?)", (user[0], old, oldday))
         db.commit()
     assert client.get("/api/income").json()["income"] == []
     assert client.get("/api/expenses").json()["expenses"] == []

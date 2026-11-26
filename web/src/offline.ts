@@ -123,6 +123,22 @@ let tempId = -Date.now();
 export const nextTempId = () => (tempId -= 1);
 
 /** "YYYY-MM-DD hh:mm AM" in UTC, the format (and clock) the server stores. */
+/** Local calendar day as YYYY-MM-DD, the value a date input uses. */
+export function todayIso(d = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** The oldest day the server accepts: two years back. */
+export function minEntryIso(d = new Date()): string {
+  return todayIso(new Date(d.getTime() - 730 * 24 * 60 * 60 * 1000));
+}
+
+/** The stored display form on a chosen business day, e.g. "2026-11-25 09:41 AM". */
+export function dayStamp(day: string, d = new Date()): string {
+  return `${day} ${nowStamp(d).slice(11)}`;
+}
+
 export function nowStamp(d = new Date()): string {
   const h = d.getUTCHours() % 12 || 12;
   const p = (n: number) => String(n).padStart(2, "0");
