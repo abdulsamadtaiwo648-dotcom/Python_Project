@@ -247,3 +247,14 @@ def test_each_active_account_other_than_the_default_has_a_balance_as_of_the_mont
     assert [(b["name"], b["balance_text"], b["as_of"]) for b in jan] == [("Petty Cash", "2000.00", "2026-01-31")]
     feb = dashboard(client, headers, "2026-02")["account_balances"]
     assert feb[0]["balance_text"] == "7000.00"
+
+
+def test_the_starting_balance_date_shows_the_first_movement_when_money_moved_before_the_opening_date():
+    _, client, headers = signed_user()
+    cash = account_id(client, headers, "Cash")
+    # The default account was opened "today", but money was recorded earlier in January.
+    expense(client, headers, cash, 800, "2026-01-05", "Earlier item")
+    week = statement(client, headers, cash, "week", "2026-01-12")
+    assert week["opening"]["starting_balance_date"] == "2026-01-05"
+    assert week["opening"]["balance"] == "-800.00"  # the numbers are unchanged
+    assert week["closing"]["balance"] == "-800.00"

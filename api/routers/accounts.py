@@ -174,7 +174,7 @@ def account_statement(account_id: int, request: Request, payload: Any = Body(Non
             "starting_balance": naira_text(st["starting_balance"]),
             "starting_balance_in_period": naira_text(st["starting_balance_in_period"]),
             "activity_before": naira_text(st["activity_before"]),
-            "starting_balance_date": row["opening_date"],
+            "starting_balance_date": st["starting_balance_date"],
         },
         "receipts": {"total": naira_text(st["receipts_total"]), "items": [_item(e) for e in st["receipts"]]},
         "payments": {"total": naira_text(st["payments_total"]), "items": [_item(e) for e in st["payments"]]},

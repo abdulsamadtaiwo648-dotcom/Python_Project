@@ -35,7 +35,7 @@ router = APIRouter()
 
 # Pages the React app owns. Each serves the same shell; the router takes over.
 APP_PATHS = ("/login", "/register", "/dashboard", "/sales", "/inventory", "/expenses",
-             "/money-in", "/accounts", "/budget", "/profile", "/reports", "/website", "/plans", "/team")
+             "/money", "/money-in", "/accounts", "/budget", "/profile", "/reports", "/website", "/plans", "/team")
 AUTH_PATHS = ("/login", "/register")
 
 
