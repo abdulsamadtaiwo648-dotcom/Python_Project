@@ -23,7 +23,9 @@ def last_of_last_month():
 
 
 def dashboard(client):
-    response = client.get("/api/dashboard")
+    """This month's figures, asked for explicitly (the default may show an earlier month)."""
+    current = datetime.now(timezone.utc).strftime("%Y-%m")
+    response = client.get(f"/api/dashboard?month={current}")
     assert response.status_code == 200, response.text
     return response.json()
 

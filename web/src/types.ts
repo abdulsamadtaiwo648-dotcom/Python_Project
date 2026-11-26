@@ -4,6 +4,14 @@ export interface DashboardSummary {
   username: string;
   today: string;
   current_month: string;
+  /** The month the figures are for, 'YYYY-MM'. */
+  selected_month: string;
+  /** Months with a sale, expense or money in, newest first (never after this month). */
+  months_with_data: string[];
+  /** Set when this month was empty and an earlier month is shown instead. */
+  notice: { current_month: string; shown_month: string; message: string } | null;
+  /** Cash for the month shown. Money in is cash but not a sale, so it is not in profit. */
+  cash?: CashSummary;
   total_sales: number;
   total_expenses: number;
   net_profit: number;
@@ -21,8 +29,20 @@ export interface DashboardSummary {
   low_stock_items: { item_name: string; stock: number; threshold: number }[];
 }
 
+export interface CashSummary {
+  month: string;
+  sales_collected: number;
+  money_in: number;
+  expenses: number;
+  /** Sales collected minus expenses. */
+  profit: number;
+  /** Sales collected plus money in minus expenses. */
+  cash_balance: number;
+}
+
 export interface Sale {
   id: number;
+  entry_date?: string;
   description: string;
   total_value: number;
   amount_paid: number;
