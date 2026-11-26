@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
@@ -7,7 +8,11 @@ import ImportSheet from "../components/ImportSheet";
 import { useExpenseCategories } from "../categories";
 import { hasOneAccount, pickableAccounts } from "../accounts";
 import { useData } from "../data";
-import { money, parseSaved, relativeDay } from "../format";
+import { useDashboardMonth } from "../dashboardMonth";
+import { money } from "../format";
+import { dayOf } from "../analytics";
+import { monthNow, ymLabel } from "../month";
+import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import type { Expense } from "../types";
 
@@ -87,20 +92,10 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
           <label htmlFor="expense-amount">Amount</label>
           <div className="sb-money">
             <span aria-hidden="true">₦</span>
-            <input id="expense-amount" type="text" inputMode="decimal" placeholder="0" required className="currency-input"
+            <input id="expense-amount" type="text" inputMode="decimal" placeholder="0" required className="currency-input text-3xl font-bold tabular-nums"
               value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
           </div>
         </div>
-        {!hasOneAccount(accounts) && (
-          <div className="sb-field">
-            <label htmlFor="expense-account">Paid from</label>
-            <select id="expense-account" required value={accountId ?? ""} onChange={(e) => setAccountId(Number(e.target.value))}>
-              {pickableAccounts(accounts, initial?.account_id).map((a) => (
-                <option key={a.id} value={a.id}>{a.name}{a.archived ? " (archived)" : ""}{a.is_default ? " · default" : ""}</option>
-              ))}
-            </select>
-          </div>
-        )}
         <div className="sb-field">
           <label htmlFor="expense-day">Date</label>
           <input id="expense-day" type="date" required value={entryDay} min={minEntryIso()} max={todayIso()}
@@ -119,6 +114,16 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
           <input id="expense-description" type="text" placeholder="e.g. Generator fuel" required value={description}
             onChange={(e) => setDescription(e.target.value)} />
         </div>
+        {!hasOneAccount(accounts) && (
+          <div className="sb-field">
+            <label htmlFor="expense-account">Paid from</label>
+            <select id="expense-account" required value={accountId ?? ""} onChange={(e) => setAccountId(Number(e.target.value))}>
+              {pickableAccounts(accounts, initial?.account_id).map((a) => (
+                <option key={a.id} value={a.id}>{a.name}{a.archived ? " (archived)" : ""}{a.is_default ? " · default" : ""}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="sb-sheet-foot">
           {initial ? (
             <>
@@ -141,6 +146,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 
 export default function Expenses() {
   const { expenses, subscription, reload, accounts } = useData();
+  const dm = useDashboardMonth();
   const cats = useExpenseCategories();
   const [managing, setManaging] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -149,81 +155,76 @@ export default function Expenses() {
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState("");
   const [exact, setExact] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   useEffect(() => { document.title = "Expenses | SoloBiz"; }, []);
 
-  const kpis = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const weekStart = new Date(now.getTime() - 7 * 86_400_000);
-    let total = 0, last = 0, count = 0, week = 0;
-    const per: Record<string, number> = {};
-    for (const e of expenses) {
-      const d = parseSaved(e.date);
-      if (!d) continue;
-      if (d >= monthStart) { total += e.amount; count++; per[e.category || "Other"] = (per[e.category || "Other"] ?? 0) + e.amount; }
-      else if (d >= lastStart) last += e.amount;
-      if (d >= weekStart) week++;
+  const ym = dm.selected ?? monthNow();
+  const monthName = ymLabel(ym);
+  const current = dm.current ?? monthNow();
+  // The month total is the same figure Home shows, so the two always agree.
+  const monthTotal = dm.summary?.month_expenses ?? 0;
+  const dateRange = Boolean(from || to);
+  const inScope = dateRange
+    ? expenses.filter((e) => (!from || dayOf(e) >= from) && (!to || dayOf(e) <= to))
+    : expenses.filter((e) => dayOf(e).startsWith(ym));
+  const visible = inScope.filter((e) =>
+    (!category || e.category === category) && (!account || String(e.account_id) === account) &&
+    (!exact || Math.abs(e.amount - Number(exact)) < 0.005));
+  const filterCount = [category, account, exact, from || to].filter(Boolean).length;
+  const accountName = (id: number | null | undefined) => accounts.find((a) => a.id === id)?.name;
+  const showAccounts = !hasOneAccount(accounts);
+
+  // Group by day, newest day first.
+  const days = useMemo(() => {
+    const map = new Map<string, Expense[]>();
+    for (const e of visible) {
+      const d = dayOf(e);
+      map.set(d, [...(map.get(d) ?? []), e]);
     }
-    const top = Object.entries(per).sort((a, b) => b[1] - a[1])[0];
-    const change = last > 0 ? Math.round(((total - last) / last) * 100) : null;
-    return { total, count, week, top, change };
-  }, [expenses]);
+    return [...map.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([day, items]) => ({ day, items: items.sort((a, b) => (b.server_id ?? 0) - (a.server_id ?? 0)), total: items.reduce((s, e) => s + e.amount, 0) }));
+  }, [visible]);
 
-  const breakdown = useMemo(() => {
-    const totals: Record<string, number> = {};
-    for (const e of expenses) totals[e.category || "Other"] = (totals[e.category || "Other"] ?? 0) + e.amount;
-    const rows = Object.entries(totals).sort((a, b) => b[1] - a[1]);
-    return { rows, grand: rows.reduce((s, [, v]) => s + v, 0) };
-  }, [expenses]);
-
-  const visible = expenses.filter((e) =>
-    (!category || e.category === category) && (!account || String(e.account_id) === account) && (!exact || Math.abs(e.amount - Number(exact)) < 0.005));
-  const filtered = Boolean(category || exact || account);
-  const filterTotal = visible.reduce((s, e) => s + e.amount, 0);
+  function clearFilters() { setCategory(""); setAccount(""); setExact(""); setFrom(""); setTo(""); }
 
   return (
     <section id="tab-expenses-content" className="tab-content page-stack" aria-labelledby="expenses-title">
-      <div className="page-head">
-        <div className="min-w-0"><h2 className="page-title" id="expenses-title">Expenses</h2><p className="page-sub">Where your money goes each month.</p></div>
-        <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>
-        <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setManaging(true)}>Categories</button>
-        <button type="button" id="btn-new-expense" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>
-          <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
-          Add expense
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="page-title" id="expenses-title">Expenses</h2>
+        <MonthPicker value={ym} current={current} months={dm.months} onChange={dm.setMonth} />
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="text-xs font-medium text-slate-500">Spent in {monthName}</p>
+        <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{money(monthTotal)}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" id="btn-new-expense" className="sb-btn sb-btn-primary flex-1 justify-center" onClick={() => setEditing("new")}>
+            Add expense
+          </button>
+          <button type="button" className="sb-btn sb-btn-secondary" aria-expanded={filterOpen} aria-controls="expense-filter-panel" onClick={() => setFilterOpen(true)}>
+            Filter{filterCount > 0 ? ` (${filterCount})` : ""}
+          </button>
+        </div>
       </div>
 
       {subscription?.current.history_days != null && (
         <UpgradeNotice title={`Showing the last ${subscription.current.history_days} days of expenses`}
           text="Older expenses are kept safely. A longer history comes with a paid plan." plan="Basic" />
       )}
-      <div id="expense-kpis" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col gap-2 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total this month</p>
-          <p className="stat-value text-slate-900 truncate">{money(kpis.total)}</p>
-          <p className="text-xs text-slate-500">
-            {kpis.change === null ? "No expenses last month" : `${kpis.change >= 0 ? "+" : "−"}${Math.abs(kpis.change)}% vs last month`}
-          </p>
+
+      {(filterCount > 0) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+          <span>{dateRange ? `Showing ${from || "the start"} to ${to || "today"}` : `Filtered · ${visible.length} of ${inScope.length}`}</span>
+          <button type="button" className="sb-link" onClick={clearFilters}>Clear filters</button>
         </div>
-        <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col gap-2 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Largest category</p>
-          <p className="stat-value text-slate-900 truncate">{kpis.top && kpis.total > 0 ? kpis.top[0] : "None"}</p>
-          <p className="text-xs text-slate-500">
-            {kpis.top && kpis.total > 0 ? `${money(kpis.top[1])} · ${Math.round((kpis.top[1] / kpis.total) * 100)}%` : "No expenses this month"}
-          </p>
-        </div>
-        <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col gap-2 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Transactions</p>
-          <p className="stat-value text-slate-900 truncate">{kpis.count}</p>
-          <p className="text-xs text-slate-500">{kpis.week} this week</p>
-        </div>
-      </div>
+      )}
 
       {filterOpen && (
-        <section id="expense-filter-panel" className="sb-panel filter-panel" aria-label="Filter expenses">
-          <div className="filter-grid filter-grid-2">
+        <Sheet title="Filter expenses" onClose={() => setFilterOpen(false)}>
+          <div id="expense-filter-panel" className="space-y-4 p-1">
             <div className="sb-field">
               <label htmlFor="filter-category">Category</label>
               <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -231,7 +232,7 @@ export default function Expenses() {
                 {cats.all.map((c) => <option key={c.id} value={c.name}>{c.name}{c.archived ? " (archived)" : ""}</option>)}
               </select>
             </div>
-            {!hasOneAccount(accounts) && (
+            {showAccounts && (
               <div className="sb-field">
                 <label htmlFor="filter-account">Paid from</label>
                 <select id="filter-account" value={account} onChange={(e) => setAccount(e.target.value)}>
@@ -245,68 +246,66 @@ export default function Expenses() {
               <input id="filter-amount-exact" type="number" min={0} step="any" inputMode="decimal" placeholder="Any"
                 value={exact} onChange={(e) => setExact(e.target.value)} />
             </div>
-          </div>
-          {filtered && (
-            <div className="filter-result">
-              <p>Filtered</p>
-              <p><span>{money(filterTotal)}</span> · <span>{visible.length} result{visible.length === 1 ? "" : "s"}</span></p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="sb-field">
+                <label htmlFor="filter-from">From</label>
+                <input id="filter-from" type="date" value={from} min={minEntryIso()} max={todayIso()} onChange={(e) => setFrom(e.target.value)} />
+              </div>
+              <div className="sb-field">
+                <label htmlFor="filter-to">To</label>
+                <input id="filter-to" type="date" value={to} min={minEntryIso()} max={todayIso()} onChange={(e) => setTo(e.target.value)} />
+              </div>
             </div>
-          )}
-        </section>
+            <div className="sb-sheet-foot">
+              <button type="button" className="sb-btn sb-btn-secondary" onClick={clearFilters}>Clear</button>
+              <button type="button" className="sb-btn sb-btn-primary" onClick={() => setFilterOpen(false)}>Show expenses</button>
+            </div>
+          </div>
+        </Sheet>
       )}
 
-      <div id="expense-layout" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 expense-list-panel">
-          <div className="expense-list-head">
-            <h3 className="expense-list-title">Recent expenses</h3>
-            <div className="list-toolbar expense-toolbar-inline">
-              <button type="button" className="sb-chip" aria-expanded={filterOpen} aria-controls="expense-filter-panel" onClick={() => setFilterOpen(!filterOpen)}>
-                <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M7 12h10M10 18h4" /></svg>
-                Filter {filtered && <span className="sb-chip-count">{[category, exact].filter(Boolean).length}</span>}
-              </button>
-              <p className="list-toolbar-text" aria-live="polite">{filtered ? `${visible.length} of ${expenses.length}` : ""}</p>
-              {filtered && <button type="button" className="sb-link" onClick={() => { setCategory(""); setExact(""); setAccount(""); }}>Clear</button>}
-            </div>
+      <div id="transaction-list" className="space-y-5">
+        {inScope.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <p className="text-sm text-slate-600">{dateRange ? "No expenses in these dates." : `No expenses in ${monthName}.`}</p>
+            <button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => setEditing("new")}>Add one</button>
           </div>
-          <div className="sb-list-card" id="transaction-list">
-            {expenses.length === 0 && <p className="list-empty">No expenses yet. Tap “Add expense” to record one.</p>}
-            {visible.map((e) => (
-              <div key={e.server_id} tabIndex={0} role="button" className="expense-card"
-                aria-label={`Edit expense: ${e.category}, ${money(e.amount)}`}
-                onClick={() => setEditing(e)} onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && setEditing(e)}>
-                <div className="category-icon-val expense-icon" aria-hidden="true">{(e.category || "O")[0].toUpperCase()}</div>
-                <div className="expense-text">
-                  <p className="expense-category-val"><span className="category-name">{e.category || "Other"}</span>{!e.synced && <span className="sync-badge">Not synced</span>}</p>
-                  <p className="expense-desc-val">{e.description || "No description"}</p>
-                </div>
-                <p className="expense-when">{relativeDay(e.date)}</p>
-                <p className="expense-amount-val">{money(e.amount)}</p>
-              </div>
-            ))}
-          </div>
-          {filtered && visible.length === 0 && <p className="list-empty">No expenses match your filter.</p>}
-          <p className="page-note">Tap an expense to change or delete it.</p>
-        </div>
-
-        <aside id="expense-breakdown" className="dash-panel min-w-0 self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="expense-breakdown-heading">
-          <h3 id="expense-breakdown-heading" className="text-base font-bold text-slate-900">By category</h3>
-          <p className="mt-1 text-xs text-slate-500">Where this period’s expenses went.</p>
-          <ul className="mt-4 space-y-4">
-            {breakdown.grand <= 0 && <li className="text-sm text-slate-500">No expenses yet.</li>}
-            {breakdown.grand > 0 && breakdown.rows.map(([name, value]) => {
-              const share = Math.round((value / breakdown.grand) * 100);
-              return (
-                <li key={name} className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate font-medium text-slate-800">{name}</span>
-                    <span className="flex-shrink-0 font-semibold text-slate-900">{money(value)} <span className="breakdown-pct">{share}%</span></span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-blue-600" style={{ width: `${share}%` }} /></div>
+        )}
+        {inScope.length > 0 && visible.length === 0 && <p className="text-center text-sm text-slate-500">No expenses match your filter.</p>}
+        {days.map((g) => (
+          <section key={g.day} aria-label={dayHeading(g.day)}>
+            <h3 className="mb-2 flex items-baseline justify-between gap-3 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span>{dayHeading(g.day)}</span>
+              <span className="tabular-nums">{money(g.total)}</span>
+            </h3>
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              {g.items.map((e) => (
+                <li key={e.server_id}>
+                  <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
+                    aria-label={`Edit expense: ${e.category}, ${money(e.amount)}`} onClick={() => setEditing(e)}>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-slate-900">{e.description || "No description"}</span>
+                      <span className="mt-1 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{e.category || "Other"}</span>
+                        {showAccounts && accountName(e.account_id) && (
+                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-800">{accountName(e.account_id)}</span>
+                        )}
+                        {!e.synced && <span className="sync-badge">Not synced</span>}
+                      </span>
+                    </span>
+                    <span className="flex-shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(e.amount)}</span>
+                  </button>
                 </li>
-              );
-            })}
-          </ul>
-        </aside>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-4 pt-2 text-xs font-semibold text-slate-500">
+        <button type="button" className="hover:text-slate-800" onClick={() => setManaging(true)}>Categories</button>
+        <button type="button" className="hover:text-slate-800" onClick={() => setImporting(true)}>Import CSV</button>
+        <Link to="/reports" className="hover:text-slate-800">Reports</Link>
       </div>
 
       {editing && (
@@ -316,4 +315,11 @@ export default function Expenses() {
       {managing && <CategoriesSheet categories={cats.all} onChanged={() => void cats.reload()} onClose={() => setManaging(false)} />}
     </section>
   );
+}
+
+/** "Mon 12 Jan" for a YYYY-MM-DD business day. */
+function dayHeading(day: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  if (!y) return day;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 }
