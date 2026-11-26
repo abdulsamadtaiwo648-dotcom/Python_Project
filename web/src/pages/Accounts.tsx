@@ -5,6 +5,7 @@ import { useData } from "../data";
 import { minEntryIso, todayIso } from "../offline";
 import { money } from "../format";
 import type { AccountView } from "../types";
+import AccountStatement from "../components/AccountStatement";
 
 export type { AccountView } from "../types";
 
@@ -79,6 +80,8 @@ export default function Accounts() {
           </ul>
         )}
       </div>
+
+      {accounts.length > 0 && <AccountStatement accounts={accounts} />}
 
       <AddAccount onAdded={() => { void load(); void reload(); }} onError={setError} activeCount={active} />
     </section>

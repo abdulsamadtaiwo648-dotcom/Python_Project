@@ -6,14 +6,16 @@ are counted on each record's business date (entry_date), never on the time it wa
 import calendar
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
 from server.database import get_db
 
+from .. import ledger
 from ..deps import require_user
+from ..money import naira_text
 
 router = APIRouter(prefix="/api")
 
@@ -78,8 +80,9 @@ def months_with_data(db, user_id):
                SELECT entry_date FROM income WHERE user_id = ?
                UNION ALL SELECT entry_date FROM expenses WHERE user_id = ?
                UNION ALL SELECT entry_date FROM money_in WHERE user_id = ?
+               UNION ALL SELECT payment_date AS entry_date FROM sale_payments WHERE user_id = ?
            ) AS records WHERE entry_date IS NOT NULL""",
-        (user_id, user_id, user_id),
+        (user_id, user_id, user_id, user_id),
     ).fetchall()
     return sorted({r["ym"] for r in rows if r["ym"]}, reverse=True)
 
@@ -146,8 +149,26 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
                 "SELECT COALESCE(SUM(amount), 0) AS total FROM money_in WHERE user_id = ? AND entry_date LIKE ? AND kind != 'Transfer'",
                 (user_id, selected + "%"),
             )
+            # Sales payments actually received in the month, by the date each payment was made.
+            payments_received = _sum(
+                db,
+                "SELECT COALESCE(SUM(amount_kobo), 0) AS total FROM sale_payments WHERE user_id = ? AND payment_date LIKE ?",
+                (user_id, selected + "%"),
+            ) / 100.0
             prev_income = _sum(db, income_sql, (user_id, previous + "%"))
             prev_expenses = _sum(db, expense_sql, (user_id, previous + "%"))
+            # Each active account other than the default: its balance at the end of the month shown.
+            month_end = ledger.month_bounds(date(int(selected[:4]), int(selected[5:7]), 1))[1]
+            account_balances = []
+            for row in db.execute(
+                "SELECT * FROM accounts WHERE user_id = ? AND archived = 0 AND is_default = 0 ORDER BY name, id",
+                (user_id,),
+            ).fetchall():
+                kobo = ledger.balance_on(db, user_id, row, month_end.isoformat())
+                account_balances.append({
+                    "id": row["id"], "name": row["name"], "as_of": month_end.isoformat(),
+                    "balance": kobo / 100.0, "balance_text": naira_text(kobo),
+                })
             low_stock = [
                 {"item_name": r["item_name"], "stock": int(r["stock"] or 0), "threshold": int(r["low_stock_threshold"])}
                 for r in db.execute(
@@ -162,13 +183,18 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
         raise
     month_net = month_income - month_expenses
     # Cash: what came in and went out. Money in is cash but not a sale, so it is not in profit.
+    # Net cash movement: sales payments received + Money In (not transfers) - expenses paid, for the month.
+    # Profit keeps its own formula (sales collected by sale date - expenses).
+    net_cash_movement = payments_received + month_money_in - month_expenses
     cash = {
         "month": selected,
+        "payments_received": payments_received,
         "sales_collected": month_income,
         "money_in": month_money_in,
         "expenses": month_expenses,
         "profit": month_net,
-        "cash_balance": month_income + month_money_in - month_expenses,
+        "net_cash_movement": net_cash_movement,
+        "cash_balance": net_cash_movement,  # kept for existing clients; same figure
     }
     return {
         "status": "success",
@@ -190,6 +216,7 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
         "expense_note": compare_note(month_expenses, prev_expenses, "expenses", selected, previous, current),
         "net_note": margin_note(month_income, month_expenses, month_net),
         "cash": cash,
+        "account_balances": account_balances,
         "today_collected": today_collected,
         "today_expenses": today_expenses,
         "today_net": today_collected - today_expenses,

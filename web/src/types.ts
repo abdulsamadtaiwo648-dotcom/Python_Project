@@ -12,6 +12,8 @@ export interface DashboardSummary {
   notice: { current_month: string; shown_month: string; message: string } | null;
   /** Cash for the month shown. Money in is cash but not a sale, so it is not in profit. */
   cash?: CashSummary;
+  /** Each active account other than the default, at the end of the month shown. */
+  account_balances?: { id: number; name: string; as_of: string; balance: number; balance_text: string }[];
   total_sales: number;
   total_expenses: number;
   net_profit: number;
@@ -38,6 +40,10 @@ export interface CashSummary {
   profit: number;
   /** Sales collected plus money in minus expenses. */
   cash_balance: number;
+  /** Sales payments received in the month, by payment date. */
+  payments_received?: number;
+  /** Sales payments received + money in (not transfers) - expenses. */
+  net_cash_movement?: number;
 }
 
 /** Money in that is not a sale (owner capital, loans, refunds, other). */

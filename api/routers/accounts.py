@@ -10,9 +10,12 @@ from server.database import get_db
 
 from .. import accounts as acc
 from .. import core
+from datetime import date as date_cls
+
+from .. import ledger
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
-from ..money import parse_naira
+from ..money import naira_text, parse_naira, today_iso
 
 record_user_activity = core.record_user_activity
 router = JsonRouter()
@@ -132,3 +135,48 @@ def change_account(account_id: int, request: Request, payload: Any = Body(None))
         db.commit()
         row = acc.account_for_business(db, owner_id, account_id)
     return jsonify({"status": "success", "message": "Account saved", "account": acc.view(row)}), 200
+
+
+def _item(e):
+    return {"date": e["day"], "direction": e["direction"], "amount": naira_text(e["kobo"]),
+            "label": e["label"], "source": e["source"], "counterpart": e["counterpart"],
+            "approximate": e["approximate"], "ref": e["ref"]}
+
+
+@router.api_route("/api/accounts/{account_id}/statement", methods=['GET'])
+def account_statement(account_id: int, request: Request, payload: Any = Body(None)):
+    """One account for a week (Monday to Sunday) or a month, containing the date asked for."""
+    owner_id = current_user_id(request)
+    if not owner_id:
+        return _error("Unauthorized", 401)
+    kind = request.query_params.get("period", "month")
+    if kind not in ("week", "month"):
+        return _error("Choose a week or a month.")
+    raw = request.query_params.get("date") or today_iso()
+    try:
+        anchor = date_cls.fromisoformat(raw)
+    except ValueError:
+        return _error("Choose a date in the form YYYY-MM-DD.")
+    with get_db() as db:
+        acc.ensure_default(db, owner_id)
+        row = acc.account_for_business(db, owner_id, account_id)
+        if row is None:
+            return _error("That account was not found.", 404)
+        st = ledger.statement(db, owner_id, row, kind, anchor)
+    closing = st["closing"]
+    return jsonify({
+        "status": "success",
+        "account": acc.view(row),
+        "period": {"kind": kind, "start": st["start"], "end": st["end"],
+                   "previous_anchor": st["previous_anchor"], "next_anchor": st["next_anchor"]},
+        "opening": {
+            "balance": naira_text(st["opening"]),
+            "starting_balance": naira_text(st["starting_balance"]),
+            "starting_balance_in_period": naira_text(st["starting_balance_in_period"]),
+            "activity_before": naira_text(st["activity_before"]),
+            "starting_balance_date": row["opening_date"],
+        },
+        "receipts": {"total": naira_text(st["receipts_total"]), "items": [_item(e) for e in st["receipts"]]},
+        "payments": {"total": naira_text(st["payments_total"]), "items": [_item(e) for e in st["payments"]]},
+        "closing": {"balance": naira_text(closing), "overspent": naira_text(-closing) if closing < 0 else None},
+    }), 200
