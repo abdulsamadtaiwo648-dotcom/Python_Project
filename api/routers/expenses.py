@@ -9,6 +9,7 @@ from fastapi import Body, Request
 from server.database import get_db
 
 from .. import core
+from .. import expense_categories as cats
 from .. import record_rules as rules
 from ..compat import JsonRouter, jsonify
 from ..deps import current_user_id
@@ -80,6 +81,13 @@ def add_expense(request: Request, payload: Any = Body(None)):
         core.log_refused_input(user_id, request.url.path, "category or description too long")
         return jsonify({"status": "error", "message": "Category must be 80 characters or fewer and description 200 or fewer."}), 400
 
+    with get_db() as db:
+        cats.ensure(db, user_id)
+        stored_category = cats.choice_for_expense(db, user_id, category)
+    if stored_category is None:
+        return jsonify({"status": "error", "message": "Choose a category from your list."}), 400
+    category = stored_category
+
     entry_day, entry_err = rules.check_entry_date(data.get("entry_date"))
     if entry_err:
         core.log_refused_input(user_id, request.url.path, "expense date " + entry_err)
@@ -145,6 +153,12 @@ def api_expense_detail(expense_id: int, request: Request, payload: Any = Body(No
 
         # Editing keeps the business date unless a new one is sent.
         with get_db() as db:
+            cats.ensure(db, user_id)
+            current = db.execute("SELECT category FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id)).fetchone()
+            stored_category = cats.choice_for_expense(db, user_id, category, current["category"] if current else None)
+            if stored_category is None:
+                return jsonify({"status": "error", "message": "Choose a category from your list."}), 400
+            category = stored_category
             if "entry_date" in data:
                 entry_day, entry_err = rules.check_entry_date(data.get("entry_date"))
                 if entry_err:

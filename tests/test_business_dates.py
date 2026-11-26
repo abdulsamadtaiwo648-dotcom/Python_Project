@@ -20,7 +20,7 @@ def today():
 
 
 def expense_body(entry_date=None, amount=20):
-    body = {"amount": amount, "category": "Transport", "description": "Okada to market"}
+    body = {"amount": amount, "category": "Delivery & Logistics", "description": "Okada to market"}
     if entry_date is not None:
         body["entry_date"] = entry_date
     return body

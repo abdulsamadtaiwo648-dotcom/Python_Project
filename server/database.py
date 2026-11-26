@@ -946,6 +946,32 @@ def _business_dates():
     return True
 
 
+def _expense_categories():
+    """Migration 0008: each business keeps its own expense categories. The table starts empty;
+    a business's list is created the first time it is needed, with the defaults and the names
+    it already used."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("""CREATE TABLE IF NOT EXISTS expense_categories (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                archived INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT
+            )""")
+        else:
+            db.execute("""CREATE TABLE IF NOT EXISTS expense_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                archived INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT
+            )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_expense_categories_user ON expense_categories (user_id)")
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -958,6 +984,7 @@ MIGRATIONS = [
     ("0004_request_telemetry", _request_telemetry_tables),
     ("0005_client_op_status", _client_op_status_column),
     ("0007_business_dates", _business_dates),
+    ("0008_expense_categories", _expense_categories),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
 import { useSession } from "../session";
-import { EXPENSE_CATEGORIES } from "./Expenses";
+import { useExpenseCategories } from "../categories";
 
 // Budgets live on this device (like the earlier version), one set per account.
 type Limits = Record<string, number>; // "YYYY-MM|Category" -> amount
@@ -36,6 +36,7 @@ function useLimits(userId: string) {
 export default function Budget() {
   const { user } = useSession();
   const { expenses } = useData();
+  const cats = useExpenseCategories();
   const [limits, saveLimits] = useLimits(user?.id ?? "anon");
   const [month, setMonth] = useState(thisMonth());
   const [category, setCategory] = useState("");
@@ -171,7 +172,7 @@ export default function Budget() {
             <label htmlFor="budget-category">Category</label>
             <select id="budget-category" required value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="" disabled>Select a category</option>
-              {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {cats.active.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="sb-field">

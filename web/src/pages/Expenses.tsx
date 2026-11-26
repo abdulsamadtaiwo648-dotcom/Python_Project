@@ -2,21 +2,21 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
+import CategoriesSheet from "../components/CategoriesSheet";
+import { useExpenseCategories } from "../categories";
 import { useData } from "../data";
 import { money, parseSaved, relativeDay } from "../format";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import type { Expense } from "../types";
-
-export const EXPENSE_CATEGORIES = [
-  "Inventory & Materials", "Delivery & Logistics", "Fuel & Electricity",
-  "Data & Airtime", "Owner's Draw (Personal)", "Others",
-];
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
 function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
   const { write } = useData();
+  const cats = useExpenseCategories();
+  // A category is pickable if it is active, or if this expense already uses it (even when archived).
+  const pickable = cats.all.filter((c) => !c.archived || c.name === initial?.category).map((c) => c.name);
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [category, setCategory] = useState(initial?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -84,7 +84,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
           <label htmlFor="expense-category">Category</label>
           <select id="expense-category" required value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="" disabled>Choose a category</option>
-            {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {pickable.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="sb-field">
@@ -110,6 +110,8 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 
 export default function Expenses() {
   const { expenses, subscription } = useData();
+  const cats = useExpenseCategories();
+  const [managing, setManaging] = useState(false);
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
@@ -152,6 +154,7 @@ export default function Expenses() {
     <section id="tab-expenses-content" className="tab-content page-stack" aria-labelledby="expenses-title">
       <div className="page-head">
         <div className="min-w-0"><h2 className="page-title" id="expenses-title">Expenses</h2><p className="page-sub">Where your money goes each month.</p></div>
+        <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setManaging(true)}>Categories</button>
         <button type="button" id="btn-new-expense" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
           Add expense
@@ -191,7 +194,7 @@ export default function Expenses() {
               <label htmlFor="filter-category">Category</label>
               <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="">All categories</option>
-                {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {cats.all.map((c) => <option key={c.id} value={c.name}>{c.name}{c.archived ? " (archived)" : ""}</option>)}
               </select>
             </div>
             <div className="sb-field">
@@ -266,6 +269,7 @@ export default function Expenses() {
       {editing && (
         <ExpenseForm initial={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />
       )}
+      {managing && <CategoriesSheet categories={cats.all} onChanged={() => void cats.reload()} onClose={() => setManaging(false)} />}
     </section>
   );
 }
