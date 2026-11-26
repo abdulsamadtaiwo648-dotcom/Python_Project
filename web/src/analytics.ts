@@ -1,5 +1,5 @@
 import { ymLabel, shiftYm } from "./month";
-import type { Expense, Sale } from "./types";
+import type { Expense, MoneyInItem, Sale } from "./types";
 
 export type Period = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -22,10 +22,21 @@ export function rangeLabel(range: Range): string {
   return range.kind === "month" ? ymLabel(range.ym) : range.year;
 }
 
-export interface Totals { value: number; collected: number; expenses: number; balance: number; net: number }
+/**
+ * Sales collected plus money in, minus expenses. Profit (sales minus expenses) is not used here:
+ * money in is cash, not a sale, so it counts in cash flow but not in profit.
+ */
+export interface Totals {
+  value: number;
+  collected: number;
+  moneyIn: number;
+  expenses: number;
+  balance: number;
+  net: number;
+}
 
-export function totalsInRange(sales: Sale[], expenses: Expense[], range: Range): Totals {
-  let value = 0, collected = 0, spent = 0, balance = 0;
+export function totalsInRange(sales: Sale[], expenses: Expense[], range: Range, moneyIn: MoneyInItem[] = []): Totals {
+  let value = 0, collected = 0, spent = 0, balance = 0, received = 0;
   for (const s of sales) {
     if (!inRange(dayOf(s), range)) continue;
     value += s.total_value;
@@ -33,7 +44,8 @@ export function totalsInRange(sales: Sale[], expenses: Expense[], range: Range):
     balance += Math.max(0, s.total_value - s.amount_paid);
   }
   for (const e of expenses) if (inRange(dayOf(e), range)) spent += e.amount;
-  return { value, collected, expenses: spent, balance, net: collected - spent };
+  for (const m of moneyIn) if (inRange(dayOf(m), range)) received += m.amount;
+  return { value, collected, moneyIn: received, expenses: spent, balance, net: collected + received - spent };
 }
 
 const SHORT = { month: "short", day: "numeric", timeZone: "UTC" } as const;
@@ -57,39 +69,65 @@ function bucketOf(day: string, period: Period): { key: string; label: string } {
   return { key: day.slice(0, 4), label: day.slice(0, 4) };
 }
 
-export interface Bucket { label: string; sortDate: number; sales: number; expenses: number }
+export interface Bucket {
+  label: string;
+  sortDate: number;
+  sales: number;
+  moneyIn: number;
+  expenses: number;
+  /** Sales collected + money in − expenses for this bucket. */
+  net: number;
+}
 
-/** Sales and expenses grouped into chart buckets for a period, inside the range. */
-export function chartBuckets(sales: Sale[], expenses: Expense[], period: Period, range: Range): Bucket[] {
+function emptyBucket(label: string, sortDate: number): Bucket {
+  return { label, sortDate, sales: 0, moneyIn: 0, expenses: 0, net: 0 };
+}
+
+/** Sales, money in and expenses grouped into chart buckets for a period, inside the range. */
+export function chartBuckets(sales: Sale[], expenses: Expense[], period: Period, range: Range, moneyIn: MoneyInItem[] = []): Bucket[] {
   const map = new Map<string, Bucket>();
-  const add = (record: { entry_date?: string; date: string }, series: "sales" | "expenses", amount: number) => {
+  const add = (record: { entry_date?: string; date: string }, series: "sales" | "expenses" | "moneyIn", amount: number) => {
     const day = dayOf(record);
     if (!inRange(day, range)) return;
     const { key, label } = bucketOf(day, period);
     let b = map.get(key);
     if (!b) {
-      b = { label, sortDate: Date.parse(key) || 0, sales: 0, expenses: 0 };
+      b = emptyBucket(label, Date.parse(key) || 0);
       map.set(key, b);
     }
     b[series] += Number.isFinite(amount) ? amount : 0;
   };
   for (const s of sales) add(s, "sales", s.amount_paid);
   for (const e of expenses) add(e, "expenses", e.amount);
-  return [...map.values()].sort((a, b) => a.sortDate - b.sortDate);
+  for (const m of moneyIn) add(m, "moneyIn", m.amount);
+  const buckets = [...map.values()].sort((a, b) => a.sortDate - b.sortDate);
+  for (const b of buckets) b.net = b.sales + b.moneyIn - b.expenses;
+  return buckets;
 }
 
 /** The last `count` months ending at `endYm`, each one bucket, with empty months kept as zeros. */
-export function lastMonths(sales: Sale[], expenses: Expense[], endYm: string, count = 12): Bucket[] {
+export function lastMonths(sales: Sale[], expenses: Expense[], endYm: string, count = 12, moneyIn: MoneyInItem[] = []): Bucket[] {
   const keys = Array.from({ length: count }, (_, i) => shiftYm(endYm, i - (count - 1)));
-  const sums = new Map(keys.map((k) => [k, { sales: 0, expenses: 0 }]));
-  for (const s of sales) { const t = sums.get(dayOf(s).slice(0, 7)); if (t) t.sales += s.amount_paid; }
-  for (const e of expenses) { const t = sums.get(dayOf(e).slice(0, 7)); if (t) t.expenses += e.amount; }
-  return keys.map((k) => ({
-    label: bucketOf(k + "-01", "monthly").label, sortDate: Date.parse(k), ...sums.get(k)!,
-  }));
+  const buckets = new Map(keys.map((k) => [k, emptyBucket(bucketOf(k + "-01", "monthly").label, Date.parse(k))]));
+  for (const s of sales) { const b = buckets.get(dayOf(s).slice(0, 7)); if (b) b.sales += s.amount_paid; }
+  for (const e of expenses) { const b = buckets.get(dayOf(e).slice(0, 7)); if (b) b.expenses += e.amount; }
+  for (const m of moneyIn) { const b = buckets.get(dayOf(m).slice(0, 7)); if (b) b.moneyIn += m.amount; }
+  return keys.map((k) => {
+    const b = buckets.get(k)!;
+    return { ...b, net: b.sales + b.moneyIn - b.expenses };
+  });
 }
 
-export interface Group { label: string; sortDate: number; volume: number; items: Sale[] }
+export interface Group {
+  label: string;
+  sortDate: number;
+  /** Sales value in this period. */
+  volume: number;
+  /** Money in received in this period. */
+  moneyIn: number;
+  items: Sale[];
+  moneyInItems: MoneyInItem[];
+}
 
 function groupLabel(day: string, period: Period): string {
   if (period === "daily") return utcDate(day).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -102,18 +140,32 @@ function groupLabel(day: string, period: Period): string {
   return day.slice(0, 4);
 }
 
-/** Sales inside the range, grouped by period, newest first. */
-export function groupSales(sales: Sale[], period: Period, range: Range): Group[] {
+/** Sales and money in inside the range, grouped by period, newest first. A period with only money in is kept. */
+export function groupSales(sales: Sale[], period: Period, range: Range, moneyIn: MoneyInItem[] = []): Group[] {
   const groups = new Map<string, Group>();
+  const groupFor = (day: string) => {
+    const label = groupLabel(day, period);
+    let g = groups.get(label);
+    if (!g) {
+      g = { label, sortDate: 0, volume: 0, moneyIn: 0, items: [], moneyInItems: [] };
+      groups.set(label, g);
+    }
+    g.sortDate = Math.max(g.sortDate, Date.parse(day) || 0);
+    return g;
+  };
   for (const s of sales) {
     const day = dayOf(s);
     if (!inRange(day, range)) continue;
-    const label = groupLabel(day, period);
-    const g = groups.get(label) ?? { label, sortDate: 0, volume: 0, items: [] };
-    g.sortDate = Math.max(g.sortDate, Date.parse(day) || 0);
+    const g = groupFor(day);
     g.volume += s.total_value;
     g.items.push(s);
-    groups.set(label, g);
+  }
+  for (const m of moneyIn) {
+    const day = dayOf(m);
+    if (!inRange(day, range)) continue;
+    const g = groupFor(day);
+    g.moneyIn += m.amount;
+    g.moneyInItems.push(m);
   }
   return [...groups.values()].sort((a, b) => b.sortDate - a.sortDate);
 }

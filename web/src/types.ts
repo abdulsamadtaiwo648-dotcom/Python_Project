@@ -40,6 +40,16 @@ export interface CashSummary {
   cash_balance: number;
 }
 
+/** Money in that is not a sale (owner capital, loans, refunds, other). */
+export interface MoneyInItem {
+  id: number;
+  amount: number;
+  kind: string;
+  description: string | null;
+  date: string;
+  entry_date: string;
+}
+
 export interface Sale {
   id: number;
   entry_date?: string;

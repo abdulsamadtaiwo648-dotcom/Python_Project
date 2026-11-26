@@ -1,59 +1,38 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, api } from "../api";
+import { moneyInFor, moneyInTotal, MONEY_IN_KINDS } from "../moneyIn";
+import MonthPicker from "../components/MonthPicker";
 import Sheet from "../components/Sheet";
+import { useDashboardMonth } from "../dashboardMonth";
+import { useData } from "../data";
+import { money, relativeDay } from "../format";
+import { monthNow, ymLabel } from "../month";
 import { useSession } from "../session";
-import { money, parseSaved, relativeDay } from "../format";
 import { minEntryIso, todayIso } from "../offline";
+import type { MoneyInItem } from "../types";
 
-export interface MoneyInItem {
-  id: number;
-  amount: number;
-  kind: string;
-  description: string | null;
-  date: string;
-  entry_date: string;
-}
-
-const FALLBACK_KINDS = ["Owner's capital", "Loan received", "Refund received", "Other money in"];
-
-/** Money that is not a sale. It is shown here only: it is not revenue and not profit. */
+/** Money that is not a sale. It counts in cash flow and the cash balance, never in profit. */
 export default function MoneyIn() {
   const { access } = useSession();
-  const [items, setItems] = useState<MoneyInItem[]>([]);
-  const [kinds, setKinds] = useState<string[]>(FALLBACK_KINDS);
+  const { moneyIn, reload } = useData();
+  const dm = useDashboardMonth();
   const [editing, setEditing] = useState<MoneyInItem | "new" | null>(null);
   const [error, setError] = useState("");
-  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { document.title = "Money in | SoloBiz"; }, []);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await api.get<{ money_in: MoneyInItem[]; kinds: string[] }>("/api/money-in");
-      setItems(res.money_in);
-      setKinds(res.kinds);
-      setError("");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load money in. Check your connection.");
-    } finally {
-      setLoaded(true);
-    }
-  }, []);
-
-  useEffect(() => { document.title = "Money in | SoloBiz"; void load(); }, [load]);
-
-  const thisMonth = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    return items.reduce((sum, i) => {
-      const d = parseSaved(i.entry_date || i.date);
-      return d && d >= start ? sum + i.amount : sum;
-    }, 0);
-  }, [items]);
+  const current = dm.current ?? monthNow();
+  const ym = dm.selected ?? current;
+  const year = ym.slice(0, 4);
+  const monthRange = { kind: "month", ym } as const;
+  const yearRange = { kind: "year", year } as const;
+  const monthItems = moneyInFor(moneyIn, monthRange);
 
   async function remove(item: MoneyInItem) {
     if (!window.confirm("Delete this money in? This cannot be undone.")) return;
     try {
       await api.del(`/api/money-in/${item.id}`);
-      await load();
+      setError("");
+      await reload();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not delete. Try again.");
     }
@@ -69,33 +48,35 @@ export default function MoneyIn() {
         <button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing("new")}>Record money in</button>
       </div>
 
+      <MonthPicker value={ym} current={current} months={dm.months} onChange={dm.setMonth} />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Money in this month</p>
-          <p className="stat-value text-slate-900">{money(thisMonth)}</p>
+        <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" id="money-in-month-total">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Money in in {ymLabel(ym)}</p>
+          <p className="stat-value text-slate-900">{money(moneyInTotal(moneyIn, monthRange))}</p>
+          <p className="text-xs text-slate-500">{monthItems.length} {monthItems.length === 1 ? "entry" : "entries"}</p>
         </div>
-        <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Entries</p>
-          <p className="stat-value text-slate-900">{items.length}</p>
+        <div className="kpi-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" id="money-in-year-total">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Money in in {year}</p>
+          <p className="stat-value text-slate-900">{money(moneyInTotal(moneyIn, yearRange))}</p>
+          <p className="text-xs text-slate-500">The whole year up to the month shown or the year to date.</p>
         </div>
       </div>
 
       {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div className="sb-panel">
-        {!loaded ? (
-          <p className="text-sm text-slate-500">Loading…</p>
-        ) : items.length === 0 ? (
-          <p className="text-sm text-slate-500">No money in recorded yet.</p>
+        {monthItems.length === 0 ? (
+          <p className="text-sm text-slate-500">No money in recorded for {ymLabel(ym)}.</p>
         ) : (
           <ul className="divide-y divide-slate-100" aria-label="Money in entries">
-            {items.map((i) => (
+            {monthItems.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-slate-900">{i.kind}</p>
                   <p className="truncate text-xs text-slate-500">{i.description || "No note"} · {relativeDay(i.entry_date || i.date)}</p>
                 </div>
-                <p className="text-sm font-semibold text-slate-900">{money(i.amount)}</p>
+                <p className="text-sm font-semibold text-emerald-700">{money(i.amount)}</p>
                 <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setEditing(i)}>Edit</button>
                 {access?.is_owner && (
                   <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => void remove(i)}>Delete</button>
@@ -107,17 +88,17 @@ export default function MoneyIn() {
       </div>
 
       {editing && (
-        <MoneyInForm kinds={kinds} initial={editing === "new" ? undefined : editing}
-          onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void load(); }} />
+        <MoneyInForm initial={editing === "new" ? undefined : editing}
+          onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void reload(); }} />
       )}
     </section>
   );
 }
 
-function MoneyInForm(props: { kinds: string[]; initial?: MoneyInItem; onClose: () => void; onSaved: () => void }) {
+function MoneyInForm(props: { initial?: MoneyInItem; onClose: () => void; onSaved: () => void }) {
   const { initial } = props;
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
-  const [kind, setKind] = useState(initial?.kind ?? props.kinds[0]);
+  const [kind, setKind] = useState(initial?.kind ?? MONEY_IN_KINDS[0]);
   const [note, setNote] = useState(initial?.description ?? "");
   const [day, setDay] = useState(initial?.entry_date ?? todayIso());
   const [error, setError] = useState("");
@@ -156,7 +137,7 @@ function MoneyInForm(props: { kinds: string[]; initial?: MoneyInItem; onClose: (
         <div className="sb-field">
           <label htmlFor="money-in-kind">What kind of money?</label>
           <select id="money-in-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
-            {props.kinds.map((k) => <option key={k} value={k}>{k}</option>)}
+            {MONEY_IN_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
         </div>
         <div className="sb-field">

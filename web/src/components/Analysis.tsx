@@ -13,18 +13,18 @@ const LABELS: Record<Period, string> = { daily: "Per Day", weekly: "Per Week", m
  * and the sales list inside the range; on the dashboard the chart shows the 12 months to the month shown.
  */
 export default function Analysis({ page, range }: { page: "dashboard" | "reports"; range: Range }) {
-  const { sales, expenses, summary } = useData();
+  const { sales, expenses, moneyIn, summary } = useData();
   const [period, setPeriod] = useState<Period>("monthly");
   const [open, setOpen] = useState<string | null>(null);
   const rangeKey = range.kind === "month" ? `m:${range.ym}` : `y:${range.year}`;
-  const totals = useMemo(() => totalsInRange(sales, expenses, range), [sales, expenses, rangeKey]);
+  const totals = useMemo(() => totalsInRange(sales, expenses, range, moneyIn), [sales, expenses, moneyIn, rangeKey]);
   const buckets = useMemo(
     () => (page === "dashboard" && range.kind === "month"
-      ? lastMonths(sales, expenses, range.ym, 12)
-      : chartBuckets(sales, expenses, period, range)),
-    [sales, expenses, rangeKey, page, period],
+      ? lastMonths(sales, expenses, range.ym, 12, moneyIn)
+      : chartBuckets(sales, expenses, period, range, moneyIn)),
+    [sales, expenses, moneyIn, rangeKey, page, period],
   );
-  const groups = useMemo(() => groupSales(sales, period, range), [sales, period, rangeKey]);
+  const groups = useMemo(() => groupSales(sales, period, range, moneyIn), [sales, moneyIn, period, rangeKey]);
   const low = summary?.low_stock_items ?? [];
   const label = rangeLabel(range);
 
@@ -54,13 +54,15 @@ export default function Analysis({ page, range }: { page: "dashboard" | "reports
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {card("Sales value", money(totals.value))}
         {card("Collected", money(totals.collected), "text-emerald-700")}
+        {card("Money in", money(totals.moneyIn), "text-emerald-700")}
         {card("Expenses", money(totals.expenses), "text-rose-700")}
         {card("Balance due", money(totals.balance), "text-amber-700")}
         {card(totals.net < 0 ? "Net cash loss" : "Net cash flow", money(totals.net), totals.net < 0 ? "text-rose-700" : "text-emerald-700")}
       </div>
+      <p className="-mt-2 text-[10px] text-slate-400">Net cash flow = sales collected + money in − expenses. Money in is not a sale, so it is not in profit.</p>
       <p className="-mt-2 text-[10px] text-slate-400">Totals for {label}.</p>
       {totals.balance > 0 && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">
@@ -77,7 +79,9 @@ export default function Analysis({ page, range }: { page: "dashboard" | "reports
             </div>
             <div className="flex items-center gap-3 text-[10px] font-medium text-slate-500" aria-label="Chart legend">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-600" />Sales collected</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-600" />Money in</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />Expenses</span>
+              <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-slate-900" />Net cash flow</span>
             </div>
           </div>
           <TrendChart buckets={buckets} limit={page === "dashboard" ? 12 : 7} />
@@ -106,20 +110,27 @@ export default function Analysis({ page, range }: { page: "dashboard" | "reports
           <h3 id="analytics-history-heading" className="text-base font-bold text-slate-900">Sales by period</h3>
           <p className="mt-0.5 text-[11px] text-slate-500">Open a period to see its recorded sales.</p>
           <div className="mt-3 max-h-[340px] space-y-2 overflow-y-auto" aria-live="polite">
-            {groups.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No sales in {label}.</p>}
+            {groups.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No sales or money in for {label}.</p>}
             {groups.map((g) => (
               <div key={g.label} className="rounded-xl border border-slate-200">
-                <button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                <button type="button" className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 text-left"
                   aria-expanded={open === g.label} onClick={() => setOpen(open === g.label ? null : g.label)}>
                   <span className="text-sm font-semibold text-slate-900">{g.label}</span>
-                  <span className="text-sm font-semibold text-slate-700">{money(g.volume)}</span>
+                  <span className="text-sm font-semibold text-slate-700">Sales {money(g.volume)}</span>
+                  <span className="w-full text-xs font-medium text-emerald-700 sm:w-auto">Money in {money(g.moneyIn)}</span>
                 </button>
                 {open === g.label && (
                   <ul className="divide-y divide-slate-100 border-t border-slate-100 px-4">
                     {g.items.map((s) => (
                       <li key={s.id} className="flex items-center justify-between gap-3 py-2 text-xs text-slate-600">
-                        <span className="min-w-0 truncate">{s.description} · {s.customer_name}</span>
+                        <span className="min-w-0 truncate">Sale · {s.description} · {s.customer_name}</span>
                         <span className="flex-shrink-0 font-semibold text-slate-800">{money(s.total_value)}</span>
+                      </li>
+                    ))}
+                    {g.moneyInItems.map((m) => (
+                      <li key={`m${m.id}`} className="flex items-center justify-between gap-3 py-2 text-xs text-slate-600">
+                        <span className="min-w-0 truncate">Money in · {m.kind}{m.description ? ` · ${m.description}` : ""}</span>
+                        <span className="flex-shrink-0 font-semibold text-emerald-700">{money(m.amount)}</span>
                       </li>
                     ))}
                   </ul>
