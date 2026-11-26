@@ -169,3 +169,21 @@ export function groupSales(sales: Sale[], period: Period, range: Range, moneyIn:
   }
   return [...groups.values()].sort((a, b) => b.sortDate - a.sortDate);
 }
+
+export interface Slice { label: string; value: number }
+
+/**
+ * Expenses inside the range, split by category or by account, largest first. Amounts are summed in
+ * kobo so the parts always add up to the total exactly.
+ */
+export function expenseSlices(expenses: Expense[], range: Range, by: "category" | "account", accountName: (id: number | null | undefined) => string): Slice[] {
+  const totals = new Map<string, number>();
+  for (const e of expenses) {
+    if (!inRange(dayOf(e), range)) continue;
+    const label = by === "category" ? (e.category || "Other") : (accountName(e.account_id) || "Unassigned");
+    totals.set(label, (totals.get(label) ?? 0) + Math.round(e.amount * 100));
+  }
+  return [...totals.entries()]
+    .map(([label, kobo]) => ({ label, value: kobo / 100 }))
+    .sort((a, b) => b.value - a.value);
+}

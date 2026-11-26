@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { chartBuckets, groupSales, lastMonths, totalsInRange } from "./analytics";
+import { chartBuckets, expenseSlices, groupSales, lastMonths, totalsInRange } from "./analytics";
 import type { Expense, Sale } from "./types";
 
 // A business day decides the month. An offline record has no entry_date, so its date text decides.
@@ -120,5 +120,30 @@ describe("money in in the analysis", () => {
   test("a period with sales and money in keeps both", () => {
     const g = groupSales(sales, "monthly", nov, moneyIn);
     assert.deepEqual(g.map((x) => [x.label, x.volume, x.moneyIn]), [["November 2026", 800, 4000]]);
+  });
+});
+
+describe("expense breakdowns", () => {
+  const accountName = (id: number | null | undefined) => (id === 1 ? "Cash" : id === 2 ? "Petty Cash" : "");
+  const list = [
+    { id: 1, amount: 300, category: "Fuel", entry_date: "2026-11-02", date: "2026-11-02 09:00 AM", account_id: 1 },
+    { id: 2, amount: 0.1, category: "Fuel", entry_date: "2026-11-03", date: "2026-11-03 09:00 AM", account_id: 2 },
+    { id: 3, amount: 0.2, category: "", entry_date: "2026-11-04", date: "2026-11-04 09:00 AM", account_id: 2 },
+    { id: 4, amount: 999, category: "Rent", entry_date: "2026-10-30", date: "2026-10-30 09:00 AM", account_id: 1 },
+  ] as unknown as Expense[];
+
+  test("by category: largest first, and the parts add to the total exactly", () => {
+    const s = expenseSlices(list, nov, "category", accountName);
+    assert.deepEqual(s.map((x) => [x.label, x.value]), [["Fuel", 300.1], ["Other", 0.2]]);
+    assert.equal(s.reduce((t, x) => t + Math.round(x.value * 100), 0), 30030);
+  });
+
+  test("by account: names come from the account list", () => {
+    const s = expenseSlices(list, nov, "account", accountName);
+    assert.deepEqual(s.map((x) => [x.label, x.value]), [["Cash", 300], ["Petty Cash", 0.3]]);
+  });
+
+  test("expenses outside the range are left out", () => {
+    assert.equal(expenseSlices(list, { kind: "month", ym: "2026-09" }, "category", accountName).length, 0);
   });
 });
