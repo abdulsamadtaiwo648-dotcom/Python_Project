@@ -21,6 +21,8 @@ interface DataState {
   loading: boolean;
   /** Changes saved on this device that the server has not confirmed yet. */
   pending: number;
+  /** The same changes, for adding to a month's figures before the server confirms them. */
+  pendingOps: Op[];
   failed: FailedOp[];
   dismissFailed: () => void;
   online: boolean;
@@ -259,9 +261,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = useMemo<DataState>(() => ({
     summary: shownSummary, sales: view.sales, expenses: view.expenses, products: view.products, profile, loading, subscription,
     can: (feature) => !subscription || subscription.current.features.includes(feature),
-    pending: outbox.length, failed, online, syncNow, reload, write,
+    pending: outbox.length, pendingOps: outbox, failed, online, syncNow, reload, write,
     dismissFailed: () => { saveFailed(userId, []); setFailed([]); },
-  }), [shownSummary, view, profile, loading, subscription, outbox.length, failed, online, syncNow, reload, write, userId]);
+  }), [shownSummary, view, profile, loading, subscription, outbox, outbox.length, failed, online, syncNow, reload, write, userId]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

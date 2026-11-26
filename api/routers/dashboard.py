@@ -1,15 +1,36 @@
-"""Dashboard summary: the figures behind the KPI cards and daily check-in."""
+"""Dashboard summary: the figures behind the KPI cards and daily check-in.
 
+Month figures are for one calendar month, chosen by the client or defaulted by the server, and
+are counted on each record's business date (entry_date), never on the time it was saved."""
+
+import calendar
 import logging
-from datetime import datetime, timedelta, timezone
+import re
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 
 from server.database import get_db
 
 from ..deps import require_user
 
 router = APIRouter(prefix="/api")
+
+MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+
+
+def month_label(ym):
+    """'2026-11' -> 'November 2026'."""
+    year, month = ym.split("-")
+    return f"{calendar.month_name[int(month)]} {year}"
+
+
+def shift_month(ym, delta):
+    """'2026-01' shifted by -1 -> '2025-12'."""
+    year, month = (int(x) for x in ym.split("-"))
+    index = year * 12 + (month - 1) + delta
+    return f"{index // 12:04d}-{index % 12 + 1:02d}"
 
 
 def vs_last_month(current, previous, empty_text):
@@ -34,12 +55,33 @@ def _sum(db, sql, params):
     return float(row["total"] or 0) if row else 0.0
 
 
+def months_with_data(db, user_id):
+    """Every month that has a sale, expense or money in, newest first."""
+    rows = db.execute(
+        """SELECT DISTINCT SUBSTR(entry_date, 1, 7) AS ym FROM (
+               SELECT entry_date FROM income WHERE user_id = ?
+               UNION ALL SELECT entry_date FROM expenses WHERE user_id = ?
+               UNION ALL SELECT entry_date FROM money_in WHERE user_id = ?
+           ) AS records WHERE entry_date IS NOT NULL""",
+        (user_id, user_id, user_id),
+    ).fetchall()
+    return sorted({r["ym"] for r in rows if r["ym"]}, reverse=True)
+
+
+def _error(message, status=400):
+    return JSONResponse({"status": "error", "message": message}, status_code=status)
+
+
 @router.get("/dashboard")
-def dashboard(user_id: str = Depends(require_user)):
+def dashboard(month: str | None = Query(None), user_id: str = Depends(require_user)):
     now = datetime.now(timezone.utc)
     today = now.strftime("%Y-%m-%d")
-    month = now.strftime("%Y-%m")
-    prev_month = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+    current = now.strftime("%Y-%m")
+    if month is not None:
+        if not MONTH_RE.match(month):
+            return _error("Choose a month in the form YYYY-MM.")
+        if month > current:
+            return _error("You can't choose a month after this one.")
     unpaid = (
         "CASE WHEN COALESCE(total_value, 0) > COALESCE(amount_paid, 0) "
         "THEN COALESCE(total_value, 0) - COALESCE(amount_paid, 0) ELSE 0 END"
@@ -63,10 +105,28 @@ def dashboard(user_id: str = Depends(require_user)):
             expense_sql = "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND entry_date LIKE ?"
             today_collected = _sum(db, income_sql, (user_id, today + "%"))
             today_expenses = _sum(db, expense_sql, (user_id, today + "%"))
-            month_income = _sum(db, income_sql, (user_id, month + "%"))
-            month_expenses = _sum(db, expense_sql, (user_id, month + "%"))
-            prev_income = _sum(db, income_sql, (user_id, prev_month + "%"))
-            prev_expenses = _sum(db, expense_sql, (user_id, prev_month + "%"))
+
+            # The month shown: the one asked for, or by default this month, or the latest month with
+            # data when this month is still empty.
+            all_months = [m for m in months_with_data(db, user_id) if m <= current]
+            notice = None
+            if month is not None:
+                selected = month
+            else:
+                selected = current
+                if current not in all_months and all_months:
+                    selected = all_months[0]
+                    notice = {
+                        "current_month": current,
+                        "shown_month": selected,
+                        "message": f"No records in {month_label(current)} yet. Showing {month_label(selected)}.",
+                    }
+            previous = shift_month(selected, -1)
+
+            month_income = _sum(db, income_sql, (user_id, selected + "%"))
+            month_expenses = _sum(db, expense_sql, (user_id, selected + "%"))
+            prev_income = _sum(db, income_sql, (user_id, previous + "%"))
+            prev_expenses = _sum(db, expense_sql, (user_id, previous + "%"))
             low_stock = [
                 {"item_name": r["item_name"], "stock": int(r["stock"] or 0), "threshold": int(r["low_stock_threshold"])}
                 for r in db.execute(
@@ -84,7 +144,10 @@ def dashboard(user_id: str = Depends(require_user)):
         "status": "success",
         "username": name,
         "today": today,
-        "current_month": month,
+        "current_month": current,
+        "selected_month": selected,
+        "months_with_data": all_months,
+        "notice": notice,
         "total_sales": total_sales,
         "total_expenses": total_expenses,
         "net_profit": total_sales - total_expenses,

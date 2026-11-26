@@ -4,6 +4,12 @@ export interface DashboardSummary {
   username: string;
   today: string;
   current_month: string;
+  /** The month the figures are for, 'YYYY-MM'. */
+  selected_month: string;
+  /** Months with a sale, expense or money in, newest first (never after this month). */
+  months_with_data: string[];
+  /** Set when this month was empty and an earlier month is shown instead. */
+  notice: { current_month: string; shown_month: string; message: string } | null;
   total_sales: number;
   total_expenses: number;
   net_profit: number;
@@ -23,6 +29,7 @@ export interface DashboardSummary {
 
 export interface Sale {
   id: number;
+  entry_date?: string;
   description: string;
   total_value: number;
   amount_paid: number;

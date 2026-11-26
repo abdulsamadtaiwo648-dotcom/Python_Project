@@ -1,31 +1,37 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Analysis, { whenLabel } from "../components/Analysis";
+import MonthPicker from "../components/MonthPicker";
+import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
+import { monthOfRecord, ymLabel } from "../month";
+import type { DashboardSummary } from "../types";
 
-export function KpiRow() {
-  const { summary } = useData();
-  const s = summary;
+export function KpiRow({ summary: given }: { summary?: DashboardSummary | null } = {}) {
+  const { summary: fromContext } = useData();
+  const s = given ?? fromContext;
   const low = s?.low_stock_items.length ?? 0;
+  // "this month", or the name of the month being shown
+  const phrase = !s || s.selected_month === s.current_month ? "this month" : `in ${ymLabel(s.selected_month)}`;
   return (
     <div id="kpi-row" className="grid grid-cols-2 lg:grid-cols-4">
       <div className="kpi-card">
-        <p className="kpi-label">Income this month</p>
+        <p className="kpi-label">Income {phrase}</p>
         <span className="stat-value" id="top-sales">{money(s?.month_income)}</span>
         <p className="kpi-note">{s?.income_note ?? ""}</p>
       </div>
       <div className="kpi-card">
-        <p className="kpi-label">Expenses this month</p>
+        <p className="kpi-label">Expenses {phrase}</p>
         <span className="stat-value" id="top-expenses">{money(s?.month_expenses)}</span>
         <p className="kpi-note">{s?.expense_note ?? ""}</p>
       </div>
       <div id="kpi-net-cash-flow" className="kpi-card">
-        <p className="kpi-label">{(s?.month_net ?? 0) < 0 ? "Net loss this month" : "Net profit"}</p>
+        <p className="kpi-label">{(s?.month_net ?? 0) < 0 ? `Net loss ${phrase}` : `Net profit ${phrase}`}</p>
         <span className={`stat-value ${(s?.month_net ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-profit">{money(s?.month_net)}</span>
         <p className="kpi-note">
           {(s?.month_net ?? 0) < 0
-            ? `Spending is ${money(Math.abs(s?.month_net ?? 0))} more than income this month.`
+            ? `Spending is ${money(Math.abs(s?.month_net ?? 0))} more than income ${phrase}.`
             : (s?.net_note ?? "")}
         </p>
       </div>
@@ -38,9 +44,10 @@ export function KpiRow() {
   );
 }
 
-export function RecentSales() {
+export function RecentSales({ month, current }: { month?: string | null; current?: string | null }) {
   const { sales } = useData();
-  const recent = [...sales]
+  const inMonth = month ? sales.filter((s) => monthOfRecord(s) === month) : sales;
+  const recent = [...inMonth]
     .sort((a, b) => (parseSaved(b.date)?.getTime() ?? 0) - (parseSaved(a.date)?.getTime() ?? 0))
     .slice(0, 5);
   return (
@@ -51,7 +58,11 @@ export function RecentSales() {
           <Link to="/sales" className="text-sm font-semibold text-blue-700 hover:text-blue-900">View all</Link>
         </div>
         <ul id="dashboard-recent-list" className="divide-y divide-slate-100" aria-live="polite">
-          {recent.length === 0 && <li className="py-6 text-center text-sm text-slate-500">No sales yet. Record your first sale to see it here.</li>}
+          {recent.length === 0 && (
+            <li className="py-6 text-center text-sm text-slate-500">
+              {month && current && month !== current ? `No sales in ${ymLabel(month)}.` : "No sales yet. Record your first sale to see it here."}
+            </li>
+          )}
           {recent.map((s) => {
             const owing = s.total_value - s.amount_paid > 0.005;
             return (
@@ -69,7 +80,9 @@ export function RecentSales() {
 }
 
 export default function Dashboard() {
-  const { summary } = useData();
+  const { summary: fromContext } = useData();
+  const dm = useDashboardMonth();
+  const summary = dm.summary ?? fromContext;
   useEffect(() => { document.title = "Dashboard | SoloBiz"; }, []);
   const todayLabel = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return (
@@ -92,10 +105,22 @@ export default function Dashboard() {
             New sale
           </Link>
         </div>
-        <KpiRow />
+        {dm.selected && dm.current && (
+          <div className="mb-4">
+            <MonthPicker value={dm.selected} current={dm.current} months={dm.months} onChange={dm.setMonth} />
+          </div>
+        )}
+        {dm.notice && (
+          <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span>{dm.notice.message}</span>
+            <button type="button" className="sb-btn sb-btn-small sb-btn-secondary"
+              onClick={() => dm.setMonth(dm.notice!.current_month)}>Show {ymLabel(dm.notice.current_month)}</button>
+          </div>
+        )}
+        <KpiRow summary={summary} />
       </div>
       <Analysis page="dashboard" />
-      <RecentSales />
+      <RecentSales month={dm.selected} current={dm.current} />
     </>
   );
 }
