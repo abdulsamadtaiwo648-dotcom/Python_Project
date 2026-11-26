@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
@@ -22,10 +22,14 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const [description, setDescription] = useState(initial?.description ?? "");
   const [entryDay, setEntryDay] = useState(initial?.entry_date ?? todayIso());
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const addAnother = useRef(false);
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    const again = addAnother.current && !initial;
+    addAnother.current = false;
     const n = toAmount(amount);
     if (!Number.isFinite(n) || n <= 0) return setError("Enter an amount greater than zero.");
     if (!category || !description.trim()) return setError("Choose a category and say what it was for.");
@@ -40,6 +44,14 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
       } else {
         const expense: Expense = { server_id: nextTempId(), ...body, date: dayStamp(entryDay), synced: false };
         await write({ kind: "expense_add", method: "POST", url: "/add", body, meta: { expense } });
+      }
+      if (again) {
+        // Keep the date and category; start the next expense.
+        setAmount("");
+        setDescription("");
+        setNotice("Saved. Add the next one.");
+        document.getElementById("expense-amount")?.focus();
+        return;
       }
       props.onClose();
     } catch (err) {
@@ -66,6 +78,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     <Sheet title={initial ? "Edit expense" : "Add expense"} onClose={props.onClose} compact>
       <form onSubmit={save} className="sb-sheet-body">
         {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{error}</p>}
+        {notice && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</p>}
         <div className="sb-field">
           <label htmlFor="expense-amount">Amount</label>
           <div className="sb-money">
@@ -100,7 +113,11 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
               <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}>Save changes</button>
             </>
           ) : (
-            <button type="submit" className="sb-btn sb-btn-primary sb-btn-block" disabled={busy}>{busy ? "Saving…" : "Save expense"}</button>
+            <>
+              <button type="submit" className="sb-btn sb-btn-secondary" disabled={busy}
+                onClick={() => { addAnother.current = true; }}>Save and add another</button>
+              <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}>{busy ? "Saving…" : "Save expense"}</button>
+            </>
           )}
         </div>
       </form>

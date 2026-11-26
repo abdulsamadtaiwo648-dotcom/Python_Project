@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { ApiError } from "../api";
 import Sheet from "./Sheet";
 import { useData } from "../data";
@@ -23,6 +23,8 @@ interface Line {
 let lineSeq = 0;
 const blankLine = (): Line => ({ key: `l${++lineSeq}`, presetId: null, name: "", price: "", qty: "1", bulk: false });
 
+const newCheckoutId = () => (crypto.randomUUID ? crypto.randomUUID() : `co-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
 export function NewSale(props: { products: Product[]; onClose: () => void; onDone: () => void }) {
   const { products } = props;
   const { write } = useData();
@@ -33,7 +35,10 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
   const [paid, setPaid] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [checkoutId] = useState(() => (crypto.randomUUID ? crypto.randomUUID() : `co-${Date.now()}-${Math.random().toString(36).slice(2)}`));
+  // Each recorded sale needs its own checkout id: the server treats a repeated id as a replay.
+  const [checkoutId, setCheckoutId] = useState(newCheckoutId);
+  const [notice, setNotice] = useState("");
+  const addAnother = useRef(false);
 
   const product = (id: number | null) => products.find((p) => p.id === id);
   const unitsUsed = (id: number, skip?: string) =>
@@ -128,6 +133,16 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         },
         meta: { sales: rows, stock },
       });
+      if (addAnother.current) {
+        // Keep the date, customer and payment mode; start a fresh sale.
+        addAnother.current = false;
+        setLines([blankLine()]);
+        setPaid(null);
+        setCheckoutId(newCheckoutId());
+        setNotice("Sale recorded. Add the next one.");
+        setBusy(false);
+        return;
+      }
       props.onDone();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not record the sale. Try again.");
@@ -144,6 +159,7 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         </button>
       </div>
       <form onSubmit={submit} className="sb-sheet-body" noValidate>
+        {notice && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</p>}
         <div className="sb-field">
           <label htmlFor="sale-day">Date of sale</label>
           <input id="sale-day" type="date" value={saleDay} min={minEntryIso()} max={todayIso()}
@@ -234,7 +250,10 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         </div>
         {error && <p className="sb-error" role="alert">{error}</p>}
         <div className="sb-sheet-foot">
-          <button type="submit" className="sb-btn sb-btn-primary sb-btn-block" disabled={busy}>{busy ? "Saving…" : "Record sale"}</button>
+          <button type="submit" className="sb-btn sb-btn-secondary" disabled={busy}
+            onClick={() => { addAnother.current = true; }}>Save and add another</button>
+          <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}
+            onClick={() => { addAnother.current = false; }}>{busy ? "Saving…" : "Record sale"}</button>
         </div>
       </form>
     </div>
