@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import type { Range } from "../analytics";
 import Analysis from "../components/Analysis";
+import InfoTip from "../components/InfoTip";
 import MonthPicker from "../components/MonthPicker";
 import YearPicker from "../components/YearPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { LockedPage } from "../components/Upgrade";
-import { monthNow } from "../month";
+import { money } from "../format";
+import { monthNow, ymLabel } from "../month";
 
 /** Reports: the business analysis for a month or a year, with the same month picker as the dashboard. */
 export default function Reports() {
@@ -45,6 +47,38 @@ export default function Reports() {
           ? <MonthPicker value={ym} current={currentYm} months={dm.months} onChange={dm.setMonth} />
           : <YearPicker value={year} current={currentYear} years={years} onChange={setPickedYear} />}
       </section>
+
+      {kind === "month" && dm.summary?.cash && (
+        <section className="sb-panel mb-4" aria-labelledby="reports-cash-title">
+          <h3 id="reports-cash-title" className="text-sm font-semibold text-slate-900">Cash in {ymLabel(ym)}</h3>
+          <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+            <div>
+              <dt className="flex items-center text-xs text-slate-500">Sales payments received
+                <InfoTip label="Sales payments received">Payments customers made this month, counted on the day each was paid.</InfoTip>
+              </dt>
+              <dd className="mt-1 text-base font-semibold tabular-nums text-slate-900">{money(dm.summary.cash.payments_received)}</dd>
+            </div>
+            <div>
+              <dt className="flex items-center text-xs text-slate-500">Money in
+                <InfoTip label="Money in">Owner contributions, loans, refunds and other income this month. Transfers between your accounts are not included.</InfoTip>
+              </dt>
+              <dd className="mt-1 text-base font-semibold tabular-nums text-emerald-700">{money(dm.summary.cash.money_in)}</dd>
+            </div>
+            <div>
+              <dt className="flex items-center text-xs text-slate-500">Expenses paid
+                <InfoTip label="Expenses paid">Everything spent this month, from any account.</InfoTip>
+              </dt>
+              <dd className="mt-1 text-base font-semibold tabular-nums text-rose-700">{money(dm.summary.cash.expenses)}</dd>
+            </div>
+            <div>
+              <dt className="flex items-center text-xs text-slate-500">Net cash movement
+                <InfoTip label="Net cash movement">Sales payments received, plus money in, minus expenses paid. Profit is different: it is sales minus expenses.</InfoTip>
+              </dt>
+              <dd className={`mt-1 text-base font-bold tabular-nums ${(dm.summary.cash.net_cash_movement ?? 0) < 0 ? "text-rose-700" : "text-slate-900"}`}>{money(dm.summary.cash.net_cash_movement ?? dm.summary.cash.cash_balance)}</dd>
+            </div>
+          </dl>
+        </section>
+      )}
 
       <Analysis page="reports" range={range} />
     </>

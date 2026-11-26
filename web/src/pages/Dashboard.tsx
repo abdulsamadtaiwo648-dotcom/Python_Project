@@ -1,178 +1,184 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import Analysis, { whenLabel } from "../components/Analysis";
+import { api } from "../api";
+import { lastMonths } from "../analytics";
+import InfoTip from "../components/InfoTip";
 import MonthPicker from "../components/MonthPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
-import { money, parseSaved } from "../format";
-import { monthNow, monthOfRecord, ymLabel } from "../month";
-import type { CashSummary, DashboardSummary } from "../types";
+import { money, relativeDay } from "../format";
+import { dayOf } from "../analytics";
+import { monthNow, ymLabel } from "../month";
+import { todayIso } from "../offline";
+import type { AccountView, DashboardSummary, Expense, Sale } from "../types";
 
-/** Cash for the month shown: what came in, what went out, and the balance. */
-export function CashCard({ cash, phrase }: { cash: CashSummary; phrase: string }) {
-  const net = cash.net_cash_movement ?? cash.cash_balance;
-  const rows: [string, number, string][] = [
-    ["Sales payments received", cash.payments_received ?? cash.sales_collected, "text-slate-900"],
-    ["Money in (not transfers)", cash.money_in, "text-slate-900"],
-    ["Expenses paid", cash.expenses, "text-rose-700"],
-    ["Profit (sales − expenses)", cash.profit, cash.profit < 0 ? "text-rose-700" : "text-slate-900"],
-    ["Net cash movement (payments + money in − expenses)", net, net < 0 ? "text-rose-700" : "text-slate-900"],
-  ];
-  return (
-    <section id="dashboard-cash" className="dash-panel mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-cash-heading">
-      <h3 id="dashboard-cash-heading" className="text-base font-bold text-slate-900">Cash {phrase}</h3>
-      <p className="mt-1 text-xs text-slate-500">Money in is cash but not a sale, so it changes the balance and not the profit.</p>
-      <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-        {rows.map(([label, value, color]) => (
-          <div key={label} className="flex items-baseline justify-between gap-3 border-b border-slate-100 py-2">
-            <dt className="text-sm text-slate-600">{label}</dt>
-            <dd className={`text-sm font-semibold ${color}`}>{money(value)}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
-
-export function KpiRow({ summary: given }: { summary?: DashboardSummary | null } = {}) {
-  const { summary: fromContext } = useData();
-  const s = given ?? fromContext;
-  const low = s?.low_stock_items.length ?? 0;
-  // "this month", or the name of the month being shown
-  const phrase = !s || s.selected_month === s.current_month ? "this month" : `in ${ymLabel(s.selected_month)}`;
-  return (
-    <div id="kpi-row" className="grid grid-cols-2 lg:grid-cols-3">
-      <div className="kpi-card">
-        <p className="kpi-label">Income {phrase}</p>
-        <span className="stat-value" id="top-sales">{money(s?.month_income)}</span>
-        <p className="kpi-note">{s?.income_note ?? ""}</p>
-      </div>
-      <div className="kpi-card">
-        <p className="kpi-label">Expenses {phrase}</p>
-        <span className="stat-value" id="top-expenses">{money(s?.month_expenses)}</span>
-        <p className="kpi-note">{s?.expense_note ?? ""}</p>
-      </div>
-      <div id="kpi-net-cash-flow" className="kpi-card">
-        <p className="kpi-label">{(s?.month_net ?? 0) < 0 ? `Net loss ${phrase}` : `Net profit ${phrase}`}</p>
-        <span className={`stat-value ${(s?.month_net ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-profit">{money(s?.month_net)}</span>
-        <p className="kpi-note">
-          {(s?.month_net ?? 0) < 0 && (s?.month_income ?? 0) === 0
-            ? `No income recorded ${phrase}; expenses are ${money(s?.month_expenses)}.`
-            : (s?.month_net ?? 0) < 0
-              ? `Spending is ${money(Math.abs(s?.month_net ?? 0))} more than income ${phrase}.`
-              : (s?.net_note ?? "")}
-        </p>
-      </div>
-      <div className="kpi-card">
-        <p className="kpi-label">Money in {phrase}</p>
-        <span className="stat-value" id="top-money-in">{money(s?.cash?.money_in)}</span>
-        <p className="kpi-note">Owner capital, loans and refunds. Not sales.</p>
-      </div>
-      <div className="kpi-card">
-        <p className="kpi-label">Net cash movement {phrase}</p>
-        <span className={`stat-value ${(s?.cash?.net_cash_movement ?? s?.cash?.cash_balance ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-cash-balance">{money(s?.cash?.net_cash_movement ?? s?.cash?.cash_balance)}</span>
-        <p className="kpi-note">Sales payments received + money in − expenses paid.</p>
-      </div>
-      <div className="kpi-card">
-        <p className="kpi-label">Low stock</p>
-        <span className="stat-value" id="kpi-low-stock">{low} item{low === 1 ? "" : "s"}</span>
-        <p className="kpi-note">{low ? "Restock soon" : "Everything is stocked"}</p>
-      </div>
-    </div>
-  );
-}
-
-export function RecentSales({ month, current }: { month?: string | null; current?: string | null }) {
-  const { sales } = useData();
-  const inMonth = month ? sales.filter((s) => monthOfRecord(s) === month) : sales;
-  const recent = [...inMonth]
-    .sort((a, b) => (parseSaved(b.date)?.getTime() ?? 0) - (parseSaved(a.date)?.getTime() ?? 0))
-    .slice(0, 5);
-  return (
-    <div id="dashboard-bottom-grid" className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <section id="dashboard-recent-sales" className="dash-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="dashboard-recent-heading">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 id="dashboard-recent-heading" className="text-base font-bold text-slate-900">Recent sales</h3>
-          <Link to="/sales" className="text-sm font-semibold text-blue-700 hover:text-blue-900">View all</Link>
-        </div>
-        <ul id="dashboard-recent-list" className="divide-y divide-slate-100" aria-live="polite">
-          {recent.length === 0 && (
-            <li className="py-6 text-center text-sm text-slate-500">
-              {month && current && month !== current ? `No sales in ${ymLabel(month)}.` : "No sales yet. Record your first sale to see it here."}
-            </li>
-          )}
-          {recent.map((s) => {
-            const owing = s.total_value - s.amount_paid > 0.005;
-            return (
-              <li key={s.id} className="recent-row">
-                <span className="recent-name">{s.customer_name || "Walk-in Customer"}</span>
-                <span className={`recent-when${owing ? " is-owing" : ""}`}>{whenLabel(s.date)}{owing ? " · Balance due" : ""}</span>
-                <span className="recent-amount">{money(s.total_value)}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    </div>
-  );
-}
-
+/** Home: this month in four numbers, six months at a glance, and the latest activity. */
 export default function Dashboard() {
-  const { summary: fromContext } = useData();
+  const { summary: fromContext, sales, expenses, moneyIn, accounts, online } = useData();
   const dm = useDashboardMonth();
-  const summary = dm.summary ?? fromContext;
-  useEffect(() => { document.title = "Dashboard | SoloBiz"; }, []);
-  const todayLabel = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const s: DashboardSummary | null = dm.summary ?? fromContext;
+  const ym = dm.selected ?? monthNow();
+  const monthName = ymLabel(ym);
+  const cashAtHand = useCashAtHand(accounts, s);
+  const name = s?.username ?? "";
+
+  useEffect(() => { document.title = "Home | SoloBiz"; }, []);
+
+  const profit = s?.month_net ?? 0;
+  const buckets = lastMonths(sales, expenses, ym, 6, moneyIn);
+  const peak = Math.max(1, ...buckets.flatMap((b) => [b.sales + b.moneyIn, b.expenses]));
+  const recent = recentActivity(sales, expenses, 5);
+
   return (
-    <>
-      {/* Phones only: the welcome sits in the page, apart from the fixed header (desktop has it in the top bar). */}
-      <section className="welcome-block lg:hidden" aria-label="Welcome">
+    <div className="space-y-5" id="home">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="truncate">Welcome back, {summary?.username ?? ""}</h2>
-          <p>{todayLabel}</p>
+          <p className="truncate text-lg font-semibold text-slate-900">{greeting()}{name ? `, ${name}` : ""}</p>
         </div>
+        <MonthPicker value={ym} current={dm.current ?? monthNow()} months={dm.months} onChange={dm.setMonth} />
+      </header>
+
+      {dm.notice && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span>{dm.notice.message}</span>
+          <button type="button" className="sb-btn sb-btn-small sb-btn-secondary" onClick={() => dm.setMonth(dm.notice!.current_month)}>
+            Show {ymLabel(dm.notice.current_month)}
+          </button>
+        </div>
+      )}
+
+      <section className="grid grid-cols-2 gap-3" aria-label="This month at a glance">
+        <Card label="Sales" tip={`Money collected from sales in ${monthName}.`} value={s ? money(s.month_income) : null} />
+        <Card label="Expenses" tip={`Expenses paid in ${monthName}.`} value={s ? money(s.month_expenses) : null} />
+        <Card label="Profit" tip={`Sales minus expenses in ${monthName}.`}
+          value={s ? money(profit) : null} tone={profit < 0 ? "text-rose-700" : "text-slate-900"} />
+        <Card label="Cash at hand" tip="All your account balances today, added together."
+          value={cashAtHand === undefined ? null : cashAtHand === null ? "—" : money(cashAtHand)}
+          tone={(cashAtHand ?? 0) < 0 ? "text-rose-700" : "text-slate-900"}
+          link={{ to: "/money?tab=accounts", label: "See accounts →" }} />
       </section>
-      <div id="cfo-dashboard" className="transition-all duration-300">
-        <div className="page-head mb-4">
-          <div className="min-w-0">
-            <h2 className="page-title">Dashboard</h2>
-            <p className="page-sub">Here is how your business is doing in {ymLabel(dm.selected ?? monthNow())}.</p>
+
+      <section className="sb-panel" aria-labelledby="home-chart-title">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 id="home-chart-title" className="text-sm font-semibold text-slate-900">Last 6 months</h3>
+          <div className="flex items-center gap-3 text-[11px] font-medium text-slate-500">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Money in</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />Money out</span>
           </div>
-          <Link to="/sales" className="sb-btn sb-btn-primary">
-            <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
-            New sale
-          </Link>
         </div>
-        {dm.selected && dm.current && (
-          <div className="mb-4">
-            <MonthPicker value={dm.selected} current={dm.current} months={dm.months} onChange={dm.setMonth} />
+        {!s ? (
+          <div className="h-40 animate-pulse rounded-xl bg-slate-100" aria-hidden="true" />
+        ) : (
+          <div className="flex h-40 items-end gap-2" role="img"
+            aria-label={buckets.map((b) => `${b.label}: in ${money(b.sales + b.moneyIn)}, out ${money(b.expenses)}`).join(". ")}>
+            {buckets.map((b) => (
+              <div key={b.label + b.sortDate} className="flex flex-1 flex-col items-center gap-1">
+                <div className="flex h-32 w-full items-end justify-center gap-1">
+                  <div className="w-3 rounded-t bg-emerald-500" style={{ height: barHeight(b.sales + b.moneyIn, peak) }} />
+                  <div className="w-3 rounded-t bg-slate-300" style={{ height: barHeight(b.expenses, peak) }} />
+                </div>
+                <span className="text-[10px] text-slate-500">{b.label}</span>
+              </div>
+            ))}
           </div>
         )}
-        {dm.notice && (
-          <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <span>{dm.notice.message}</span>
-            <button type="button" className="sb-btn sb-btn-small sb-btn-secondary"
-              onClick={() => dm.setMonth(dm.notice!.current_month)}>Show {ymLabel(dm.notice.current_month)}</button>
-          </div>
-        )}
-        <KpiRow summary={summary} />
-      </div>
-      {summary?.account_balances && summary.account_balances.length > 0 && (
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Account balances">
-          {summary.account_balances.map((a) => (
-            <div key={a.id} className="kpi-card">
-              <p className="kpi-label">{a.name} balance</p>
-              <span className={`stat-value ${a.balance < 0 ? "text-rose-700" : ""}`}>{money(a.balance)}</span>
-              <p className="kpi-note">At the end of {ymLabel(summary.selected_month)}.</p>
-            </div>
-          ))}
+        {!online && <p className="mt-2 text-xs text-slate-500">Showing what is saved on this device.</p>}
+      </section>
+
+      <section className="sb-panel" aria-labelledby="home-recent-title">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 id="home-recent-title" className="text-sm font-semibold text-slate-900">Recent activity</h3>
+          <Link to="/sales" className="text-xs font-semibold text-blue-700 hover:text-blue-900">All sales</Link>
         </div>
-      )}
-      {summary?.cash && (
-        <CashCard cash={summary.cash} phrase={summary.selected_month === summary.current_month ? "this month" : `in ${ymLabel(summary.selected_month)}`} />
-      )}
-      <Analysis page="dashboard" range={{ kind: "month", ym: dm.selected ?? monthNow() }} />
-      <RecentSales month={dm.selected} current={dm.current} />
-    </>
+        {!s ? (
+          <div className="space-y-2" aria-hidden="true">
+            {[0, 1, 2].map((i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-100" />)}
+          </div>
+        ) : recent.length === 0 ? (
+          <div className="py-6 text-center">
+            <p className="text-sm text-slate-500">Nothing recorded yet.</p>
+            <Link to="/sales" className="sb-btn sb-btn-primary mt-3 inline-flex">Record a sale</Link>
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {recent.map((r) => (
+              <li key={r.key} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-900">{r.title}</p>
+                  <p className="truncate text-xs text-slate-500">{r.sub}</p>
+                </div>
+                <p className={`flex-shrink-0 text-sm font-semibold tabular-nums ${r.kind === "sale" ? "text-emerald-700" : "text-slate-800"}`}>
+                  {r.kind === "sale" ? "+" : "−"}{money(r.amount)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
   );
+}
+
+function Card(props: { label: string; tip: string; value: string | null; tone?: string; link?: { to: string; label: string } }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="flex items-center text-xs font-medium text-slate-500">
+        {props.label}
+        <InfoTip label={props.label}>{props.tip}</InfoTip>
+      </p>
+      {props.value === null ? (
+        <div className="mt-2 h-7 w-24 animate-pulse rounded bg-slate-100" aria-hidden="true" />
+      ) : (
+        <p className={`mt-2 text-xl font-bold tabular-nums ${props.tone ?? "text-slate-900"}`}>{props.value}</p>
+      )}
+      {props.link && <Link to={props.link.to} className="mt-2 inline-block text-xs font-semibold text-blue-700 hover:text-blue-900">{props.link.label}</Link>}
+    </div>
+  );
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+}
+
+function barHeight(value: number, peak: number): string {
+  if (value <= 0) return "0px";
+  return `${Math.max(3, Math.round((value / peak) * 128))}px`;
+}
+
+interface Activity { key: string; kind: "sale" | "expense"; title: string; sub: string; amount: number; day: string }
+
+/** The latest sales and expenses together, newest first, by business day. */
+function recentActivity(sales: Sale[], expenses: Expense[], count: number): Activity[] {
+  const items: Activity[] = [
+    ...sales.map((s) => ({
+      key: `s${s.id}`, kind: "sale" as const, title: s.customer_name || "Walk-in customer",
+      sub: `${s.description} · ${relativeDay(s.entry_date || s.date)}`, amount: s.amount_paid, day: dayOf(s),
+    })),
+    ...expenses.map((e) => ({
+      key: `e${e.server_id}`, kind: "expense" as const, title: e.category || "Expense",
+      sub: `${e.description} · ${relativeDay(e.entry_date || e.date)}`, amount: e.amount, day: dayOf(e),
+    })),
+  ];
+  return items.sort((a, b) => b.day.localeCompare(a.day) || b.key.localeCompare(a.key)).slice(0, count);
+}
+
+/** Cash at hand: the balance of every active account, added together, as of today. Read from the
+ * account statements, which already count each movement once. undefined = loading, null = unavailable. */
+function useCashAtHand(accounts: AccountView[], stamp: unknown): number | null | undefined {
+  const [value, setValue] = useState<number | null | undefined>(undefined);
+  useEffect(() => {
+    const active = accounts.filter((a) => !a.archived);
+    if (active.length === 0) { setValue(0); return; }
+    let live = true;
+    const anchor = todayIso();
+    Promise.all(active.map((a) =>
+      api.get<{ closing: { balance: string } }>(`/api/accounts/${a.id}/statement?period=month&date=${anchor}`)))
+      .then((results) => {
+        if (live) setValue(results.reduce((sum, r) => sum + Math.round(Number(r.closing.balance) * 100), 0) / 100);
+      })
+      .catch(() => { if (live) setValue(null); });
+    return () => { live = false; };
+  }, [accounts, stamp]);
+  return value;
 }
