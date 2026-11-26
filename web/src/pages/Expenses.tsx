@@ -4,7 +4,7 @@ import { UpgradeNotice } from "../components/Upgrade";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money, parseSaved, relativeDay } from "../format";
-import { nextTempId, nowStamp } from "../offline";
+import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import type { Expense } from "../types";
 
 export const EXPENSE_CATEGORIES = [
@@ -20,6 +20,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [category, setCategory] = useState(initial?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [entryDay, setEntryDay] = useState(initial?.entry_date ?? todayIso());
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -28,15 +29,16 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     const n = toAmount(amount);
     if (!Number.isFinite(n) || n <= 0) return setError("Enter an amount greater than zero.");
     if (!category || !description.trim()) return setError("Choose a category and say what it was for.");
+    if (!entryDay) return setError("Choose the date of this expense.");
     setBusy(true);
     setError("");
     try {
-      const body = { amount: n, category, description: description.trim() };
+      const body = { amount: n, category, description: description.trim(), entry_date: entryDay };
       if (initial) {
         await write({ kind: "expense_edit", method: "PUT", url: `/api/expenses/${initial.server_id}`, body,
-          meta: { expenseId: initial.server_id, patch: body } });
+          meta: { expenseId: initial.server_id, patch: { ...body, date: dayStamp(entryDay) } } });
       } else {
-        const expense: Expense = { server_id: nextTempId(), ...body, date: nowStamp(), synced: false };
+        const expense: Expense = { server_id: nextTempId(), ...body, date: dayStamp(entryDay), synced: false };
         await write({ kind: "expense_add", method: "POST", url: "/add", body, meta: { expense } });
       }
       props.onClose();
@@ -71,6 +73,12 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
             <input id="expense-amount" type="text" inputMode="decimal" placeholder="0" required className="currency-input"
               value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
           </div>
+        </div>
+        <div className="sb-field">
+          <label htmlFor="expense-day">Date</label>
+          <input id="expense-day" type="date" required value={entryDay} min={minEntryIso()} max={todayIso()}
+            onChange={(e) => setEntryDay(e.target.value)} />
+          <p className="sb-help">The day this expense belongs to. Up to two years back; not in the future.</p>
         </div>
         <div className="sb-field">
           <label htmlFor="expense-category">Category</label>

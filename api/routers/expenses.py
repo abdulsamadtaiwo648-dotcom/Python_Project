@@ -27,10 +27,10 @@ def get_expenses(request: Request, payload: Any = Body(None)):
 
     with get_db() as db:
         cutoff = history_cutoff(user_id)
-        sql = "SELECT id, amount, category, description, date FROM expenses WHERE user_id = ?"
+        sql = "SELECT id, amount, category, description, date, entry_date FROM expenses WHERE user_id = ?"
         params = (user_id,)
         if cutoff:
-            sql += " AND date >= ?"
+            sql += " AND entry_date >= ?"
             params = (user_id, cutoff)
         rows = db.execute(sql + " ORDER BY id DESC", params).fetchall()
         expenses = [
@@ -40,6 +40,7 @@ def get_expenses(request: Request, payload: Any = Body(None)):
                 "category": row["category"],
                 "description": row["description"],
                 "date": row["date"],
+                "entry_date": row["entry_date"],
                 "synced": True
             }
             for row in rows
@@ -79,11 +80,15 @@ def add_expense(request: Request, payload: Any = Body(None)):
         core.log_refused_input(user_id, request.url.path, "category or description too long")
         return jsonify({"status": "error", "message": "Category must be 80 characters or fewer and description 200 or fewer."}), 400
 
-    expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
+    entry_day, entry_err = rules.check_entry_date(data.get("entry_date"))
+    if entry_err:
+        core.log_refused_input(user_id, request.url.path, "expense date " + entry_err)
+        return jsonify({"status": "error", "message": f"Choose a valid date: {entry_err}."}), 400
+    expense_date = rules.display_stamp(entry_day)
     with get_db() as db:
         cursor = db.execute(
-            "INSERT INTO expenses (user_id, amount, category, description, date) VALUES (?, ?, ?, ?, ?)",
-            (user_id, amount, category, description, expense_date)
+            "INSERT INTO expenses (user_id, amount, category, description, date, entry_date, entered_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user_id, amount, category, description, expense_date, entry_day, datetime.now(timezone.utc).isoformat())
         )
         expense_id = cursor.lastrowid
         record_user_activity(db, user_id, "expense_created", "Recorded an expense")
@@ -98,7 +103,8 @@ def add_expense(request: Request, payload: Any = Body(None)):
             "amount": amount,
             "category": category,
             "description": description,
-            "date": expense_date
+            "date": expense_date,
+            "entry_date": entry_day
         }
     }), 201
 
@@ -137,20 +143,32 @@ def api_expense_detail(expense_id: int, request: Request, payload: Any = Body(No
             core.log_refused_input(user_id, request.url.path, "category or description too long")
             return jsonify({"status": "error", "message": "Category must be 80 characters or fewer and description 200 or fewer."}), 400
 
-        expense_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %I:%M %p")
+        # Editing keeps the business date unless a new one is sent.
         with get_db() as db:
-            updated = db.execute(
-                "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ? AND user_id = ?",
-                (amount, category, description, expense_date, expense_id, user_id)
-            )
+            if "entry_date" in data:
+                entry_day, entry_err = rules.check_entry_date(data.get("entry_date"))
+                if entry_err:
+                    core.log_refused_input(user_id, request.url.path, "expense date " + entry_err)
+                    return jsonify({"status": "error", "message": f"Choose a valid date: {entry_err}."}), 400
+                updated = db.execute(
+                    "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ?, entry_date = ? WHERE id = ? AND user_id = ?",
+                    (amount, category, description, rules.display_stamp(entry_day), entry_day, expense_id, user_id)
+                )
+            else:
+                updated = db.execute(
+                    "UPDATE expenses SET amount = ?, category = ?, description = ? WHERE id = ? AND user_id = ?",
+                    (amount, category, description, expense_id, user_id)
+                )
             if updated.rowcount:
                 record_user_activity(db, user_id, "expense_updated", "Updated an expense")
+            saved = db.execute("SELECT date, entry_date FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id)).fetchone()
             db.commit()
 
         return jsonify({
             "status": "success",
             "message": "Expense updated successfully",
-            "expense": {"id": expense_id, "amount": amount, "category": category, "description": description, "date": expense_date}
+            "expense": {"id": expense_id, "amount": amount, "category": category, "description": description,
+                        "date": saved["date"] if saved else None, "entry_date": saved["entry_date"] if saved else None}
         }), 200
 
 

@@ -49,6 +49,7 @@ export interface Expense {
   category: string;
   description: string;
   date: string;
+  entry_date?: string;
   synced: boolean;
 }
 

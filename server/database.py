@@ -925,6 +925,27 @@ def _client_op_status_column():
     return True
 
 
+def _business_dates():
+    """Migration 0007: sales and expenses get the business date they belong to (entry_date,
+    YYYY-MM-DD) and the real time they were entered (entered_at). Existing rows keep their
+    saved date; their business date is the day they were saved."""
+    with get_db() as db:
+        for table in ("income", "expenses"):
+            if db.is_postgres:
+                db.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS entry_date TEXT")
+                db.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS entered_at TEXT")
+            else:
+                existing = {row["name"] for row in db.execute(f"PRAGMA table_info({table})").fetchall()}
+                if "entry_date" not in existing:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN entry_date TEXT")
+                if "entered_at" not in existing:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN entered_at TEXT")
+            db.execute(f"UPDATE {table} SET entry_date = substr(date, 1, 10) WHERE entry_date IS NULL")
+            db.execute(f"CREATE INDEX IF NOT EXISTS idx_{table}_entry_date ON {table} (user_id, entry_date)")
+        db.commit()
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Schema migrations. Each step runs once per database and is recorded in
 # schema_migrations. A new change to the schema is a new function appended to
@@ -936,6 +957,7 @@ MIGRATIONS = [
     ("0003_user_test_account", _add_user_test_account),
     ("0004_request_telemetry", _request_telemetry_tables),
     ("0005_client_op_status", _client_op_status_column),
+    ("0007_business_dates", _business_dates),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time

@@ -59,8 +59,8 @@ def dashboard(user_id: str = Depends(require_user)):
                 "FROM income WHERE user_id = ?",
                 (user_id,),
             ))
-            income_sql = "SELECT COALESCE(SUM(amount_paid), 0) AS total FROM income WHERE user_id = ? AND date LIKE ?"
-            expense_sql = "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date LIKE ?"
+            income_sql = "SELECT COALESCE(SUM(amount_paid), 0) AS total FROM income WHERE user_id = ? AND entry_date LIKE ?"
+            expense_sql = "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND entry_date LIKE ?"
             today_collected = _sum(db, income_sql, (user_id, today + "%"))
             today_expenses = _sum(db, expense_sql, (user_id, today + "%"))
             month_income = _sum(db, income_sql, (user_id, month + "%"))
