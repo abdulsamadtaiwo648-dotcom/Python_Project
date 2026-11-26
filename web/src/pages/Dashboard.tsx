@@ -30,9 +30,11 @@ export function KpiRow({ summary: given }: { summary?: DashboardSummary | null }
         <p className="kpi-label">{(s?.month_net ?? 0) < 0 ? `Net loss ${phrase}` : `Net profit ${phrase}`}</p>
         <span className={`stat-value ${(s?.month_net ?? 0) < 0 ? "text-rose-700" : ""}`} id="top-profit">{money(s?.month_net)}</span>
         <p className="kpi-note">
-          {(s?.month_net ?? 0) < 0
-            ? `Spending is ${money(Math.abs(s?.month_net ?? 0))} more than income ${phrase}.`
-            : (s?.net_note ?? "")}
+          {(s?.month_net ?? 0) < 0 && (s?.month_income ?? 0) === 0
+            ? `No income recorded ${phrase}; expenses are ${money(s?.month_expenses)}.`
+            : (s?.month_net ?? 0) < 0
+              ? `Spending is ${money(Math.abs(s?.month_net ?? 0))} more than income ${phrase}.`
+              : (s?.net_note ?? "")}
         </p>
       </div>
       <div className="kpi-card">

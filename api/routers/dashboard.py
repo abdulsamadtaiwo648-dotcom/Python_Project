@@ -33,16 +33,32 @@ def shift_month(ym, delta):
     return f"{index // 12:04d}-{index % 12 + 1:02d}"
 
 
-def vs_last_month(current, previous, empty_text):
-    """'+12% vs last month' style note; empty_text when last month had nothing."""
-    if previous <= 0:
-        return empty_text
+def compare_note(current, previous, noun, selected, previous_month, current_month):
+    """The note under a figure, comparing it with the month before the one shown.
+
+    A percentage is shown only when both months have a value. Otherwise the note says what is
+    missing, so a zero this month never reads as '-100%'."""
+    prev_name = calendar.month_name[int(previous_month[5:7])]
+    is_current = selected == current_month
+    where = "this month" if is_current else month_label(selected)
+    if current == 0:
+        if previous > 0:
+            if is_current:
+                return f"Nothing recorded yet this month (₦{previous:,.0f} last month)"
+            return f"Nothing recorded in {where} (₦{previous:,.0f} in {prev_name})"
+        return f"Nothing recorded yet this month" if is_current else f"Nothing recorded in {where}"
+    if previous == 0:
+        return f"No {noun} in {prev_name} to compare"
     change = round((current - previous) / previous * 100)
-    sign = "+" if change >= 0 else "−"
-    return f"{sign}{abs(change)}% vs last month"
+    if change == 0:
+        return f"No change vs {prev_name}"
+    arrow = "▲" if change > 0 else "▼"
+    return f"{arrow} {abs(change)}% vs {prev_name}"
 
 
-def margin_note(income, net):
+def margin_note(income, expenses, net):
+    if net < 0 and income == 0:
+        return "No income recorded"
     if net < 0:
         return "Spending is above income"
     if income > 0:
@@ -156,9 +172,9 @@ def dashboard(month: str | None = Query(None), user_id: str = Depends(require_us
         "month_income": month_income,
         "month_expenses": month_expenses,
         "month_net": month_net,
-        "income_note": vs_last_month(month_income, prev_income, "No sales last month"),
-        "expense_note": vs_last_month(month_expenses, prev_expenses, "No expenses last month"),
-        "net_note": margin_note(month_income, month_net),
+        "income_note": compare_note(month_income, prev_income, "income", selected, previous, current),
+        "expense_note": compare_note(month_expenses, prev_expenses, "expenses", selected, previous, current),
+        "net_note": margin_note(month_income, month_expenses, month_net),
         "today_collected": today_collected,
         "today_expenses": today_expenses,
         "today_net": today_collected - today_expenses,
