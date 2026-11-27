@@ -16,7 +16,7 @@ import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import { useToast } from "../ui/Toast";
-import { DayGroup, ListRow } from "../ui";
+import { DayGroup, ListRow, SelectSheet } from "../ui";
 import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
@@ -106,11 +106,8 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
           <p className="sb-help">The day this expense belongs to. Up to two years back; not in the future.</p>
         </div>
         <div className="sb-field">
-          <label htmlFor="expense-category">Category</label>
-          <select id="expense-category" required value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="" disabled>Choose a category</option>
-            {pickable.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <SelectSheet label="Category" value={category} placeholder="Choose a category"
+            options={pickable.map((c) => ({ value: c, label: c }))} onChange={setCategory} />
         </div>
         <div className="sb-field">
           <label htmlFor="expense-description">What was it for?</label>
@@ -119,12 +116,12 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
         </div>
         {!hasOneAccount(accounts) && (
           <div className="sb-field">
-            <label htmlFor="expense-account">Paid from</label>
-            <select id="expense-account" required value={accountId ?? ""} onChange={(e) => setAccountId(Number(e.target.value))}>
-              {pickableAccounts(accounts, initial?.account_id).map((a) => (
-                <option key={a.id} value={a.id}>{a.name}{a.archived ? " (archived)" : ""}{a.is_default ? " · default" : ""}</option>
-              ))}
-            </select>
+            <SelectSheet label="Paid from" placeholder="Choose an account"
+              value={accountId === null ? "" : String(accountId)}
+              options={pickableAccounts(accounts, initial?.account_id).map((a) => ({
+                value: String(a.id), label: `${a.name}${a.archived ? " (archived)" : ""}${a.is_default ? " · default" : ""}`,
+              }))}
+              onChange={(v) => setAccountId(Number(v))} />
           </div>
         )}
         <div className="sb-sheet-foot">
