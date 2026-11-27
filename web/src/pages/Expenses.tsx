@@ -16,14 +16,20 @@ import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import { useToast } from "../ui/Toast";
-import { DayGroup, FAB, ListRow, SelectSheet, useOpenNew } from "../ui";
+import { DatePicker, DayGroup, FAB, FilterChips, ListRow, MoneyInput, SelectSheet, useOpenNew } from "../ui";
 import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
 function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
-  const { write, accounts } = useData();
+  const { write, accounts, expenses } = useData();
+  // Most-used categories first, so the ones you pick most are the first chips.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of expenses) counts.set(e.category, (counts.get(e.category) ?? 0) + 1);
+    return counts;
+  }, [expenses]);
   const toast = useToast();
   const defaultAccountId = accounts.find((a) => a.is_default)?.id ?? null;
   const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? defaultAccountId);
@@ -92,22 +98,17 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
         {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{error}</p>}
         {notice && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</p>}
         <div className="sb-field">
-          <label htmlFor="expense-amount">Amount</label>
-          <div className="sb-money">
-            <span aria-hidden="true">₦</span>
-            <input id="expense-amount" type="text" inputMode="decimal" placeholder="0" required className="currency-input text-3xl font-bold tabular-nums"
-              value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
-          </div>
+          <MoneyInput label="Amount" display={amount} autoFocus onDisplay={(d) => setAmount(d)} />
         </div>
         <div className="sb-field">
-          <label htmlFor="expense-day">Date</label>
-          <input id="expense-day" type="date" required value={entryDay} min={minEntryIso()} max={todayIso()}
-            onChange={(e) => setEntryDay(e.target.value)} />
+          <span className="ui-stat-label">Date</span>
+          <DatePicker label="Date" value={entryDay} today={todayIso()} onChange={setEntryDay} />
           <p className="sb-help">The day this expense belongs to. Up to two years back; not in the future.</p>
         </div>
         <div className="sb-field">
-          <SelectSheet label="Category" value={category} placeholder="Choose a category"
-            options={pickable.map((c) => ({ value: c, label: c }))} onChange={setCategory} />
+          <span className="ui-stat-label">Category</span>
+          <FilterChips label="Category" value={category as string} onChange={setCategory}
+            options={[...pickable].sort((a, b) => (categoryCounts.get(b) ?? 0) - (categoryCounts.get(a) ?? 0) || a.localeCompare(b)).map((c) => ({ value: c, label: c }))} />
         </div>
         <div className="sb-field">
           <label htmlFor="expense-description">What was it for?</label>
@@ -170,9 +171,19 @@ export default function Expenses() {
   const inScope = dateRange
     ? expenses.filter((e) => (!from || dayOf(e) >= from) && (!to || dayOf(e) <= to))
     : expenses.filter((e) => dayOf(e).startsWith(ym));
+  const [search, setSearch] = useState("");
   const visible = inScope.filter((e) =>
     (!category || e.category === category) && (!account || String(e.account_id) === account) &&
-    (!exact || Math.abs(e.amount - Number(exact)) < 0.005));
+    (!exact || Math.abs(e.amount - Number(exact)) < 0.005) &&
+    (!search.trim() || `${e.description} ${e.category}`.toLowerCase().includes(search.trim().toLowerCase())));
+  // Top category for the month: the one with the largest total in view.
+  const topCategory = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const e of inScope) totals.set(e.category || "Other", (totals.get(e.category || "Other") ?? 0) + e.amount);
+    let best: [string, number] | null = null;
+    for (const entry of totals) if (!best || entry[1] > best[1]) best = entry;
+    return best;
+  }, [inScope]);
   const filterCount = [category, account, exact, from || to].filter(Boolean).length;
   const accountName = (id: number | null | undefined) => accounts.find((a) => a.id === id)?.name;
   const showAccounts = !hasOneAccount(accounts);
@@ -200,6 +211,7 @@ export default function Expenses() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-xs font-medium text-slate-500">Spent in {monthName}</p>
+        {topCategory && <p className="mt-1 text-xs text-slate-500">Most on {topCategory[0]}: {money(topCategory[1])}</p>}
         <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{money(monthTotal)}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" id="btn-new-expense" className="sb-btn sb-btn-primary flex-1 justify-center" onClick={() => setEditing("new")}>
@@ -274,6 +286,8 @@ export default function Expenses() {
           </div>
         )}
         {inScope.length > 0 && visible.length === 0 && <p className="text-center text-sm text-slate-500">No expenses match your filter.</p>}
+        <input type="search" className="ui-input" aria-label="Search expenses" placeholder="Search what it was for or the category"
+          value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 12 }} />
         {days.map((g) => (
           <DayGroup key={g.day} label={dayHeading(g.day)} total={money(g.total)}>
             {g.items.map((e) => (
