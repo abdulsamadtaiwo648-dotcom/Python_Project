@@ -1,5 +1,6 @@
 import EmptyState from "../components/EmptyState";
 import { useEffect, useState, type FormEvent } from "react";
+import { useToast } from "../ui/Toast";
 import { ApiError, api } from "../api";
 import { moneyInFor, moneyInTotal, MONEY_IN_KINDS, TRANSFER_KIND } from "../moneyIn";
 import { canTransfer, hasOneAccount, pickableAccounts } from "../accounts";
@@ -21,7 +22,9 @@ export default function MoneyIn() {
   const dm = useDashboardMonth();
   const [editing, setEditing] = useState<MoneyInItem | "new" | null>(null);
   const [importing, setImporting] = useState(false);
-  const [error, setError] = useState("");
+  // Rows deleted but not yet confirmed. They stay hidden until Undo or until the delete is sent.
+  const [hidden, setHidden] = useState<Set<number>>(() => new Set());
+  const toast = useToast();
   useEffect(() => { document.title = "Money in | SoloBiz"; }, []);
 
   const current = dm.current ?? monthNow();
@@ -29,17 +32,26 @@ export default function MoneyIn() {
   const year = ym.slice(0, 4);
   const monthRange = { kind: "month", ym } as const;
   const yearRange = { kind: "year", year } as const;
-  const monthItems = moneyInFor(moneyIn, monthRange);
+  const monthItems = moneyInFor(moneyIn, monthRange).filter((i) => !hidden.has(i.id));
 
-  async function remove(item: MoneyInItem) {
-    if (!window.confirm("Delete this money in? This cannot be undone.")) return;
-    try {
-      await api.del(`/api/money-in/${item.id}`);
-      setError("");
-      await reload();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete. Try again.");
-    }
+  // Hide the row now; send the delete after five seconds. Undo brings the row back and sends nothing.
+  function remove(item: MoneyInItem) {
+    setHidden((h) => new Set(h).add(item.id));
+    const timer = window.setTimeout(() => {
+      api.del(`/api/money-in/${item.id}`)
+        .then(() => reload())
+        .catch(() => {
+          setHidden((h) => { const n = new Set(h); n.delete(item.id); return n; });
+          toast({ text: "Could not delete that money in. It is back in your list." });
+        });
+    }, 5000);
+    toast({
+      text: "Money in deleted.", actionLabel: "Undo",
+      onAction: () => {
+        window.clearTimeout(timer);
+        setHidden((h) => { const n = new Set(h); n.delete(item.id); return n; });
+      },
+    });
   }
 
   return (
@@ -70,7 +82,6 @@ export default function MoneyIn() {
         </div>
       </div>
 
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div className="sb-panel">
         {monthItems.length === 0 ? (
