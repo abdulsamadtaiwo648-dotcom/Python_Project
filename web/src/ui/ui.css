@@ -99,3 +99,24 @@
 .inv-view-table .inventory-table-wrap { overflow-x: auto; }
 .inv-view-table .inventory-table-wrap table { min-width: 560px; }
 .inv-view-table .inventory-table-wrap td, .inv-view-table .inventory-table-wrap th { white-space: nowrap; }
+
+/* Section 4: tap targets are at least 44px on phones and tablets (the spec's minimum). */
+@media (max-width: 1023px) {
+  body.app-shell > header button,
+  body.app-shell > header a,
+  .sb-btn, .sb-icon-btn, .sb-link, a.sb-link,
+  .sb-chip, .sales-quick-chip, .inv-view-btn,
+  [role="tab"], [role="group"] > button,
+  select, .ui-input { min-height: 44px; }
+  a.sb-link { display: inline-flex; align-items: center; }
+  [role="group"][aria-label="Period"] button,
+  [role="tablist"] button { min-height: 44px; min-width: 44px; }
+  button[aria-label="Sign out"], .sb-btn { min-width: 44px; }
+  button[aria-label="Sign out"], .sb-btn-small, .sb-chip, .sales-quick-chip { min-height: 44px !important; }
+  section a.text-xs, section button.text-xs, main a.text-xs, main button.text-xs, .ui-stat-footer a, .wb-back { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+/* Section 4: motion is short, and off for people who ask for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}

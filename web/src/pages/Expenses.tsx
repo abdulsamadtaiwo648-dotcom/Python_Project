@@ -307,9 +307,9 @@ export default function Expenses() {
       </div>
 
       <div className="flex flex-wrap justify-center gap-4 pt-2 text-xs font-semibold text-slate-500">
-        <button type="button" className="hover:text-slate-800" onClick={() => setManaging(true)}>Categories</button>
-        <button type="button" className="hover:text-slate-800" onClick={() => setImporting(true)}>Import CSV</button>
-        <Link to="/reports" className="hover:text-slate-800">Reports</Link>
+        <button type="button" className="inline-flex min-h-[44px] items-center hover:text-slate-800" onClick={() => setManaging(true)}>Categories</button>
+        <button type="button" className="inline-flex min-h-[44px] items-center hover:text-slate-800" onClick={() => setImporting(true)}>Import CSV</button>
+        <Link to="/reports" className="inline-flex min-h-[44px] items-center hover:text-slate-800">Reports</Link>
       </div>
 
       <FAB label="Add expense" onClick={() => setEditing("new")} />

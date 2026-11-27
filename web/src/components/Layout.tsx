@@ -172,7 +172,7 @@ export default function Layout() {
           {isOwner && plan && pathname !== "/plans" && plan.state === "trial" && (
             <div className="plan-banner plan-banner-trial" role="status">
               <span>Pro trial: {plan.days_left} day{plan.days_left === 1 ? "" : "s"} left. After that you move to the Free plan.</span>
-              <Link to="/plans">See plans</Link>
+              <Link to="/plans" className="inline-flex min-h-[44px] items-center px-1">See plans</Link>
             </div>
           )}
           {isOwner && plan && pathname !== "/plans" && plan.state === "grace" && (
@@ -184,7 +184,7 @@ export default function Layout() {
           {isOwner && plan && pathname === "/dashboard" && plan.state === "free" && (
             <div className="plan-banner plan-banner-free" role="note">
               <span>{plan.trial_used ? "Your trial has ended. You are on the Free plan." : "You are on the Free plan."} Reports, website, alerts and offline recording need Basic or Pro.</span>
-              <Link to="/plans">See plans</Link>
+              <Link to="/plans" className="inline-flex min-h-[44px] items-center px-1">See plans</Link>
             </div>
           )}
           {!online && (
