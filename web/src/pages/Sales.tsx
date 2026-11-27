@@ -6,10 +6,12 @@ import { NewSale, SettleDebt, type Receipt, type Status } from "../components/Sa
 import ImportSheet from "../components/ImportSheet";
 import { useData } from "../data";
 import { useSession } from "../session";
-import { dateTimeLabel, money, parseSaved } from "../format";
+import { dateTimeLabel, money, parseSaved, relativeDay } from "../format";
+import { dayOf } from "../analytics";
 import type { BusinessProfile, Sale } from "../types";
 import { escapeHtml } from "../escape";
 import { useToast } from "../ui/Toast";
+import { FilterChips, SelectSheet } from "../ui";
 import FAB from "../ui/FAB";
 import { useOpenNew } from "../ui/useOpenNew";
 
@@ -119,6 +121,20 @@ export default function Sales() {
   }, [sales, quick, product, payment, min, max]);
 
   const totalReceipts = useMemo(() => groupReceipts(sales).length, [sales]);
+  // Receipts grouped by business day, newest day first, with the day's total.
+  const dayGroups = useMemo(() => {
+    const groups = new Map<string, { day: string; label: string; total: number; items: Receipt[] }>();
+    for (const r of receipts.filter((x) => !hidden.has(x.key))) {
+      const first = r.items[0];
+      const day = dayOf(first) || first.date.slice(0, 10);
+      const group = groups.get(day) ?? { day, label: relativeDay(first.entry_date || first.date), total: 0, items: [] };
+      group.total += r.total;
+      group.items.push(r);
+      groups.set(day, group);
+    }
+    return [...groups.values()];
+  }, [receipts, hidden]);
+
   const activeFilters = [product, payment, min, max].filter((v) => v !== "").length;
   const filtered = quick !== "all" || activeFilters > 0;
 
@@ -137,7 +153,6 @@ export default function Sales() {
     toast({ text: "Sale deleted.", actionLabel: "Undo", onAction: () => { window.clearTimeout(timer); unhide(); } });
   }
 
-  const chips: [Quick, string][] = [["all", "All"], ["today", "Today"], ["week", "This week"], ["bulk", "Bulk sales"]];
 
   return (
     <section id="tab-income-content" className="tab-content page-stack" aria-labelledby="sales-title">
@@ -172,12 +187,8 @@ export default function Sales() {
             </p>
             {filtered && <button type="button" className="sb-link" onClick={() => { setQuick("all"); setProduct(""); setPayment(""); setMin(""); setMax(""); }}>Clear</button>}
           </div>
-          <div className="sales-chip-row">
-            {chips.map(([id, label]) => (
-              <button key={id} type="button" aria-pressed={quick === id} onClick={() => setQuick(id)}
-                data-sales-quick={id} className={`sales-quick-chip ${quick === id ? "is-active" : ""}`}>{label}</button>
-            ))}
-          </div>
+          <FilterChips label="Filter by payment" value={payment} onChange={setPayment}
+            options={[{ value: "", label: "All" }, { value: "paid", label: "Paid" }, { value: "partial", label: "Part-paid" }, { value: "unpaid", label: "Owing" }]} />
         </div>
 
         {filterOpen && (
@@ -187,10 +198,9 @@ export default function Sales() {
                 <select id="sales-product-filter" value={product} onChange={(e) => setProduct(e.target.value)}>
                   <option value="">All products</option>{names.map((n) => <option key={n}>{n}</option>)}
                 </select></div>
-              <div className="sb-field"><label htmlFor="sales-payment-filter">Payment</label>
-                <select id="sales-payment-filter" value={payment} onChange={(e) => setPayment(e.target.value)}>
-                  <option value="">Any</option><option value="paid">Paid in full</option><option value="partial">Part-paid</option><option value="unpaid">Unpaid</option>
-                </select></div>
+              <SelectSheet<Quick> label="When" value={quick} placeholder="All time"
+                options={[{ value: "all", label: "All time" }, { value: "today", label: "Today" }, { value: "week", label: "This week" }, { value: "bulk", label: "Bulk sales" }]}
+                onChange={setQuick} />
               <div className="sb-field"><label htmlFor="sales-min-total">Sale total from (₦)</label>
                 <input id="sales-min-total" type="number" min={0} step="0.01" inputMode="decimal" placeholder="Any" value={min} onChange={(e) => setMin(e.target.value)} /></div>
               <div className="sb-field"><label htmlFor="sales-max-total">Sale total up to (₦)</label>
@@ -206,7 +216,10 @@ export default function Sales() {
               ? <EmptyState message="No sales yet." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setCreating(true)}>New sale</button>} />
               : <p className="list-empty">No sales match these filters.</p>
           )}
-          {receipts.filter((r) => !hidden.has(r.key)).map((r) => {
+          {dayGroups.map((g) => (
+            <section key={g.day} aria-label={g.label}>
+              <div className="ui-day-head"><span>{g.label}</span><span>{money(g.total)}</span></div>
+              {g.items.map((r) => {
             const first = r.items[0];
             const meta = [saleDate(first.date), first.payment_mode || "Cash", first.receipt_id ? `#${first.receipt_id}` : ""].filter(Boolean).join(" · ");
             return (
@@ -236,7 +249,9 @@ export default function Sales() {
                 </div>
               </article>
             );
-          })}
+              })}
+            </section>
+          ))}
         </div>
         <FAB label="New sale" onClick={() => setCreating(true)} />
       </div>
