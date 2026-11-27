@@ -78,7 +78,7 @@ export default function Team() {
       </div>
 
       {team.staff.length === 0 ? (
-        <div className="sb-panel"><p className="text-sm text-slate-500">No staff yet. Add someone and choose the pages they can use.</p></div>
+        <div className="sb-panel"><p className="text-sm text-slate-500">No staff yet. Add someone and choose the pages they can use.</p><button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => { setUpgrade(false); setError(""); setAdding(true); }}>Add a person</button></div>
       ) : (
         <div className="ui-card ui-group">
           {team.staff.map((row) => (

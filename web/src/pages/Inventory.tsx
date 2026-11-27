@@ -277,7 +277,7 @@ export default function Inventory() {
       {view === "cards" ? (
         <div className="ui-product-grid" aria-label="Products">
           {loading && products.length === 0 && <Skeleton rows={3} label="Loading stock" />}
-          {!loading && products.length === 0 && <EmptyState message="No products yet. Add the things you sell to track stock." />}
+          {!loading && products.length === 0 && <EmptyState message="No products yet. Add the things you sell to track stock." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing({})}>Add a product</button>} />}
           {products.length > 0 && rows.length === 0 && <p className="text-center text-slate-500">No products match.</p>}
           {rows.map((p) => {
             const level = stockLevel(p);
@@ -300,7 +300,7 @@ export default function Inventory() {
             <thead><tr><th>Product</th><th>Status</th><th>Stock</th><th>Price</th></tr></thead>
             <tbody id="presets-grid">
               {loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><Skeleton rows={3} label="Loading stock" /></td></tr>}
-              {!loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><EmptyState message="No products yet. Add the things you sell to track stock." /></td></tr>}
+              {!loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><EmptyState message="No products yet. Add the things you sell to track stock." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing({})}>Add a product</button>} /></td></tr>}
               {products.length > 0 && rows.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-slate-500">No products match.</td></tr>}
               {rows.map((p) => {
                 const level = stockLevel(p);

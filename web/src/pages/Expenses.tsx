@@ -323,7 +323,12 @@ export default function Expenses() {
             <button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => setEditing("new")}>Add one</button>
           </div>
         )}
-        {inScope.length > 0 && visible.length === 0 && <p className="text-center text-sm text-slate-500">No expenses match your filter.</p>}
+        {inScope.length > 0 && visible.length === 0 && (
+          <div className="text-center">
+            <p className="text-sm text-slate-500">No expenses match your filter.</p>
+            <button type="button" className="sb-btn sb-btn-secondary mt-2" onClick={() => { setCategory(""); setAccount(""); setExact(""); setFrom(""); setTo(""); setSearch(""); }}>Clear filters</button>
+          </div>
+        )}
         <input type="search" className="ui-input" aria-label="Search expenses" placeholder="Search what it was for or the category"
           value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 12 }} />
         {days.map((g) => (

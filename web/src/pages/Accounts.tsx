@@ -38,7 +38,10 @@ export default function Accounts() {
       )}
 
       {active.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">No accounts yet.</p>
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
+          <p className="text-sm text-slate-500">No accounts yet. Add a bank or your cash box to start tracking balances.</p>
+          <button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => { const d = document.getElementById("accounts-manage"); if (d instanceof HTMLDetailsElement) { d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); } }}>Add an account</button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {active.map((a) => (
@@ -49,7 +52,7 @@ export default function Accounts() {
 
       {chosen && <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><AccountStatement account={chosen} /></div>}
 
-      <details className="rounded-2xl border border-slate-200 bg-white p-4">
+      <details id="accounts-manage" className="rounded-2xl border border-slate-200 bg-white p-4">
         <summary className="cursor-pointer text-sm font-semibold text-slate-800">Manage accounts</summary>
         <div className="mt-4 space-y-4">
           <ManageList accounts={accounts} onChange={() => { void reload(); setReloadStamp((n) => n + 1); }} onError={setError} />

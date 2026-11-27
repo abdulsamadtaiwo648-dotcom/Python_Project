@@ -217,7 +217,7 @@ export default function Sales() {
           {!loading && receipts.length === 0 && (
             sales.length === 0
               ? <EmptyState message="No sales yet." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setCreating(true)}>New sale</button>} />
-              : <p className="list-empty">No sales match these filters.</p>
+              : <div className="list-empty"><p>No sales match these filters.</p><button type="button" className="sb-btn sb-btn-secondary mt-2" onClick={() => { setQuick("all"); setProduct(""); setPayment(""); setMin(""); setMax(""); }}>Clear filters</button></div>
           )}
           {dayGroups.map((g) => (
             <section key={g.day} aria-label={g.label}>
