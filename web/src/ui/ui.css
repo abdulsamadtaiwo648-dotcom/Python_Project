@@ -80,3 +80,22 @@
 .sale-qty > span { display: block; font-size: var(--sb-text-label); color: var(--sb-muted); margin-bottom: 4px; }
 .sale-foot-total { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 8px; font-size: var(--sb-text-body); color: var(--sb-muted); }
 .sale-foot-total strong { font-size: 20px; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+
+/* Stock: product cards (phone 2 columns, wider on larger screens) */
+.ui-product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sb-space-3); }
+@media (min-width: 720px) { .ui-product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .ui-product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ui-product-card { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-height: 44px; padding: var(--sb-space-3); border: 1px solid var(--sb-line); border-radius: var(--sb-radius-card); background: var(--sb-surface); box-shadow: var(--sb-shadow-card); text-align: left; cursor: pointer; }
+.ui-product-photo { display: grid; place-items: center; aspect-ratio: 1; border-radius: 10px; background: #eff6ff; color: var(--sb-brand); font-size: 28px; font-weight: 700; margin-bottom: var(--sb-space-1); }
+.ui-product-name { font-size: var(--sb-text-body); font-weight: 600; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-product-price { font-size: var(--sb-text-body); font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+.ui-product-stock { font-size: var(--sb-text-label); color: var(--sb-muted); }
+.ui-product-badge { align-self: flex-start; margin-top: 4px; padding: 2px 8px; border-radius: var(--sb-radius-chip); font-size: var(--sb-text-label); font-weight: 600; }
+.ui-product-badge.is-ok { background: #eff6ff; color: var(--sb-brand); }
+.ui-product-badge.is-low { background: #fffbeb; color: var(--sb-warning); }
+.ui-product-badge.is-sold { background: #f1f5f9; color: #475569; }
+
+/* Stock table view on phones: readable columns that scroll inside their own box */
+.inv-view-table .inventory-table-wrap { overflow-x: auto; }
+.inv-view-table .inventory-table-wrap table { min-width: 560px; }
+.inv-view-table .inventory-table-wrap td, .inv-view-table .inventory-table-wrap th { white-space: nowrap; }

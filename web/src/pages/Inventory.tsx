@@ -244,6 +244,26 @@ export default function Inventory() {
         </div>
       </div>
 
+      {view === "cards" ? (
+        <div className="ui-product-grid" aria-label="Products">
+          {loading && products.length === 0 && <Skeleton rows={3} label="Loading stock" />}
+          {!loading && products.length === 0 && <EmptyState message="No products yet. Add the things you sell to track stock." />}
+          {products.length > 0 && rows.length === 0 && <p className="text-center text-slate-500">No products match.</p>}
+          {rows.map((p) => {
+            const level = stockLevel(p);
+            const badge = level === "out" ? { text: "Sold out", cls: "is-sold" } : level === "low" ? { text: "Low stock", cls: "is-low" } : level === "ok" ? { text: "In stock", cls: "is-ok" } : null;
+            return (
+              <button key={p.id} type="button" className="ui-product-card" aria-label={`Edit ${p.item_name}`} onClick={() => setEditing({ product: p })}>
+                <span className="ui-product-photo" aria-hidden="true">{p.item_name.trim().charAt(0).toUpperCase() || "?"}</span>
+                <span className="ui-product-name">{p.item_name}</span>
+                <span className="ui-product-price">{money(p.price)}</span>
+                <span className="ui-product-stock">{level === "untracked" ? "Not tracked" : `${p.stock} in stock`}</span>
+                {badge && <span className={`ui-product-badge ${badge.cls}`}>{badge.text}</span>}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
       <div className={`sb-list-card ${view === "table" ? "inv-view-table" : ""}`} id="inv-list-card">
         <div className="inventory-table-wrap">
           <table>
@@ -269,6 +289,7 @@ export default function Inventory() {
           </table>
         </div>
       </div>
+      )}
       <p className="page-note">Tap a product to edit its price, stock, bulk price or low-stock alert.</p>
 
       {editing && <ProductForm product={editing.product} focusStock={editing.restock} onClose={() => setEditing(null)} onSaved={reload} onDelete={scheduleDelete} />}
