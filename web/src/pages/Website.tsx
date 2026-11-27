@@ -18,6 +18,7 @@ interface SiteProduct { id: number; name: string; price: number; image_url: stri
 interface Site {
   exists: boolean; content: Content; slug: string; address: string; url: string; is_published: boolean;
   has_unpublished_changes: boolean; publish_problems: string[]; products: SiteProduct[]; profile_logo: string; store_url: string;
+  published_at: string;
 }
 interface SiteResponse { status: string; message?: string; errors?: Record<string, string>; website: Site; problems?: string[] }
 
@@ -29,6 +30,13 @@ const ACTION_HINTS = {
 } as const;
 
 type Tone = "" | "ok" | "error";
+// setup: no website yet (numbered steps). summary: site exists. edit: sections without numbers. success: one-time screen after the first publish.
+type Mode = "setup" | "summary" | "edit" | "success";
+
+function formatWhen(value: string) {
+  const d = new Date(value.replace(" ", "T"));
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
 
 export default function Website() {
   const { can } = useData();
@@ -41,6 +49,8 @@ export default function Website() {
   const [problems, setProblems] = useState<{ title: string; items: string[] } | null>(null);
   const [preview, setPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState<Mode>("setup");
+  const [changingLayout, setChangingLayout] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const pickResolve = useRef<((url: string | null) => void) | null>(null);
 
@@ -51,6 +61,7 @@ export default function Website() {
       .then((r) => {
         setSite(r.website);
         setContent(r.website.content);
+        setMode(r.website.exists ? "summary" : "setup");
         if (!r.website.exists) setNote({ text: "We filled in what SoloBiz already knows. Check it, then preview and publish.", tone: "" });
       })
       .catch(() => setNote({ text: "Could not load your website settings. Reload the page to try again.", tone: "error" }));
@@ -73,8 +84,16 @@ export default function Website() {
   }
   const live = site.is_published;
   const hint = ACTION_HINTS[content.action.type];
+  const showForm = mode === "setup" || mode === "edit";
+  const layoutTitleId = mode === "setup" ? "step-layout" : "design-title";
+  const stepNo = (n: number) => (mode === "setup" ? <><span>{n}</span> </> : null);
+  const thumb = content.cover_url || content.logo_url;
+  const initial = (content.display_name.trim().charAt(0) || "?").toUpperCase();
+  const shareHref = `https://wa.me/?text=${encodeURIComponent(`${content.display_name || site.address}: ${site.url}`)}`;
+  const noteColor = { color: note.tone === "error" ? "#be123c" : note.tone === "ok" ? "#047857" : undefined };
 
   const edit = (change: Partial<Content>) => { setContent({ ...content, ...change }); setDirty(true); setNote({ text: "You have changes that are not saved yet.", tone: "" }); };
+  const goTo = (next: Mode) => { setChangingLayout(false); setMode(next); };
   const field = (key: keyof Content) => ({
     value: (content[key] as string) ?? "",
     onChange: (e: { target: { value: string } }) => edit({ [key]: e.target.value } as Partial<Content>),
@@ -111,6 +130,7 @@ export default function Website() {
       const r = await api.put<SiteResponse>("/api/website", content);
       setSite(r.website);
       setContent(r.website.content);
+      setMode((m) => (m === "setup" && r.website.exists ? "edit" : m));
       setDirty(false);
       const errs = r.errors ?? {};
       setErrors(errs);
@@ -139,11 +159,13 @@ export default function Website() {
   const save = () => guarded(async () => { await saveDraft(false); });
   const openPreview = () => guarded(async () => { if (dirty || !site.exists) await saveDraft(true); setPreview(true); });
   const publish = () => guarded(async () => {
+    const firstTime = !site.published_at;
     if (!(await saveDraft(true))) return;
     try {
       const r = await api.post<SiteResponse>("/api/website/publish");
       setSite(r.website);
       setContent(r.website.content);
+      setMode(firstTime ? "success" : "summary");
       setProblems(null);
       setNote({ text: `Your website is live at ${r.website.address}`, tone: "ok" });
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -219,30 +241,66 @@ export default function Website() {
         {!can("website") && (
           <UpgradeNotice title="Publishing a website is part of Pro" text="You can build and preview your website now. Publishing it at your own address comes with the Pro plan." plan="Pro" />
         )}
-        <section className="sb-panel" aria-labelledby="status-title">
-          <h2 id="status-title" className="sr-only">Website address and status</h2>
-          <p className="sb-help">Your website address</p>
-          <p className="wb-status-address">{site.address}</p>
-          <p style={{ marginTop: 6 }}>
-            <span className={`wb-badge ${live ? (site.has_unpublished_changes ? "wb-badge-changes" : "wb-badge-live") : "wb-badge-off"}`}>
-              {live ? (site.has_unpublished_changes ? "Live · changes not published" : "Live") : "Not published"}
-            </span>{" "}
-            <span className="sb-help">{live ? (site.has_unpublished_changes ? "Visitors still see the last published version." : "") : "Nobody can see your website until you publish."}</span>
-          </p>
-          {live && (
+        {mode === "success" && (
+          <section className="sb-panel" aria-labelledby="success-title">
+            <h2 id="success-title" className="wb-success-title">Your website is live 🎉</h2>
+            <a className="wb-status-address" href={site.url} target="_blank" rel="noopener">{site.address}</a>
             <div className="wb-status-actions">
               <button type="button" className="sb-btn sb-btn-small sb-btn-secondary" onClick={copy}>{copied ? "Copied" : "Copy link"}</button>
-              <a className="sb-btn sb-btn-small sb-btn-secondary" href={site.url} target="_blank" rel="noopener">Open website</a>
-              <button type="button" className="sb-btn sb-btn-small sb-btn-danger-text" onClick={unpublish}>Take offline</button>
+              <a className="sb-btn sb-btn-small sb-btn-secondary" href={shareHref} target="_blank" rel="noopener">Share on WhatsApp</a>
+              <a className="sb-btn sb-btn-small sb-btn-secondary" href={site.url} target="_blank" rel="noopener">Open site</a>
             </div>
-          )}
-          <p className="sb-help" style={{ marginTop: 10 }}>The address is set for you and stays the same. {site.store_url ? "Your shop link keeps working as before." : ""}</p>
-        </section>
+            <button type="button" className="sb-btn sb-btn-primary wb-continue" onClick={() => goTo("summary")}>Continue</button>
+          </section>
+        )}
 
-        <section className="sb-panel" aria-labelledby="step-layout">
-          <h2 className="wb-step-title" id="step-layout"><span>1</span> Choose a layout</h2>
+        {mode === "summary" && (
+          <section className="sb-panel" aria-labelledby="summary-title">
+            <h2 id="summary-title" className="sr-only">Website summary</h2>
+            <div className="wb-summary">
+              <div className={`wb-summary-thumb ${thumb ? "has-image" : ""}`} style={thumbStyle(thumb)} aria-hidden="true">{thumb ? null : initial}</div>
+              <div className="wb-summary-text">
+                <span className={`wb-badge ${live ? "wb-badge-live" : "wb-badge-changes"}`}>{live ? "Live" : "Draft, not published"}</span>
+                <p className="wb-status-address">{site.address}</p>
+                {live && site.published_at && <p className="sb-help">Last published: {formatWhen(site.published_at)}</p>}
+                {live && site.has_unpublished_changes && <p className="sb-help">You have changes that aren't live yet.</p>}
+              </div>
+            </div>
+            {live && (
+              <div className="wb-status-actions">
+                <button type="button" className="sb-btn sb-btn-small sb-btn-secondary" onClick={copy}>{copied ? "Copied" : "Copy link"}</button>
+                <a className="sb-btn sb-btn-small sb-btn-secondary" href={shareHref} target="_blank" rel="noopener">Share on WhatsApp</a>
+                <a className="sb-btn sb-btn-small sb-btn-secondary" href={site.url} target="_blank" rel="noopener">Open site</a>
+              </div>
+            )}
+            <div className="wb-status-actions">
+              <button type="button" className="sb-btn sb-btn-small sb-btn-secondary" onClick={() => goTo("edit")}>Edit website</button>
+              {(!live || site.has_unpublished_changes) && (
+                <button type="button" className="sb-btn sb-btn-small sb-btn-primary" disabled={busy} onClick={publish}>{live ? "Publish changes" : "Publish"}</button>
+              )}
+              {live && <button type="button" className="sb-btn sb-btn-small sb-btn-danger-text" onClick={unpublish}>Unpublish</button>}
+            </div>
+            <p className="sb-help" aria-live="polite" style={{ ...noteColor, marginTop: 10 }}>{note.text}</p>
+          </section>
+        )}
+
+        {showForm && (
+          <>
+        {mode === "edit" && (
+          <div className="wb-edit-top"><button type="button" className="sb-link" style={{ padding: 0 }} onClick={() => goTo("summary")}>← Back to summary</button></div>
+        )}
+        <section className="sb-panel" aria-labelledby={layoutTitleId}>
+          <h2 className="wb-step-title" id={layoutTitleId}>{stepNo(1)}{mode === "setup" ? "Choose a layout" : "Design"}</h2>
+          {mode !== "setup" && !changingLayout && (
+            <>
+              <p className="wb-step-sub">Current layout: <strong>{isProduct ? "Product Store" : "Service Business"}</strong></p>
+              <button type="button" className="sb-link" style={{ padding: 0 }} onClick={() => setChangingLayout(true)}>Change layout</button>
+            </>
+          )}
+          {(mode === "setup" || changingLayout) && (
+            <>
           <p className="wb-step-sub">Pick the one that fits your business. You can switch later.</p>
-          <div className="wb-layouts" role="radiogroup" aria-labelledby="step-layout">
+          <div className="wb-layouts" role="radiogroup" aria-labelledby={layoutTitleId}>
             <label className="wb-layout">
               <input type="radio" name="layout" value="product" checked={isProduct} onChange={() => edit({ layout: "product" })} />
               <div className="wb-wire" aria-hidden="true"><i className="hero" /><div className="cards"><i /><i /><i /></div><div className="cards"><i /><i /><i /></div></div>
@@ -256,10 +314,12 @@ export default function Website() {
               <p>For salons, tailors, repairs and more. Lists your services with a booking button.</p>
             </label>
           </div>
+            </>
+          )}
         </section>
 
         <section className="sb-panel" aria-labelledby="step-details">
-          <h2 className="wb-step-title" id="step-details"><span>2</span> Business details</h2>
+          <h2 className="wb-step-title" id="step-details">{stepNo(2)}Business details</h2>
           <p className="wb-step-sub">Everything you fill in here is shown on your public website. Leave a box empty to keep it off the site.</p>
           <div className="wb-fields">
             <div className="sb-field">
@@ -342,7 +402,7 @@ export default function Website() {
         </section>
 
         <section className="sb-panel" aria-labelledby="step-content">
-          <h2 className="wb-step-title" id="step-content"><span>3</span> <span style={{ fontSize: "inherit", color: "inherit", fontWeight: "inherit" }}>{isProduct ? "Products" : "Services"}</span></h2>
+          <h2 className="wb-step-title" id="step-content">{stepNo(3)}<span style={{ fontSize: "inherit", color: "inherit", fontWeight: "inherit" }}>{isProduct ? "Products" : "Services"}</span></h2>
           {isProduct ? (
             <div>
               <p className="wb-step-sub">These come from your Inventory. Changes to products show on a live site straight away. <Link className="sb-link" to="/inventory" style={{ padding: 0 }}>Manage products</Link></p>
@@ -409,7 +469,7 @@ export default function Website() {
         </section>
 
         <section className="sb-panel" aria-labelledby="step-action">
-          <h2 className="wb-step-title" id="step-action"><span>4</span> Main button</h2>
+          <h2 className="wb-step-title" id="step-action">{stepNo(4)}Main button</h2>
           <p className="wb-step-sub">The one thing you want visitors to do. It stays in reach on phones.</p>
           <div className="wb-fields">
             <div className="sb-field">
@@ -434,20 +494,25 @@ export default function Website() {
           </div>
         </section>
 
+          </>
+        )}
+
         {problems && problems.items.length > 0 && (
           <div className="wb-problems" role="alert"><strong>{problems.title}</strong><ul>{problems.items.map((p) => <li key={p}>{p}</li>)}</ul></div>
         )}
         {problems && problems.items.length === 0 && <div className="wb-problems" role="alert"><strong>{problems.title}</strong></div>}
       </main>
 
+      {showForm && (
       <div className="wb-bar">
-        <p className="wb-bar-note" aria-live="polite" style={{ color: note.tone === "error" ? "#be123c" : note.tone === "ok" ? "#047857" : undefined }}>{note.text}</p>
+        <p className="wb-bar-note" aria-live="polite" style={noteColor}>{note.text}</p>
         <div className="wb-bar-row">
           <button type="button" className="sb-btn sb-btn-secondary" disabled={busy} onClick={save}>{busy ? "Working…" : "Save draft"}</button>
           <button type="button" className="sb-btn sb-btn-secondary" disabled={busy} onClick={openPreview}>Preview</button>
           <button type="button" className="sb-btn sb-btn-primary" disabled={busy} onClick={publish}>{live ? "Publish changes" : "Publish"}</button>
         </div>
       </div>
+      )}
 
       {preview && (
         <div id="preview-modal" className="sb-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title" onMouseDown={(e) => e.target === e.currentTarget && setPreview(false)}>
