@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Range } from "../analytics";
+import type { Expense, MoneyInItem, Sale } from "../types";
 import Analysis from "../components/Analysis";
 import InfoTip from "../components/InfoTip";
 import MonthPicker from "../components/MonthPicker";
@@ -7,7 +8,8 @@ import YearPicker from "../components/YearPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { compactNaira } from "../format";
-import { expenseSlices, rangeLabel, type Slice } from "../analytics";
+import { dayOf, expenseSlices, inRange, rangeLabel, totalsInRange, type Slice } from "../analytics";
+import { ListRow } from "../ui";
 import Donut, { COLOURS } from "../components/Donut";
 import { LockedPage } from "../components/Upgrade";
 import { money } from "../format";
@@ -15,7 +17,7 @@ import { monthNow, ymLabel } from "../month";
 
 /** Reports: the business analysis for a month or a year, with the same month picker as the dashboard. */
 export default function Reports() {
-  const { can, expenses, accounts } = useData();
+  const { can, expenses, accounts, sales, moneyIn } = useData();
   const dm = useDashboardMonth();
   const [kind, setKind] = useState<"month" | "year">("month");
   const [pickedYear, setPickedYear] = useState<string | null>(null);
@@ -86,6 +88,8 @@ export default function Reports() {
 
       <Analysis page="reports" range={range} />
 
+      <ReportsExtras sales={sales} expenses={expenses} moneyIn={moneyIn} range={range} />
+
       <section className="sb-panel mt-4 grid gap-6 md:grid-cols-2" aria-labelledby="reports-spend-title">
         <h3 id="reports-spend-title" className="text-sm font-semibold text-slate-900 md:col-span-2">Where the money went · {rangeLabel(range)}</h3>
         <Breakdown title="By category" slices={expenseSlices(expenses, range, "category", accountName)} label="Expenses by category" />
@@ -126,3 +130,66 @@ function Breakdown({ title, slices, label }: { title: string; slices: Slice[]; l
 
 /** ₦36.6M style, so the total fits in the middle of the ring. */
 const short = compactNaira;
+
+/** Profit and loss for the period, top products, and a CSV export of everything in the period. */
+function ReportsExtras(props: { sales: Sale[]; expenses: Expense[]; moneyIn: MoneyInItem[]; range: Range }) {
+  const { sales, expenses, moneyIn, range } = props;
+  const totals = totalsInRange(sales, expenses, range, moneyIn);
+  const profit = totals.value - totals.expenses;
+  const topProducts = useMemo(() => {
+    const byName = new Map<string, { name: string; amount: number; count: number }>();
+    for (const sale of sales) {
+      if (!inRange(dayOf(sale), range)) continue;
+      const name = sale.description?.trim() || "Sale";
+      const entry = byName.get(name) ?? { name, amount: 0, count: 0 };
+      entry.amount += sale.total_value;
+      entry.count += 1;
+      byName.set(name, entry);
+    }
+    return [...byName.values()].sort((a, b) => b.amount - a.amount).slice(0, 5);
+  }, [sales, range]);
+
+  function exportCsv() {
+    const rows: string[][] = [["Date", "Type", "Description", "Category or customer", "Amount"]];
+    for (const s of sales) if (inRange(dayOf(s), range)) rows.push([dayOf(s), "Sale", s.description ?? "", s.customer_name ?? "", String(s.total_value)]);
+    for (const e of expenses) if (inRange(dayOf(e), range)) rows.push([dayOf(e), "Expense", e.description ?? "", e.category ?? "", String(-e.amount)]);
+    for (const m of moneyIn) if (inRange(dayOf(m), range)) rows.push([dayOf(m), "Money in", m.description ?? "", m.kind ?? "", String(m.amount)]);
+    const csv = rows.map((r) => r.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `solobiz-${rangeLabel(range).replace(/\s+/g, "-").toLowerCase()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className="mt-4 grid gap-4 md:grid-cols-2" aria-label="Profit and top products">
+      <div className="sb-panel">
+        <h3 className="text-sm font-semibold text-slate-900">Profit and loss · {rangeLabel(range)}</h3>
+        <dl className="mt-3 divide-y divide-slate-100">
+          <div className="flex items-center justify-between py-2"><dt className="text-sm text-slate-600">Sales</dt><dd className="text-sm font-semibold tabular-nums">{money(totals.value)}</dd></div>
+          <div className="flex items-center justify-between py-2"><dt className="text-sm text-slate-600">Expenses</dt><dd className="text-sm font-semibold tabular-nums">−{money(totals.expenses)}</dd></div>
+          <div className="flex items-center justify-between py-2">
+            <dt className="text-sm font-semibold text-slate-900">Profit</dt>
+            <dd className={`text-base font-bold tabular-nums ${profit < 0 ? "text-amber-700" : "text-slate-900"}`}>{money(profit)}</dd>
+          </div>
+        </dl>
+        <p className="mt-2 text-xs text-slate-500">Sales minus expenses. Money in is cash, not a sale, so it is not in profit.</p>
+        <button type="button" className="sb-btn sb-btn-secondary mt-3" onClick={exportCsv}>Export CSV</button>
+      </div>
+      <div className="sb-panel">
+        <h3 className="text-sm font-semibold text-slate-900">Top products · {rangeLabel(range)}</h3>
+        {topProducts.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">No sales in this period.</p>
+        ) : (
+          <div className="mt-2">
+            {topProducts.map((p) => (
+              <ListRow key={p.name} title={p.name} subtitle={`${p.count} ${p.count === 1 ? "sale" : "sales"}`} amount={money(p.amount)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
