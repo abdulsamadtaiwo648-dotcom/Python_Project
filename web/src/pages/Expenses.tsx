@@ -21,6 +21,26 @@ import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
+const LAST_EXPENSE_KEY = "solobiz:last-expense";
+
+/** Last category and account used on this device. Storage can be blocked (private mode), so every call is guarded. */
+function readLastExpenseChoice(): { category: string; accountId: number | null } | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_EXPENSE_KEY);
+    return raw ? (JSON.parse(raw) as { category: string; accountId: number | null }) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastExpenseChoice(choice: { category: string; accountId: number | null }) {
+  try {
+    window.localStorage.setItem(LAST_EXPENSE_KEY, JSON.stringify(choice));
+  } catch {
+    // Not remembered on this device; the form still works.
+  }
+}
+
 function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
   const { write, accounts, expenses } = useData();
@@ -32,12 +52,15 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   }, [expenses]);
   const toast = useToast();
   const defaultAccountId = accounts.find((a) => a.is_default)?.id ?? null;
-  const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? defaultAccountId);
+  // The last category and account used are remembered on this device, so the next expense starts with them.
+  const remembered = initial ? null : readLastExpenseChoice();
+  const rememberedAccount = remembered?.accountId != null && accounts.some((a) => a.id === remembered.accountId && !a.archived) ? remembered.accountId : null;
+  const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? rememberedAccount ?? defaultAccountId);
   const cats = useExpenseCategories();
   // A category is pickable if it is active, or if this expense already uses it (even when archived).
   const pickable = cats.all.filter((c) => !c.archived || c.name === initial?.category).map((c) => c.name);
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
-  const [category, setCategory] = useState(initial?.category ?? "");
+  const [category, setCategory] = useState(initial?.category ?? remembered?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [entryDay, setEntryDay] = useState(initial?.entry_date ?? todayIso());
   const [error, setError] = useState("");
@@ -57,6 +80,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     setError("");
     try {
       const body = { amount: n, category, description: description.trim(), entry_date: entryDay, account_id: accountId };
+      if (!initial) writeLastExpenseChoice({ category, accountId });
       if (initial) {
         await write({ kind: "expense_edit", method: "PUT", url: `/api/expenses/${initial.server_id}`, body,
           meta: { expenseId: initial.server_id, patch: { ...body, date: dayStamp(entryDay) } } });
