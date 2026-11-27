@@ -6,6 +6,7 @@ import { useData } from "../data";
 import { money } from "../format";
 import { shrinkImage } from "../shrinkImage";
 import "../styles/website-builder.css";
+import InfoTip from "../components/InfoTip";
 
 interface Service { name: string; description: string; price: string | number | null; image_url: string }
 interface Action { type: "whatsapp" | "call" | "link"; label: string; value: string }
@@ -320,7 +321,7 @@ export default function Website() {
 
         <section className="sb-panel" aria-labelledby="step-details">
           <h2 className="wb-step-title" id="step-details">{stepNo(2)}Business details</h2>
-          <p className="wb-step-sub">Everything you fill in here is shown on your public website. Leave a box empty to keep it off the site.</p>
+          <p className="wb-step-sub"><span>Shown on your public website</span> <InfoTip label="Shown on your public website">Everything you fill in here is shown on your public website. Leave a box empty to keep it off the site.</InfoTip></p>
           <div className="wb-fields">
             <div className="sb-field">
               <label htmlFor="f-display_name">Business name <span className="wb-public">Public</span></label>
@@ -351,7 +352,7 @@ export default function Website() {
                   {content.cover_url && <button type="button" className="sb-btn sb-btn-small sb-btn-danger-text" onClick={() => edit({ cover_url: "" })}>Remove</button>}
                 </div>
               </div>
-              <p className="sb-help">A wide photo behind your name. Without one, the site uses a clean text header.</p>
+              <p className="sb-help"><span>About the cover photo</span> <InfoTip label="About the cover photo">A wide photo behind your name. Without one, the site uses a clean text header.</InfoTip></p>
             </div>
             <div className="sb-field">
               <label htmlFor="f-brand_color">Brand colour</label>
@@ -361,7 +362,7 @@ export default function Website() {
                   {SWATCHES.map((c) => <button key={c} type="button" className="wb-swatch" style={{ background: c }} aria-label={`Use colour ${c}`} onClick={() => edit({ brand_color: c })} />)}
                 </span>
               </div>
-              <p className="sb-help">Used for buttons and accents. Text colour adjusts so it stays readable.</p>
+              <p className="sb-help"><span>About brand colour</span> <InfoTip label="About brand colour">Used for buttons and accents. Text colour adjusts so it stays readable.</InfoTip></p>
             </div>
             <div className="sb-field">
               <label htmlFor="f-about">About your business <span className="sb-optional">(optional)</span></label>
@@ -419,7 +420,7 @@ export default function Website() {
             </div>
           ) : (
             <div>
-              <p className="wb-step-sub">List what you offer. Leave the price empty if you quote each customer.</p>
+              <p className="wb-step-sub"><span>About prices</span> <InfoTip label="About prices">List what you offer. Leave the price empty if you quote each customer.</InfoTip></p>
               <div className="wb-fields">
                 {content.services.length === 0 && <p className="sb-help">No services yet. Add your first one below.</p>}
                 {content.services.map((s, i) => (

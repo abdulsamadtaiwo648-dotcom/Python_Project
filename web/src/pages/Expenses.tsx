@@ -18,6 +18,7 @@ import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import { useToast } from "../ui/Toast";
 import { DatePicker, DayGroup, FAB, FilterChips, ListRow, MoneyInput, SelectSheet, SwipeRow, SyncPending, useOpenNew } from "../ui";
 import type { Expense } from "../types";
+import InfoTip from "../components/InfoTip";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
@@ -127,7 +128,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
         <div className="sb-field">
           <span className="ui-stat-label">Date</span>
           <DatePicker label="Date" value={entryDay} today={todayIso()} onChange={setEntryDay} />
-          <p className="sb-help">The day this expense belongs to. Up to two years back; not in the future.</p>
+          <p className="sb-help"><span>About the date</span> <InfoTip label="About the date">The day this expense belongs to. Up to two years back; not in the future.</InfoTip></p>
         </div>
         <div className="sb-field">
           <span className="ui-stat-label">Category</span>

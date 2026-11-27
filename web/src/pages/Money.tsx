@@ -10,6 +10,7 @@ import { useData } from "../data";
 import { useSession } from "../session";
 import Accounts from "./Accounts";
 import MoneyIn, { MoneyInForm } from "./MoneyIn";
+import InfoTip from "../components/InfoTip";
 
 type Tab = "accounts" | "moneyin" | "transfers";
 
@@ -72,7 +73,7 @@ function Transfers(props: { onAddAccount: () => void }) {
   if (!canTransfer(accounts)) {
     return (
       <div className="sb-panel flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">Move money between accounts once you have two. Add a Bank or Petty Cash account first.</p>
+        <p className="text-sm text-slate-600"><span>Why two accounts?</span> <InfoTip label="Why two accounts?">Move money between accounts once you have two. Add a Bank or Petty Cash account first.</InfoTip></p>
         <button type="button" className="sb-btn sb-btn-secondary" onClick={props.onAddAccount}>Add an account</button>
       </div>
     );
@@ -80,7 +81,7 @@ function Transfers(props: { onAddAccount: () => void }) {
   return (
     <div className="sb-panel" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">A transfer moves money from one account to another. It appears in both accounts’ statements.</p>
+        <p className="text-sm text-slate-600"><span>About transfers</span> <InfoTip label="About transfers">A transfer moves money from one account to another. It appears in both accounts’ statements.</InfoTip></p>
         <button type="button" className="sb-btn sb-btn-primary" onClick={() => setOpen(true)}>New transfer</button>
       </div>
       {transfers === null ? (

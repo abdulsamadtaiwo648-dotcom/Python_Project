@@ -25,6 +25,7 @@ import { monthNow, ymLabel } from "../month";
 import { useSession } from "../session";
 import { minEntryIso, todayIso } from "../offline";
 import type { MoneyInItem } from "../types";
+import InfoTip from "../components/InfoTip";
 
 /** Money that is not a sale. It counts in cash flow and the cash balance, never in profit. */
 export default function MoneyIn() {
@@ -71,7 +72,7 @@ export default function MoneyIn() {
       <div className="page-head">
         <div className="min-w-0">
           <h2 className="page-title" id="money-in-title">Money in</h2>
-          <p className="page-sub">Owner capital, loans and refunds. This is not a sale, so it does not change sales totals or profit.</p>
+          <p className="page-sub"><span>What counts as money in?</span> <InfoTip label="What counts as money in?">Owner capital, loans and refunds. This is not a sale, so it does not change sales totals or profit.</InfoTip></p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>

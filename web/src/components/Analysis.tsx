@@ -4,6 +4,7 @@ import { chartBuckets, groupSales, lastMonths, rangeLabel, totalsInRange, type P
 import { useData } from "../data";
 import { money, parseSaved } from "../format";
 import TrendChart from "./TrendChart";
+import InfoTip from "./InfoTip";
 
 const PERIODS: [Period, string][] = [["daily", "Day"], ["weekly", "Week"], ["monthly", "Month"], ["yearly", "Year"]];
 const LABELS: Record<Period, string> = { daily: "Per Day", weekly: "Per Week", monthly: "Per Month", yearly: "Per Year" };
@@ -62,7 +63,7 @@ export default function Analysis({ page, range }: { page: "dashboard" | "reports
         {card("Balance due", money(totals.balance), "text-amber-700")}
         {card(totals.net < 0 ? "Net cash loss" : "Net cash flow", money(totals.net), totals.net < 0 ? "text-rose-700" : "text-emerald-700")}
       </div>
-      <p className="-mt-2 text-[10px] text-slate-400">Net cash flow = sales collected + money in − expenses. Money in is not a sale, so it is not in profit.</p>
+      <p className="-mt-2 text-[10px] text-slate-400"><span>What is net cash flow?</span> <InfoTip label="What is net cash flow?">Net cash flow = sales collected + money in − expenses. Money in is not a sale, so it is not in profit.</InfoTip></p>
       <p className="-mt-2 text-[10px] text-slate-400">Totals for {label}.</p>
       {totals.balance > 0 && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800" aria-live="polite">

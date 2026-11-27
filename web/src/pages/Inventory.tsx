@@ -10,6 +10,7 @@ import { useData } from "../data";
 import { money } from "../format";
 import { useToast } from "../ui/Toast";
 import type { Product } from "../types";
+import InfoTip from "../components/InfoTip";
 
 const threshold = (p: Product) => (Number.isInteger(p.low_stock_threshold) && p.low_stock_threshold >= 0 ? p.low_stock_threshold : 3);
 export function stockLevel(p: Product): "untracked" | "out" | "low" | "ok" {
@@ -119,7 +120,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
           <label htmlFor="inventory-edit-low-stock">Low-stock alert at</label>
           <input id="inventory-edit-low-stock" type="number" inputMode="numeric" min="0" step="1" required value={low}
             onChange={(e) => setLow(e.target.value)} aria-describedby="low-help" />
-          <p id="low-help" className="sb-help">You'll be alerted when stock falls to this number or below. Use 0 to be alerted only when it runs out.</p>
+          <p id="low-help" className="sb-help"><span>About alert level</span> <InfoTip label="About alert level">You'll be alerted when stock falls to this number or below. Use 0 to be alerted only when it runs out.</InfoTip></p>
         </div>
         <fieldset className="sb-fieldset">
           <legend>Bulk price <span>(optional)</span></legend>
@@ -133,7 +134,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
               <input id="inventory-edit-bulk-price" type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="e.g. 10000" value={bulkPrice} onChange={(e) => setBulkPrice(e.target.value)} />
             </div>
           </div>
-          <p className="sb-help">Only used when you tick "Sell as bulk" on a sale. Leave both empty to sell by the piece only.</p>
+          <p className="sb-help"><span>About bulk price</span> <InfoTip label="About bulk price">Only used when you tick "Sell as bulk" on a sale. Leave both empty to sell by the piece only.</InfoTip></p>
         </fieldset>
         {error && <p className="sb-error" role="alert">{error}{upgrade && <> <Link to="/plans" className="font-semibold underline">See plans</Link></>}</p>}
         {props.product && onSite !== null && (
