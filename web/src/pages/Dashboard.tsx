@@ -11,7 +11,7 @@ import { money, relativeDay } from "../format";
 import { dayOf } from "../analytics";
 import { monthNow, ymLabel } from "../month";
 import { todayIso } from "../offline";
-import type { AccountView, DashboardSummary, Expense, Sale } from "../types";
+import type { AccountView, DashboardSummary, Expense, MoneyInItem, Sale } from "../types";
 
 /** Home: this month in four numbers, six months at a glance, and the latest activity. */
 export default function Dashboard() {
@@ -29,9 +29,12 @@ export default function Dashboard() {
   useEffect(() => { document.title = "Home | SoloBiz"; }, []);
 
   const profit = s?.month_net ?? 0;
-  const buckets = lastMonths(sales, expenses, ym, 6, moneyIn);
+  // The six months end at the latest month that has any record, so the chart has no empty months at the end.
+  const buckets = lastMonths(sales, expenses, latestMonthWithData(sales, expenses, moneyIn) ?? ym, 6, moneyIn);
   const peak = Math.max(1, ...buckets.flatMap((b) => [b.sales + b.moneyIn, b.expenses]));
-  const recent = recentActivity(sales, expenses, 5);
+  // Recent activity follows the month picker.
+  const inMonth = (r: { entry_date?: string; date: string }) => dayOf(r).startsWith(ym);
+  const recent = recentActivity(sales.filter(inMonth), expenses.filter(inMonth), 5);
 
   return (
     <div className="space-y-5" id="home">
@@ -158,16 +161,27 @@ function barHeight(value: number, peak: number): string {
 
 interface Activity { key: string; kind: "sale" | "expense"; title: string; sub: string; amount: number; day: string }
 
+/** The latest month (YYYY-MM) that has a sale, expense or money in, or null when there are none. */
+function latestMonthWithData(sales: Sale[], expenses: Expense[], moneyIn: MoneyInItem[]): string | null {
+  let latest = "";
+  for (const r of [...sales, ...expenses, ...moneyIn]) {
+    const month = dayOf(r).slice(0, 7);
+    if (month > latest) latest = month;
+  }
+  return latest || null;
+}
+
 /** The latest sales and expenses together, newest first, by business day. */
 function recentActivity(sales: Sale[], expenses: Expense[], count: number): Activity[] {
   const items: Activity[] = [
+    // Description is the title; the small line is category (or customer for sales) and the day.
     ...sales.map((s) => ({
-      key: `s${s.id}`, kind: "sale" as const, title: s.customer_name || "Walk-in customer",
-      sub: `${s.description} · ${relativeDay(s.entry_date || s.date)}`, amount: s.amount_paid, day: dayOf(s),
+      key: `s${s.id}`, kind: "sale" as const, title: s.description || "Sale",
+      sub: `${s.customer_name || "Walk-in customer"} · ${relativeDay(s.entry_date || s.date)}`, amount: s.amount_paid, day: dayOf(s),
     })),
     ...expenses.map((e) => ({
-      key: `e${e.server_id}`, kind: "expense" as const, title: e.category || "Expense",
-      sub: `${e.description} · ${relativeDay(e.entry_date || e.date)}`, amount: e.amount, day: dayOf(e),
+      key: `e${e.server_id}`, kind: "expense" as const, title: e.description || "Expense",
+      sub: `${e.category || "Other"} · ${relativeDay(e.entry_date || e.date)}`, amount: e.amount, day: dayOf(e),
     })),
   ];
   return items.sort((a, b) => b.day.localeCompare(a.day) || b.key.localeCompare(a.key)).slice(0, count);
