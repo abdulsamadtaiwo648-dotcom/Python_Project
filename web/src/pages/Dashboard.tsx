@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { lastMonths } from "../analytics";
 import InfoTip from "../components/InfoTip";
@@ -10,6 +10,8 @@ import { money, relativeDay } from "../format";
 import { dayOf } from "../analytics";
 import { monthNow, ymLabel } from "../month";
 import { useCashAtHand } from "../cashAtHand";
+import { budgetAlerts } from "../budgetAlerts";
+import { useSession } from "../session";
 import type { DashboardSummary, Expense, MoneyInItem, Sale } from "../types";
 
 /** Home: this month in four numbers, six months at a glance, and the latest activity. */
@@ -21,6 +23,16 @@ export default function Dashboard() {
   const dm = useDashboardMonth();
   const s: DashboardSummary | null = dm.summary ?? fromContext;
   const ym = dm.selected ?? monthNow();
+  const { user } = useSession();
+  // Budgets are saved in this browser (see Budget). Read them here to warn when a category is near its limit.
+  const storedLimits = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`solobiz:budgets:${user?.id ?? "anon"}`) || "{}") as Record<string, number>;
+    } catch {
+      return {};
+    }
+  }, [user?.id]);
+  const budgetWarnings = budgetAlerts(storedLimits, expenses, ym);
   const monthName = ymLabel(ym);
   const cashAtHand = useCashAtHand(accounts, s);
   const name = s?.username ?? "";
@@ -60,6 +72,12 @@ export default function Dashboard() {
         </Link>
       )}
 
+      {budgetWarnings.map((b) => (
+        <Link key={`budget-${b.category}`} to="/budget" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>{b.category} is at {Math.round(b.percent)}% of its budget</span>
+          <span className="text-blue-700">See budget →</span>
+        </Link>
+      ))}
       {typeof cashAtHand === "number" && cashAtHand < 0 && (
         <Link to="/money?tab=accounts" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
           <span>Overspent: cash at hand is {money(cashAtHand)}</span>
