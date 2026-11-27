@@ -103,7 +103,7 @@ export default function Layout() {
           {/* Phones: brand on the left. Desktop: the sidebar carries the brand, so this is a welcome. */}
           <div className="flex items-center gap-2.5 lg:hidden">
             <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-blue-700 flex items-center justify-center shadow-md">
-              <img src={profile?.logo_url || "/static/logo.svg"} alt="" className="w-full h-full object-cover rounded-xl" />
+              <img src={profile?.logo_url || "/static/logo.svg"} alt="" className="w-full h-full object-cover rounded-xl" loading="lazy" decoding="async" />
             </div>
             <h1 className="font-bold text-base tracking-tight text-slate-900">{businessName}</h1>
           </div>
@@ -114,7 +114,7 @@ export default function Layout() {
 
           <Link to="/profile" className="topbar-profile hidden lg:flex" aria-label="Open your profile">
             <span className="topbar-avatar" aria-hidden="true">
-              {profile?.logo_url ? <img src={profile.logo_url} alt="" /> : (businessName || "S").slice(0, 1).toUpperCase()}
+              {profile?.logo_url ? <img src={profile.logo_url} alt="" loading="lazy" decoding="async" width={32} height={32} /> : (businessName || "S").slice(0, 1).toUpperCase()}
             </span>
             <span className="min-w-0 text-left">
               <span className="block truncate text-sm font-semibold text-slate-900">{name}</span>
@@ -135,7 +135,7 @@ export default function Layout() {
       <main className="desktop-dashboard-shell w-full">
         <aside id="dashboard-navigation" className="desktop-sidebar" aria-label="Main navigation">
           <div className="side-brand">
-            <img src="/static/logo.svg" alt="" width={32} height={32} />
+            <img src="/static/logo.svg" alt="" width={32} height={32} decoding="async" />
             <div className="min-w-0"><p className="side-brand-name">SoloBiz</p></div>
           </div>
           <p className="nav-group">Main</p>

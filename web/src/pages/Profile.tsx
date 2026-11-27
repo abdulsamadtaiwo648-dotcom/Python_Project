@@ -172,7 +172,7 @@ export default function Profile() {
               <div className="absolute left-0 right-0 top-0 h-2" style={{ backgroundColor: brand }} />
               <div className="flex items-center gap-3.5 pt-1">
                 <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-blue-100 text-xl font-black text-white shadow-md" style={{ backgroundColor: brand }}>
-                  {p?.logo_url ? <img src={p.logo_url} alt="Logo" className="h-full w-full object-cover" /> : <span>{(p?.company_name || "B")[0].toUpperCase()}</span>}
+                  {p?.logo_url ? <img src={p.logo_url} alt="Logo" className="h-full w-full object-cover" loading="lazy" decoding="async" width={64} height={64} /> : <span>{(p?.company_name || "B")[0].toUpperCase()}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="flex items-center gap-1.5 truncate text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">{p?.company_name || "Your Business"}</h2>
