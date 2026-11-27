@@ -4,6 +4,8 @@ import Sheet from "../components/Sheet";
 import { UpgradeNotice, isUpgradeError } from "../components/Upgrade";
 import { useData } from "../data";
 import { parseSaved } from "../format";
+import { dateLabel } from "../format";
+import { ConfirmSheet, ListRow } from "../ui";
 
 interface StaffRow { id: string; name: string; email: string; role: string; role_label: string; pages: string[]; created_at: string }
 interface Preset { key: string; label: string; pages: string[]; blurb: string }
@@ -11,7 +13,7 @@ interface Page { key: string; label: string }
 interface TeamResponse { status: string; staff: StaffRow[]; seats: { used: number; limit: number }; roles: Preset[]; pages: Page[] }
 
 const PASSWORD_OK = (p: string) => p.length >= 8 && /[a-zA-Z]/.test(p) && /\d/.test(p);
-const since = (iso: string) => parseSaved(iso)?.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) ?? "";
+const since = (iso: string) => dateLabel(parseSaved(iso));
 
 /** The owner's list of staff, with each person's role, pages and seat count. */
 export default function Team() {
@@ -34,13 +36,19 @@ export default function Team() {
 
   const roleSummary = useMemo(() => team?.roles.filter((r) => r.key !== "custom") ?? [], [team]);
 
+  // Removing someone is destructive, so it asks first with a confirm sheet.
+  const [pendingRemove, setPendingRemove] = useState<StaffRow | null>(null);
+  const [removing, setRemoving] = useState(false);
   async function remove(row: StaffRow) {
-    if (!window.confirm(`Remove ${row.name || row.email}? They will no longer be able to sign in.`)) return;
+    setRemoving(true);
     try {
       await api.del(`/api/staff/${row.id}`);
+      setPendingRemove(null);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not remove them.");
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -70,27 +78,23 @@ export default function Team() {
       </div>
 
       {team.staff.length === 0 ? (
-        <div className="sb-panel"><p className="text-sm text-slate-500">No staff yet. Add someone and choose the pages they can use.</p></div>
+        <div className="sb-panel"><p className="text-sm text-slate-500">No staff yet. Add someone and choose the pages they can use.</p><button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => { setUpgrade(false); setError(""); setAdding(true); }}>Add a person</button></div>
       ) : (
-        <div className="sb-list-card">
+        <div className="ui-card ui-group">
           {team.staff.map((row) => (
-            <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 last:border-0">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{row.name || row.email}</p>
-                <p className="truncate text-xs text-slate-500">{row.email} · {row.role_label} · added {since(row.created_at)}</p>
-                <p className="mt-1 flex flex-wrap gap-1">
-                  {row.pages.map((p) => (
-                    <span key={p} className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-800">{team.pages.find((x) => x.key === p)?.label ?? p}</span>
-                  ))}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" className="sb-btn sb-btn-small sb-btn-secondary" onClick={() => { setError(""); setEditing(row); }}>Edit</button>
-                <button type="button" className="sb-btn sb-btn-small sb-btn-danger-text" onClick={() => remove(row)}>Remove</button>
-              </div>
-            </div>
+            <ListRow key={row.id}
+              title={row.name || row.email}
+              subtitle={`${row.email} · ${row.role_label} · added ${since(row.created_at)}`}
+              chips={<>{row.pages.map((p) => <span key={p}>{team.pages.find((x) => x.key === p)?.label ?? p}</span>)}</>}
+              onClick={() => { setError(""); setEditing(row); }}
+              trailing={<button type="button" className="sb-btn sb-btn-small sb-btn-danger-text" onClick={() => setPendingRemove(row)}>Remove</button>} />
           ))}
         </div>
+      )}
+
+      {pendingRemove && (
+        <ConfirmSheet title="Remove this person?" text={`${pendingRemove.name || pendingRemove.email} will no longer be able to sign in.`}
+          confirmLabel="Remove" busy={removing} onConfirm={() => void remove(pendingRemove)} onCancel={() => setPendingRemove(null)} />
       )}
 
       {upgrade && subscription && <UpgradeNotice title="Add more staff" text="Your plan's staff seats are full. Upgrade to add more people." plan="Pro" />}

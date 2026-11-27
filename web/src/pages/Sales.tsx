@@ -1,15 +1,21 @@
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
 import { useEffect, useMemo, useState } from "react";
-import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import { NewSale, SettleDebt, type Receipt, type Status } from "../components/SaleSheets";
 import ImportSheet from "../components/ImportSheet";
 import { useData } from "../data";
 import { useSession } from "../session";
-import { money, parseSaved } from "../format";
+import { dateTimeLabel, money, parseSaved, relativeDay } from "../format";
+import { dayOf } from "../analytics";
 import type { BusinessProfile, Sale } from "../types";
 import { escapeHtml } from "../escape";
+import { useToast } from "../ui/Toast";
+import { FilterChips, SelectSheet } from "../ui";
+import Sheet from "../components/Sheet";
+import FAB from "../ui/FAB";
+import { useOpenNew } from "../ui/useOpenNew";
+import { SwipeRow, SyncPending } from "../ui";
 
 type Quick = "all" | "today" | "week" | "bulk";
 const STATUS: Record<Status, { label: string; cls: string }> = {
@@ -43,7 +49,7 @@ const lineTitle = (s: Sale) => {
 };
 const saleDate = (v: string) => {
   const d = parseSaved(v);
-  return d ? d.toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }) : v;
+  return d ? dateTimeLabel(v) : v;
 };
 
 function printReceipt(r: Receipt, profile: BusinessProfile | null, branded: boolean) {
@@ -80,12 +86,15 @@ export default function Sales() {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [creating, setCreating] = useState(false);
+  useOpenNew(() => setCreating(true));
   const [importing, setImporting] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [settling, setSettling] = useState<Receipt | null>(null);
-  const [deleting, setDeleting] = useState<Receipt | null>(null);
-  const [deleteError, setDeleteError] = useState("");
+  // Receipts deleted but not yet confirmed. Hidden now; the delete is sent after five seconds unless Undo is tapped.
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const toast = useToast();
   const [needProfile, setNeedProfile] = useState(false);
+  const [detail, setDetail] = useState<Receipt | null>(null);
 
   useEffect(() => { document.title = "Sales | SoloBiz"; }, []);
   // On phones the New sale form is a full-screen sheet: Escape closes it and the page behind does not scroll.
@@ -115,26 +124,38 @@ export default function Sales() {
   }, [sales, quick, product, payment, min, max]);
 
   const totalReceipts = useMemo(() => groupReceipts(sales).length, [sales]);
+  // Receipts grouped by business day, newest day first, with the day's total.
+  const dayGroups = useMemo(() => {
+    const groups = new Map<string, { day: string; label: string; total: number; items: Receipt[] }>();
+    for (const r of receipts.filter((x) => !hidden.has(x.key))) {
+      const first = r.items[0];
+      const day = dayOf(first) || first.date.slice(0, 10);
+      const group = groups.get(day) ?? { day, label: relativeDay(first.entry_date || first.date), total: 0, items: [] };
+      group.total += r.total;
+      group.items.push(r);
+      groups.set(day, group);
+    }
+    return [...groups.values()];
+  }, [receipts, hidden]);
+
   const activeFilters = [product, payment, min, max].filter((v) => v !== "").length;
   const filtered = quick !== "all" || activeFilters > 0;
 
-  async function confirmDelete() {
-    if (!deleting) return;
-    try {
+  function removeSale(r: Receipt) {
+    setHidden((h) => new Set(h).add(r.key));
+    const unhide = () => setHidden((h) => { const n = new Set(h); n.delete(r.key); return n; });
+    const timer = window.setTimeout(() => {
       const stock: Record<number, number> = {};
-      for (const s of deleting.items) {
+      for (const s of r.items) {
         if (s.inventory_item_id != null) stock[s.inventory_item_id] = (stock[s.inventory_item_id] ?? 0) + s.quantity;
       }
-      await write({ kind: "sale_delete", method: "DELETE", url: `/api/income/${deleting.items[0].id}`,
-        meta: { saleIds: deleting.items.map((s) => s.id), checkoutId: deleting.items[0].checkout_id, stock } });
-      setDeleting(null);
-      setDeleteError("");
-    } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : "Could not delete this sale. Try again.");
-    }
+      write({ kind: "sale_delete", method: "DELETE", url: `/api/income/${r.items[0].id}`,
+        meta: { saleIds: r.items.map((s) => s.id), checkoutId: r.items[0].checkout_id, stock } })
+        .catch(() => { unhide(); toast({ text: "Could not delete that sale. It is back in your list." }); });
+    }, 5000);
+    toast({ text: "Sale deleted.", actionLabel: "Undo", onAction: () => { window.clearTimeout(timer); unhide(); } });
   }
 
-  const chips: [Quick, string][] = [["all", "All"], ["today", "Today"], ["week", "This week"], ["bulk", "Bulk sales"]];
 
   return (
     <section id="tab-income-content" className="tab-content page-stack" aria-labelledby="sales-title">
@@ -169,12 +190,8 @@ export default function Sales() {
             </p>
             {filtered && <button type="button" className="sb-link" onClick={() => { setQuick("all"); setProduct(""); setPayment(""); setMin(""); setMax(""); }}>Clear</button>}
           </div>
-          <div className="sales-chip-row">
-            {chips.map(([id, label]) => (
-              <button key={id} type="button" aria-pressed={quick === id} onClick={() => setQuick(id)}
-                data-sales-quick={id} className={`sales-quick-chip ${quick === id ? "is-active" : ""}`}>{label}</button>
-            ))}
-          </div>
+          <FilterChips label="Filter by payment" value={payment} onChange={setPayment}
+            options={[{ value: "", label: "All" }, { value: "paid", label: "Paid" }, { value: "partial", label: "Part-paid" }, { value: "unpaid", label: "Owing" }]} />
         </div>
 
         {filterOpen && (
@@ -184,10 +201,9 @@ export default function Sales() {
                 <select id="sales-product-filter" value={product} onChange={(e) => setProduct(e.target.value)}>
                   <option value="">All products</option>{names.map((n) => <option key={n}>{n}</option>)}
                 </select></div>
-              <div className="sb-field"><label htmlFor="sales-payment-filter">Payment</label>
-                <select id="sales-payment-filter" value={payment} onChange={(e) => setPayment(e.target.value)}>
-                  <option value="">Any</option><option value="paid">Paid in full</option><option value="partial">Part-paid</option><option value="unpaid">Unpaid</option>
-                </select></div>
+              <SelectSheet<Quick> label="When" value={quick} placeholder="All time"
+                options={[{ value: "all", label: "All time" }, { value: "today", label: "Today" }, { value: "week", label: "This week" }, { value: "bulk", label: "Bulk sales" }]}
+                onChange={setQuick} />
               <div className="sb-field"><label htmlFor="sales-min-total">Sale total from (₦)</label>
                 <input id="sales-min-total" type="number" min={0} step="0.01" inputMode="decimal" placeholder="Any" value={min} onChange={(e) => setMin(e.target.value)} /></div>
               <div className="sb-field"><label htmlFor="sales-max-total">Sale total up to (₦)</label>
@@ -201,18 +217,23 @@ export default function Sales() {
           {!loading && receipts.length === 0 && (
             sales.length === 0
               ? <EmptyState message="No sales yet." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setCreating(true)}>New sale</button>} />
-              : <p className="list-empty">No sales match these filters.</p>
+              : <div className="list-empty"><p>No sales match these filters.</p><button type="button" className="sb-btn sb-btn-secondary mt-2" onClick={() => { setQuick("all"); setProduct(""); setPayment(""); setMin(""); setMax(""); }}>Clear filters</button></div>
           )}
-          {receipts.map((r) => {
+          {dayGroups.map((g) => (
+            <section key={g.day} aria-label={g.label}>
+              <div className="ui-day-head"><span>{g.label}</span><span>{money(g.total)}</span></div>
+              {g.items.map((r) => {
             const first = r.items[0];
             const meta = [saleDate(first.date), first.payment_mode || "Cash", first.receipt_id ? `#${first.receipt_id}` : ""].filter(Boolean).join(" · ");
             return (
-              <article key={r.key} className="sale-card">
+              <SwipeRow key={r.key} label={`Sale to ${first.customer_name || "walk-in customer"}`}
+                onEdit={() => setDetail(r)} onDelete={() => removeSale(r)}>
+                <article className="sale-card">
                 <div className="sale-card-top">
-                  <div className="min-w-0">
-                    <p className="sale-customer">{first.customer_name || "Walk-in customer"}{r.items.some((x) => x.pending) && <span className="sale-offline"> Not synced</span>}</p>
+                  <button type="button" className="min-w-0 text-left" onClick={() => setDetail(r)} aria-label={`Details for ${first.customer_name || "walk-in customer"}`}>
+                    <p className="sale-customer">{first.customer_name || "Walk-in customer"}{r.items.some((x) => x.pending) && <span className="ml-1"><SyncPending /></span>}</p>
                     <p className="sale-meta">{meta}</p>
-                  </div>
+                  </button>
                   <div className="sale-total">
                     <p>{money(r.total)}</p>
                     <span className={`sale-badge ${STATUS[r.status].cls}`}>{STATUS[r.status].label}</span>
@@ -228,30 +249,43 @@ export default function Sales() {
                     onClick={() => (profile?.company_name ? printReceipt(r, profile, can("branding")) : setNeedProfile(true))}>Receipt</button>
                   {canDelete && (
                                     <button type="button" className="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale"
-                    onClick={() => { setDeleting(r); setDeleteError(""); }}>Delete</button>
+                    onClick={() => removeSale(r)}>Delete</button>
                   )}
                 </div>
-              </article>
+</article>
+              </SwipeRow>
             );
-          })}
+              })}
+            </section>
+          ))}
         </div>
-        <button type="button" className="sb-btn sb-btn-primary sb-btn-block lg:hidden" onClick={() => setCreating(true)}>+ New sale</button>
+        <FAB label="New sale" onClick={() => setCreating(true)} />
       </div>
 
       {settling && <SettleDebt receipt={settling} onClose={() => setSettling(null)} />}
-      {deleting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600">Confirm deletion</p>
-            <h3 className="mt-1 text-xl font-black text-slate-900">Delete this sale?</h3>
-            <p className="mt-2 text-sm text-slate-600">This will permanently remove the recorded sale. Stock sold in it is returned to inventory.</p>
-            {deleteError && <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700" role="alert">{deleteError}</p>}
-            <div className="mt-6 flex gap-3">
-              <button type="button" className="flex-1 rounded-xl bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200" onClick={() => setDeleting(null)}>Keep sale</button>
-              <button type="button" className="flex-1 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-md hover:bg-rose-700" onClick={confirmDelete}>Delete sale</button>
+      {detail && (
+        <Sheet title="Sale details" onClose={() => setDetail(null)} compact>
+          <div className="sb-sheet-body">
+            <p className="sale-customer">{detail.items[0].customer_name || "Walk-in customer"}</p>
+            <p className="sale-meta">{saleDate(detail.items[0].date)} · {detail.items[0].payment_mode || "Cash"}{detail.items[0].receipt_id ? ` · #${detail.items[0].receipt_id}` : ""}</p>
+            <ul className="sale-items" style={{ marginTop: 12 }}>
+              {detail.items.map((s) => <li key={s.id}><span>{lineTitle(s)}</span><span>{money(s.total_value)}</span></li>)}
+            </ul>
+            <dl style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 6, marginTop: 12, fontSize: "var(--sb-text-body)" }}>
+              <dt>Total</dt><dd style={{ margin: 0, fontWeight: 700 }}>{money(detail.total)}</dd>
+              <dt>Paid so far</dt><dd style={{ margin: 0 }}>{money(detail.paid)}</dd>
+              <dt>Still owed</dt><dd style={{ margin: 0, fontWeight: 700, color: detail.owed > 0 ? "var(--sb-warning)" : undefined }}>{money(detail.owed)}</dd>
+            </dl>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+              {detail.owed > 0 && <button type="button" className="sb-btn sb-btn-primary" onClick={() => { setSettling(detail); setDetail(null); }}>Record payment</button>}
+              <a className="sb-btn sb-btn-secondary" target="_blank" rel="noopener"
+                href={`https://wa.me/?text=${encodeURIComponent(`Receipt ${detail.items[0].receipt_id || ""}: ${money(detail.total)}. Thank you!`)}`}>Share on WhatsApp</a>
+              <button type="button" className="sb-btn sb-btn-secondary"
+                onClick={() => (profile?.company_name ? printReceipt(detail, profile, can("branding")) : setNeedProfile(true))}>Print receipt</button>
+              {canDelete && <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => { removeSale(detail); setDetail(null); }}>Delete</button>}
             </div>
           </div>
-        </div>
+        </Sheet>
       )}
       {needProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">

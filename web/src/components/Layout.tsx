@@ -6,6 +6,8 @@ import { useSession } from "../session";
 import { ICONS } from "../icons";
 import { clearDeviceData, signOutWarning } from "../offline";
 import { canUse } from "../access";
+import BottomNav from "../ui/BottomNav";
+import { usePullToRefresh } from "../ui";
 
 // Five main pages, then More. Money is one page with tabs (Accounts, Money in, Transfers).
 const NAV = [
@@ -13,7 +15,6 @@ const NAV = [
   { to: "/sales", label: "Sales", tab: "income" },
   { to: "/expenses", label: "Expenses", tab: "expenses" },
   { to: "/money", label: "Money", tab: "money", page: "sales" },
-  { to: "/inventory", label: "Stock", tab: "inventory" },
 ] as const;
 
 const MOBILE = [
@@ -21,10 +22,11 @@ const MOBILE = [
   { to: "/sales", label: "Sales" },
   { to: "/expenses", label: "Expenses" },
   { to: "/money", label: "Money", page: "sales" },
-  { to: "/inventory", label: "Stock" },
 ] as const;
 
+// Stock lives under More on phones (section 2 of the redesign). Desktop lists these in the sidebar.
 const MORE_ALL = [
+  { to: "/inventory", label: "Stock" },
   { to: "/reports", label: "Reports" },
   { to: "/team", label: "Team" },
   { to: "/website", label: "Website" },
@@ -48,7 +50,8 @@ export default function Layout() {
   const { pathname } = useLocation();
   const nav = useNavigate();
   const { refresh, access, user } = useSession();
-  const { summary, profile, online, pending, failed, dismissFailed, syncNow, subscription } = useData();
+  const { summary, profile, online, pending, failed, dismissFailed, syncNow, subscription, reload } = useData();
+  const refreshing = usePullToRefresh(() => reload());
   const plan = subscription?.current;
   const isOwner = !access || access.is_owner;
   const name = user?.first_name || summary?.username || "";
@@ -99,7 +102,7 @@ export default function Layout() {
           {/* Phones: brand on the left. Desktop: the sidebar carries the brand, so this is a welcome. */}
           <div className="flex items-center gap-2.5 lg:hidden">
             <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-blue-700 flex items-center justify-center shadow-md">
-              <img src={profile?.logo_url || "/static/logo.svg"} alt="" className="w-full h-full object-cover rounded-xl" />
+              <img src={profile?.logo_url || "/static/logo.svg"} alt="" className="w-full h-full object-cover rounded-xl" loading="lazy" decoding="async" />
             </div>
             <h1 className="font-bold text-base tracking-tight text-slate-900">{businessName}</h1>
           </div>
@@ -110,7 +113,7 @@ export default function Layout() {
 
           <Link to="/profile" className="topbar-profile hidden lg:flex" aria-label="Open your profile">
             <span className="topbar-avatar" aria-hidden="true">
-              {profile?.logo_url ? <img src={profile.logo_url} alt="" /> : (businessName || "S").slice(0, 1).toUpperCase()}
+              {profile?.logo_url ? <img src={profile.logo_url} alt="" loading="lazy" decoding="async" width={32} height={32} /> : (businessName || "S").slice(0, 1).toUpperCase()}
             </span>
             <span className="min-w-0 text-left">
               <span className="block truncate text-sm font-semibold text-slate-900">{name}</span>
@@ -125,10 +128,13 @@ export default function Layout() {
         </div>
       </header>
 
+      {refreshing === "refreshing" && (
+        <div role="status" className="fixed inset-x-0 top-0 z-50 bg-slate-900 py-1 text-center text-xs font-semibold text-white">Refreshing…</div>
+      )}
       <main className="desktop-dashboard-shell w-full">
         <aside id="dashboard-navigation" className="desktop-sidebar" aria-label="Main navigation">
           <div className="side-brand">
-            <img src="/static/logo.svg" alt="" width={32} height={32} />
+            <img src="/static/logo.svg" alt="" width={32} height={32} decoding="async" />
             <div className="min-w-0"><p className="side-brand-name">SoloBiz</p></div>
           </div>
           <p className="nav-group">Main</p>
@@ -137,10 +143,6 @@ export default function Layout() {
               className={({ isActive }) => linkClass(isActive)}>
               <Svg html={ICONS[n.to]} />
               <span>{n.label}</span>
-              {n.tab === "inventory" && lowCount > 0 && (
-                <span data-low-stock-badge className="ml-auto min-w-[1.25rem] rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white"
-                  aria-label={`${lowCount} products low on stock`}>{lowCount}</span>
-              )}
             </NavLink>
           ))}
           {MORE.length > 0 && <p className="nav-group">More</p>}
@@ -148,6 +150,10 @@ export default function Layout() {
             <NavLink key={n.to} to={n.to} className={({ isActive }) => linkClass(isActive)}>
               <Svg html={ICONS["m" + n.to]} />
               <span>{n.label}</span>
+              {n.to === "/inventory" && lowCount > 0 && (
+                <span data-low-stock-badge className="ml-auto min-w-[1.25rem] rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white"
+                  aria-label={`${lowCount} products low on stock`}>{lowCount}</span>
+              )}
             </NavLink>
           ))}
           <div className="side-business">
@@ -170,7 +176,7 @@ export default function Layout() {
           {isOwner && plan && pathname !== "/plans" && plan.state === "trial" && (
             <div className="plan-banner plan-banner-trial" role="status">
               <span>Pro trial: {plan.days_left} day{plan.days_left === 1 ? "" : "s"} left. After that you move to the Free plan.</span>
-              <Link to="/plans">See plans</Link>
+              <Link to="/plans" className="inline-flex min-h-[44px] items-center px-1">See plans</Link>
             </div>
           )}
           {isOwner && plan && pathname !== "/plans" && plan.state === "grace" && (
@@ -182,7 +188,7 @@ export default function Layout() {
           {isOwner && plan && pathname === "/dashboard" && plan.state === "free" && (
             <div className="plan-banner plan-banner-free" role="note">
               <span>{plan.trial_used ? "Your trial has ended. You are on the Free plan." : "You are on the Free plan."} Reports, website, alerts and offline recording need Basic or Pro.</span>
-              <Link to="/plans">See plans</Link>
+              <Link to="/plans" className="inline-flex min-h-[44px] items-center px-1">See plans</Link>
             </div>
           )}
           {!online && (
@@ -214,41 +220,16 @@ export default function Layout() {
         </div>
       </main>
 
-      <nav id="mobile-bottom-nav" aria-label="App pages"
-        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-stretch bg-white border-t border-slate-200"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {MOBILE_SHOWN.map((n) => (
-          <NavLink key={n.to} to={n.to} style={{ textDecoration: "none" }}
-            className={({ isActive }) => `mobile-nav-btn ${isActive ? "text-blue-700" : "text-slate-500"}`}>
-            <span className="relative">
-              <Svg html={ICONS["m" + n.to]} className="w-6 h-6" sw={1.9} />
-              {n.to === "/inventory" && lowCount > 0 && (
-                <span data-low-stock-badge className="absolute -top-1.5 -right-2.5 min-w-[1.1rem] rounded-full bg-rose-600 px-1 py-0.5 text-center text-[10px] font-bold leading-none text-white">{lowCount}</span>
-              )}
-            </span>
-            <span className="mobile-nav-label">{n.label}</span>
-          </NavLink>
-        ))}
-        {MORE.length > 0 && (
-        <button id="mobile-more-btn" type="button" aria-expanded={moreOpen} aria-controls="mobile-more-menu" aria-haspopup="true"
-          onClick={() => setMoreOpen((o) => !o)}
-          className={`mobile-nav-btn ${["reports", "budget", "profile", "plans", "team", "website"].includes(tab) ? "text-blue-700" : "text-slate-500"}`}>
-          <span className="relative"><Svg html={ICONS.more} className="w-6 h-6" sw={1.9} /></span>
-          <span className="mobile-nav-label">More</span>
-        </button>
-        )}
-        {moreOpen && (
-          <div id="mobile-more-menu" className="w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl" role="menu" aria-label="More pages">
-            {MORE.map((n) => (
-              <NavLink key={n.to} to={n.to} role="menuitem" style={{ textDecoration: "none" }}
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800">
-                <Svg html={ICONS["m" + n.to]} className="w-5 h-5" />
-                {n.label}
-              </NavLink>
-            ))}
-          </div>
-        )}
-      </nav>
+      <BottomNav
+        items={MOBILE_SHOWN.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-6 h-6" sw={1.9} /> }))}
+        moreItems={MORE.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-5 h-5" />, badge: n.to === "/inventory" ? lowCount : undefined }))}
+        moreBadge={lowCount}
+        activeTab={tab}
+        moreTabs={["inventory", "reports", "budget", "profile", "plans", "team", "website"]}
+        moreOpen={moreOpen}
+        onToggleMore={() => setMoreOpen((o) => !o)}
+        moreFooter={<button type="button" role="menuitem" onClick={() => void signOut()}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50">Sign out</button>} />
     </>
   );
 }

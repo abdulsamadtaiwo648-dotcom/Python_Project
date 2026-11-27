@@ -29,6 +29,8 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
   const { products } = props;
   const { write } = useData();
   const [lines, setLines] = useState<Line[]>([blankLine()]);
+  const [picking, setPicking] = useState(false);
+  const [pickQuery, setPickQuery] = useState("");
   const [customer, setCustomer] = useState("");
   const [mode, setMode] = useState("Cash");
   const [saleDay, setSaleDay] = useState(todayIso());
@@ -167,22 +169,43 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
           <p className="sb-help">Up to two years back; not in the future.</p>
         </div>
         <div className="sb-field">
-          <label htmlFor="sales-inventory-select">Add a product</label>
-          <select id="sales-inventory-select" value="" onChange={(e) => e.target.value && addProduct(Number(e.target.value))}>
-            <option value="">Choose a product</option>
-            {products.map((p) => {
-              const left = p.track_stock ? Math.max(0, p.stock - unitsUsed(p.id)) : null;
-              return (
-                <option key={p.id} value={p.id} disabled={left === 0}>
-                  {p.item_name} · {money(p.price)}{p.bulk_quantity && p.bulk_price ? ` · bulk ${p.bulk_quantity} for ${money(p.bulk_price)}` : ""}{left === null ? "" : ` · ${left} left`}
-                </option>
-              );
-            })}
-          </select>
+          <span className="ui-stat-label">Add a product</span>
+          <button type="button" id="sales-product-open" className="ui-input" aria-haspopup="dialog" onClick={() => setPicking(true)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left" }}>
+            <span style={{ color: "var(--sb-muted)" }}>Choose a product</span>
+            <span aria-hidden="true" style={{ color: "var(--sb-muted)" }}>+</span>
+          </button>
           <p className="sb-help">
-            {products.length ? "Choose a product to add it to the sale. Set the quantity in its line below." : "No products yet. Add products on the Inventory page, or enter a custom item below."}
+            {products.length ? "Pick a product to add it to the sale. Set the quantity in its line below." : "No products yet. Add products on the Inventory page, or enter a custom item below."}
           </p>
         </div>
+        {picking && (
+          <Sheet title="Add a product" onClose={() => setPicking(false)} compact>
+            <div className="sb-sheet-body">
+              <input type="search" className="ui-input" aria-label="Search products" placeholder="Search by name" value={pickQuery} onChange={(e) => setPickQuery(e.target.value)} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }} role="list">
+                {products.filter((p) => !pickQuery.trim() || p.item_name.toLowerCase().includes(pickQuery.trim().toLowerCase())).map((p) => {
+                  const left = p.track_stock ? Math.max(0, p.stock - unitsUsed(p.id)) : null;
+                  return (
+                    <button key={p.id} type="button" role="listitem" data-product-id={p.id} disabled={left === 0} className="ui-row"
+                      style={{ width: "100%", textAlign: "left", background: "none", border: 0, opacity: left === 0 ? 0.5 : 1 }}
+                      onClick={() => { addProduct(p.id); setPicking(false); setPickQuery(""); }}>
+                      <span className="ui-product-photo" aria-hidden="true" style={{ width: 44, height: 44, aspectRatio: "auto", fontSize: 18, marginBottom: 0 }}>
+                        {p.item_name.trim().charAt(0).toUpperCase() || "?"}
+                      </span>
+                      <span className="ui-row-main">
+                        <span className="ui-row-title" style={{ display: "block" }}>{p.item_name}</span>
+                        <span className="ui-row-sub" style={{ display: "block" }}>
+                          {money(p.price)}{p.bulk_quantity && p.bulk_price ? ` · bulk ${p.bulk_quantity} for ${money(p.bulk_price)}` : ""}{left === null ? "" : left === 0 ? " · sold out" : ` · ${left} left`}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Sheet>
+        )}
 
         <div className="sale-items-head">
           <span>Items</span>
@@ -201,10 +224,16 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
                   <input type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="0" value={l.price} readOnly={Boolean(p)}
                     onChange={(e) => patch(l.key, { price: e.target.value })} />
                 </label>
-                <label><span>{l.bulk && p ? `Bulks of ${p.bulk_quantity}` : "Quantity"}</span>
-                  <input type="number" inputMode="numeric" min="1" max={Math.max(limit(l), 1)} step="1" value={l.qty}
-                    onChange={(e) => patch(l.key, { qty: e.target.value })} />
-                </label>
+                <div className="sale-qty"><span>{l.bulk && p ? `Bulks of ${p.bulk_quantity}` : "Quantity"}</span>
+                  <div className="sale-stepper">
+                    <button type="button" aria-label="One fewer" className="sb-btn sb-btn-secondary"
+                      onClick={() => patch(l.key, { qty: String(Math.max(1, (Number(l.qty) || 1) - 1)) })}>−</button>
+                    <input type="number" inputMode="numeric" min="1" max={Math.max(limit(l), 1)} step="1" value={l.qty} aria-label="Quantity"
+                      onChange={(e) => patch(l.key, { qty: e.target.value })} />
+                    <button type="button" aria-label="One more" className="sb-btn sb-btn-secondary"
+                      onClick={() => patch(l.key, { qty: String(Math.min(Math.max(limit(l), 1), (Number(l.qty) || 0) + 1)) })}>+</button>
+                  </div>
+                </div>
                 <button type="button" className="sale-line-remove" aria-label="Remove item"
                   onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((x) => x.key !== l.key) : [blankLine()]))}>
                   <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 6l12 12M18 6 6 18" /></svg>
@@ -250,6 +279,7 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         </div>
         {error && <p className="sb-error" role="alert">{error}</p>}
         <div className="sb-sheet-foot">
+          <p className="sale-foot-total"><span>Total</span><strong>{money(total)}</strong></p>
           <button type="submit" className="sb-btn sb-btn-secondary" disabled={busy}
             onClick={() => { addAnother.current = true; }}>Save and add another</button>
           <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}

@@ -1,20 +1,23 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import Skeleton from "./components/Skeleton";
 import Layout from "./components/Layout";
 import { DataProvider } from "./data";
 import { canUse, firstAllowedPath } from "./access";
-import Budget from "./pages/Budget";
-import Dashboard from "./pages/Dashboard";
-import Expenses from "./pages/Expenses";
-import Money from "./pages/Money";
-import Inventory from "./pages/Inventory";
-import Login from "./pages/Login";
-import Plans from "./pages/Plans";
-import Profile from "./pages/Profile";
-import Register from "./pages/Register";
-import Reports from "./pages/Reports";
-import Sales from "./pages/Sales";
-import Team from "./pages/Team";
-import Website from "./pages/Website";
+// Every page is loaded on demand, so a first visit only downloads the shell and the page it opens.
+const Budget = lazy(() => import("./pages/Budget"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Expenses = lazy(() => import("./pages/Expenses"));
+const Money = lazy(() => import("./pages/Money"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const Login = lazy(() => import("./pages/Login"));
+const Plans = lazy(() => import("./pages/Plans"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Register = lazy(() => import("./pages/Register"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Sales = lazy(() => import("./pages/Sales"));
+const Team = lazy(() => import("./pages/Team"));
+const Website = lazy(() => import("./pages/Website"));
 import { SessionProvider, useSession } from "./session";
 
 function Protected() {
@@ -52,6 +55,7 @@ function NoAccess() {
 export default function App() {
   return (
     <SessionProvider>
+      <Suspense fallback={<Skeleton rows={3} label="Loading page" />}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -74,6 +78,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      </Suspense>
     </SessionProvider>
   );
 }

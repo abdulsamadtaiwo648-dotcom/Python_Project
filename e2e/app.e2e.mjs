@@ -79,13 +79,15 @@ try {
   await staff.waitForTimeout(500);
   check("sales staff has no Delete button", (await staff.locator("button.btn-delete-income").count()) === 0);
 
-  await staff.click('button:has-text("+ New sale")').catch(() => {});
+  await staff.click('button[aria-label="New sale"]').catch(() => {});
   await staff.waitForTimeout(400);
-  const options = await staff.$$eval("#sales-inventory-select option", (o) => o.map((x) => [x.value, x.textContent]));
+  await staff.click("#sales-product-open").catch(() => {});
+  await staff.waitForTimeout(300);
+  const options = await staff.$$eval("[data-product-id]", (o) => o.map((x) => [x.getAttribute("data-product-id"), x.textContent]));
   const pick = options.find((o) => o[1].includes(product));
   check("staff sees the owner's product", !!pick);
   if (pick) {
-    await staff.selectOption("#sales-inventory-select", pick[0]);
+    await staff.click(`[data-product-id="${pick[0]}"]`);
     await staff.fill("#income-customer-name", "E2E Customer");
     await staff.click("#sale-entry-card button[type=submit]");
     await staff.waitForTimeout(1200);

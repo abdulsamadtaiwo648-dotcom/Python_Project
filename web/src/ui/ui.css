@@ -1,0 +1,143 @@
+/* Shared components. Mobile sizes first; desktop widens them in the media query. Colours and spacing come from tokens.css. */
+.ui-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sb-space-2); min-height: 48px; padding: 0 var(--sb-space-4); border-radius: var(--sb-radius-card); border: 1px solid transparent; font-size: var(--sb-text-body); font-weight: 600; cursor: pointer; }
+.ui-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--sb-brand) 35%, transparent); outline-offset: 2px; }
+.ui-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ui-btn-primary { background: var(--sb-brand); color: #fff; }
+.ui-btn-primary:hover:not(:disabled) { background: var(--sb-brand-hover); }
+.ui-btn-secondary { background: var(--sb-surface); color: var(--sb-ink); border-color: var(--sb-line); }
+.ui-btn-ghost { background: transparent; color: var(--sb-brand); }
+.ui-btn-danger { background: var(--sb-danger); color: #fff; }
+.ui-btn-block { width: 100%; }
+
+.ui-card { background: var(--sb-surface); border: 1px solid var(--sb-line); border-radius: var(--sb-radius-card); box-shadow: var(--sb-shadow-card); padding: var(--sb-space-4); }
+.ui-stat-label { display: flex; align-items: center; gap: var(--sb-space-1); font-size: var(--sb-text-label); color: var(--sb-muted); }
+.ui-stat-value { margin-top: var(--sb-space-2); font-size: 22px; font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+.ui-stat-value.is-money-in { color: var(--sb-money-in); }
+.ui-stat-value.is-warning { color: var(--sb-warning); }
+.ui-stat-value.is-danger { color: var(--sb-danger); }
+.ui-skeleton { margin-top: var(--sb-space-2); height: 28px; width: 96px; border-radius: 8px; background: #f1f5f9; animation: ui-pulse 1.2s ease-in-out infinite; }
+@keyframes ui-pulse { 50% { opacity: .5; } }
+.ui-stat-footer { margin-top: var(--sb-space-2); font-size: var(--sb-text-label); font-weight: 600; color: var(--sb-brand); }
+.ui-stat-note { margin-top: var(--sb-space-1); font-size: var(--sb-text-label); color: var(--sb-muted); }
+
+.ui-row { display: flex; align-items: center; gap: var(--sb-space-3); min-height: 56px; padding: var(--sb-space-2) 0; }
+.ui-row-main { flex: 1; min-width: 0; }
+.ui-row-title { font-size: var(--sb-text-body); font-weight: 600; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-row-sub { font-size: var(--sb-text-label); color: var(--sb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-row-amount { font-size: var(--sb-text-body); font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ui-row-amount.is-money-in { color: var(--sb-money-in); }
+.ui-row-chips { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; }
+.ui-row-chips > span { border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 500; background: #f1f5f9; color: #475569; }
+.ui-group { padding: 0 var(--sb-space-4); }
+.ui-group > .ui-row + .ui-row { border-top: 1px solid #f1f5f9; }
+.ui-day-head { position: sticky; top: 0; display: flex; justify-content: space-between; padding: var(--sb-space-2) 0; font-size: var(--sb-text-label); font-weight: 600; color: var(--sb-muted); background: #f9fafb; }
+
+.ui-chips { display: flex; gap: var(--sb-space-2); overflow-x: auto; padding: var(--sb-space-1) 0; scrollbar-width: none; }
+.ui-chips::-webkit-scrollbar { display: none; }
+.ui-chip { flex-shrink: 0; min-height: 40px; padding: 0 var(--sb-space-4); border-radius: var(--sb-radius-chip); border: 1px solid var(--sb-line); background: var(--sb-surface); color: var(--sb-ink); font-size: var(--sb-text-body); font-weight: 600; }
+.ui-chip[aria-pressed="true"] { background: var(--sb-brand); border-color: var(--sb-brand); color: #fff; }
+
+.ui-fab { position: fixed; right: var(--sb-space-4); bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 40; width: 56px; height: 56px; border-radius: 999px; border: 0; background: var(--sb-brand); color: #fff; font-size: 28px; line-height: 1; box-shadow: 0 6px 18px rgba(15, 23, 42, .2); }
+
+.ui-appbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: var(--sb-space-2); min-height: 56px; padding: 0 var(--sb-space-4); background: var(--sb-surface); border-bottom: 1px solid var(--sb-line); }
+.ui-appbar-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-appbar-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; background: transparent; color: var(--sb-ink); border-radius: 12px; }
+
+.ui-input { width: 100%; min-height: 48px; padding: 0 var(--sb-space-3); border: 1px solid var(--sb-line); border-radius: var(--sb-radius-card); background: var(--sb-surface); color: var(--sb-ink); font-size: var(--sb-text-input); }
+.ui-money { display: flex; align-items: center; gap: var(--sb-space-2); }
+.ui-money-sign { font-size: 28px; font-weight: 700; color: var(--sb-muted); }
+.ui-money-input { flex: 1; min-width: 0; min-height: 64px; border: 0; border-bottom: 2px solid var(--sb-line); background: transparent; font-size: 32px; font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+.ui-money-input:focus { outline: none; border-bottom-color: var(--sb-brand); }
+
+.ui-toast { position: fixed; left: var(--sb-space-4); right: var(--sb-space-4); bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 60; display: flex; align-items: center; gap: var(--sb-space-3); padding: var(--sb-space-3) var(--sb-space-4); border-radius: var(--sb-radius-card); background: var(--sb-ink); color: #fff; font-size: var(--sb-text-body); box-shadow: 0 8px 24px rgba(15, 23, 42, .25); }
+.ui-toast-action { margin-left: auto; min-height: 44px; padding: 0 var(--sb-space-2); border: 0; background: transparent; color: #93c5fd; font-weight: 700; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ui-btn, .ui-chip { transition: background-color 150ms ease, color 150ms ease; }
+}
+
+@media (min-width: 1024px) {
+  .ui-btn { min-height: 40px; }
+  .ui-fab { display: none; }
+  .ui-appbar { padding: 0 var(--sb-space-6); }
+}
+
+/* Tablet: bottom bar stays; content is centred at 720px. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  main.desktop-dashboard-shell { max-width: 720px; margin-inline: auto; }
+}
+
+/* Desktop: sheets open as a side panel so the list stays visible behind them. */
+@media (min-width: 1024px) {
+  .sb-modal { align-items: stretch; justify-content: flex-end; padding: 0; }
+  .sb-sheet { height: 100%; max-height: 100%; width: 440px; max-width: 440px; border-radius: 0; box-shadow: -12px 0 40px rgba(15, 23, 42, .18); }
+}
+
+/* Sales: quantity steppers and the footer total in New sale */
+.sale-stepper { display: flex; align-items: center; gap: 6px; }
+.sale-stepper button { min-width: 44px; min-height: 44px; font-size: 18px; padding: 0; }
+.sale-stepper input { width: 64px; min-height: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+.sale-qty > span { display: block; font-size: var(--sb-text-label); color: var(--sb-muted); margin-bottom: 4px; }
+.sale-foot-total { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 8px; font-size: var(--sb-text-body); color: var(--sb-muted); }
+.sale-foot-total strong { font-size: 20px; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+
+/* Stock: product cards (phone 2 columns, wider on larger screens) */
+.ui-product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sb-space-3); }
+@media (min-width: 720px) { .ui-product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .ui-product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ui-product-card { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-height: 44px; padding: var(--sb-space-3); border: 1px solid var(--sb-line); border-radius: var(--sb-radius-card); background: var(--sb-surface); box-shadow: var(--sb-shadow-card); text-align: left; cursor: pointer; }
+.ui-product-photo { display: grid; place-items: center; aspect-ratio: 1; border-radius: 10px; background: #eff6ff; color: var(--sb-brand); font-size: 28px; font-weight: 700; margin-bottom: var(--sb-space-1); }
+.ui-product-name { font-size: var(--sb-text-body); font-weight: 600; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-product-price { font-size: var(--sb-text-body); font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+.ui-product-stock { font-size: var(--sb-text-label); color: var(--sb-muted); }
+.ui-product-badge { align-self: flex-start; margin-top: 4px; padding: 2px 8px; border-radius: var(--sb-radius-chip); font-size: var(--sb-text-label); font-weight: 600; }
+.ui-product-badge.is-ok { background: #eff6ff; color: var(--sb-brand); }
+.ui-product-badge.is-low { background: #fffbeb; color: var(--sb-warning); }
+.ui-product-badge.is-sold { background: #f1f5f9; color: #475569; }
+
+/* Stock table view on phones: readable columns that scroll inside their own box */
+.inv-view-table .inventory-table-wrap { overflow-x: auto; }
+.inv-view-table .inventory-table-wrap table { min-width: 560px; }
+.inv-view-table .inventory-table-wrap td, .inv-view-table .inventory-table-wrap th { white-space: nowrap; }
+
+/* Section 4: tap targets are at least 44px on phones and tablets (the spec's minimum). */
+@media (max-width: 1023px) {
+  body.app-shell > header button,
+  body.app-shell > header a,
+  .sb-btn, .sb-icon-btn, .sb-link, a.sb-link,
+  .sb-chip, .sales-quick-chip, .inv-view-btn,
+  [role="tab"], [role="group"] > button,
+  select, .ui-input { min-height: 44px; }
+  a.sb-link { display: inline-flex; align-items: center; }
+  [role="group"][aria-label="Period"] button,
+  [role="tablist"] button { min-height: 44px; min-width: 44px; }
+  button[aria-label="Sign out"], .sb-btn { min-width: 44px; }
+  button[aria-label="Sign out"], .sb-btn-small, .sb-chip, .sales-quick-chip { min-height: 44px !important; }
+  section a.text-xs, section button.text-xs, main a.text-xs, main button.text-xs, .ui-stat-footer a, .wb-back { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+/* Section 4: motion is short, and off for people who ask for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}
+
+/* Swipe-to-reveal rows (SwipeRow) */
+.ui-swipe { position: relative; overflow: hidden; touch-action: pan-y; }
+.ui-swipe-row { position: relative; background: var(--sb-surface); transition: transform 180ms ease; }
+.ui-swipe-actions { position: absolute; inset: 0 0 0 auto; display: flex; width: 144px; }
+.ui-swipe-actions button { flex: 1; min-height: 44px; border: 0; font-size: var(--sb-text-body); font-weight: 700; color: #fff; }
+.ui-swipe-edit { background: var(--sb-brand); }
+.ui-swipe-delete { background: var(--sb-danger); }
+@media (prefers-reduced-motion: reduce) { .ui-swipe-row { transition: none; } }
+
+/* Items recorded offline that have not synced yet */
+.ui-sync-pending { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--sb-radius-chip); background: #fffbeb; color: var(--sb-warning); font-size: var(--sb-text-label); font-weight: 600; }
+
+/* Desktop (section 7): content up to 1200px; Home shows the chart and recent activity side by side. */
+@media (min-width: 1024px) {
+  main.desktop-dashboard-shell { max-width: 1200px; margin-inline: auto; }
+  .home-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--sb-space-4); align-items: start; }
+}
+@media (max-width: 1023px) {
+  .home-split { display: flex; flex-direction: column; gap: var(--sb-space-4); }
+}

@@ -1,6 +1,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
-/** The design's modal: a bottom/full-screen sheet on phones, a card on desktop. */
+/** Popstate events caused by a sheet removing its own history entry, so they don't close a second sheet. */
+let sheetPopsToIgnore = 0;
+
+/** The design's modal: a bottom/full-screen sheet on phones, a side panel on desktop. */
 export default function Sheet(props: {
   title: string; onClose: () => void; children: ReactNode; compact?: boolean; id?: string; description?: ReactNode;
 }) {
@@ -10,9 +13,24 @@ export default function Sheet(props: {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close.current();
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
+    // Android back and the swipe-back gesture close the sheet first, then go back a page.
+    // The sheet adds one history entry; closing it by any other route removes that entry again.
+    window.history.pushState({ ...(window.history.state ?? {}), sbSheet: true }, "");
+    let closedByBack = false;
+    const onPop = () => {
+      if (sheetPopsToIgnore > 0) { sheetPopsToIgnore -= 1; return; }
+      closedByBack = true;
+      close.current();
+    };
+    window.addEventListener("popstate", onPop);
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      window.removeEventListener("popstate", onPop);
+      if (!closedByBack && window.history.state?.sbSheet) {
+        sheetPopsToIgnore += 1;
+        window.history.back();
+      }
     };
   }, []);
   return (

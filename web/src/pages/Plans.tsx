@@ -4,9 +4,11 @@ import { ApiError, api } from "../api";
 import { useData } from "../data";
 import { money } from "../format";
 import type { FeatureKey, PlanInfo } from "../types";
+import { dateLabel as formatLongDate } from "../format";
+import { ConfirmSheet, ListRow } from "../ui";
 
 const FEATURE_ORDER: FeatureKey[] = ["offline", "reports", "alerts", "branding", "website"];
-const dateLabel = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" }) : "");
+const dateLabel = (iso: string | null) => formatLongDate(iso);
 
 function limitsFor(p: PlanInfo): string[] {
   return [
@@ -52,8 +54,10 @@ export default function Plans() {
     }
   }
 
+  // Cancelling renewal asks first, with the shared confirm sheet.
+  const [confirmCancel, setConfirmCancel] = useState(false);
   async function cancel() {
-    if (!window.confirm("Cancel renewal? Your plan stays until the end of the period you paid for.")) return;
+    setConfirmCancel(false);
     setBusy("cancel");
     try {
       await api.post("/api/subscription/cancel");
@@ -87,12 +91,12 @@ export default function Plans() {
       <div className={`plan-banner ${current.state === "grace" ? "plan-banner-grace" : current.state === "trial" ? "plan-banner-trial" : "plan-banner-free"}`}>
         <span><strong>{current.plan_name}</strong> · {summary}</span>
         {current.state === "active" && !current.cancel_at_period_end && (
-          <button type="button" className="underline" disabled={busy === "cancel"} onClick={cancel}>Cancel renewal</button>
+          <button type="button" className="underline" disabled={busy === "cancel"} onClick={() => setConfirmCancel(true)}>Cancel renewal</button>
         )}
       </div>
 
       {!subscription.payments_ready && (
-        <p className="plan-banner plan-banner-free" role="note">Online payment is being set up. You can look at the plans now and subscribe as soon as it opens.</p>
+        <p className="plan-banner plan-banner-free" role="note">Online payment is coming soon. You can compare plans now.</p>
       )}
 
       <div className="plans-grid">
@@ -134,15 +138,16 @@ export default function Plans() {
       {subscription.payments.length > 0 && (
         <div className="sb-panel">
           <h3 className="dash-card-title">Payments</h3>
-          <ul className="divide-y divide-slate-100">
+          <div>
             {subscription.payments.map((p, i) => (
-              <li key={i} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <span className="text-slate-700">{p.plan === "pro" ? "Pro" : "Basic"} · {dateLabel(p.created_at)}</span>
-                <span className="font-semibold text-slate-900">{money(p.amount)}</span>
-              </li>
+              <ListRow key={i} title={`${p.plan === "pro" ? "Pro" : "Basic"} plan`} subtitle={dateLabel(p.created_at)} amount={money(p.amount)} />
             ))}
-          </ul>
+          </div>
         </div>
+      )}
+      {confirmCancel && (
+        <ConfirmSheet title="Cancel renewal?" text="Your plan stays until the end of the period you paid for, and then it will not renew."
+          confirmLabel="Cancel renewal" onConfirm={() => void cancel()} onCancel={() => setConfirmCancel(false)} />
       )}
     </section>
   );

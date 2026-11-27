@@ -7,6 +7,7 @@ import { useData } from "../data";
 import { useSession } from "../session";
 import { clearDeviceData, signOutWarning } from "../offline";
 import type { BusinessProfile } from "../types";
+import { dateLabel } from "../format";
 
 const REASONS: [string, string][] = [
   ["business_rebrand", "Business rebrand"], ["contact_update", "Contact information update"],
@@ -37,9 +38,10 @@ export default function Profile() {
 
   const exists = Boolean(profile?.company_name);
   const p: BusinessProfile | null = profile;
-  const brand = p?.brand_color || "#1d4ed8";
+  const [brand, setBrand] = useState(p?.brand_color || "#1d4ed8");
 
   function startEdit() {
+    setBrand(p?.brand_color || "#1d4ed8");
     setForm({
       company_name: p?.company_name ?? "", business_phone: p?.business_phone ?? "", whatsapp_number: p?.whatsapp_number ?? "",
       instagram_handle: p?.instagram_handle ?? "", business_address: p?.business_address ?? "", store_policy: p?.store_policy ?? "",
@@ -147,7 +149,7 @@ export default function Profile() {
           <p className="mt-2 text-sm text-blue-100">
             {!plan ? "" :
               plan.state === "trial" ? `${plan.days_left} day${plan.days_left === 1 ? "" : "s"} left of your free Pro trial.` :
-              plan.state === "active" ? `Active until ${plan.ends_at ? new Date(plan.ends_at).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" }) : ""}.` :
+              plan.state === "active" ? `Active until ${dateLabel(plan.ends_at, { day: "numeric", month: "long", year: "numeric" })}.` :
               plan.state === "grace" ? "Your renewal was not received. Renew to keep your plan." :
               "Upgrade for reports, a website, alerts and offline recording."}
           </p>
@@ -171,7 +173,7 @@ export default function Profile() {
               <div className="absolute left-0 right-0 top-0 h-2" style={{ backgroundColor: brand }} />
               <div className="flex items-center gap-3.5 pt-1">
                 <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-blue-100 text-xl font-black text-white shadow-md" style={{ backgroundColor: brand }}>
-                  {p?.logo_url ? <img src={p.logo_url} alt="Logo" className="h-full w-full object-cover" /> : <span>{(p?.company_name || "B")[0].toUpperCase()}</span>}
+                  {p?.logo_url ? <img src={p.logo_url} alt="Logo" className="h-full w-full object-cover" loading="lazy" decoding="async" width={64} height={64} /> : <span>{(p?.company_name || "B")[0].toUpperCase()}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="flex items-center gap-1.5 truncate text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">{p?.company_name || "Your Business"}</h2>
@@ -262,6 +264,17 @@ export default function Profile() {
               <div className="sb-field">
                 <label htmlFor="profile-store-policy">Note on receipts and shop page <span className="sb-optional">(optional)</span></label>
                 <textarea id="profile-store-policy" rows={2} placeholder="e.g. No refunds after 24 hours. Thanks for choosing us!" value={form.store_policy} onChange={set("store_policy")} />
+              </div>
+              <div className="sb-field">
+                <label htmlFor="profile-brand-colour">Brand colour</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <input id="profile-brand-colour" type="color" aria-label="Brand colour" value={brand} onChange={(e) => setBrand(e.target.value)} />
+                  {["#1d4ed8", "#0F766E", "#BE185D", "#B45309", "#15803D", "#7C3AED", "#0F172A"].map((c) => (
+                    <button key={c} type="button" aria-label={`Use colour ${c}`} onClick={() => setBrand(c)}
+                      style={{ width: 32, height: 32, borderRadius: 999, background: c, border: brand === c ? "3px solid #0f172a" : "2px solid #fff", boxShadow: "0 0 0 1px #cbd5e1" }} />
+                  ))}
+                </div>
+                <p className="sb-help">Used on your receipts and your website.</p>
               </div>
               <div className="sb-field">
                 <label htmlFor="profile-logo-file">Logo <span className="sb-optional">(optional, up to 2 MB)</span></label>

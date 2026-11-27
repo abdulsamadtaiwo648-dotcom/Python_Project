@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { ApiError, api } from "../api";
 import { lineLabel, overspentLine, periodLabel, type StatementPeriod } from "../statement";
-import { money } from "../format";
+import { money, relativeDay } from "../format";
+import { DayGroup, ListRow } from "../ui";
 import { todayIso } from "../offline";
 import type { AccountView } from "../types";
 
@@ -37,6 +38,14 @@ export default function AccountStatement({ account }: { account: AccountView }) 
   const overdrawn = closing < 0;
   const overspent = overspentLine(data?.closing.overspent);
   const entries = data ? [...data.receipts.items, ...data.payments.items].sort((a, b) => b.date.localeCompare(a.date)) : [];
+  // Entries grouped by day, newest day first, each with that day's net movement.
+  const dayGroups = entries.reduce<{ date: string; items: Line[]; net: number }[]>((groups, item) => {
+    const last = groups[groups.length - 1];
+    const signed = (item.direction === "in" ? 1 : -1) * Number(item.amount);
+    if (last && last.date === item.date) { last.items.push(item); last.net += signed; }
+    else groups.push({ date: item.date, items: [item], net: signed });
+    return groups;
+  }, []);
 
   return (
     <section className="space-y-4" aria-labelledby="statement-title">
@@ -84,19 +93,19 @@ export default function AccountStatement({ account }: { account: AccountView }) 
             {entries.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">No entries in this period.</p>
             ) : (
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                {entries.map((i, n) => (
-                  <li key={`${i.date}-${i.source}-${i.ref ?? n}`} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm text-slate-900">{lineLabel(i)}{i.approximate ? " (approx.)" : ""}</p>
-                      <p className="text-xs text-slate-500">{i.date}</p>
-                    </div>
-                    <p className={`flex-shrink-0 text-sm font-semibold tabular-nums ${i.direction === "in" ? "text-emerald-700" : "text-slate-800"}`}>
-                      {i.direction === "in" ? "+" : "−"}{money(Number(i.amount))}
-                    </p>
-                  </li>
+              <div>
+                {dayGroups.map((g) => (
+                  <DayGroup key={g.date} label={relativeDay(g.date)} total={`${g.net < 0 ? "−" : "+"}${money(Math.abs(g.net))}`}>
+                    {g.items.map((i, n) => (
+                      <ListRow key={`${i.date}-${i.source}-${i.ref ?? n}`}
+                        title={`${lineLabel(i)}${i.approximate ? " (approx.)" : ""}`}
+                        subtitle={i.counterpart ?? undefined}
+                        amount={`${i.direction === "in" ? "+" : "−"}${money(Number(i.amount))}`}
+                        tone={i.direction === "in" ? "money-in" : undefined} />
+                    ))}
+                  </DayGroup>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </>

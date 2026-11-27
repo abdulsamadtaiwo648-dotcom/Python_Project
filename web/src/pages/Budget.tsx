@@ -141,7 +141,12 @@ export default function Budget() {
       <div id="budget-categories-panel" className="budget-categories-panel">
         <h3 className="budget-categories-title">Categories</h3>
         <div id="budget-progress-list" className="budget-list" aria-live="polite">
-          {progress.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No budgets for this month yet. Choose a category and set a limit below.</p>}
+          {progress.length === 0 && (
+            <div className="rounded-xl bg-slate-50 p-4 text-center">
+              <p className="text-sm text-slate-500">No budgets for this month yet.</p>
+              <button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => document.getElementById("budget-category")?.focus()}>Set a limit</button>
+            </div>
+          )}
           {progress.map((p) => {
             const over = p.spent > p.limit, near = !over && p.percent >= 80;
             return (

@@ -8,7 +8,9 @@ import { Link } from "react-router-dom";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money } from "../format";
+import { useToast } from "../ui/Toast";
 import type { Product } from "../types";
+import InfoTip from "../components/InfoTip";
 
 const threshold = (p: Product) => (Number.isInteger(p.low_stock_threshold) && p.low_stock_threshold >= 0 ? p.low_stock_threshold : 3);
 export function stockLevel(p: Product): "untracked" | "out" | "low" | "ok" {
@@ -21,7 +23,28 @@ const bulkOffer = (p: Product) => (p.bulk_quantity && p.bulk_price ? `${p.bulk_q
 
 type Chip = "all" | "low" | "out" | "bulk";
 
-function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: () => void; onSaved: () => Promise<void> }) {
+function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: () => void; onSaved: () => Promise<void>; onDelete: (p: Product) => void }) {
+  // Whether this product is shown on the public website. Read from the website settings, saved on change.
+  const [onSite, setOnSite] = useState<boolean | null>(null);
+  const [siteError, setSiteError] = useState("");
+  useEffect(() => {
+    if (!props.product) return;
+    let live = true;
+    api.get<{ website: { products: { id: number; show_on_website: boolean }[] } }>("/api/website")
+      .then((r) => { if (live) setOnSite(r.website.products.find((x) => x.id === props.product!.id)?.show_on_website ?? null); })
+      .catch(() => { if (live) setOnSite(null); });
+    return () => { live = false; };
+  }, [props.product?.id]);
+  async function toggleSite(show: boolean) {
+    if (!props.product) return;
+    setSiteError("");
+    try {
+      await api.put(`/api/website/products/${props.product.id}`, { show_on_website: show });
+      setOnSite(show);
+    } catch (err) {
+      setSiteError(err instanceof ApiError ? err.message : "Could not change that. Try again.");
+    }
+  }
   const p = props.product;
   const adding = !p;
   const [name, setName] = useState(p?.item_name ?? "");
@@ -32,7 +55,6 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
   const [bulkPrice, setBulkPrice] = useState(p?.bulk_price ? String(p.bulk_price) : "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [upgrade, setUpgrade] = useState(false);
 
   async function save(e: FormEvent) {
@@ -66,40 +88,13 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
     }
   }
 
-  async function remove() {
+  // Handed to the page, which hides the product and sends the delete after five seconds unless Undo is tapped.
+  function remove() {
     if (!p) return;
-    setBusy(true);
-    try {
-      await api.del(`/api/inventory-presets/${p.id}`);
-      await props.onSaved();
-      props.onClose();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete product. Try again.");
-      setConfirmDelete(false);
-      setBusy(false);
-    }
+    props.onDelete(p);
+    props.onClose();
   }
 
-  if (confirmDelete && p) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true">
-        <div className="w-full max-w-sm rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600">Confirm deletion</p>
-          <h3 className="mt-1 text-xl font-black text-slate-900">Delete this product?</h3>
-          <p className="mt-2 text-sm text-slate-600">
-            <span className="font-bold text-slate-800">{p.item_name}</span> will be removed from inventory. Past sales will remain.
-          </p>
-          {error && <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700" role="alert">{error}</p>}
-          <div className="mt-6 flex gap-3">
-            <button type="button" className="flex-1 rounded-xl bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200" onClick={() => setConfirmDelete(false)}>Keep product</button>
-            <button type="button" disabled={busy} className="flex-1 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-md hover:bg-rose-700" onClick={remove}>
-              {busy ? "Deleting…" : "Delete product"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Sheet title={adding ? "Add product" : "Edit product"} onClose={props.onClose}
@@ -125,7 +120,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
           <label htmlFor="inventory-edit-low-stock">Low-stock alert at</label>
           <input id="inventory-edit-low-stock" type="number" inputMode="numeric" min="0" step="1" required value={low}
             onChange={(e) => setLow(e.target.value)} aria-describedby="low-help" />
-          <p id="low-help" className="sb-help">You'll be alerted when stock falls to this number or below. Use 0 to be alerted only when it runs out.</p>
+          <p id="low-help" className="sb-help"><span>About alert level</span> <InfoTip label="About alert level">You'll be alerted when stock falls to this number or below. Use 0 to be alerted only when it runs out.</InfoTip></p>
         </div>
         <fieldset className="sb-fieldset">
           <legend>Bulk price <span>(optional)</span></legend>
@@ -139,11 +134,20 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
               <input id="inventory-edit-bulk-price" type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="e.g. 10000" value={bulkPrice} onChange={(e) => setBulkPrice(e.target.value)} />
             </div>
           </div>
-          <p className="sb-help">Only used when you tick "Sell as bulk" on a sale. Leave both empty to sell by the piece only.</p>
+          <p className="sb-help"><span>About bulk price</span> <InfoTip label="About bulk price">Only used when you tick "Sell as bulk" on a sale. Leave both empty to sell by the piece only.</InfoTip></p>
         </fieldset>
         {error && <p className="sb-error" role="alert">{error}{upgrade && <> <Link to="/plans" className="font-semibold underline">See plans</Link></>}</p>}
+        {props.product && onSite !== null && (
+          <div className="sb-field" style={{ marginTop: 8 }}>
+            <label className="wb-switch" style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44 }}>
+              <input type="checkbox" checked={onSite} onChange={(e) => void toggleSite(e.target.checked)} />
+              <span>Show on my website</span>
+            </label>
+            {siteError && <p className="sb-error" role="alert">{siteError}</p>}
+          </div>
+        )}
         <div className="sb-sheet-foot">
-          {!adding && <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => setConfirmDelete(true)}>Delete</button>}
+          {!adding && <button type="button" className="sb-btn sb-btn-danger-text" onClick={remove}>Delete</button>}
           <button type="button" className="sb-btn sb-btn-secondary" onClick={props.onClose}>Cancel</button>
           <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}>{adding ? "Add product" : "Save changes"}</button>
         </div>
@@ -153,11 +157,25 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
 }
 
 export default function Inventory() {
-  const { products, reload, loading } = useData();
+  const { products: allProducts, reload, loading } = useData();
+  // Products deleted but not yet confirmed. Hidden now; the delete is sent after five seconds unless Undo is tapped.
+  const [hidden, setHidden] = useState<Set<number>>(() => new Set());
+  const products = useMemo(() => allProducts.filter((p) => !hidden.has(p.id)), [allProducts, hidden]);
+  const toast = useToast();
   const [chip, setChip] = useState<Chip>("all");
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"cards" | "table">("cards");
   const [editing, setEditing] = useState<{ product?: Product; restock?: boolean } | null>(null);
+  function scheduleDelete(p: Product) {
+    setHidden((h) => new Set(h).add(p.id));
+    const unhide = () => setHidden((h) => { const n = new Set(h); n.delete(p.id); return n; });
+    const timer = window.setTimeout(() => {
+      api.del(`/api/inventory-presets/${p.id}`)
+        .then(() => reload())
+        .catch(() => { unhide(); toast({ text: "Could not delete that product. It is back in your list." }); });
+    }, 5000);
+    toast({ text: `${p.item_name} deleted.`, actionLabel: "Undo", onAction: () => { window.clearTimeout(timer); unhide(); } });
+  }
 
   useEffect(() => { document.title = "Inventory | SoloBiz"; }, []);
 
@@ -210,7 +228,7 @@ export default function Inventory() {
                 {needing.length} product{needing.length === 1 ? " needs" : "s need"} restocking: {[
                   counts.out ? `${counts.out} out of stock` : "", counts.low ? `${counts.low} running low` : ""].filter(Boolean).join(", ")}
               </p>
-              <p className="mt-0.5 text-xs text-rose-800">Restock these products so you don't miss sales. Change a product's alert level from Edit.</p>
+              <p className="mt-0.5 text-xs text-rose-800">Restock these so you don't miss sales.</p>
               <ul className="mt-3 space-y-2">
                 {needing.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-rose-100 bg-white/80 px-3 py-2">
@@ -257,13 +275,33 @@ export default function Inventory() {
         </div>
       </div>
 
+      {view === "cards" ? (
+        <div className="ui-product-grid" aria-label="Products">
+          {loading && products.length === 0 && <Skeleton rows={3} label="Loading stock" />}
+          {!loading && products.length === 0 && <EmptyState message="No products yet. Add the things you sell to track stock." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing({})}>Add a product</button>} />}
+          {products.length > 0 && rows.length === 0 && <p className="text-center text-slate-500">No products match.</p>}
+          {rows.map((p) => {
+            const level = stockLevel(p);
+            const badge = level === "out" ? { text: "Sold out", cls: "is-sold" } : level === "low" ? { text: "Low stock", cls: "is-low" } : level === "ok" ? { text: "In stock", cls: "is-ok" } : null;
+            return (
+              <button key={p.id} type="button" className="ui-product-card" aria-label={`Edit ${p.item_name}`} onClick={() => setEditing({ product: p })}>
+                <span className="ui-product-photo" aria-hidden="true">{p.item_name.trim().charAt(0).toUpperCase() || "?"}</span>
+                <span className="ui-product-name">{p.item_name}</span>
+                <span className="ui-product-price">{money(p.price)}</span>
+                <span className="ui-product-stock">{level === "untracked" ? "Not tracked" : `${p.stock} in stock`}</span>
+                {badge && <span className={`ui-product-badge ${badge.cls}`}>{badge.text}</span>}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
       <div className={`sb-list-card ${view === "table" ? "inv-view-table" : ""}`} id="inv-list-card">
         <div className="inventory-table-wrap">
           <table>
             <thead><tr><th>Product</th><th>Status</th><th>Stock</th><th>Price</th></tr></thead>
             <tbody id="presets-grid">
               {loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><Skeleton rows={3} label="Loading stock" /></td></tr>}
-              {!loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><EmptyState message="No products yet. Add the things you sell to track stock." /></td></tr>}
+              {!loading && products.length === 0 && <tr><td colSpan={4} className="py-6"><EmptyState message="No products yet. Add the things you sell to track stock." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setEditing({})}>Add a product</button>} /></td></tr>}
               {products.length > 0 && rows.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-slate-500">No products match.</td></tr>}
               {rows.map((p) => {
                 const level = stockLevel(p);
@@ -282,9 +320,10 @@ export default function Inventory() {
           </table>
         </div>
       </div>
-      <p className="page-note">Tap a product to edit its price, stock, bulk price or low-stock alert.</p>
+      )}
+      <p className="page-note">Tap a product to edit it.</p>
 
-      {editing && <ProductForm product={editing.product} focusStock={editing.restock} onClose={() => setEditing(null)} onSaved={reload} />}
+      {editing && <ProductForm product={editing.product} focusStock={editing.restock} onClose={() => setEditing(null)} onSaved={reload} onDelete={scheduleDelete} />}
     </section>
   );
 }

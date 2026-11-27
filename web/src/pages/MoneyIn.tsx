@@ -1,5 +1,17 @@
 import EmptyState from "../components/EmptyState";
 import { useEffect, useState, type FormEvent } from "react";
+import { useToast } from "../ui/Toast";
+import { useOpenNew } from "../ui/useOpenNew";
+import { SwipeRow } from "../ui";
+import { FilterChips } from "../ui";
+
+// Short chip names for the money kinds. The values saved on the server are not changed.
+const KIND_LABEL: Record<string, string> = {
+  "Owner contribution": "Owner contribution",
+  "Loan": "Loan",
+  "Refund received": "Refund",
+  "Other income": "Other",
+};
 import { ApiError, api } from "../api";
 import { moneyInFor, moneyInTotal, MONEY_IN_KINDS, TRANSFER_KIND } from "../moneyIn";
 import { canTransfer, hasOneAccount, pickableAccounts } from "../accounts";
@@ -13,6 +25,7 @@ import { monthNow, ymLabel } from "../month";
 import { useSession } from "../session";
 import { minEntryIso, todayIso } from "../offline";
 import type { MoneyInItem } from "../types";
+import InfoTip from "../components/InfoTip";
 
 /** Money that is not a sale. It counts in cash flow and the cash balance, never in profit. */
 export default function MoneyIn() {
@@ -20,8 +33,11 @@ export default function MoneyIn() {
   const { moneyIn, reload } = useData();
   const dm = useDashboardMonth();
   const [editing, setEditing] = useState<MoneyInItem | "new" | null>(null);
+  useOpenNew(() => setEditing("new"));
   const [importing, setImporting] = useState(false);
-  const [error, setError] = useState("");
+  // Rows deleted but not yet confirmed. They stay hidden until Undo or until the delete is sent.
+  const [hidden, setHidden] = useState<Set<number>>(() => new Set());
+  const toast = useToast();
   useEffect(() => { document.title = "Money in | SoloBiz"; }, []);
 
   const current = dm.current ?? monthNow();
@@ -29,17 +45,26 @@ export default function MoneyIn() {
   const year = ym.slice(0, 4);
   const monthRange = { kind: "month", ym } as const;
   const yearRange = { kind: "year", year } as const;
-  const monthItems = moneyInFor(moneyIn, monthRange);
+  const monthItems = moneyInFor(moneyIn, monthRange).filter((i) => !hidden.has(i.id));
 
-  async function remove(item: MoneyInItem) {
-    if (!window.confirm("Delete this money in? This cannot be undone.")) return;
-    try {
-      await api.del(`/api/money-in/${item.id}`);
-      setError("");
-      await reload();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete. Try again.");
-    }
+  // Hide the row now; send the delete after five seconds. Undo brings the row back and sends nothing.
+  function remove(item: MoneyInItem) {
+    setHidden((h) => new Set(h).add(item.id));
+    const timer = window.setTimeout(() => {
+      api.del(`/api/money-in/${item.id}`)
+        .then(() => reload())
+        .catch(() => {
+          setHidden((h) => { const n = new Set(h); n.delete(item.id); return n; });
+          toast({ text: "Could not delete that money in. It is back in your list." });
+        });
+    }, 5000);
+    toast({
+      text: "Money in deleted.", actionLabel: "Undo",
+      onAction: () => {
+        window.clearTimeout(timer);
+        setHidden((h) => { const n = new Set(h); n.delete(item.id); return n; });
+      },
+    });
   }
 
   return (
@@ -47,7 +72,7 @@ export default function MoneyIn() {
       <div className="page-head">
         <div className="min-w-0">
           <h2 className="page-title" id="money-in-title">Money in</h2>
-          <p className="page-sub">Owner capital, loans and refunds. This is not a sale, so it does not change sales totals or profit.</p>
+          <p className="page-sub"><span>What counts as money in?</span> <InfoTip label="What counts as money in?">Owner capital, loans and refunds. This is not a sale, so it does not change sales totals or profit.</InfoTip></p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>
@@ -70,7 +95,6 @@ export default function MoneyIn() {
         </div>
       </div>
 
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div className="sb-panel">
         {monthItems.length === 0 ? (
@@ -78,7 +102,9 @@ export default function MoneyIn() {
         ) : (
           <ul className="divide-y divide-slate-100" aria-label="Money in entries">
             {monthItems.map((i) => (
-              <li key={i.id} className="flex flex-wrap items-center gap-3 py-3">
+              <li key={i.id} className="p-0">
+                <SwipeRow label={`${i.kind}, ${i.description}`} onEdit={() => setEditing(i)} onDelete={() => void remove(i)}>
+                  <div className="flex flex-wrap items-center gap-3 bg-white py-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-slate-900">{i.kind}</p>
                   <p className="truncate text-xs text-slate-500">{i.description || "No note"} · {relativeDay(i.entry_date || i.date)}</p>
@@ -88,6 +114,8 @@ export default function MoneyIn() {
                 {access?.is_owner && (
                   <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => void remove(i)}>Delete</button>
                 )}
+</div>
+                </SwipeRow>
               </li>
             ))}
           </ul>
@@ -152,10 +180,10 @@ export function MoneyInForm(props: { initial?: MoneyInItem; defaultKind?: string
           </div>
         </div>
         <div className="sb-field">
-          <label htmlFor="money-in-kind">What kind of money?</label>
-          <select id="money-in-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
-            {kinds.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
+          <span className="ui-stat-label">What kind of money?</span>
+          {/* Chips show short names; the stored kind values are unchanged. */}
+          <FilterChips label="What kind of money?" value={kind} onChange={setKind}
+            options={kinds.map((k) => ({ value: k, label: KIND_LABEL[k] ?? k }))} />
         </div>
         {isTransfer && (
           <div className="sb-field">

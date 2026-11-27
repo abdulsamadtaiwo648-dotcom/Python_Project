@@ -15,20 +15,53 @@ import { dayOf } from "../analytics";
 import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
+import { useToast } from "../ui/Toast";
+import { DatePicker, DayGroup, FAB, FilterChips, ListRow, MoneyInput, SelectSheet, SwipeRow, SyncPending, useOpenNew } from "../ui";
 import type { Expense } from "../types";
+import InfoTip from "../components/InfoTip";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 
+const LAST_EXPENSE_KEY = "solobiz:last-expense";
+
+/** Last category and account used on this device. Storage can be blocked (private mode), so every call is guarded. */
+function readLastExpenseChoice(): { category: string; accountId: number | null } | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_EXPENSE_KEY);
+    return raw ? (JSON.parse(raw) as { category: string; accountId: number | null }) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastExpenseChoice(choice: { category: string; accountId: number | null }) {
+  try {
+    window.localStorage.setItem(LAST_EXPENSE_KEY, JSON.stringify(choice));
+  } catch {
+    // Not remembered on this device; the form still works.
+  }
+}
+
 function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
-  const { write, accounts } = useData();
+  const { write, accounts, expenses } = useData();
+  // Most-used categories first, so the ones you pick most are the first chips.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of expenses) counts.set(e.category, (counts.get(e.category) ?? 0) + 1);
+    return counts;
+  }, [expenses]);
+  const toast = useToast();
   const defaultAccountId = accounts.find((a) => a.is_default)?.id ?? null;
-  const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? defaultAccountId);
+  // The last category and account used are remembered on this device, so the next expense starts with them.
+  const remembered = initial ? null : readLastExpenseChoice();
+  const rememberedAccount = remembered?.accountId != null && accounts.some((a) => a.id === remembered.accountId && !a.archived) ? remembered.accountId : null;
+  const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? rememberedAccount ?? defaultAccountId);
   const cats = useExpenseCategories();
   // A category is pickable if it is active, or if this expense already uses it (even when archived).
   const pickable = cats.all.filter((c) => !c.archived || c.name === initial?.category).map((c) => c.name);
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
-  const [category, setCategory] = useState(initial?.category ?? "");
+  const [category, setCategory] = useState(initial?.category ?? remembered?.category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [entryDay, setEntryDay] = useState(initial?.entry_date ?? todayIso());
   const [error, setError] = useState("");
@@ -48,6 +81,7 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     setError("");
     try {
       const body = { amount: n, category, description: description.trim(), entry_date: entryDay, account_id: accountId };
+      if (!initial) writeLastExpenseChoice({ category, accountId });
       if (initial) {
         await write({ kind: "expense_edit", method: "PUT", url: `/api/expenses/${initial.server_id}`, body,
           meta: { expenseId: initial.server_id, patch: { ...body, date: dayStamp(entryDay) } } });
@@ -71,17 +105,16 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     }
   }
 
-  async function remove() {
-    if (!initial || !window.confirm("Delete this expense?")) return;
-    setBusy(true);
-    try {
-      await write({ kind: "expense_delete", method: "DELETE", url: `/api/expenses/${initial.server_id}`,
-        meta: { expenseId: initial.server_id } });
-      props.onClose();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete. Try again.");
-      setBusy(false);
-    }
+  // Delete now, with Undo for five seconds instead of a confirm popup. The request is sent when the window closes.
+  function remove() {
+    if (!initial) return;
+    const expenseId = initial.server_id;
+    const timer = window.setTimeout(() => {
+      void write({ kind: "expense_delete", method: "DELETE", url: `/api/expenses/${expenseId}`, meta: { expenseId } })
+        .catch(() => toast({ text: "Could not delete that expense. It is back in your list." }));
+    }, 5000);
+    toast({ text: "Expense deleted.", actionLabel: "Undo", onAction: () => window.clearTimeout(timer) });
+    props.onClose();
   }
 
   return (
@@ -90,25 +123,17 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
         {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{error}</p>}
         {notice && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</p>}
         <div className="sb-field">
-          <label htmlFor="expense-amount">Amount</label>
-          <div className="sb-money">
-            <span aria-hidden="true">₦</span>
-            <input id="expense-amount" type="text" inputMode="decimal" placeholder="0" required className="currency-input text-3xl font-bold tabular-nums"
-              value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
-          </div>
+          <MoneyInput label="Amount" display={amount} autoFocus onDisplay={(d) => setAmount(d)} />
         </div>
         <div className="sb-field">
-          <label htmlFor="expense-day">Date</label>
-          <input id="expense-day" type="date" required value={entryDay} min={minEntryIso()} max={todayIso()}
-            onChange={(e) => setEntryDay(e.target.value)} />
-          <p className="sb-help">The day this expense belongs to. Up to two years back; not in the future.</p>
+          <span className="ui-stat-label">Date</span>
+          <DatePicker label="Date" value={entryDay} today={todayIso()} onChange={setEntryDay} />
+          <p className="sb-help"><span>About the date</span> <InfoTip label="About the date">The day this expense belongs to. Up to two years back; not in the future.</InfoTip></p>
         </div>
         <div className="sb-field">
-          <label htmlFor="expense-category">Category</label>
-          <select id="expense-category" required value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="" disabled>Choose a category</option>
-            {pickable.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <span className="ui-stat-label">Category</span>
+          <FilterChips label="Category" value={category as string} onChange={setCategory}
+            options={[...pickable].sort((a, b) => (categoryCounts.get(b) ?? 0) - (categoryCounts.get(a) ?? 0) || a.localeCompare(b)).map((c) => ({ value: c, label: c }))} />
         </div>
         <div className="sb-field">
           <label htmlFor="expense-description">What was it for?</label>
@@ -117,12 +142,12 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
         </div>
         {!hasOneAccount(accounts) && (
           <div className="sb-field">
-            <label htmlFor="expense-account">Paid from</label>
-            <select id="expense-account" required value={accountId ?? ""} onChange={(e) => setAccountId(Number(e.target.value))}>
-              {pickableAccounts(accounts, initial?.account_id).map((a) => (
-                <option key={a.id} value={a.id}>{a.name}{a.archived ? " (archived)" : ""}{a.is_default ? " · default" : ""}</option>
-              ))}
-            </select>
+            <SelectSheet label="Paid from" placeholder="Choose an account"
+              value={accountId === null ? "" : String(accountId)}
+              options={pickableAccounts(accounts, initial?.account_id).map((a) => ({
+                value: String(a.id), label: `${a.name}${a.archived ? " (archived)" : ""}${a.is_default ? " · default" : ""}`,
+              }))}
+              onChange={(v) => setAccountId(Number(v))} />
           </div>
         )}
         <div className="sb-sheet-foot">
@@ -146,12 +171,27 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 }
 
 export default function Expenses() {
-  const { expenses, subscription, reload, accounts, loading } = useData();
+  const { expenses, subscription, reload, accounts, loading, write } = useData();
+  const toast = useToast();
+  // Expenses deleted but not yet confirmed. Hidden now; the delete is sent after five seconds unless Undo is tapped.
+  const [hiddenExp, setHiddenExp] = useState<Set<number>>(() => new Set());
   const dm = useDashboardMonth();
   const cats = useExpenseCategories();
   const [managing, setManaging] = useState(false);
   const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
+  useOpenNew(() => setEditing("new"));
+
+  // Hide the row now; send the delete after five seconds. Undo restores the row and sends nothing.
+  function removeExpense(e: Expense) {
+    setHiddenExp((h) => new Set(h).add(e.server_id));
+    const unhide = () => setHiddenExp((h) => { const n = new Set(h); n.delete(e.server_id); return n; });
+    const timer = window.setTimeout(() => {
+      void write({ kind: "expense_delete", method: "DELETE", url: `/api/expenses/${e.server_id}`, meta: { expenseId: e.server_id } })
+        .catch(() => { unhide(); toast({ text: "Could not delete that expense. It is back in your list." }); });
+    }, 5000);
+    toast({ text: "Expense deleted.", actionLabel: "Undo", onAction: () => { window.clearTimeout(timer); unhide(); } });
+  }
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState("");
@@ -170,9 +210,19 @@ export default function Expenses() {
   const inScope = dateRange
     ? expenses.filter((e) => (!from || dayOf(e) >= from) && (!to || dayOf(e) <= to))
     : expenses.filter((e) => dayOf(e).startsWith(ym));
+  const [search, setSearch] = useState("");
   const visible = inScope.filter((e) =>
-    (!category || e.category === category) && (!account || String(e.account_id) === account) &&
-    (!exact || Math.abs(e.amount - Number(exact)) < 0.005));
+    !hiddenExp.has(e.server_id) && (!category || e.category === category) && (!account || String(e.account_id) === account) &&
+    (!exact || Math.abs(e.amount - Number(exact)) < 0.005) &&
+    (!search.trim() || `${e.description} ${e.category}`.toLowerCase().includes(search.trim().toLowerCase())));
+  // Top category for the month: the one with the largest total in view.
+  const topCategory = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const e of inScope) totals.set(e.category || "Other", (totals.get(e.category || "Other") ?? 0) + e.amount);
+    let best: [string, number] | null = null;
+    for (const entry of totals) if (!best || entry[1] > best[1]) best = entry;
+    return best;
+  }, [inScope]);
   const filterCount = [category, account, exact, from || to].filter(Boolean).length;
   const accountName = (id: number | null | undefined) => accounts.find((a) => a.id === id)?.name;
   const showAccounts = !hasOneAccount(accounts);
@@ -200,6 +250,7 @@ export default function Expenses() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-xs font-medium text-slate-500">Spent in {monthName}</p>
+        {topCategory && <p className="mt-1 text-xs text-slate-500">Most on {topCategory[0]}: {money(topCategory[1])}</p>}
         <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{money(monthTotal)}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" id="btn-new-expense" className="sb-btn sb-btn-primary flex-1 justify-center" onClick={() => setEditing("new")}>
@@ -273,42 +324,42 @@ export default function Expenses() {
             <button type="button" className="sb-btn sb-btn-primary mt-3" onClick={() => setEditing("new")}>Add one</button>
           </div>
         )}
-        {inScope.length > 0 && visible.length === 0 && <p className="text-center text-sm text-slate-500">No expenses match your filter.</p>}
+        {inScope.length > 0 && visible.length === 0 && (
+          <div className="text-center">
+            <p className="text-sm text-slate-500">No expenses match your filter.</p>
+            <button type="button" className="sb-btn sb-btn-secondary mt-2" onClick={() => { setCategory(""); setAccount(""); setExact(""); setFrom(""); setTo(""); setSearch(""); }}>Clear filters</button>
+          </div>
+        )}
+        <input type="search" className="ui-input" aria-label="Search expenses" placeholder="Search what it was for or the category"
+          value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 12 }} />
         {days.map((g) => (
-          <section key={g.day} aria-label={dayHeading(g.day)}>
-            <h3 className="mb-2 flex items-baseline justify-between gap-3 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <span>{dayHeading(g.day)}</span>
-              <span className="tabular-nums">{money(g.total)}</span>
-            </h3>
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              {g.items.map((e) => (
-                <li key={e.server_id}>
-                  <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
-                    aria-label={`Edit expense: ${e.category}, ${money(e.amount)}`} onClick={() => setEditing(e)}>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-slate-900">{e.description || "No description"}</span>
-                      <span className="mt-1 flex flex-wrap gap-1.5">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{e.category || "Other"}</span>
-                        {showAccounts && accountName(e.account_id) && (
-                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-800">{accountName(e.account_id)}</span>
-                        )}
-                        {!e.synced && <span className="sync-badge">Not synced</span>}
-                      </span>
-                    </span>
-                    <span className="flex-shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(e.amount)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <DayGroup key={g.day} label={dayHeading(g.day)} total={money(g.total)}>
+            {g.items.map((e) => (
+              <SwipeRow key={e.server_id} label={`${e.description || "Expense"}, ${money(e.amount)}`}
+                onEdit={() => setEditing(e)} onDelete={() => removeExpense(e)}>
+                <ListRow
+                  ariaLabel={`Edit expense: ${e.category}, ${money(e.amount)}`}
+                  onClick={() => setEditing(e)}
+                  title={e.description || "No description"}
+                  chips={<>
+                    <span>{e.category || "Other"}</span>
+                    {showAccounts && accountName(e.account_id) && <span>{accountName(e.account_id)}</span>}
+                    {!e.synced && <SyncPending />}
+                  </>}
+                  amount={money(e.amount)} />
+              </SwipeRow>
+            ))}
+          </DayGroup>
         ))}
       </div>
 
       <div className="flex flex-wrap justify-center gap-4 pt-2 text-xs font-semibold text-slate-500">
-        <button type="button" className="hover:text-slate-800" onClick={() => setManaging(true)}>Categories</button>
-        <button type="button" className="hover:text-slate-800" onClick={() => setImporting(true)}>Import CSV</button>
-        <Link to="/reports" className="hover:text-slate-800">Reports</Link>
+        <button type="button" className="inline-flex min-h-[44px] items-center hover:text-slate-800" onClick={() => setManaging(true)}>Categories</button>
+        <button type="button" className="inline-flex min-h-[44px] items-center hover:text-slate-800" onClick={() => setImporting(true)}>Import CSV</button>
+        <Link to="/reports" className="inline-flex min-h-[44px] items-center hover:text-slate-800">Reports</Link>
       </div>
+
+      <FAB label="Add expense" onClick={() => setEditing("new")} />
 
       {editing && (
         <ExpenseForm initial={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />

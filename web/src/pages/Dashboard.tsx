@@ -1,39 +1,70 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { api } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { lastMonths } from "../analytics";
 import InfoTip from "../components/InfoTip";
+import { ActionSheet, FAB, StatCard } from "../ui";
 import MonthPicker from "../components/MonthPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
 import { money, relativeDay } from "../format";
 import { dayOf } from "../analytics";
 import { monthNow, ymLabel } from "../month";
-import { todayIso } from "../offline";
-import type { AccountView, DashboardSummary, Expense, Sale } from "../types";
+import { useCashAtHand } from "../cashAtHand";
+import { budgetAlerts } from "../budgetAlerts";
+import { useSession } from "../session";
+import type { DashboardSummary, Expense, MoneyInItem, Sale } from "../types";
 
 /** Home: this month in four numbers, six months at a glance, and the latest activity. */
 export default function Dashboard() {
   const { summary: fromContext, sales, expenses, moneyIn, accounts, online } = useData();
+  const navigate = useNavigate();
+  const [quickAdd, setQuickAdd] = useState(false);
+  const lowStock = fromContext?.low_stock_items.length ?? 0;
   const dm = useDashboardMonth();
   const s: DashboardSummary | null = dm.summary ?? fromContext;
   const ym = dm.selected ?? monthNow();
+  const { user } = useSession();
+  // Budgets are saved in this browser (see Budget). Read them here to warn when a category is near its limit.
+  const storedLimits = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`solobiz:budgets:${user?.id ?? "anon"}`) || "{}") as Record<string, number>;
+    } catch {
+      return {};
+    }
+  }, [user?.id]);
+  const budgetWarnings = budgetAlerts(storedLimits, expenses, ym);
   const monthName = ymLabel(ym);
   const cashAtHand = useCashAtHand(accounts, s);
+  const alertCount = (lowStock > 0 ? 1 : 0) + budgetWarnings.length
+    + (typeof cashAtHand === "number" && cashAtHand < 0 ? 1 : 0)
+    + (fromContext && fromContext.total_outstanding > 0 ? 1 : 0);
   const name = s?.username ?? "";
 
   useEffect(() => { document.title = "Home | SoloBiz"; }, []);
 
   const profit = s?.month_net ?? 0;
-  const buckets = lastMonths(sales, expenses, ym, 6, moneyIn);
+  // The six months end at the latest month that has any record, so the chart has no empty months at the end.
+  const buckets = lastMonths(sales, expenses, latestMonthWithData(sales, expenses, moneyIn) ?? ym, 6, moneyIn);
   const peak = Math.max(1, ...buckets.flatMap((b) => [b.sales + b.moneyIn, b.expenses]));
-  const recent = recentActivity(sales, expenses, 5);
+  // Recent activity follows the month picker.
+  const inMonth = (r: { entry_date?: string; date: string }) => dayOf(r).startsWith(ym);
+  const recent = recentActivity(sales.filter(inMonth), expenses.filter(inMonth), 5);
 
   return (
     <div className="space-y-5" id="home">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <p className="truncate text-lg font-semibold text-slate-900">{greeting()}{name ? `, ${name}` : ""}</p>
+          {alertCount > 0 && (
+            <button type="button" aria-label={`${alertCount} ${alertCount === 1 ? "alert" : "alerts"}, show them`}
+              onClick={() => document.getElementById("home-alerts")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="relative inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" />
+              </svg>
+              <span className="absolute right-1 top-1 min-w-[1.1rem] rounded-full bg-rose-600 px-1 text-center text-[10px] font-bold leading-4 text-white">{alertCount}</span>
+            </button>
+          )}
         </div>
         <MonthPicker value={ym} current={dm.current ?? monthNow()} months={dm.months} onChange={dm.setMonth} />
       </header>
@@ -47,17 +78,47 @@ export default function Dashboard() {
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-3" aria-label="This month at a glance">
+      <div id="home-alerts" className="space-y-2">
+      {lowStock > 0 && (
+        <Link to="/inventory" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>{lowStock} {lowStock === 1 ? "product is" : "products are"} running low</span>
+          <span className="text-blue-700">Restock →</span>
+        </Link>
+      )}
+
+      {budgetWarnings.map((b) => (
+        <Link key={`budget-${b.category}`} to="/budget" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>{b.category} is at {Math.round(b.percent)}% of its budget</span>
+          <span className="text-blue-700">See budget →</span>
+        </Link>
+      ))}
+      {typeof cashAtHand === "number" && cashAtHand < 0 && (
+        <Link to="/money?tab=accounts" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>Overspent: cash at hand is {money(cashAtHand)}</span>
+          <span className="text-blue-700">See accounts →</span>
+        </Link>
+      )}
+      {s && s.total_outstanding > 0 && (
+        <Link to="/sales" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>{money(s.total_outstanding)} still owed by customers</span>
+          <span className="text-blue-700">See sales →</span>
+        </Link>
+      )}
+
+      </div>
+
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="This month at a glance">
         <Card label="Sales" tip={`Money collected from sales in ${monthName}.`} value={s ? money(s.month_income) : null} />
         <Card label="Expenses" tip={`Expenses paid in ${monthName}.`} value={s ? money(s.month_expenses) : null} />
         <Card label="Profit" tip={`Sales minus expenses in ${monthName}.`}
-          value={s ? money(profit) : null} tone={profit < 0 ? "text-rose-700" : "text-slate-900"} />
+          value={s ? money(profit) : null} tone={profit < 0 ? "warning" : undefined} />
         <Card label="Cash at hand" tip="All your account balances today, added together."
           value={cashAtHand === undefined ? null : cashAtHand === null ? "—" : money(cashAtHand)}
-          tone={(cashAtHand ?? 0) < 0 ? "text-rose-700" : "text-slate-900"}
+          tone={(cashAtHand ?? 0) < 0 ? "warning" : undefined}
           link={{ to: "/money?tab=accounts", label: "See accounts →" }} />
       </section>
 
+      <div className="home-split">
       <section className="sb-panel" aria-labelledby="home-chart-title">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 id="home-chart-title" className="text-sm font-semibold text-slate-900">Last 6 months</h3>
@@ -115,24 +176,24 @@ export default function Dashboard() {
           </ul>
         )}
       </section>
+      </div>
+      <FAB label="Add something" onClick={() => setQuickAdd(true)} />
+      {quickAdd && (
+        <ActionSheet title="Add something" onClose={() => setQuickAdd(false)} options={[
+          { label: "Sale", sub: "Record something you sold", onSelect: () => navigate("/sales?new=1") },
+          { label: "Expense", sub: "Record money you spent", onSelect: () => navigate("/expenses?new=1") },
+          { label: "Money in", sub: "Owner contribution, loan or other income", onSelect: () => navigate("/money?tab=moneyin&new=1") },
+        ]} />
+      )}
     </div>
   );
 }
 
-function Card(props: { label: string; tip: string; value: string | null; tone?: string; link?: { to: string; label: string } }) {
+function Card(props: { label: string; tip: string; value: string | null; tone?: "money-in" | "warning" | "danger"; link?: { to: string; label: string } }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="flex items-center text-xs font-medium text-slate-500">
-        {props.label}
-        <InfoTip label={props.label}>{props.tip}</InfoTip>
-      </p>
-      {props.value === null ? (
-        <div className="mt-2 h-7 w-24 animate-pulse rounded bg-slate-100" aria-hidden="true" />
-      ) : (
-        <p className={`mt-2 text-xl font-bold tabular-nums ${props.tone ?? "text-slate-900"}`}>{props.value}</p>
-      )}
-      {props.link && <Link to={props.link.to} className="mt-2 inline-block text-xs font-semibold text-blue-700 hover:text-blue-900">{props.link.label}</Link>}
-    </div>
+    <StatCard label={props.label} value={props.value} tone={props.tone}
+      info={<InfoTip label={props.label}>{props.tip}</InfoTip>}
+      footer={props.link && <Link to={props.link.to}>{props.link.label}</Link>} />
   );
 }
 
@@ -148,37 +209,29 @@ function barHeight(value: number, peak: number): string {
 
 interface Activity { key: string; kind: "sale" | "expense"; title: string; sub: string; amount: number; day: string }
 
+/** The latest month (YYYY-MM) that has a sale, expense or money in, or null when there are none. */
+function latestMonthWithData(sales: Sale[], expenses: Expense[], moneyIn: MoneyInItem[]): string | null {
+  let latest = "";
+  for (const r of [...sales, ...expenses, ...moneyIn]) {
+    const month = dayOf(r).slice(0, 7);
+    if (month > latest) latest = month;
+  }
+  return latest || null;
+}
+
 /** The latest sales and expenses together, newest first, by business day. */
 function recentActivity(sales: Sale[], expenses: Expense[], count: number): Activity[] {
   const items: Activity[] = [
+    // Description is the title; the small line is category (or customer for sales) and the day.
     ...sales.map((s) => ({
-      key: `s${s.id}`, kind: "sale" as const, title: s.customer_name || "Walk-in customer",
-      sub: `${s.description} · ${relativeDay(s.entry_date || s.date)}`, amount: s.amount_paid, day: dayOf(s),
+      key: `s${s.id}`, kind: "sale" as const, title: s.description || "Sale",
+      sub: `${s.customer_name || "Walk-in customer"} · ${relativeDay(s.entry_date || s.date)}`, amount: s.amount_paid, day: dayOf(s),
     })),
     ...expenses.map((e) => ({
-      key: `e${e.server_id}`, kind: "expense" as const, title: e.category || "Expense",
-      sub: `${e.description} · ${relativeDay(e.entry_date || e.date)}`, amount: e.amount, day: dayOf(e),
+      key: `e${e.server_id}`, kind: "expense" as const, title: e.description || "Expense",
+      sub: `${e.category || "Other"} · ${relativeDay(e.entry_date || e.date)}`, amount: e.amount, day: dayOf(e),
     })),
   ];
   return items.sort((a, b) => b.day.localeCompare(a.day) || b.key.localeCompare(a.key)).slice(0, count);
 }
 
-/** Cash at hand: the balance of every active account, added together, as of today. Read from the
- * account statements, which already count each movement once. undefined = loading, null = unavailable. */
-function useCashAtHand(accounts: AccountView[], stamp: unknown): number | null | undefined {
-  const [value, setValue] = useState<number | null | undefined>(undefined);
-  useEffect(() => {
-    const active = accounts.filter((a) => !a.archived);
-    if (active.length === 0) { setValue(0); return; }
-    let live = true;
-    const anchor = todayIso();
-    Promise.all(active.map((a) =>
-      api.get<{ closing: { balance: string } }>(`/api/accounts/${a.id}/statement?period=month&date=${anchor}`)))
-      .then((results) => {
-        if (live) setValue(results.reduce((sum, r) => sum + Math.round(Number(r.closing.balance) * 100), 0) / 100);
-      })
-      .catch(() => { if (live) setValue(null); });
-    return () => { live = false; };
-  }, [accounts, stamp]);
-  return value;
-}

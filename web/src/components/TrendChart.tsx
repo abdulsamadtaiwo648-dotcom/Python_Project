@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Bucket } from "../analytics";
-
-const compact = (v: number) => "₦" + new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 }).format(v);
+import { compactNaira as compact } from "../format";
 
 export const SERIES_COLORS = { sales: "#1d4ed8", moneyIn: "#059669", expenses: "#cbd5e1", net: "#0f172a" };
 
