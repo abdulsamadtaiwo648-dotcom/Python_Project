@@ -1,7 +1,6 @@
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
 import { useEffect, useMemo, useState } from "react";
-import { ApiError } from "../api";
 import { UpgradeNotice } from "../components/Upgrade";
 import { NewSale, SettleDebt, type Receipt, type Status } from "../components/SaleSheets";
 import ImportSheet from "../components/ImportSheet";
@@ -10,6 +9,7 @@ import { useSession } from "../session";
 import { dateTimeLabel, money, parseSaved } from "../format";
 import type { BusinessProfile, Sale } from "../types";
 import { escapeHtml } from "../escape";
+import { useToast } from "../ui/Toast";
 
 type Quick = "all" | "today" | "week" | "bulk";
 const STATUS: Record<Status, { label: string; cls: string }> = {
@@ -83,8 +83,9 @@ export default function Sales() {
   const [importing, setImporting] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [settling, setSettling] = useState<Receipt | null>(null);
-  const [deleting, setDeleting] = useState<Receipt | null>(null);
-  const [deleteError, setDeleteError] = useState("");
+  // Receipts deleted but not yet confirmed. Hidden now; the delete is sent after five seconds unless Undo is tapped.
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const toast = useToast();
   const [needProfile, setNeedProfile] = useState(false);
 
   useEffect(() => { document.title = "Sales | SoloBiz"; }, []);
@@ -118,20 +119,19 @@ export default function Sales() {
   const activeFilters = [product, payment, min, max].filter((v) => v !== "").length;
   const filtered = quick !== "all" || activeFilters > 0;
 
-  async function confirmDelete() {
-    if (!deleting) return;
-    try {
+  function removeSale(r: Receipt) {
+    setHidden((h) => new Set(h).add(r.key));
+    const unhide = () => setHidden((h) => { const n = new Set(h); n.delete(r.key); return n; });
+    const timer = window.setTimeout(() => {
       const stock: Record<number, number> = {};
-      for (const s of deleting.items) {
+      for (const s of r.items) {
         if (s.inventory_item_id != null) stock[s.inventory_item_id] = (stock[s.inventory_item_id] ?? 0) + s.quantity;
       }
-      await write({ kind: "sale_delete", method: "DELETE", url: `/api/income/${deleting.items[0].id}`,
-        meta: { saleIds: deleting.items.map((s) => s.id), checkoutId: deleting.items[0].checkout_id, stock } });
-      setDeleting(null);
-      setDeleteError("");
-    } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : "Could not delete this sale. Try again.");
-    }
+      write({ kind: "sale_delete", method: "DELETE", url: `/api/income/${r.items[0].id}`,
+        meta: { saleIds: r.items.map((s) => s.id), checkoutId: r.items[0].checkout_id, stock } })
+        .catch(() => { unhide(); toast({ text: "Could not delete that sale. It is back in your list." }); });
+    }, 5000);
+    toast({ text: "Sale deleted.", actionLabel: "Undo", onAction: () => { window.clearTimeout(timer); unhide(); } });
   }
 
   const chips: [Quick, string][] = [["all", "All"], ["today", "Today"], ["week", "This week"], ["bulk", "Bulk sales"]];
@@ -203,7 +203,7 @@ export default function Sales() {
               ? <EmptyState message="No sales yet." action={<button type="button" className="sb-btn sb-btn-primary" onClick={() => setCreating(true)}>New sale</button>} />
               : <p className="list-empty">No sales match these filters.</p>
           )}
-          {receipts.map((r) => {
+          {receipts.filter((r) => !hidden.has(r.key)).map((r) => {
             const first = r.items[0];
             const meta = [saleDate(first.date), first.payment_mode || "Cash", first.receipt_id ? `#${first.receipt_id}` : ""].filter(Boolean).join(" · ");
             return (
@@ -228,7 +228,7 @@ export default function Sales() {
                     onClick={() => (profile?.company_name ? printReceipt(r, profile, can("branding")) : setNeedProfile(true))}>Receipt</button>
                   {canDelete && (
                                     <button type="button" className="btn-delete-income sb-btn sb-btn-small sb-btn-danger-text" aria-label="Delete this sale"
-                    onClick={() => { setDeleting(r); setDeleteError(""); }}>Delete</button>
+                    onClick={() => removeSale(r)}>Delete</button>
                   )}
                 </div>
               </article>
@@ -239,20 +239,6 @@ export default function Sales() {
       </div>
 
       {settling && <SettleDebt receipt={settling} onClose={() => setSettling(null)} />}
-      {deleting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600">Confirm deletion</p>
-            <h3 className="mt-1 text-xl font-black text-slate-900">Delete this sale?</h3>
-            <p className="mt-2 text-sm text-slate-600">This will permanently remove the recorded sale. Stock sold in it is returned to inventory.</p>
-            {deleteError && <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700" role="alert">{deleteError}</p>}
-            <div className="mt-6 flex gap-3">
-              <button type="button" className="flex-1 rounded-xl bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200" onClick={() => setDeleting(null)}>Keep sale</button>
-              <button type="button" className="flex-1 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-md hover:bg-rose-700" onClick={confirmDelete}>Delete sale</button>
-            </div>
-          </div>
-        </div>
-      )}
       {needProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
           <div className="w-full max-w-sm rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
