@@ -23,6 +23,27 @@ const bulkOffer = (p: Product) => (p.bulk_quantity && p.bulk_price ? `${p.bulk_q
 type Chip = "all" | "low" | "out" | "bulk";
 
 function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: () => void; onSaved: () => Promise<void>; onDelete: (p: Product) => void }) {
+  // Whether this product is shown on the public website. Read from the website settings, saved on change.
+  const [onSite, setOnSite] = useState<boolean | null>(null);
+  const [siteError, setSiteError] = useState("");
+  useEffect(() => {
+    if (!props.product) return;
+    let live = true;
+    api.get<{ website: { products: { id: number; show_on_website: boolean }[] } }>("/api/website")
+      .then((r) => { if (live) setOnSite(r.website.products.find((x) => x.id === props.product!.id)?.show_on_website ?? null); })
+      .catch(() => { if (live) setOnSite(null); });
+    return () => { live = false; };
+  }, [props.product?.id]);
+  async function toggleSite(show: boolean) {
+    if (!props.product) return;
+    setSiteError("");
+    try {
+      await api.put(`/api/website/products/${props.product.id}`, { show_on_website: show });
+      setOnSite(show);
+    } catch (err) {
+      setSiteError(err instanceof ApiError ? err.message : "Could not change that. Try again.");
+    }
+  }
   const p = props.product;
   const adding = !p;
   const [name, setName] = useState(p?.item_name ?? "");
@@ -115,6 +136,15 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
           <p className="sb-help">Only used when you tick "Sell as bulk" on a sale. Leave both empty to sell by the piece only.</p>
         </fieldset>
         {error && <p className="sb-error" role="alert">{error}{upgrade && <> <Link to="/plans" className="font-semibold underline">See plans</Link></>}</p>}
+        {props.product && onSite !== null && (
+          <div className="sb-field" style={{ marginTop: 8 }}>
+            <label className="wb-switch" style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44 }}>
+              <input type="checkbox" checked={onSite} onChange={(e) => void toggleSite(e.target.checked)} />
+              <span>Show on my website</span>
+            </label>
+            {siteError && <p className="sb-error" role="alert">{siteError}</p>}
+          </div>
+        )}
         <div className="sb-sheet-foot">
           {!adding && <button type="button" className="sb-btn sb-btn-danger-text" onClick={remove}>Delete</button>}
           <button type="button" className="sb-btn sb-btn-secondary" onClick={props.onClose}>Cancel</button>
