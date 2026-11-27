@@ -22,10 +22,11 @@ const MOBILE = [
   { to: "/sales", label: "Sales" },
   { to: "/expenses", label: "Expenses" },
   { to: "/money", label: "Money", page: "sales" },
-  { to: "/inventory", label: "Stock" },
 ] as const;
 
+// Stock lives under More on phones (section 2 of the redesign). Desktop lists these in the sidebar.
 const MORE_ALL = [
+  { to: "/inventory", label: "Stock" },
   { to: "/reports", label: "Reports" },
   { to: "/team", label: "Team" },
   { to: "/website", label: "Website" },
@@ -216,12 +217,15 @@ export default function Layout() {
       </main>
 
       <BottomNav
-        items={MOBILE_SHOWN.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-6 h-6" sw={1.9} />, badge: n.to === "/inventory" ? lowCount : undefined }))}
-        moreItems={MORE.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-5 h-5" /> }))}
+        items={MOBILE_SHOWN.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-6 h-6" sw={1.9} /> }))}
+        moreItems={MORE.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-5 h-5" />, badge: n.to === "/inventory" ? lowCount : undefined }))}
+        moreBadge={lowCount}
         activeTab={tab}
-        moreTabs={["reports", "budget", "profile", "plans", "team", "website"]}
+        moreTabs={["inventory", "reports", "budget", "profile", "plans", "team", "website"]}
         moreOpen={moreOpen}
-        onToggleMore={() => setMoreOpen((o) => !o)} />
+        onToggleMore={() => setMoreOpen((o) => !o)}
+        moreFooter={<button type="button" role="menuitem" onClick={() => void signOut()}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50">Sign out</button>} />
     </>
   );
 }

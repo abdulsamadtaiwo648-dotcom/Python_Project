@@ -16,7 +16,7 @@ import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import { useToast } from "../ui/Toast";
-import { DayGroup, ListRow, SelectSheet } from "../ui";
+import { DayGroup, FAB, ListRow, SelectSheet } from "../ui";
 import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
@@ -296,6 +296,8 @@ export default function Expenses() {
         <button type="button" className="hover:text-slate-800" onClick={() => setImporting(true)}>Import CSV</button>
         <Link to="/reports" className="hover:text-slate-800">Reports</Link>
       </div>
+
+      <FAB label="Add expense" onClick={() => setEditing("new")} />
 
       {editing && (
         <ExpenseForm initial={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />

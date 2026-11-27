@@ -10,6 +10,7 @@ import { dateTimeLabel, money, parseSaved } from "../format";
 import type { BusinessProfile, Sale } from "../types";
 import { escapeHtml } from "../escape";
 import { useToast } from "../ui/Toast";
+import FAB from "../ui/FAB";
 
 type Quick = "all" | "today" | "week" | "bulk";
 const STATUS: Record<Status, { label: string; cls: string }> = {
@@ -235,7 +236,7 @@ export default function Sales() {
             );
           })}
         </div>
-        <button type="button" className="sb-btn sb-btn-primary sb-btn-block lg:hidden" onClick={() => setCreating(true)}>+ New sale</button>
+        <FAB label="New sale" onClick={() => setCreating(true)} />
       </div>
 
       {settling && <SettleDebt receipt={settling} onClose={() => setSettling(null)} />}
