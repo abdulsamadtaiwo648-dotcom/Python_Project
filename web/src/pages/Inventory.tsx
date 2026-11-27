@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import Sheet from "../components/Sheet";
 import { useData } from "../data";
 import { money } from "../format";
+import { useToast } from "../ui/Toast";
 import type { Product } from "../types";
 
 const threshold = (p: Product) => (Number.isInteger(p.low_stock_threshold) && p.low_stock_threshold >= 0 ? p.low_stock_threshold : 3);
@@ -21,7 +22,7 @@ const bulkOffer = (p: Product) => (p.bulk_quantity && p.bulk_price ? `${p.bulk_q
 
 type Chip = "all" | "low" | "out" | "bulk";
 
-function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: () => void; onSaved: () => Promise<void> }) {
+function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: () => void; onSaved: () => Promise<void>; onDelete: (p: Product) => void }) {
   const p = props.product;
   const adding = !p;
   const [name, setName] = useState(p?.item_name ?? "");
@@ -32,7 +33,6 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
   const [bulkPrice, setBulkPrice] = useState(p?.bulk_price ? String(p.bulk_price) : "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [upgrade, setUpgrade] = useState(false);
 
   async function save(e: FormEvent) {
@@ -66,40 +66,13 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
     }
   }
 
-  async function remove() {
+  // Handed to the page, which hides the product and sends the delete after five seconds unless Undo is tapped.
+  function remove() {
     if (!p) return;
-    setBusy(true);
-    try {
-      await api.del(`/api/inventory-presets/${p.id}`);
-      await props.onSaved();
-      props.onClose();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete product. Try again.");
-      setConfirmDelete(false);
-      setBusy(false);
-    }
+    props.onDelete(p);
+    props.onClose();
   }
 
-  if (confirmDelete && p) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true">
-        <div className="w-full max-w-sm rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600">Confirm deletion</p>
-          <h3 className="mt-1 text-xl font-black text-slate-900">Delete this product?</h3>
-          <p className="mt-2 text-sm text-slate-600">
-            <span className="font-bold text-slate-800">{p.item_name}</span> will be removed from inventory. Past sales will remain.
-          </p>
-          {error && <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700" role="alert">{error}</p>}
-          <div className="mt-6 flex gap-3">
-            <button type="button" className="flex-1 rounded-xl bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200" onClick={() => setConfirmDelete(false)}>Keep product</button>
-            <button type="button" disabled={busy} className="flex-1 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-md hover:bg-rose-700" onClick={remove}>
-              {busy ? "Deleting…" : "Delete product"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Sheet title={adding ? "Add product" : "Edit product"} onClose={props.onClose}
@@ -143,7 +116,7 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
         </fieldset>
         {error && <p className="sb-error" role="alert">{error}{upgrade && <> <Link to="/plans" className="font-semibold underline">See plans</Link></>}</p>}
         <div className="sb-sheet-foot">
-          {!adding && <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => setConfirmDelete(true)}>Delete</button>}
+          {!adding && <button type="button" className="sb-btn sb-btn-danger-text" onClick={remove}>Delete</button>}
           <button type="button" className="sb-btn sb-btn-secondary" onClick={props.onClose}>Cancel</button>
           <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}>{adding ? "Add product" : "Save changes"}</button>
         </div>
@@ -153,11 +126,25 @@ function ProductForm(props: { product?: Product; focusStock?: boolean; onClose: 
 }
 
 export default function Inventory() {
-  const { products, reload, loading } = useData();
+  const { products: allProducts, reload, loading } = useData();
+  // Products deleted but not yet confirmed. Hidden now; the delete is sent after five seconds unless Undo is tapped.
+  const [hidden, setHidden] = useState<Set<number>>(() => new Set());
+  const products = useMemo(() => allProducts.filter((p) => !hidden.has(p.id)), [allProducts, hidden]);
+  const toast = useToast();
   const [chip, setChip] = useState<Chip>("all");
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"cards" | "table">("cards");
   const [editing, setEditing] = useState<{ product?: Product; restock?: boolean } | null>(null);
+  function scheduleDelete(p: Product) {
+    setHidden((h) => new Set(h).add(p.id));
+    const unhide = () => setHidden((h) => { const n = new Set(h); n.delete(p.id); return n; });
+    const timer = window.setTimeout(() => {
+      api.del(`/api/inventory-presets/${p.id}`)
+        .then(() => reload())
+        .catch(() => { unhide(); toast({ text: "Could not delete that product. It is back in your list." }); });
+    }, 5000);
+    toast({ text: `${p.item_name} deleted.`, actionLabel: "Undo", onAction: () => { window.clearTimeout(timer); unhide(); } });
+  }
 
   useEffect(() => { document.title = "Inventory | SoloBiz"; }, []);
 
@@ -284,7 +271,7 @@ export default function Inventory() {
       </div>
       <p className="page-note">Tap a product to edit its price, stock, bulk price or low-stock alert.</p>
 
-      {editing && <ProductForm product={editing.product} focusStock={editing.restock} onClose={() => setEditing(null)} onSaved={reload} />}
+      {editing && <ProductForm product={editing.product} focusStock={editing.restock} onClose={() => setEditing(null)} onSaved={reload} onDelete={scheduleDelete} />}
     </section>
   );
 }
