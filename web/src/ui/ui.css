@@ -132,3 +132,12 @@
 
 /* Items recorded offline that have not synced yet */
 .ui-sync-pending { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--sb-radius-chip); background: #fffbeb; color: var(--sb-warning); font-size: var(--sb-text-label); font-weight: 600; }
+
+/* Desktop (section 7): content up to 1200px; Home shows the chart and recent activity side by side. */
+@media (min-width: 1024px) {
+  main.desktop-dashboard-shell { max-width: 1200px; margin-inline: auto; }
+  .home-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--sb-space-4); align-items: start; }
+}
+@media (max-width: 1023px) {
+  .home-split { display: flex; flex-direction: column; gap: var(--sb-space-4); }
+}

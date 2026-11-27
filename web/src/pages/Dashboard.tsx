@@ -118,6 +118,7 @@ export default function Dashboard() {
           link={{ to: "/money?tab=accounts", label: "See accounts →" }} />
       </section>
 
+      <div className="home-split">
       <section className="sb-panel" aria-labelledby="home-chart-title">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 id="home-chart-title" className="text-sm font-semibold text-slate-900">Last 6 months</h3>
@@ -175,6 +176,7 @@ export default function Dashboard() {
           </ul>
         )}
       </section>
+      </div>
       <FAB label="Add something" onClick={() => setQuickAdd(true)} />
       {quickAdd && (
         <ActionSheet title="Add something" onClose={() => setQuickAdd(false)} options={[

@@ -15,7 +15,6 @@ const NAV = [
   { to: "/sales", label: "Sales", tab: "income" },
   { to: "/expenses", label: "Expenses", tab: "expenses" },
   { to: "/money", label: "Money", tab: "money", page: "sales" },
-  { to: "/inventory", label: "Stock", tab: "inventory" },
 ] as const;
 
 const MOBILE = [
@@ -144,10 +143,6 @@ export default function Layout() {
               className={({ isActive }) => linkClass(isActive)}>
               <Svg html={ICONS[n.to]} />
               <span>{n.label}</span>
-              {n.tab === "inventory" && lowCount > 0 && (
-                <span data-low-stock-badge className="ml-auto min-w-[1.25rem] rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white"
-                  aria-label={`${lowCount} products low on stock`}>{lowCount}</span>
-              )}
             </NavLink>
           ))}
           {MORE.length > 0 && <p className="nav-group">More</p>}
@@ -155,6 +150,10 @@ export default function Layout() {
             <NavLink key={n.to} to={n.to} className={({ isActive }) => linkClass(isActive)}>
               <Svg html={ICONS["m" + n.to]} />
               <span>{n.label}</span>
+              {n.to === "/inventory" && lowCount > 0 && (
+                <span data-low-stock-badge className="ml-auto min-w-[1.25rem] rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white"
+                  aria-label={`${lowCount} products low on stock`}>{lowCount}</span>
+              )}
             </NavLink>
           ))}
           <div className="side-business">
