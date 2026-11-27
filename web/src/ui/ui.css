@@ -129,3 +129,6 @@
 .ui-swipe-edit { background: var(--sb-brand); }
 .ui-swipe-delete { background: var(--sb-danger); }
 @media (prefers-reduced-motion: reduce) { .ui-swipe-row { transition: none; } }
+
+/* Items recorded offline that have not synced yet */
+.ui-sync-pending { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--sb-radius-chip); background: #fffbeb; color: var(--sb-warning); font-size: var(--sb-text-label); font-weight: 600; }

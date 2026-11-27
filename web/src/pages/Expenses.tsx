@@ -16,7 +16,7 @@ import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import { useToast } from "../ui/Toast";
-import { DatePicker, DayGroup, FAB, FilterChips, ListRow, MoneyInput, SelectSheet, SwipeRow, useOpenNew } from "../ui";
+import { DatePicker, DayGroup, FAB, FilterChips, ListRow, MoneyInput, SelectSheet, SwipeRow, SyncPending, useOpenNew } from "../ui";
 import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
@@ -338,7 +338,7 @@ export default function Expenses() {
                   chips={<>
                     <span>{e.category || "Other"}</span>
                     {showAccounts && accountName(e.account_id) && <span>{accountName(e.account_id)}</span>}
-                    {!e.synced && <span className="sync-badge">Not synced</span>}
+                    {!e.synced && <SyncPending />}
                   </>}
                   amount={money(e.amount)} />
               </SwipeRow>
