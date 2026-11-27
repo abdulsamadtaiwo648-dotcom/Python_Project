@@ -16,7 +16,7 @@ import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import { useToast } from "../ui/Toast";
-import { DayGroup, FAB, ListRow, SelectSheet } from "../ui";
+import { DayGroup, FAB, ListRow, SelectSheet, useOpenNew } from "../ui";
 import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
@@ -151,6 +151,7 @@ export default function Expenses() {
   const [managing, setManaging] = useState(false);
   const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
+  useOpenNew(() => setEditing("new"));
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState("");

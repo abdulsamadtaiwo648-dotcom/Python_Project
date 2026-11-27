@@ -11,6 +11,7 @@ import type { BusinessProfile, Sale } from "../types";
 import { escapeHtml } from "../escape";
 import { useToast } from "../ui/Toast";
 import FAB from "../ui/FAB";
+import { useOpenNew } from "../ui/useOpenNew";
 
 type Quick = "all" | "today" | "week" | "bulk";
 const STATUS: Record<Status, { label: string; cls: string }> = {
@@ -81,6 +82,7 @@ export default function Sales() {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [creating, setCreating] = useState(false);
+  useOpenNew(() => setCreating(true));
   const [importing, setImporting] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [settling, setSettling] = useState<Receipt | null>(null);

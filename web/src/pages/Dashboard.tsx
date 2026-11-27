@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { lastMonths } from "../analytics";
 import InfoTip from "../components/InfoTip";
-import { StatCard } from "../ui";
+import { ActionSheet, FAB, StatCard } from "../ui";
 import MonthPicker from "../components/MonthPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
@@ -16,6 +16,9 @@ import type { AccountView, DashboardSummary, Expense, Sale } from "../types";
 /** Home: this month in four numbers, six months at a glance, and the latest activity. */
 export default function Dashboard() {
   const { summary: fromContext, sales, expenses, moneyIn, accounts, online } = useData();
+  const navigate = useNavigate();
+  const [quickAdd, setQuickAdd] = useState(false);
+  const lowStock = fromContext?.low_stock_items.length ?? 0;
   const dm = useDashboardMonth();
   const s: DashboardSummary | null = dm.summary ?? fromContext;
   const ym = dm.selected ?? monthNow();
@@ -46,6 +49,13 @@ export default function Dashboard() {
             Show {ymLabel(dm.notice.current_month)}
           </button>
         </div>
+      )}
+
+      {lowStock > 0 && (
+        <Link to="/inventory" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>{lowStock} {lowStock === 1 ? "product is" : "products are"} running low</span>
+          <span className="text-blue-700">Restock →</span>
+        </Link>
       )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="This month at a glance">
@@ -116,6 +126,14 @@ export default function Dashboard() {
           </ul>
         )}
       </section>
+      <FAB label="Add something" onClick={() => setQuickAdd(true)} />
+      {quickAdd && (
+        <ActionSheet title="Add something" onClose={() => setQuickAdd(false)} options={[
+          { label: "Sale", sub: "Record something you sold", onSelect: () => navigate("/sales?new=1") },
+          { label: "Expense", sub: "Record money you spent", onSelect: () => navigate("/expenses?new=1") },
+          { label: "Money in", sub: "Owner contribution, loan or other income", onSelect: () => navigate("/money?tab=moneyin&new=1") },
+        ]} />
+      )}
     </div>
   );
 }

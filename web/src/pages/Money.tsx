@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { ActionSheet, FAB } from "../ui";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { canTransfer } from "../accounts";
 import { canUse } from "../access";
 import { useData } from "../data";
@@ -15,6 +16,8 @@ export default function Money() {
   const showAccounts = canUse(access, "accounts");
   const tabs: Tab[] = showAccounts ? ["accounts", "moneyin", "transfers"] : ["moneyin", "transfers"];
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [addOpen, setAddOpen] = useState(false);
   const requested = params.get("tab") as Tab | null;
   const tab: Tab = requested && tabs.includes(requested) ? requested : tabs[0];
   const labels: Record<Tab, string> = { accounts: "Accounts", moneyin: "Money in", transfers: "Transfers" };
@@ -37,6 +40,13 @@ export default function Money() {
       {tab === "accounts" && <Accounts />}
       {tab === "moneyin" && <MoneyIn />}
       {tab === "transfers" && <Transfers onAddAccount={() => setParams({ tab: "accounts" })} />}
+      <FAB label="Add money in or a transfer" onClick={() => setAddOpen(true)} />
+      {addOpen && (
+        <ActionSheet title="Add to money" onClose={() => setAddOpen(false)} options={[
+          { label: "Money in", sub: "Owner contribution, loan, refund or other income", onSelect: () => navigate("/money?tab=moneyin&new=1") },
+          { label: "Transfer", sub: "Move money from one account to another", onSelect: () => navigate("/money?tab=transfers") },
+        ]} />
+      )}
     </section>
   );
 }

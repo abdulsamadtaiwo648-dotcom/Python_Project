@@ -1,6 +1,7 @@
 import EmptyState from "../components/EmptyState";
 import { useEffect, useState, type FormEvent } from "react";
 import { useToast } from "../ui/Toast";
+import { useOpenNew } from "../ui/useOpenNew";
 import { ApiError, api } from "../api";
 import { moneyInFor, moneyInTotal, MONEY_IN_KINDS, TRANSFER_KIND } from "../moneyIn";
 import { canTransfer, hasOneAccount, pickableAccounts } from "../accounts";
@@ -21,6 +22,7 @@ export default function MoneyIn() {
   const { moneyIn, reload } = useData();
   const dm = useDashboardMonth();
   const [editing, setEditing] = useState<MoneyInItem | "new" | null>(null);
+  useOpenNew(() => setEditing("new"));
   const [importing, setImporting] = useState(false);
   // Rows deleted but not yet confirmed. They stay hidden until Undo or until the delete is sent.
   const [hidden, setHidden] = useState<Set<number>>(() => new Set());

@@ -61,3 +61,14 @@
   .ui-fab { display: none; }
   .ui-appbar { padding: 0 var(--sb-space-6); }
 }
+
+/* Tablet: bottom bar stays; content is centred at 720px. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  main.desktop-dashboard-shell { max-width: 720px; margin-inline: auto; }
+}
+
+/* Desktop: sheets open as a side panel so the list stays visible behind them. */
+@media (min-width: 1024px) {
+  .sb-modal { align-items: stretch; justify-content: flex-end; padding: 0; }
+  .sb-sheet { height: 100%; max-height: 100%; width: 440px; max-width: 440px; border-radius: 0; box-shadow: -12px 0 40px rgba(15, 23, 42, .18); }
+}
