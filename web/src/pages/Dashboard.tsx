@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api } from "../api";
 import { lastMonths } from "../analytics";
 import InfoTip from "../components/InfoTip";
 import { ActionSheet, FAB, StatCard } from "../ui";
@@ -10,8 +9,8 @@ import { useData } from "../data";
 import { money, relativeDay } from "../format";
 import { dayOf } from "../analytics";
 import { monthNow, ymLabel } from "../month";
-import { todayIso } from "../offline";
-import type { AccountView, DashboardSummary, Expense, MoneyInItem, Sale } from "../types";
+import { useCashAtHand } from "../cashAtHand";
+import type { DashboardSummary, Expense, MoneyInItem, Sale } from "../types";
 
 /** Home: this month in four numbers, six months at a glance, and the latest activity. */
 export default function Dashboard() {
@@ -200,22 +199,3 @@ function recentActivity(sales: Sale[], expenses: Expense[], count: number): Acti
   return items.sort((a, b) => b.day.localeCompare(a.day) || b.key.localeCompare(a.key)).slice(0, count);
 }
 
-/** Cash at hand: the balance of every active account, added together, as of today. Read from the
- * account statements, which already count each movement once. undefined = loading, null = unavailable. */
-function useCashAtHand(accounts: AccountView[], stamp: unknown): number | null | undefined {
-  const [value, setValue] = useState<number | null | undefined>(undefined);
-  useEffect(() => {
-    const active = accounts.filter((a) => !a.archived);
-    if (active.length === 0) { setValue(0); return; }
-    let live = true;
-    const anchor = todayIso();
-    Promise.all(active.map((a) =>
-      api.get<{ closing: { balance: string } }>(`/api/accounts/${a.id}/statement?period=month&date=${anchor}`)))
-      .then((results) => {
-        if (live) setValue(results.reduce((sum, r) => sum + Math.round(Number(r.closing.balance) * 100), 0) / 100);
-      })
-      .catch(() => { if (live) setValue(null); });
-    return () => { live = false; };
-  }, [accounts, stamp]);
-  return value;
-}

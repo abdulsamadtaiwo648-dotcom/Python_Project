@@ -6,22 +6,36 @@ import Sparkline from "../components/Sparkline";
 import { useData } from "../data";
 import { money } from "../format";
 import { minEntryIso, todayIso } from "../offline";
+import { useCashAtHand } from "../cashAtHand";
 import type { AccountView } from "../types";
 
 /** Accounts: a card per account with its balance and recent trend. Tap one to see its statement. */
 export default function Accounts() {
   const { accounts, reload } = useData();
+  const [reloadStamp, setReloadStamp] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const active = accounts.filter((a) => !a.archived);
   const chosen = accounts.find((a) => a.id === selected) ?? active[0] ?? null;
+  // Total across every active account, as of today. Same figure as the Home card.
+  const cashAtHand = useCashAtHand(accounts, reloadStamp);
 
   return (
     <section className="space-y-5" aria-labelledby="accounts-title">
       <h2 id="accounts-title" className="sr-only">Accounts</h2>
       {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>}
+
+      {active.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500">Cash at hand</p>
+          <p className={`mt-1 text-3xl font-bold tabular-nums ${typeof cashAtHand === "number" && cashAtHand < 0 ? "text-amber-700" : "text-slate-900"}`}>
+            {cashAtHand === undefined ? "…" : cashAtHand === null ? "—" : money(cashAtHand)}
+          </p>
+          {typeof cashAtHand === "number" && cashAtHand < 0 && <p className="text-xs font-semibold text-amber-700">Overspent</p>}
+        </div>
+      )}
 
       {active.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">No accounts yet.</p>
@@ -38,8 +52,8 @@ export default function Accounts() {
       <details className="rounded-2xl border border-slate-200 bg-white p-4">
         <summary className="cursor-pointer text-sm font-semibold text-slate-800">Manage accounts</summary>
         <div className="mt-4 space-y-4">
-          <ManageList accounts={accounts} onChange={() => void reload()} onError={setError} />
-          <AddAccount onAdded={() => { setNotice("Account added."); void reload(); }} onError={setError} />
+          <ManageList accounts={accounts} onChange={() => { void reload(); setReloadStamp((n) => n + 1); }} onError={setError} />
+          <AddAccount onAdded={() => { setNotice("Account added."); void reload(); setReloadStamp((n) => n + 1); }} onError={setError} />
         </div>
       </details>
     </section>
