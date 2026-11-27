@@ -6,6 +6,7 @@ import { useSession } from "../session";
 import { ICONS } from "../icons";
 import { clearDeviceData, signOutWarning } from "../offline";
 import { canUse } from "../access";
+import BottomNav from "../ui/BottomNav";
 
 // Five main pages, then More. Money is one page with tabs (Accounts, Money in, Transfers).
 const NAV = [
@@ -214,41 +215,13 @@ export default function Layout() {
         </div>
       </main>
 
-      <nav id="mobile-bottom-nav" aria-label="App pages"
-        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden flex items-stretch bg-white border-t border-slate-200"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {MOBILE_SHOWN.map((n) => (
-          <NavLink key={n.to} to={n.to} style={{ textDecoration: "none" }}
-            className={({ isActive }) => `mobile-nav-btn ${isActive ? "text-blue-700" : "text-slate-500"}`}>
-            <span className="relative">
-              <Svg html={ICONS["m" + n.to]} className="w-6 h-6" sw={1.9} />
-              {n.to === "/inventory" && lowCount > 0 && (
-                <span data-low-stock-badge className="absolute -top-1.5 -right-2.5 min-w-[1.1rem] rounded-full bg-rose-600 px-1 py-0.5 text-center text-[10px] font-bold leading-none text-white">{lowCount}</span>
-              )}
-            </span>
-            <span className="mobile-nav-label">{n.label}</span>
-          </NavLink>
-        ))}
-        {MORE.length > 0 && (
-        <button id="mobile-more-btn" type="button" aria-expanded={moreOpen} aria-controls="mobile-more-menu" aria-haspopup="true"
-          onClick={() => setMoreOpen((o) => !o)}
-          className={`mobile-nav-btn ${["reports", "budget", "profile", "plans", "team", "website"].includes(tab) ? "text-blue-700" : "text-slate-500"}`}>
-          <span className="relative"><Svg html={ICONS.more} className="w-6 h-6" sw={1.9} /></span>
-          <span className="mobile-nav-label">More</span>
-        </button>
-        )}
-        {moreOpen && (
-          <div id="mobile-more-menu" className="w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl" role="menu" aria-label="More pages">
-            {MORE.map((n) => (
-              <NavLink key={n.to} to={n.to} role="menuitem" style={{ textDecoration: "none" }}
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800">
-                <Svg html={ICONS["m" + n.to]} className="w-5 h-5" />
-                {n.label}
-              </NavLink>
-            ))}
-          </div>
-        )}
-      </nav>
+      <BottomNav
+        items={MOBILE_SHOWN.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-6 h-6" sw={1.9} />, badge: n.to === "/inventory" ? lowCount : undefined }))}
+        moreItems={MORE.map((n) => ({ to: n.to, label: n.label, icon: <Svg html={ICONS["m" + n.to]} className="w-5 h-5" /> }))}
+        activeTab={tab}
+        moreTabs={["reports", "budget", "profile", "plans", "team", "website"]}
+        moreOpen={moreOpen}
+        onToggleMore={() => setMoreOpen((o) => !o)} />
     </>
   );
 }

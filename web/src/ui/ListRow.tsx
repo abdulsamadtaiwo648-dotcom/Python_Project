@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 /** One row: optional leading icon, title and subtitle, and a right-hand amount. */
-export function ListRow({ icon, title, subtitle, amount, tone, onClick, trailing }: {
-  icon?: ReactNode; title: string; subtitle?: string; amount?: string; tone?: "money-in"; onClick?: () => void; trailing?: ReactNode;
+export function ListRow({ icon, title, subtitle, chips, amount, tone, onClick, ariaLabel, trailing }: {
+  icon?: ReactNode; title: string; subtitle?: string; chips?: ReactNode; amount?: string; tone?: "money-in"; onClick?: () => void; ariaLabel?: string; trailing?: ReactNode;
 }) {
   const content = (
     <>
@@ -10,13 +10,14 @@ export function ListRow({ icon, title, subtitle, amount, tone, onClick, trailing
       <div className="ui-row-main">
         <div className="ui-row-title">{title}</div>
         {subtitle && <div className="ui-row-sub">{subtitle}</div>}
+        {chips && <div className="ui-row-chips">{chips}</div>}
       </div>
       {amount && <div className={`ui-row-amount ${tone ? `is-${tone}` : ""}`}>{amount}</div>}
       {trailing}
     </>
   );
   return onClick ? (
-    <button type="button" onClick={onClick} className="ui-row" style={{ width: "100%", textAlign: "left", background: "none", border: 0 }}>{content}</button>
+    <button type="button" onClick={onClick} aria-label={ariaLabel} className="ui-row" style={{ width: "100%", textAlign: "left", background: "none", border: 0 }}>{content}</button>
   ) : (
     <div className="ui-row">{content}</div>
   );
@@ -25,9 +26,9 @@ export function ListRow({ icon, title, subtitle, amount, tone, onClick, trailing
 /** Groups rows under a sticky day header with the day's total. Input is already sorted, newest first. */
 export function DayGroup({ label, total, children }: { label: string; total?: string; children: ReactNode }) {
   return (
-    <div>
+    <section aria-label={label}>
       <div className="ui-day-head"><span>{label}</span>{total && <span>{total}</span>}</div>
-      {children}
-    </div>
+      <div className="ui-card ui-group">{children}</div>
+    </section>
   );
 }

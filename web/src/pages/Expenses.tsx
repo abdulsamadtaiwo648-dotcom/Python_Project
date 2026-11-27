@@ -15,6 +15,8 @@ import { dayOf } from "../analytics";
 import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
+import { useToast } from "../ui/Toast";
+import { DayGroup, ListRow } from "../ui";
 import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
@@ -22,6 +24,7 @@ const toAmount = (v: string) => Number(v.replace(/,/g, ""));
 function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
   const { initial } = props;
   const { write, accounts } = useData();
+  const toast = useToast();
   const defaultAccountId = accounts.find((a) => a.is_default)?.id ?? null;
   const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? defaultAccountId);
   const cats = useExpenseCategories();
@@ -71,17 +74,16 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
     }
   }
 
-  async function remove() {
-    if (!initial || !window.confirm("Delete this expense?")) return;
-    setBusy(true);
-    try {
-      await write({ kind: "expense_delete", method: "DELETE", url: `/api/expenses/${initial.server_id}`,
-        meta: { expenseId: initial.server_id } });
-      props.onClose();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete. Try again.");
-      setBusy(false);
-    }
+  // Delete now, with Undo for five seconds instead of a confirm popup. The request is sent when the window closes.
+  function remove() {
+    if (!initial) return;
+    const expenseId = initial.server_id;
+    const timer = window.setTimeout(() => {
+      void write({ kind: "expense_delete", method: "DELETE", url: `/api/expenses/${expenseId}`, meta: { expenseId } })
+        .catch(() => toast({ text: "Could not delete that expense. It is back in your list." }));
+    }, 5000);
+    toast({ text: "Expense deleted.", actionLabel: "Undo", onAction: () => window.clearTimeout(timer) });
+    props.onClose();
   }
 
   return (
@@ -275,32 +277,20 @@ export default function Expenses() {
         )}
         {inScope.length > 0 && visible.length === 0 && <p className="text-center text-sm text-slate-500">No expenses match your filter.</p>}
         {days.map((g) => (
-          <section key={g.day} aria-label={dayHeading(g.day)}>
-            <h3 className="mb-2 flex items-baseline justify-between gap-3 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <span>{dayHeading(g.day)}</span>
-              <span className="tabular-nums">{money(g.total)}</span>
-            </h3>
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              {g.items.map((e) => (
-                <li key={e.server_id}>
-                  <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
-                    aria-label={`Edit expense: ${e.category}, ${money(e.amount)}`} onClick={() => setEditing(e)}>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-slate-900">{e.description || "No description"}</span>
-                      <span className="mt-1 flex flex-wrap gap-1.5">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{e.category || "Other"}</span>
-                        {showAccounts && accountName(e.account_id) && (
-                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-800">{accountName(e.account_id)}</span>
-                        )}
-                        {!e.synced && <span className="sync-badge">Not synced</span>}
-                      </span>
-                    </span>
-                    <span className="flex-shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(e.amount)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <DayGroup key={g.day} label={dayHeading(g.day)} total={money(g.total)}>
+            {g.items.map((e) => (
+              <ListRow key={e.server_id}
+                ariaLabel={`Edit expense: ${e.category}, ${money(e.amount)}`}
+                onClick={() => setEditing(e)}
+                title={e.description || "No description"}
+                chips={<>
+                  <span>{e.category || "Other"}</span>
+                  {showAccounts && accountName(e.account_id) && <span>{accountName(e.account_id)}</span>}
+                  {!e.synced && <span className="sync-badge">Not synced</span>}
+                </>}
+                amount={money(e.amount)} />
+            ))}
+          </DayGroup>
         ))}
       </div>
 
