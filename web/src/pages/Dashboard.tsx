@@ -61,6 +61,19 @@ export default function Dashboard() {
         </Link>
       )}
 
+      {typeof cashAtHand === "number" && cashAtHand < 0 && (
+        <Link to="/money?tab=accounts" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>Overspent: cash at hand is {money(cashAtHand)}</span>
+          <span className="text-blue-700">See accounts →</span>
+        </Link>
+      )}
+      {s && s.total_outstanding > 0 && (
+        <Link to="/sales" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>{money(s.total_outstanding)} still owed by customers</span>
+          <span className="text-blue-700">See sales →</span>
+        </Link>
+      )}
+
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="This month at a glance">
         <Card label="Sales" tip={`Money collected from sales in ${monthName}.`} value={s ? money(s.month_income) : null} />
         <Card label="Expenses" tip={`Expenses paid in ${monthName}.`} value={s ? money(s.month_expenses) : null} />
