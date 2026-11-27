@@ -29,6 +29,8 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
   const { products } = props;
   const { write } = useData();
   const [lines, setLines] = useState<Line[]>([blankLine()]);
+  const [picking, setPicking] = useState(false);
+  const [pickQuery, setPickQuery] = useState("");
   const [customer, setCustomer] = useState("");
   const [mode, setMode] = useState("Cash");
   const [saleDay, setSaleDay] = useState(todayIso());
@@ -167,22 +169,43 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
           <p className="sb-help">Up to two years back; not in the future.</p>
         </div>
         <div className="sb-field">
-          <label htmlFor="sales-inventory-select">Add a product</label>
-          <select id="sales-inventory-select" value="" onChange={(e) => e.target.value && addProduct(Number(e.target.value))}>
-            <option value="">Choose a product</option>
-            {products.map((p) => {
-              const left = p.track_stock ? Math.max(0, p.stock - unitsUsed(p.id)) : null;
-              return (
-                <option key={p.id} value={p.id} disabled={left === 0}>
-                  {p.item_name} · {money(p.price)}{p.bulk_quantity && p.bulk_price ? ` · bulk ${p.bulk_quantity} for ${money(p.bulk_price)}` : ""}{left === null ? "" : ` · ${left} left`}
-                </option>
-              );
-            })}
-          </select>
+          <span className="ui-stat-label">Add a product</span>
+          <button type="button" id="sales-product-open" className="ui-input" aria-haspopup="dialog" onClick={() => setPicking(true)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left" }}>
+            <span style={{ color: "var(--sb-muted)" }}>Choose a product</span>
+            <span aria-hidden="true" style={{ color: "var(--sb-muted)" }}>+</span>
+          </button>
           <p className="sb-help">
-            {products.length ? "Choose a product to add it to the sale. Set the quantity in its line below." : "No products yet. Add products on the Inventory page, or enter a custom item below."}
+            {products.length ? "Pick a product to add it to the sale. Set the quantity in its line below." : "No products yet. Add products on the Inventory page, or enter a custom item below."}
           </p>
         </div>
+        {picking && (
+          <Sheet title="Add a product" onClose={() => setPicking(false)} compact>
+            <div className="sb-sheet-body">
+              <input type="search" className="ui-input" aria-label="Search products" placeholder="Search by name" value={pickQuery} onChange={(e) => setPickQuery(e.target.value)} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }} role="list">
+                {products.filter((p) => !pickQuery.trim() || p.item_name.toLowerCase().includes(pickQuery.trim().toLowerCase())).map((p) => {
+                  const left = p.track_stock ? Math.max(0, p.stock - unitsUsed(p.id)) : null;
+                  return (
+                    <button key={p.id} type="button" role="listitem" data-product-id={p.id} disabled={left === 0} className="ui-row"
+                      style={{ width: "100%", textAlign: "left", background: "none", border: 0, opacity: left === 0 ? 0.5 : 1 }}
+                      onClick={() => { addProduct(p.id); setPicking(false); setPickQuery(""); }}>
+                      <span className="ui-product-photo" aria-hidden="true" style={{ width: 44, height: 44, aspectRatio: "auto", fontSize: 18, marginBottom: 0 }}>
+                        {p.item_name.trim().charAt(0).toUpperCase() || "?"}
+                      </span>
+                      <span className="ui-row-main">
+                        <span className="ui-row-title" style={{ display: "block" }}>{p.item_name}</span>
+                        <span className="ui-row-sub" style={{ display: "block" }}>
+                          {money(p.price)}{p.bulk_quantity && p.bulk_price ? ` · bulk ${p.bulk_quantity} for ${money(p.bulk_price)}` : ""}{left === null ? "" : left === 0 ? " · sold out" : ` · ${left} left`}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Sheet>
+        )}
 
         <div className="sale-items-head">
           <span>Items</span>
