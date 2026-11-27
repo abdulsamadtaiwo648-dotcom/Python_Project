@@ -201,10 +201,16 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
                   <input type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="0" value={l.price} readOnly={Boolean(p)}
                     onChange={(e) => patch(l.key, { price: e.target.value })} />
                 </label>
-                <label><span>{l.bulk && p ? `Bulks of ${p.bulk_quantity}` : "Quantity"}</span>
-                  <input type="number" inputMode="numeric" min="1" max={Math.max(limit(l), 1)} step="1" value={l.qty}
-                    onChange={(e) => patch(l.key, { qty: e.target.value })} />
-                </label>
+                <div className="sale-qty"><span>{l.bulk && p ? `Bulks of ${p.bulk_quantity}` : "Quantity"}</span>
+                  <div className="sale-stepper">
+                    <button type="button" aria-label="One fewer" className="sb-btn sb-btn-secondary"
+                      onClick={() => patch(l.key, { qty: String(Math.max(1, (Number(l.qty) || 1) - 1)) })}>−</button>
+                    <input type="number" inputMode="numeric" min="1" max={Math.max(limit(l), 1)} step="1" value={l.qty} aria-label="Quantity"
+                      onChange={(e) => patch(l.key, { qty: e.target.value })} />
+                    <button type="button" aria-label="One more" className="sb-btn sb-btn-secondary"
+                      onClick={() => patch(l.key, { qty: String(Math.min(Math.max(limit(l), 1), (Number(l.qty) || 0) + 1)) })}>+</button>
+                  </div>
+                </div>
                 <button type="button" className="sale-line-remove" aria-label="Remove item"
                   onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((x) => x.key !== l.key) : [blankLine()]))}>
                   <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 6l12 12M18 6 6 18" /></svg>
@@ -250,6 +256,7 @@ export function NewSale(props: { products: Product[]; onClose: () => void; onDon
         </div>
         {error && <p className="sb-error" role="alert">{error}</p>}
         <div className="sb-sheet-foot">
+          <p className="sale-foot-total"><span>Total</span><strong>{money(total)}</strong></p>
           <button type="submit" className="sb-btn sb-btn-secondary" disabled={busy}
             onClick={() => { addAnother.current = true; }}>Save and add another</button>
           <button type="submit" className="sb-btn sb-btn-primary" disabled={busy}

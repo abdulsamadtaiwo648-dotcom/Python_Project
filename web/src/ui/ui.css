@@ -72,3 +72,11 @@
   .sb-modal { align-items: stretch; justify-content: flex-end; padding: 0; }
   .sb-sheet { height: 100%; max-height: 100%; width: 440px; max-width: 440px; border-radius: 0; box-shadow: -12px 0 40px rgba(15, 23, 42, .18); }
 }
+
+/* Sales: quantity steppers and the footer total in New sale */
+.sale-stepper { display: flex; align-items: center; gap: 6px; }
+.sale-stepper button { min-width: 44px; min-height: 44px; font-size: 18px; padding: 0; }
+.sale-stepper input { width: 64px; min-height: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+.sale-qty > span { display: block; font-size: var(--sb-text-label); color: var(--sb-muted); margin-bottom: 4px; }
+.sale-foot-total { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 8px; font-size: var(--sb-text-body); color: var(--sb-muted); }
+.sale-foot-total strong { font-size: 20px; color: var(--sb-ink); font-variant-numeric: tabular-nums; }

@@ -12,6 +12,7 @@ import type { BusinessProfile, Sale } from "../types";
 import { escapeHtml } from "../escape";
 import { useToast } from "../ui/Toast";
 import { FilterChips, SelectSheet } from "../ui";
+import Sheet from "../components/Sheet";
 import FAB from "../ui/FAB";
 import { useOpenNew } from "../ui/useOpenNew";
 
@@ -92,6 +93,7 @@ export default function Sales() {
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const toast = useToast();
   const [needProfile, setNeedProfile] = useState(false);
+  const [detail, setDetail] = useState<Receipt | null>(null);
 
   useEffect(() => { document.title = "Sales | SoloBiz"; }, []);
   // On phones the New sale form is a full-screen sheet: Escape closes it and the page behind does not scroll.
@@ -225,10 +227,10 @@ export default function Sales() {
             return (
               <article key={r.key} className="sale-card">
                 <div className="sale-card-top">
-                  <div className="min-w-0">
+                  <button type="button" className="min-w-0 text-left" onClick={() => setDetail(r)} aria-label={`Details for ${first.customer_name || "walk-in customer"}`}>
                     <p className="sale-customer">{first.customer_name || "Walk-in customer"}{r.items.some((x) => x.pending) && <span className="sale-offline"> Not synced</span>}</p>
                     <p className="sale-meta">{meta}</p>
-                  </div>
+                  </button>
                   <div className="sale-total">
                     <p>{money(r.total)}</p>
                     <span className={`sale-badge ${STATUS[r.status].cls}`}>{STATUS[r.status].label}</span>
@@ -257,6 +259,30 @@ export default function Sales() {
       </div>
 
       {settling && <SettleDebt receipt={settling} onClose={() => setSettling(null)} />}
+      {detail && (
+        <Sheet title="Sale details" onClose={() => setDetail(null)} compact>
+          <div className="sb-sheet-body">
+            <p className="sale-customer">{detail.items[0].customer_name || "Walk-in customer"}</p>
+            <p className="sale-meta">{saleDate(detail.items[0].date)} · {detail.items[0].payment_mode || "Cash"}{detail.items[0].receipt_id ? ` · #${detail.items[0].receipt_id}` : ""}</p>
+            <ul className="sale-items" style={{ marginTop: 12 }}>
+              {detail.items.map((s) => <li key={s.id}><span>{lineTitle(s)}</span><span>{money(s.total_value)}</span></li>)}
+            </ul>
+            <dl style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 6, marginTop: 12, fontSize: "var(--sb-text-body)" }}>
+              <dt>Total</dt><dd style={{ margin: 0, fontWeight: 700 }}>{money(detail.total)}</dd>
+              <dt>Paid so far</dt><dd style={{ margin: 0 }}>{money(detail.paid)}</dd>
+              <dt>Still owed</dt><dd style={{ margin: 0, fontWeight: 700, color: detail.owed > 0 ? "var(--sb-warning)" : undefined }}>{money(detail.owed)}</dd>
+            </dl>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+              {detail.owed > 0 && <button type="button" className="sb-btn sb-btn-primary" onClick={() => { setSettling(detail); setDetail(null); }}>Record payment</button>}
+              <a className="sb-btn sb-btn-secondary" target="_blank" rel="noopener"
+                href={`https://wa.me/?text=${encodeURIComponent(`Receipt ${detail.items[0].receipt_id || ""}: ${money(detail.total)}. Thank you!`)}`}>Share on WhatsApp</a>
+              <button type="button" className="sb-btn sb-btn-secondary"
+                onClick={() => (profile?.company_name ? printReceipt(detail, profile, can("branding")) : setNeedProfile(true))}>Print receipt</button>
+              {canDelete && <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => { removeSale(detail); setDetail(null); }}>Delete</button>}
+            </div>
+          </div>
+        </Sheet>
+      )}
       {needProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
           <div className="w-full max-w-sm rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
