@@ -35,6 +35,9 @@ export default function Dashboard() {
   const budgetWarnings = budgetAlerts(storedLimits, expenses, ym);
   const monthName = ymLabel(ym);
   const cashAtHand = useCashAtHand(accounts, s);
+  const alertCount = (lowStock > 0 ? 1 : 0) + budgetWarnings.length
+    + (typeof cashAtHand === "number" && cashAtHand < 0 ? 1 : 0)
+    + (fromContext && fromContext.total_outstanding > 0 ? 1 : 0);
   const name = s?.username ?? "";
 
   useEffect(() => { document.title = "Home | SoloBiz"; }, []);
@@ -50,8 +53,18 @@ export default function Dashboard() {
   return (
     <div className="space-y-5" id="home">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <p className="truncate text-lg font-semibold text-slate-900">{greeting()}{name ? `, ${name}` : ""}</p>
+          {alertCount > 0 && (
+            <button type="button" aria-label={`${alertCount} ${alertCount === 1 ? "alert" : "alerts"}, show them`}
+              onClick={() => document.getElementById("home-alerts")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="relative inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" />
+              </svg>
+              <span className="absolute right-1 top-1 min-w-[1.1rem] rounded-full bg-rose-600 px-1 text-center text-[10px] font-bold leading-4 text-white">{alertCount}</span>
+            </button>
+          )}
         </div>
         <MonthPicker value={ym} current={dm.current ?? monthNow()} months={dm.months} onChange={dm.setMonth} />
       </header>
@@ -65,6 +78,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div id="home-alerts" className="space-y-2">
       {lowStock > 0 && (
         <Link to="/inventory" className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
           <span>{lowStock} {lowStock === 1 ? "product is" : "products are"} running low</span>
@@ -90,6 +104,8 @@ export default function Dashboard() {
           <span className="text-blue-700">See sales →</span>
         </Link>
       )}
+
+      </div>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="This month at a glance">
         <Card label="Sales" tip={`Money collected from sales in ${monthName}.`} value={s ? money(s.month_income) : null} />
