@@ -1158,6 +1158,29 @@ def _import_batches():
 # schema_migrations. A new change to the schema is a new function appended to
 # MIGRATIONS below. Never edit a migration that has already shipped.
 # ---------------------------------------------------------------------------
+def _profile_lock():
+    """Migration 0013: the business profile lock. setup_completed_at starts the 7-day grace period;
+    identity_changed_at starts the 90-day lock when name, phone or address changes after grace;
+    identity_change_reason keeps the reason given for that change. Existing profiles are set up
+    already, so they get a setup date long in the past: no grace period, and their next change
+    of a locked field starts the lock."""
+    with get_db() as db:
+        if db.is_postgres:
+            db.execute("ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS setup_completed_at TEXT")
+            db.execute("ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS identity_changed_at TEXT")
+            db.execute("ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS identity_change_reason TEXT")
+        else:
+            existing = {row["name"] for row in db.execute("PRAGMA table_info(business_profiles)").fetchall()}
+            for column in ("setup_completed_at", "identity_changed_at", "identity_change_reason"):
+                if column not in existing:
+                    db.execute(f"ALTER TABLE business_profiles ADD COLUMN {column} TEXT")
+        db.execute(
+            "UPDATE business_profiles SET setup_completed_at = ? WHERE setup_completed_at IS NULL AND company_name IS NOT NULL AND company_name <> ''",
+            ("1970-01-01T00:00:00+00:00",),
+        )
+        db.commit()
+
+
 MIGRATIONS = [
     ("0001_baseline", _baseline_schema),
     ("0002_drop_floor_tables", _drop_floor_tables),
@@ -1170,6 +1193,7 @@ MIGRATIONS = [
     ("0010_accounts", _accounts),
     ("0011_account_flows", _account_flows),
     ("0012_import_batches", _import_batches),
+    ("0013_profile_lock", _profile_lock),
 ]
 
 _MIGRATION_LOCK_ID = 730001  # PostgreSQL advisory lock: one server migrates at a time
