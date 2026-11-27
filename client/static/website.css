@@ -53,6 +53,8 @@ a { color: var(--brand-ink); }
 .site-nav { display: flex; gap: 6px; flex-shrink: 0; }
 .site-nav a { padding: 9px 14px; border-radius: 999px; color: #475569; font-size: .92rem; font-weight: 500; text-decoration: none; }
 .site-nav a:hover { background: #f1f5f9; color: #0f172a; }
+/* Footer links (WhatsApp, Call, Instagram) meet the 44px tap target */
+.footer-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; }
 @media (max-width: 720px) {
   .header-row { flex-wrap: wrap; row-gap: 0; padding-top: 6px; padding-bottom: 6px; }
   .site-nav { width: 100%; margin: 0 -10px; padding: 0 10px 8px; overflow-x: auto; scrollbar-width: none; }
