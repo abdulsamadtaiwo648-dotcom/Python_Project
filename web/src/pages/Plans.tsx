@@ -96,7 +96,7 @@ export default function Plans() {
       </div>
 
       {!subscription.payments_ready && (
-        <p className="plan-banner plan-banner-free" role="note">Online payment is being set up. You can look at the plans now and subscribe as soon as it opens.</p>
+        <p className="plan-banner plan-banner-free" role="note">Online payment is coming soon. You can compare plans now.</p>
       )}
 
       <div className="plans-grid">

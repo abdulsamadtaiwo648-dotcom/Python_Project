@@ -306,13 +306,13 @@ export default function Website() {
               <input type="radio" name="layout" value="product" checked={isProduct} onChange={() => edit({ layout: "product" })} />
               <div className="wb-wire" aria-hidden="true"><i className="hero" /><div className="cards"><i /><i /><i /></div><div className="cards"><i /><i /><i /></div></div>
               <strong>Product Store</strong>
-              <p>For shops that sell items. Shows your products and prices from Inventory.</p>
+              <p>For shops that sell items.</p>
             </label>
             <label className="wb-layout">
               <input type="radio" name="layout" value="service" checked={!isProduct} onChange={() => edit({ layout: "service" })} />
               <div className="wb-wire" aria-hidden="true"><i className="hero" /><i className="cta" /><div className="rows"><i /><i /><i /></div></div>
               <strong>Service Business</strong>
-              <p>For salons, tailors, repairs and more. Lists your services with a booking button.</p>
+              <p>For salons, tailors and repairs.</p>
             </label>
           </div>
             </>
@@ -406,7 +406,7 @@ export default function Website() {
           <h2 className="wb-step-title" id="step-content">{stepNo(3)}<span style={{ fontSize: "inherit", color: "inherit", fontWeight: "inherit" }}>{isProduct ? "Products" : "Services"}</span></h2>
           {isProduct ? (
             <div>
-              <p className="wb-step-sub">These come from your Inventory. Changes to products show on a live site straight away. <Link className="sb-link" to="/inventory" style={{ padding: 0 }}>Manage products</Link></p>
+              <p className="wb-step-sub"><span>From your Inventory.</span> <InfoTip label="Live changes">Changes to products show on a live site straight away.</InfoTip> <Link className="sb-link" to="/inventory" style={{ padding: 0 }}>Manage products</Link></p>
               <div>
                 {site.products.length === 0 && <p className="list-empty" style={{ padding: "16px 0" }}>You have no products yet. <Link className="sb-link" to="/inventory">Add products in Inventory</Link></p>}
                 {site.products.map((p) => (

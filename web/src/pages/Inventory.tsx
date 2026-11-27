@@ -228,7 +228,7 @@ export default function Inventory() {
                 {needing.length} product{needing.length === 1 ? " needs" : "s need"} restocking: {[
                   counts.out ? `${counts.out} out of stock` : "", counts.low ? `${counts.low} running low` : ""].filter(Boolean).join(", ")}
               </p>
-              <p className="mt-0.5 text-xs text-rose-800">Restock these products so you don't miss sales. Change a product's alert level from Edit.</p>
+              <p className="mt-0.5 text-xs text-rose-800">Restock these so you don't miss sales.</p>
               <ul className="mt-3 space-y-2">
                 {needing.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-rose-100 bg-white/80 px-3 py-2">
@@ -321,7 +321,7 @@ export default function Inventory() {
         </div>
       </div>
       )}
-      <p className="page-note">Tap a product to edit its price, stock, bulk price or low-stock alert.</p>
+      <p className="page-note">Tap a product to edit it.</p>
 
       {editing && <ProductForm product={editing.product} focusStock={editing.restock} onClose={() => setEditing(null)} onSaved={reload} onDelete={scheduleDelete} />}
     </section>
