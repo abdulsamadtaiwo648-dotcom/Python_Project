@@ -123,7 +123,7 @@ export default function Register() {
               <input id="reg-password" type={show ? "text" : "password"} required minLength={8} autoComplete="new-password"
                 placeholder="At least 8 characters" className="pr-14" value={form.password} onChange={set("password")} />
               <button type="button" onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 hover:text-slate-900">
+                className="absolute right-1 top-1/2 inline-flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center px-2 text-xs font-semibold text-slate-500 hover:text-slate-900">
                 {show ? "Hide" : "Show"}
               </button>
             </div>

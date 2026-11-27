@@ -6,7 +6,7 @@ export default function InfoTip({ label, children }: { label: string; children: 
   return (
     <span className="relative inline-flex align-middle">
       <button type="button" aria-label={`About ${label}`} aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-[12px] leading-none text-slate-400 hover:text-slate-700">
+        className="-mx-3 -my-3 ml-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-[12px] leading-none text-slate-400 hover:text-slate-700">
         ⓘ
       </button>
       {open && (
