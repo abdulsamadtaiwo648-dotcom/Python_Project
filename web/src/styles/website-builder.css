@@ -19,6 +19,12 @@
         .wb-badge-live { background: #ecfdf5; color: #047857; }
         .wb-badge-changes { background: #fffbeb; color: #b45309; }
         .wb-status-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .wb-summary { display: flex; gap: 14px; align-items: center; }
+        .wb-summary-thumb { width: 72px; height: 72px; flex-shrink: 0; border-radius: 14px; background: #f1f5f9 center / cover no-repeat; display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; color: #64748b; }
+        .wb-summary-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+        .wb-success-title { font-size: 1.25rem; font-weight: 700; color: var(--sb-ink); }
+        .wb-continue { margin-top: 16px; width: 100%; }
+        .wb-edit-top { display: flex; }
 
         /* layout picker */
         .wb-layouts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
