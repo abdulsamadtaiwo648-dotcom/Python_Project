@@ -1,11 +1,11 @@
 """Business profile: details, logo and verified changes."""
 
-import calendar
 import re
 import uuid
-from datetime import datetime, timezone
 
-from fastapi import Request
+from typing import Any
+
+from fastapi import Body, Request
 from fastapi.concurrency import run_in_threadpool
 
 from server import websites
@@ -14,6 +14,7 @@ from server.database import get_db
 from .. import core
 from ..compat import JsonRouter, jsonify, to_response
 from ..deps import current_user_id
+from ..profile_lock import changed_locked_fields, date_text, lock_status, now_utc
 
 record_user_activity = core.record_user_activity
 sanitize_brand_color = core.sanitize_brand_color
@@ -96,10 +97,35 @@ def save_uploaded_logo(upload, user_id):
 
 
 @router.post("/api/business_profile/request-otp")
-def request_profile_otp(request: Request):
+def request_profile_otp(request: Request, payload: Any = Body(None)):
     user_id = current_user_id(request)
     if not user_id:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    # Check the lock before sending anything. A locked profile gets no code.
+    body = payload if isinstance(payload, dict) else {}
+    with get_db() as db:
+        existing = db.execute("SELECT * FROM business_profiles WHERE user_id = ?", (user_id,)).fetchone()
+    existing_dict = dict(existing) if existing else {}
+    proposed = {
+        "company_name": str(body.get("company_name", "")).strip(),
+        "business_phone": str(body.get("business_phone", "")).strip(),
+        "business_address": str(body.get("business_address", "")).strip(),
+    }
+    locked_changed = changed_locked_fields(existing_dict, proposed) if existing else []
+    lock = lock_status(
+        now_utc(),
+        existing_dict.get("setup_completed_at") if existing else None,
+        existing_dict.get("identity_changed_at") if existing else None,
+    )
+    if locked_changed and lock["state"] == "locked":
+        return jsonify({
+            "status": "locked",
+            "message": f"Name, phone and address can change after {date_text(lock['until'])}. For an urgent change, contact support.",
+            "locked_until": lock["until"].isoformat(),
+        }), 403
+    if not locked_changed or lock["state"] not in ("grace", "open"):
+        return jsonify({"status": "not_needed", "message": "No code is needed for this change."})
 
     with get_db() as db:
         user = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
@@ -205,58 +231,43 @@ def _save_profile(user_id, data, logo):
     reason_code = str(data.get("profile_change_reason", "")).strip()
     reason_label = PROFILE_CHANGE_REASONS.get(reason_code, "")
     reason_note = str(data.get("profile_change_note", "")).strip()[:100]
-    if profile_changed and existing and not reason_label:
+
+    # Only name, phone and address lock (see api/profile_lock.py). Other fields always save.
+    proposed = {"company_name": company_name, "business_phone": business_phone, "business_address": business_address}
+    locked_changed = changed_locked_fields(existing_dict, proposed) if existing else []
+    lock = lock_status(
+        now_utc(),
+        existing_dict.get("setup_completed_at") if existing else None,
+        existing_dict.get("identity_changed_at") if existing else None,
+    )
+    if locked_changed and lock["state"] == "locked":
         with get_db() as db:
-            record_user_activity(db, user_id, "profile_change_rejected", "Business profile change submitted without a valid reason")
-        return jsonify({"status": "error", "message": "Select a reason for changing your business profile."}), 400
-    if profile_changed and existing and reason_code == "other" and not reason_note:
-        with get_db() as db:
-            record_user_activity(db, user_id, "profile_change_rejected", "Business profile change submitted without the required reason details")
+            record_user_activity(db, user_id, "profile_change_locked", "Tried to change a locked business detail during the lock")
+        return jsonify({
+            "status": "locked",
+            "message": f"Name, phone and address can change after {date_text(lock['until'])}. For an urgent change, contact support.",
+            "locked_until": lock["until"].isoformat(),
+            "locked_fields": locked_changed,
+        }), 403
+    # A PIN is needed only when a locked field changes, and not during initial setup.
+    needs_pin = bool(locked_changed) and lock["state"] in ("grace", "open")
+    if needs_pin and not reason_label:
+        return jsonify({"status": "error", "message": "Choose why you are changing your name, phone or address."}), 400
+    if needs_pin and reason_code == "other" and not reason_note:
         return jsonify({"status": "error", "message": "Add a short explanation for the reason you selected."}), 400
 
-    provided_otp = str(data.get("otp", "")).strip()
-    with get_db() as db:
-        user_row = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
-    if not user_row:
-        return jsonify({"status": "error", "message": "User not found"}), 404
-
-    _record, otp_error = verify_otp(user_row["email"], "profile", provided_otp, consume=True)
-    if otp_error:
+    if needs_pin:
+        provided_otp = str(data.get("otp", "")).strip()
         with get_db() as db:
-            record_user_activity(db, user_id, "profile_change_verification_failed", "Business profile change verification failed")
-        return jsonify({"status": "error", "message": otp_error}), 400
+            user_row = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not user_row:
+            return jsonify({"status": "error", "message": "User not found"}), 404
 
-    last_changed_at = existing_dict.get("profile_updated_at")
-    if profile_changed and last_changed_at:
-        try:
-            previous_change = datetime.fromisoformat(str(last_changed_at).replace("Z", "+00:00"))
-            if previous_change.tzinfo is None:
-                previous_change = previous_change.replace(tzinfo=timezone.utc)
-            month_number = previous_change.month - 1 + 3
-            target_year = previous_change.year + month_number // 12
-            target_month = month_number % 12 + 1
-            target_day = min(previous_change.day, calendar.monthrange(target_year, target_month)[1])
-            allowed_after = previous_change.replace(year=target_year, month=target_month, day=target_day)
-            if datetime.now(timezone.utc) < allowed_after:
-                available_date = allowed_after.strftime("%B %d, %Y").replace(" 0", " ")
-                reason_text = f" — {reason_note}" if reason_code == "other" and reason_note else ""
-                with get_db() as db:
-                    record_user_activity(
-                        db, user_id, "profile_change_requested",
-                        f"Business profile change requested during the 3-month edit window: {reason_label}{reason_text}",
-                    )
-                return jsonify({
-                    "status": "locked",
-                    "request_recorded": True,
-                    "message": f"Your request has been recorded. Profile changes will be available after {available_date}. For an urgent update, please contact support.",
-                }), 403
-        except (TypeError, ValueError):
+        _record, otp_error = verify_otp(user_row["email"], "profile", provided_otp, consume=True)
+        if otp_error:
             with get_db() as db:
-                record_user_activity(db, user_id, "profile_change_rejected", "Business profile change could not be verified against the last update date")
-            return jsonify({
-                "status": "error",
-                "message": "We couldn’t verify when this profile was last updated. Please contact our support team before making changes.",
-            }), 400
+                record_user_activity(db, user_id, "profile_change_verification_failed", "Business profile change verification failed")
+            return jsonify({"status": "error", "message": otp_error}), 400
 
     # OTP validation: verify against the hashed code stored in otp_codes table
     # A locked profile change is stored as a request in the activity log,
@@ -278,17 +289,25 @@ def _save_profile(user_id, data, logo):
     elif data.get("logo_url"):
         logo_url = sanitize_logo_url(data.get("logo_url"))
 
-    profile_updated_at = (
-        datetime.now(timezone.utc).isoformat() if profile_changed
-        else existing_dict.get("profile_updated_at")
-    )
+    now_iso = now_utc().isoformat()
+    profile_updated_at = now_iso if profile_changed else existing_dict.get("profile_updated_at")
     profile_change_reason = (
-        reason_label if profile_changed and existing else
-        ("Initial setup" if profile_changed else existing_dict.get("profile_change_reason"))
+        reason_label if needs_pin else
+        ("Initial setup" if profile_changed and not existing else existing_dict.get("profile_change_reason"))
     )
     profile_change_note = (
-        reason_note if profile_changed and existing and reason_code == "other" else
-        (None if profile_changed else existing_dict.get("profile_change_note"))
+        reason_note if needs_pin and reason_code == "other" else
+        existing_dict.get("profile_change_note")
+    )
+    # Setup starts the grace period. A change after grace starts the 90-day lock; a grace correction does not.
+    setup_completed_at = existing_dict.get("setup_completed_at") if existing else (
+        now_iso if company_name and business_phone and business_address else None
+    )
+    starts_lock = needs_pin and lock["state"] == "open"
+    identity_changed_at = now_iso if starts_lock else existing_dict.get("identity_changed_at")
+    identity_change_reason = (
+        f"{reason_label}" + (f" — {reason_note}" if reason_code == "other" and reason_note else "")
+        if needs_pin else existing_dict.get("identity_change_reason")
     )
 
     with get_db() as db:
@@ -308,12 +327,14 @@ def _save_profile(user_id, data, logo):
                    SET company_name=?, business_phone=?, business_address=?,
                        instagram_handle=?, whatsapp_number=?, store_policy=?,
                        brand_color=?, logo_url=?, store_slug=?, profile_updated_at=?,
-                       profile_change_reason=?, profile_change_note=?
+                       profile_change_reason=?, profile_change_note=?,
+                       setup_completed_at=?, identity_changed_at=?, identity_change_reason=?
                    WHERE user_id=?""",
                 (company_name, business_phone, business_address,
                  instagram_handle, whatsapp_number, store_policy,
                  brand_color, current_logo, store_slug,
                  profile_updated_at, profile_change_reason, profile_change_note,
+                 setup_completed_at, identity_changed_at, identity_change_reason,
                  user_id)
             )
             profile_id = existing_dict["id"]
@@ -322,12 +343,14 @@ def _save_profile(user_id, data, logo):
                 """INSERT INTO business_profiles
                    (user_id, company_name, business_phone, business_address, instagram_handle,
                     whatsapp_number, store_policy, brand_color, logo_url, store_slug, profile_updated_at,
-                    profile_change_reason, profile_change_note)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    profile_change_reason, profile_change_note, setup_completed_at, identity_changed_at,
+                    identity_change_reason)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (user_id, company_name, business_phone, business_address,
                  instagram_handle, whatsapp_number, store_policy,
                  brand_color, current_logo, store_slug, profile_updated_at,
-                 profile_change_reason, profile_change_note)
+                 profile_change_reason, profile_change_note, setup_completed_at, identity_changed_at,
+                 identity_change_reason)
             )
             profile_id = cursor.lastrowid
         if profile_changed:
