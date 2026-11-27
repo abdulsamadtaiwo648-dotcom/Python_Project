@@ -1,0 +1,53 @@
+/*
+ * Design tokens. One brand colour, neutrals, and three semantic colours.
+ * Light values match client/static/solobiz-ui.css exactly, so nothing looks different yet.
+ * Dark values exist for later; they only apply when <html data-theme="dark"> is set.
+ */
+:root {
+  /* Colour */
+  --sb-brand: #1d4ed8;
+  --sb-brand-hover: #1e40af;
+  --sb-ink: #0f172a;
+  --sb-muted: #64748b;
+  --sb-line: #e2e8f0;
+  --sb-canvas: #f7f6f2;
+  --sb-surface: #ffffff;
+  --sb-money-in: #059669;   /* green: money in */
+  --sb-warning: #b45309;    /* amber: warning, overspent */
+  --sb-danger: #be123c;     /* red: errors and delete only */
+
+  /* Spacing: 4 / 8 / 12 / 16 / 24 / 32 */
+  --sb-space-1: 4px;
+  --sb-space-2: 8px;
+  --sb-space-3: 12px;
+  --sb-space-4: 16px;
+  --sb-space-6: 24px;
+  --sb-space-8: 32px;
+
+  /* Radius */
+  --sb-radius-card: 12px;
+  --sb-radius-chip: 999px;
+  --sb-radius-sheet: 16px;
+
+  /* Shadow: one soft card shadow */
+  --sb-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06);
+
+  /* Type sizes: 14px body minimum, 16px inputs (stops iPhone zoom), 12px labels */
+  --sb-text-body: 14px;
+  --sb-text-input: 16px;
+  --sb-text-label: 12px;
+}
+
+:root[data-theme="dark"] {
+  --sb-brand: #60a5fa;
+  --sb-brand-hover: #93c5fd;
+  --sb-ink: #f1f5f9;
+  --sb-muted: #94a3b8;
+  --sb-line: #1e293b;
+  --sb-canvas: #0b1220;
+  --sb-surface: #111a2e;
+  --sb-money-in: #34d399;
+  --sb-warning: #fbbf24;
+  --sb-danger: #fb7185;
+  --sb-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+}

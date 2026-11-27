@@ -6,6 +6,7 @@ import MonthPicker from "../components/MonthPicker";
 import YearPicker from "../components/YearPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
+import { compactNaira } from "../format";
 import { expenseSlices, rangeLabel, type Slice } from "../analytics";
 import Donut, { COLOURS } from "../components/Donut";
 import { LockedPage } from "../components/Upgrade";
@@ -124,6 +125,4 @@ function Breakdown({ title, slices, label }: { title: string; slices: Slice[]; l
 }
 
 /** ₦36.6M style, so the total fits in the middle of the ring. */
-function short(v: number): string {
-  return "₦" + new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 }).format(v);
-}
+const short = compactNaira;

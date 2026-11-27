@@ -8,6 +8,11 @@ export function money(value: number | null | undefined): string {
   return `${sign}₦${abs.toLocaleString("en-NG", whole ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** Short amount for chart axes and ring totals: ₦36.6M, ₦145K. */
+export function compactNaira(value: number): string {
+  return "₦" + new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
 /** Parse a saved "YYYY-MM-DD hh:mm AM" (or ISO) date into a Date, or null. The server stores UTC. */
 export function parseSaved(value: string | null | undefined): Date | null {
   if (!value) return null;

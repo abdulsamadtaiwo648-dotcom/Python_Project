@@ -1,6 +1,14 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { money } from "./format";
+import { compactNaira, money } from "./format";
+
+describe("compactNaira", () => {
+  test("short amounts for charts and ring totals", () => {
+    assert.equal(compactNaira(36642301), "₦36.6M");
+    assert.equal(compactNaira(145000), "₦145K");
+    assert.equal(compactNaira(2420), "₦2.4K");
+  });
+});
 
 describe("money", () => {
   test("whole and decimal amounts", () => {
