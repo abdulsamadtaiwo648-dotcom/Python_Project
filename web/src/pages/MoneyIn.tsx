@@ -2,6 +2,15 @@ import EmptyState from "../components/EmptyState";
 import { useEffect, useState, type FormEvent } from "react";
 import { useToast } from "../ui/Toast";
 import { useOpenNew } from "../ui/useOpenNew";
+import { FilterChips } from "../ui";
+
+// Short chip names for the money kinds. The values saved on the server are not changed.
+const KIND_LABEL: Record<string, string> = {
+  "Owner contribution": "Owner contribution",
+  "Loan": "Loan",
+  "Refund received": "Refund",
+  "Other income": "Other",
+};
 import { ApiError, api } from "../api";
 import { moneyInFor, moneyInTotal, MONEY_IN_KINDS, TRANSFER_KIND } from "../moneyIn";
 import { canTransfer, hasOneAccount, pickableAccounts } from "../accounts";
@@ -165,10 +174,10 @@ export function MoneyInForm(props: { initial?: MoneyInItem; defaultKind?: string
           </div>
         </div>
         <div className="sb-field">
-          <label htmlFor="money-in-kind">What kind of money?</label>
-          <select id="money-in-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
-            {kinds.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
+          <span className="ui-stat-label">What kind of money?</span>
+          {/* Chips show short names; the stored kind values are unchanged. */}
+          <FilterChips label="What kind of money?" value={kind} onChange={setKind}
+            options={kinds.map((k) => ({ value: k, label: KIND_LABEL[k] ?? k }))} />
         </div>
         {isTransfer && (
           <div className="sb-field">
