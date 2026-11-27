@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import { dateLabel, money, parseSaved } from "../format";
+import { ListRow } from "../ui/ListRow";
 import { ActionSheet, FAB } from "../ui";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { canTransfer } from "../accounts";
@@ -51,9 +54,21 @@ export default function Money() {
   );
 }
 
+interface TransferItem { id: number; amount: number; description: string; entry_date: string; from_account_id: number | null; to_account_id: number | null }
+
 function Transfers(props: { onAddAccount: () => void }) {
   const { accounts } = useData();
   const [open, setOpen] = useState(false);
+  const [transfers, setTransfers] = useState<TransferItem[] | null>(null);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    let live = true;
+    api.get<{ transfers: TransferItem[] }>("/api/transfers")
+      .then((r) => { if (live) setTransfers(r.transfers); })
+      .catch(() => { if (live) setTransfers([]); });
+    return () => { live = false; };
+  }, [revision]);
+  const nameOf = (id: number | null) => accounts.find((a) => a.id === id)?.name ?? "Deleted account";
   if (!canTransfer(accounts)) {
     return (
       <div className="sb-panel flex flex-wrap items-center justify-between gap-3">
@@ -63,10 +78,29 @@ function Transfers(props: { onAddAccount: () => void }) {
     );
   }
   return (
-    <div className="sb-panel flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-slate-600">A transfer moves money from one account to another. It appears in both accounts’ statements.</p>
-      <button type="button" className="sb-btn sb-btn-primary" onClick={() => setOpen(true)}>New transfer</button>
-      {open && <MoneyInForm defaultKind="Transfer" onClose={() => setOpen(false)} onSaved={() => setOpen(false)} />}
+    <div className="sb-panel" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-600">A transfer moves money from one account to another. It appears in both accounts’ statements.</p>
+        <button type="button" className="sb-btn sb-btn-primary" onClick={() => setOpen(true)}>New transfer</button>
+      </div>
+      {transfers === null ? (
+        <p className="text-sm text-slate-500">Loading transfers…</p>
+      ) : transfers.length === 0 ? (
+        <p className="text-sm text-slate-500">No transfers yet.</p>
+      ) : (
+        <div>
+          {transfers.map((t) => {
+            const when = dateLabel(parseSaved(t.entry_date) ?? t.entry_date, { day: "numeric", month: "short" });
+            return (
+              <ListRow key={t.id}
+                title={`${nameOf(t.from_account_id)} → ${nameOf(t.to_account_id)}`}
+                subtitle={[t.description, when].filter(Boolean).join(" · ")}
+                amount={money(t.amount)} />
+            );
+          })}
+        </div>
+      )}
+      {open && <MoneyInForm defaultKind="Transfer" onClose={() => setOpen(false)} onSaved={() => { setOpen(false); setRevision((r) => r + 1); }} />}
     </div>
   );
 }

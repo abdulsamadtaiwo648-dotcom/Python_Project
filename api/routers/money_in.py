@@ -81,6 +81,26 @@ def list_money_in(request: Request, payload: Any = Body(None)):
     return jsonify({"status": "success", "money_in": items, "kinds": mi.INCOME_KINDS, "transfer": mi.TRANSFER}), 200
 
 
+@router.api_route("/api/transfers", methods=['GET'])
+def list_transfers(request: Request, payload: Any = Body(None)):
+    """Transfers between accounts, newest first. Each one moves money from one account to another."""
+    user_id = current_user_id(request)
+    if not user_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    with get_db() as db:
+        cutoff = history_cutoff(user_id)
+        sql = ("SELECT id, amount, description, entry_date, account_id, from_account_id FROM money_in "
+               "WHERE user_id = ? AND kind = ?")
+        params = (user_id, mi.TRANSFER)
+        if cutoff:
+            sql += " AND entry_date >= ?"
+            params = (user_id, mi.TRANSFER, cutoff)
+        rows = db.execute(sql + " ORDER BY entry_date DESC, id DESC", params).fetchall()
+    items = [{"id": r["id"], "amount": float(r["amount"]), "description": r["description"], "entry_date": r["entry_date"],
+              "from_account_id": r["from_account_id"], "to_account_id": r["account_id"]} for r in rows]
+    return jsonify({"status": "success", "transfers": items}), 200
+
+
 @router.api_route("/api/money-in", methods=['POST'])
 def add_money_in(request: Request, payload: Any = Body(None)):
     user_id = current_user_id(request)
