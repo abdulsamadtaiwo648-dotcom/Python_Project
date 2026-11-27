@@ -1010,6 +1010,8 @@ body.app-shell > header button:hover {
   padding: 14px; border: 1px solid var(--sb-line); border-radius: 14px; background: #fff;
   box-shadow: none;
 }
+/* The empty message is a single full-width row, not a product card */
+#inv-list-card:not(.inv-view-table) #presets-grid tr:has(> td[colspan]) { grid-column: 1 / -1; display: block; padding: 0; border: 0; background: transparent; }
 #inv-list-card:not(.inv-view-table) #presets-grid td { padding: 0 !important; border: 0 !important; font-size: 12px; color: #64748b; }
 #inv-list-card:not(.inv-view-table) #presets-grid td:first-child { font-size: 14px; font-weight: 600; color: #0f172a; }
 #inv-list-card:not(.inv-view-table) #presets-grid td:last-child { font-size: 14px; font-weight: 600; color: #0f172a; }
