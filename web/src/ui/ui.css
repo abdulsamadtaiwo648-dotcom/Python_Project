@@ -1,0 +1,59 @@
+/* Shared components. Mobile sizes first; desktop widens them in the media query. Colours and spacing come from tokens.css. */
+.ui-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sb-space-2); min-height: 48px; padding: 0 var(--sb-space-4); border-radius: var(--sb-radius-card); border: 1px solid transparent; font-size: var(--sb-text-body); font-weight: 600; cursor: pointer; }
+.ui-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--sb-brand) 35%, transparent); outline-offset: 2px; }
+.ui-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ui-btn-primary { background: var(--sb-brand); color: #fff; }
+.ui-btn-primary:hover:not(:disabled) { background: var(--sb-brand-hover); }
+.ui-btn-secondary { background: var(--sb-surface); color: var(--sb-ink); border-color: var(--sb-line); }
+.ui-btn-ghost { background: transparent; color: var(--sb-brand); }
+.ui-btn-danger { background: var(--sb-danger); color: #fff; }
+.ui-btn-block { width: 100%; }
+
+.ui-card { background: var(--sb-surface); border: 1px solid var(--sb-line); border-radius: var(--sb-radius-card); box-shadow: var(--sb-shadow-card); padding: var(--sb-space-4); }
+.ui-stat-label { display: flex; align-items: center; gap: var(--sb-space-1); font-size: var(--sb-text-label); color: var(--sb-muted); }
+.ui-stat-value { margin-top: var(--sb-space-2); font-size: 22px; font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+.ui-stat-value.is-money-in { color: var(--sb-money-in); }
+.ui-stat-value.is-warning { color: var(--sb-warning); }
+.ui-stat-value.is-danger { color: var(--sb-danger); }
+.ui-skeleton { margin-top: var(--sb-space-2); height: 28px; width: 96px; border-radius: 8px; background: #f1f5f9; animation: ui-pulse 1.2s ease-in-out infinite; }
+@keyframes ui-pulse { 50% { opacity: .5; } }
+.ui-stat-footer { margin-top: var(--sb-space-2); font-size: var(--sb-text-label); font-weight: 600; color: var(--sb-brand); }
+.ui-stat-note { margin-top: var(--sb-space-1); font-size: var(--sb-text-label); color: var(--sb-muted); }
+
+.ui-row { display: flex; align-items: center; gap: var(--sb-space-3); min-height: 56px; padding: var(--sb-space-2) 0; }
+.ui-row-main { flex: 1; min-width: 0; }
+.ui-row-title { font-size: var(--sb-text-body); font-weight: 600; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-row-sub { font-size: var(--sb-text-label); color: var(--sb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-row-amount { font-size: var(--sb-text-body); font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ui-row-amount.is-money-in { color: var(--sb-money-in); }
+.ui-day-head { position: sticky; top: 0; display: flex; justify-content: space-between; padding: var(--sb-space-2) 0; font-size: var(--sb-text-label); font-weight: 600; color: var(--sb-muted); background: var(--sb-canvas); }
+
+.ui-chips { display: flex; gap: var(--sb-space-2); overflow-x: auto; padding: var(--sb-space-1) 0; scrollbar-width: none; }
+.ui-chips::-webkit-scrollbar { display: none; }
+.ui-chip { flex-shrink: 0; min-height: 40px; padding: 0 var(--sb-space-4); border-radius: var(--sb-radius-chip); border: 1px solid var(--sb-line); background: var(--sb-surface); color: var(--sb-ink); font-size: var(--sb-text-body); font-weight: 600; }
+.ui-chip[aria-pressed="true"] { background: var(--sb-brand); border-color: var(--sb-brand); color: #fff; }
+
+.ui-fab { position: fixed; right: var(--sb-space-4); bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 40; width: 56px; height: 56px; border-radius: 999px; border: 0; background: var(--sb-brand); color: #fff; font-size: 28px; line-height: 1; box-shadow: 0 6px 18px rgba(15, 23, 42, .2); }
+
+.ui-appbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: var(--sb-space-2); min-height: 56px; padding: 0 var(--sb-space-4); background: var(--sb-surface); border-bottom: 1px solid var(--sb-line); }
+.ui-appbar-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: var(--sb-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-appbar-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; background: transparent; color: var(--sb-ink); border-radius: 12px; }
+
+.ui-input { width: 100%; min-height: 48px; padding: 0 var(--sb-space-3); border: 1px solid var(--sb-line); border-radius: var(--sb-radius-card); background: var(--sb-surface); color: var(--sb-ink); font-size: var(--sb-text-input); }
+.ui-money { display: flex; align-items: center; gap: var(--sb-space-2); }
+.ui-money-sign { font-size: 28px; font-weight: 700; color: var(--sb-muted); }
+.ui-money-input { flex: 1; min-width: 0; min-height: 64px; border: 0; border-bottom: 2px solid var(--sb-line); background: transparent; font-size: 32px; font-weight: 700; color: var(--sb-ink); font-variant-numeric: tabular-nums; }
+.ui-money-input:focus { outline: none; border-bottom-color: var(--sb-brand); }
+
+.ui-toast { position: fixed; left: var(--sb-space-4); right: var(--sb-space-4); bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 60; display: flex; align-items: center; gap: var(--sb-space-3); padding: var(--sb-space-3) var(--sb-space-4); border-radius: var(--sb-radius-card); background: var(--sb-ink); color: #fff; font-size: var(--sb-text-body); box-shadow: 0 8px 24px rgba(15, 23, 42, .25); }
+.ui-toast-action { margin-left: auto; min-height: 44px; padding: 0 var(--sb-space-2); border: 0; background: transparent; color: #93c5fd; font-weight: 700; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ui-btn, .ui-chip { transition: background-color 150ms ease, color 150ms ease; }
+}
+
+@media (min-width: 1024px) {
+  .ui-btn { min-height: 40px; }
+  .ui-fab { display: none; }
+  .ui-appbar { padding: 0 var(--sb-space-6); }
+}

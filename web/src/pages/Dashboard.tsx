@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { lastMonths } from "../analytics";
 import InfoTip from "../components/InfoTip";
+import { StatCard } from "../ui";
 import MonthPicker from "../components/MonthPicker";
 import { useDashboardMonth } from "../dashboardMonth";
 import { useData } from "../data";
@@ -47,14 +48,14 @@ export default function Dashboard() {
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-3" aria-label="This month at a glance">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="This month at a glance">
         <Card label="Sales" tip={`Money collected from sales in ${monthName}.`} value={s ? money(s.month_income) : null} />
         <Card label="Expenses" tip={`Expenses paid in ${monthName}.`} value={s ? money(s.month_expenses) : null} />
         <Card label="Profit" tip={`Sales minus expenses in ${monthName}.`}
-          value={s ? money(profit) : null} tone={profit < 0 ? "text-rose-700" : "text-slate-900"} />
+          value={s ? money(profit) : null} tone={profit < 0 ? "warning" : undefined} />
         <Card label="Cash at hand" tip="All your account balances today, added together."
           value={cashAtHand === undefined ? null : cashAtHand === null ? "—" : money(cashAtHand)}
-          tone={(cashAtHand ?? 0) < 0 ? "text-rose-700" : "text-slate-900"}
+          tone={(cashAtHand ?? 0) < 0 ? "warning" : undefined}
           link={{ to: "/money?tab=accounts", label: "See accounts →" }} />
       </section>
 
@@ -119,20 +120,11 @@ export default function Dashboard() {
   );
 }
 
-function Card(props: { label: string; tip: string; value: string | null; tone?: string; link?: { to: string; label: string } }) {
+function Card(props: { label: string; tip: string; value: string | null; tone?: "money-in" | "warning" | "danger"; link?: { to: string; label: string } }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="flex items-center text-xs font-medium text-slate-500">
-        {props.label}
-        <InfoTip label={props.label}>{props.tip}</InfoTip>
-      </p>
-      {props.value === null ? (
-        <div className="mt-2 h-7 w-24 animate-pulse rounded bg-slate-100" aria-hidden="true" />
-      ) : (
-        <p className={`mt-2 text-xl font-bold tabular-nums ${props.tone ?? "text-slate-900"}`}>{props.value}</p>
-      )}
-      {props.link && <Link to={props.link.to} className="mt-2 inline-block text-xs font-semibold text-blue-700 hover:text-blue-900">{props.link.label}</Link>}
-    </div>
+    <StatCard label={props.label} value={props.value} tone={props.tone}
+      info={<InfoTip label={props.label}>{props.tip}</InfoTip>}
+      footer={props.link && <Link to={props.link.to}>{props.link.label}</Link>} />
   );
 }
 
