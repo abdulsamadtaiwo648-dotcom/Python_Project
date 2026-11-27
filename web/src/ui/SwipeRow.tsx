@@ -19,12 +19,14 @@ export default function SwipeRow({ children, onEdit, onDelete, label }: {
   const setOffset = (value: number) => { current.current = value; setOffsetState(value); };
   const open = offset <= -REVEAL / 2;
 
-  function down(e: React.PointerEvent) {
+  function down(e: React.PointerEvent<HTMLDivElement>) {
+    // Keep receiving this pointer's moves and release even when the finger leaves the row.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     start.current = e.clientX;
     dragged.current = false;
     base.current = current.current <= -REVEAL / 2 ? -REVEAL : 0;
   }
-  function move(e: React.PointerEvent) {
+  function move(e: React.PointerEvent<HTMLDivElement>) {
     if (start.current === null) return;
     const dx = e.clientX - start.current;
     if (Math.abs(dx) < 4 && current.current === 0) return;

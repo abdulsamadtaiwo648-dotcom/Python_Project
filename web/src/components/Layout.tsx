@@ -7,6 +7,7 @@ import { ICONS } from "../icons";
 import { clearDeviceData, signOutWarning } from "../offline";
 import { canUse } from "../access";
 import BottomNav from "../ui/BottomNav";
+import { usePullToRefresh } from "../ui";
 
 // Five main pages, then More. Money is one page with tabs (Accounts, Money in, Transfers).
 const NAV = [
@@ -50,7 +51,8 @@ export default function Layout() {
   const { pathname } = useLocation();
   const nav = useNavigate();
   const { refresh, access, user } = useSession();
-  const { summary, profile, online, pending, failed, dismissFailed, syncNow, subscription } = useData();
+  const { summary, profile, online, pending, failed, dismissFailed, syncNow, subscription, reload } = useData();
+  const refreshing = usePullToRefresh(() => reload());
   const plan = subscription?.current;
   const isOwner = !access || access.is_owner;
   const name = user?.first_name || summary?.username || "";
@@ -127,6 +129,9 @@ export default function Layout() {
         </div>
       </header>
 
+      {refreshing === "refreshing" && (
+        <div role="status" className="fixed inset-x-0 top-0 z-50 bg-slate-900 py-1 text-center text-xs font-semibold text-white">Refreshing…</div>
+      )}
       <main className="desktop-dashboard-shell w-full">
         <aside id="dashboard-navigation" className="desktop-sidebar" aria-label="Main navigation">
           <div className="side-brand">

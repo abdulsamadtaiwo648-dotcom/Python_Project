@@ -2,6 +2,7 @@ import EmptyState from "../components/EmptyState";
 import { useEffect, useState, type FormEvent } from "react";
 import { useToast } from "../ui/Toast";
 import { useOpenNew } from "../ui/useOpenNew";
+import { SwipeRow } from "../ui";
 import { FilterChips } from "../ui";
 
 // Short chip names for the money kinds. The values saved on the server are not changed.
@@ -100,7 +101,9 @@ export default function MoneyIn() {
         ) : (
           <ul className="divide-y divide-slate-100" aria-label="Money in entries">
             {monthItems.map((i) => (
-              <li key={i.id} className="flex flex-wrap items-center gap-3 py-3">
+              <li key={i.id} className="p-0">
+                <SwipeRow label={`${i.kind}, ${i.description}`} onEdit={() => setEditing(i)} onDelete={() => void remove(i)}>
+                  <div className="flex flex-wrap items-center gap-3 bg-white py-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-slate-900">{i.kind}</p>
                   <p className="truncate text-xs text-slate-500">{i.description || "No note"} · {relativeDay(i.entry_date || i.date)}</p>
@@ -110,6 +113,8 @@ export default function MoneyIn() {
                 {access?.is_owner && (
                   <button type="button" className="sb-btn sb-btn-danger-text" onClick={() => void remove(i)}>Delete</button>
                 )}
+</div>
+                </SwipeRow>
               </li>
             ))}
           </ul>

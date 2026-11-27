@@ -15,7 +15,7 @@ import { FilterChips, SelectSheet } from "../ui";
 import Sheet from "../components/Sheet";
 import FAB from "../ui/FAB";
 import { useOpenNew } from "../ui/useOpenNew";
-import { SyncPending } from "../ui";
+import { SwipeRow, SyncPending } from "../ui";
 
 type Quick = "all" | "today" | "week" | "bulk";
 const STATUS: Record<Status, { label: string; cls: string }> = {
@@ -226,7 +226,9 @@ export default function Sales() {
             const first = r.items[0];
             const meta = [saleDate(first.date), first.payment_mode || "Cash", first.receipt_id ? `#${first.receipt_id}` : ""].filter(Boolean).join(" · ");
             return (
-              <article key={r.key} className="sale-card">
+              <SwipeRow key={r.key} label={`Sale to ${first.customer_name || "walk-in customer"}`}
+                onEdit={() => setDetail(r)} onDelete={() => removeSale(r)}>
+                <article className="sale-card">
                 <div className="sale-card-top">
                   <button type="button" className="min-w-0 text-left" onClick={() => setDetail(r)} aria-label={`Details for ${first.customer_name || "walk-in customer"}`}>
                     <p className="sale-customer">{first.customer_name || "Walk-in customer"}{r.items.some((x) => x.pending) && <span className="ml-1"><SyncPending /></span>}</p>
@@ -250,7 +252,8 @@ export default function Sales() {
                     onClick={() => removeSale(r)}>Delete</button>
                   )}
                 </div>
-              </article>
+</article>
+              </SwipeRow>
             );
               })}
             </section>
