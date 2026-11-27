@@ -38,9 +38,10 @@ export default function Profile() {
 
   const exists = Boolean(profile?.company_name);
   const p: BusinessProfile | null = profile;
-  const brand = p?.brand_color || "#1d4ed8";
+  const [brand, setBrand] = useState(p?.brand_color || "#1d4ed8");
 
   function startEdit() {
+    setBrand(p?.brand_color || "#1d4ed8");
     setForm({
       company_name: p?.company_name ?? "", business_phone: p?.business_phone ?? "", whatsapp_number: p?.whatsapp_number ?? "",
       instagram_handle: p?.instagram_handle ?? "", business_address: p?.business_address ?? "", store_policy: p?.store_policy ?? "",
@@ -263,6 +264,17 @@ export default function Profile() {
               <div className="sb-field">
                 <label htmlFor="profile-store-policy">Note on receipts and shop page <span className="sb-optional">(optional)</span></label>
                 <textarea id="profile-store-policy" rows={2} placeholder="e.g. No refunds after 24 hours. Thanks for choosing us!" value={form.store_policy} onChange={set("store_policy")} />
+              </div>
+              <div className="sb-field">
+                <label htmlFor="profile-brand-colour">Brand colour</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <input id="profile-brand-colour" type="color" aria-label="Brand colour" value={brand} onChange={(e) => setBrand(e.target.value)} />
+                  {["#1d4ed8", "#0F766E", "#BE185D", "#B45309", "#15803D", "#7C3AED", "#0F172A"].map((c) => (
+                    <button key={c} type="button" aria-label={`Use colour ${c}`} onClick={() => setBrand(c)}
+                      style={{ width: 32, height: 32, borderRadius: 999, background: c, border: brand === c ? "3px solid #0f172a" : "2px solid #fff", boxShadow: "0 0 0 1px #cbd5e1" }} />
+                  ))}
+                </div>
+                <p className="sb-help">Used on your receipts and your website.</p>
               </div>
               <div className="sb-field">
                 <label htmlFor="profile-logo-file">Logo <span className="sb-optional">(optional, up to 2 MB)</span></label>
