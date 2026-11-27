@@ -7,7 +7,7 @@ import { NewSale, SettleDebt, type Receipt, type Status } from "../components/Sa
 import ImportSheet from "../components/ImportSheet";
 import { useData } from "../data";
 import { useSession } from "../session";
-import { money, parseSaved } from "../format";
+import { dateTimeLabel, money, parseSaved } from "../format";
 import type { BusinessProfile, Sale } from "../types";
 import { escapeHtml } from "../escape";
 
@@ -43,7 +43,7 @@ const lineTitle = (s: Sale) => {
 };
 const saleDate = (v: string) => {
   const d = parseSaved(v);
-  return d ? d.toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }) : v;
+  return d ? dateTimeLabel(v) : v;
 };
 
 function printReceipt(r: Receipt, profile: BusinessProfile | null, branded: boolean) {

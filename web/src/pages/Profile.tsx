@@ -7,6 +7,7 @@ import { useData } from "../data";
 import { useSession } from "../session";
 import { clearDeviceData, signOutWarning } from "../offline";
 import type { BusinessProfile } from "../types";
+import { dateLabel } from "../format";
 
 const REASONS: [string, string][] = [
   ["business_rebrand", "Business rebrand"], ["contact_update", "Contact information update"],
@@ -147,7 +148,7 @@ export default function Profile() {
           <p className="mt-2 text-sm text-blue-100">
             {!plan ? "" :
               plan.state === "trial" ? `${plan.days_left} day${plan.days_left === 1 ? "" : "s"} left of your free Pro trial.` :
-              plan.state === "active" ? `Active until ${plan.ends_at ? new Date(plan.ends_at).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" }) : ""}.` :
+              plan.state === "active" ? `Active until ${dateLabel(plan.ends_at, { day: "numeric", month: "long", year: "numeric" })}.` :
               plan.state === "grace" ? "Your renewal was not received. Renew to keep your plan." :
               "Upgrade for reports, a website, alerts and offline recording."}
           </p>

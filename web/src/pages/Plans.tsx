@@ -4,9 +4,10 @@ import { ApiError, api } from "../api";
 import { useData } from "../data";
 import { money } from "../format";
 import type { FeatureKey, PlanInfo } from "../types";
+import { dateLabel as formatLongDate } from "../format";
 
 const FEATURE_ORDER: FeatureKey[] = ["offline", "reports", "alerts", "branding", "website"];
-const dateLabel = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" }) : "");
+const dateLabel = (iso: string | null) => formatLongDate(iso);
 
 function limitsFor(p: PlanInfo): string[] {
   return [

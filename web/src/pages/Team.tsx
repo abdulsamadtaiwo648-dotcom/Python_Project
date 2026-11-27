@@ -4,6 +4,7 @@ import Sheet from "../components/Sheet";
 import { UpgradeNotice, isUpgradeError } from "../components/Upgrade";
 import { useData } from "../data";
 import { parseSaved } from "../format";
+import { dateLabel } from "../format";
 
 interface StaffRow { id: string; name: string; email: string; role: string; role_label: string; pages: string[]; created_at: string }
 interface Preset { key: string; label: string; pages: string[]; blurb: string }
@@ -11,7 +12,7 @@ interface Page { key: string; label: string }
 interface TeamResponse { status: string; staff: StaffRow[]; seats: { used: number; limit: number }; roles: Preset[]; pages: Page[] }
 
 const PASSWORD_OK = (p: string) => p.length >= 8 && /[a-zA-Z]/.test(p) && /\d/.test(p);
-const since = (iso: string) => parseSaved(iso)?.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) ?? "";
+const since = (iso: string) => dateLabel(parseSaved(iso));
 
 /** The owner's list of staff, with each person's role, pages and seat count. */
 export default function Team() {

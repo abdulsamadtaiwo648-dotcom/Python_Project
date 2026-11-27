@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { compactNaira, money } from "./format";
+import { compactNaira, dateLabel, money } from "./format";
 
 describe("compactNaira", () => {
   test("short amounts for charts and ring totals", () => {
@@ -27,5 +27,17 @@ describe("money", () => {
     assert.equal(money(null), "₦0");
     assert.equal(money(undefined), "₦0");
     assert.equal(money(NaN), "₦0");
+  });
+});
+
+describe("dateLabel", () => {
+  test("day, short month and year, and empty for missing values", () => {
+    assert.equal(dateLabel(new Date(2026, 10, 14)), "14 Nov 2026");
+    assert.equal(dateLabel(null), "");
+    assert.equal(dateLabel(undefined), "");
+  });
+
+  test("accepts custom options such as a long month", () => {
+    assert.equal(dateLabel(new Date(2027, 1, 27), { day: "numeric", month: "long", year: "numeric" }), "27 February 2027");
   });
 });

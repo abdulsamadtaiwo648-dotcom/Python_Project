@@ -30,6 +30,18 @@ export function relativeDay(value: string): string {
   const days = Math.round((start(new Date()) - start(d)) / 86_400_000);
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
-  if (days > 1 && days < 7) return d.toLocaleDateString("en-GB", { weekday: "long" });
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (days > 1 && days < 7) return d.toLocaleDateString("en-NG", { weekday: "long" });
+  return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" });
+}
+
+/** "14 Nov 2026". Accepts a Date, an ISO string or a saved "YYYY-MM-DD hh:mm" string. Empty for missing values. */
+export function dateLabel(value: Date | string | null | undefined, opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" }): string {
+  const d = value instanceof Date ? value : typeof value === "string" ? parseSaved(value) ?? new Date(value) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-NG", opts) : "";
+}
+
+/** "14 Nov, 2:30 PM" for activity and sales lists. */
+export function dateTimeLabel(value: string | null | undefined): string {
+  const d = parseSaved(value);
+  return d ? d.toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }) : value ?? "";
 }
