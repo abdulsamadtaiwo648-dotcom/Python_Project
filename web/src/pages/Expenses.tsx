@@ -16,7 +16,7 @@ import { monthNow, ymLabel } from "../month";
 import MonthPicker from "../components/MonthPicker";
 import { dayStamp, minEntryIso, nextTempId, todayIso } from "../offline";
 import { useToast } from "../ui/Toast";
-import { DatePicker, DayGroup, FAB, FilterChips, ListRow, MoneyInput, SelectSheet, useOpenNew } from "../ui";
+import { DatePicker, DayGroup, FAB, FilterChips, ListRow, MoneyInput, SelectSheet, SwipeRow, useOpenNew } from "../ui";
 import type { Expense } from "../types";
 
 const toAmount = (v: string) => Number(v.replace(/,/g, ""));
@@ -170,13 +170,27 @@ function ExpenseForm(props: { initial?: Expense; onClose: () => void }) {
 }
 
 export default function Expenses() {
-  const { expenses, subscription, reload, accounts, loading } = useData();
+  const { expenses, subscription, reload, accounts, loading, write } = useData();
+  const toast = useToast();
+  // Expenses deleted but not yet confirmed. Hidden now; the delete is sent after five seconds unless Undo is tapped.
+  const [hiddenExp, setHiddenExp] = useState<Set<number>>(() => new Set());
   const dm = useDashboardMonth();
   const cats = useExpenseCategories();
   const [managing, setManaging] = useState(false);
   const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Expense | "new" | null>(null);
   useOpenNew(() => setEditing("new"));
+
+  // Hide the row now; send the delete after five seconds. Undo restores the row and sends nothing.
+  function removeExpense(e: Expense) {
+    setHiddenExp((h) => new Set(h).add(e.server_id));
+    const unhide = () => setHiddenExp((h) => { const n = new Set(h); n.delete(e.server_id); return n; });
+    const timer = window.setTimeout(() => {
+      void write({ kind: "expense_delete", method: "DELETE", url: `/api/expenses/${e.server_id}`, meta: { expenseId: e.server_id } })
+        .catch(() => { unhide(); toast({ text: "Could not delete that expense. It is back in your list." }); });
+    }, 5000);
+    toast({ text: "Expense deleted.", actionLabel: "Undo", onAction: () => { window.clearTimeout(timer); unhide(); } });
+  }
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState("");
@@ -197,7 +211,7 @@ export default function Expenses() {
     : expenses.filter((e) => dayOf(e).startsWith(ym));
   const [search, setSearch] = useState("");
   const visible = inScope.filter((e) =>
-    (!category || e.category === category) && (!account || String(e.account_id) === account) &&
+    !hiddenExp.has(e.server_id) && (!category || e.category === category) && (!account || String(e.account_id) === account) &&
     (!exact || Math.abs(e.amount - Number(exact)) < 0.005) &&
     (!search.trim() || `${e.description} ${e.category}`.toLowerCase().includes(search.trim().toLowerCase())));
   // Top category for the month: the one with the largest total in view.
@@ -315,16 +329,19 @@ export default function Expenses() {
         {days.map((g) => (
           <DayGroup key={g.day} label={dayHeading(g.day)} total={money(g.total)}>
             {g.items.map((e) => (
-              <ListRow key={e.server_id}
-                ariaLabel={`Edit expense: ${e.category}, ${money(e.amount)}`}
-                onClick={() => setEditing(e)}
-                title={e.description || "No description"}
-                chips={<>
-                  <span>{e.category || "Other"}</span>
-                  {showAccounts && accountName(e.account_id) && <span>{accountName(e.account_id)}</span>}
-                  {!e.synced && <span className="sync-badge">Not synced</span>}
-                </>}
-                amount={money(e.amount)} />
+              <SwipeRow key={e.server_id} label={`${e.description || "Expense"}, ${money(e.amount)}`}
+                onEdit={() => setEditing(e)} onDelete={() => removeExpense(e)}>
+                <ListRow
+                  ariaLabel={`Edit expense: ${e.category}, ${money(e.amount)}`}
+                  onClick={() => setEditing(e)}
+                  title={e.description || "No description"}
+                  chips={<>
+                    <span>{e.category || "Other"}</span>
+                    {showAccounts && accountName(e.account_id) && <span>{accountName(e.account_id)}</span>}
+                    {!e.synced && <span className="sync-badge">Not synced</span>}
+                  </>}
+                  amount={money(e.amount)} />
+              </SwipeRow>
             ))}
           </DayGroup>
         ))}

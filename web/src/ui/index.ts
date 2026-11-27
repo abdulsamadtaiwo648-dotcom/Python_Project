@@ -12,3 +12,4 @@ export { default as SelectSheet } from "./SelectSheet";
 export { default as BottomNav } from "./BottomNav";
 export { default as ActionSheet } from "./ActionSheet";
 export { useOpenNew } from "./useOpenNew";
+export { default as SwipeRow } from "./SwipeRow";

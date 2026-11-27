@@ -120,3 +120,12 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }
+
+/* Swipe-to-reveal rows (SwipeRow) */
+.ui-swipe { position: relative; overflow: hidden; touch-action: pan-y; }
+.ui-swipe-row { position: relative; background: var(--sb-surface); transition: transform 180ms ease; }
+.ui-swipe-actions { position: absolute; inset: 0 0 0 auto; display: flex; width: 144px; }
+.ui-swipe-actions button { flex: 1; min-height: 44px; border: 0; font-size: var(--sb-text-body); font-weight: 700; color: #fff; }
+.ui-swipe-edit { background: var(--sb-brand); }
+.ui-swipe-delete { background: var(--sb-danger); }
+@media (prefers-reduced-motion: reduce) { .ui-swipe-row { transition: none; } }
